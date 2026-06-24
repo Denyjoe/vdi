@@ -26,6 +26,8 @@ import AdminHardwarePage from "./pages/admin/AdminHardwarePage";
 import AdminTemplatesPage from "./pages/admin/AdminTemplatesPage";
 import AdminVMsPage from "./pages/admin/AdminVMsPage";
 import LecturerDashboard from "./pages/lecturer/LecturerDashboard";
+import LecturerMonitorPage from "./pages/lecturer/LecturerMonitorPage";
+import LecturerClassesPage from "./pages/lecturer/LecturerClassesPage";
 import StudentDashboard from "./pages/student/StudentDashboard";
 import StudentVMsPage from "./pages/student/StudentVMsPage";
 import SessionHistoryPage from "./pages/student/SessionHistoryPage";
@@ -99,6 +101,27 @@ export default function App() {
             <ProtectedRoute>
               <Layout>
                 <LecturerDashboard />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/lecturer/monitor"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <LecturerMonitorPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/lecturer/classes"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <LecturerClassesPage />
               </Layout>
             </ProtectedRoute>
           }

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import EmptyState from '../../components/shared/EmptyState';
 import Toast from '../../components/shared/Toast';
+import ExamBanner from '../../components/student/ExamBanner';
 
 /** Map icon name strings (stored in DB) to Lucide components. */
 const ICON_MAP = {
@@ -200,6 +201,9 @@ export default function StudentVMsPage() {
           onClose={() => setToast({ show: false, message: '', type: '' })} 
         />
       )}
+
+      {/* Exam Banner — shown when a lecturer has started an exam */}
+      <ExamBanner />
 
       {/* Active Session Banner */}
       {activeSession && (

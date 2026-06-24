@@ -107,6 +107,9 @@ class ExamSession(models.Model):
         ends_at (datetime): Scheduled end time.
         restrict_internet (bool): Block internet access inside VMs.
         restrict_copy_paste (bool): Disable clipboard inside VMs.
+        instructions (str): Additional instructions for the exam.
+        allowed_vm_template (VMTemplate): If set, only VMs of this template can be used.
+        grace_period_minutes (int): Allow students to connect slightly before the start time.
         created_at (datetime): When the exam session record was created.
     """
 
@@ -152,6 +155,23 @@ class ExamSession(models.Model):
     restrict_copy_paste = models.BooleanField(
         default=True,
         help_text="Disable clipboard (copy-paste) inside student VMs during this exam.",
+    )
+    instructions = models.TextField(
+        blank=True,
+        default="",
+        help_text="Specific instructions for students during this exam.",
+    )
+    allowed_vm_template = models.ForeignKey(
+        "vms.VMTemplate",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="exam_sessions",
+        help_text="Restrict students to using only VMs from this template.",
+    )
+    grace_period_minutes = models.IntegerField(
+        default=0,
+        help_text="Number of minutes before starts_at that students are allowed to connect.",
     )
     created_at = models.DateTimeField(auto_now_add=True)
 

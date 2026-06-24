@@ -6,6 +6,7 @@ from .views import (
 )
 
 from apps.sessions.views import AdminSessionsView, AdminTerminateSessionView
+from apps.classes.views import AdminClassListView
 
 urlpatterns = [
     path('vms/', AdminVMListView.as_view(), name='admin-vm-list'),
@@ -16,5 +17,6 @@ urlpatterns = [
     path('hardware/cpu-history/', HardwareCpuHistoryView.as_view(), name='admin-hardware-cpu-history'),
     path('sessions/', AdminSessionsView.as_view(), name='admin-session-list'),
     path('sessions/<int:pk>/terminate/', AdminTerminateSessionView.as_view(), name='admin-session-terminate'),
+    path('classes/', AdminClassListView.as_view(), name='admin-class-list'),
 ]
 

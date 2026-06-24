@@ -20,6 +20,7 @@ urlpatterns = [
     # API Routes
     path("api/vms/", include("apps.vms.urls")),
     path("api/sessions/", include("apps.sessions.urls")),
+    path("api/classes/", include("apps.classes.urls")),
     path("api/admin/", include("apps.vms.admin_urls")),
 
     # ── Health check ─────────────────────────────────────────────────────────

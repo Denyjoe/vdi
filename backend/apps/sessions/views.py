@@ -6,8 +6,13 @@ from django.utils import timezone
 from apps.users.permissions import IsStudent, IsLecturer, IsAdmin
 from apps.vms.models import VirtualMachine
 from apps.classes.models import Class
-from .models import RemoteSession
-from .serializers import RemoteSessionSerializer
+from .models import RemoteSession, ExamSession, ActivityLog
+from .serializers import (
+    RemoteSessionSerializer, 
+    ExamSessionSerializer, 
+    ExamSessionCreateSerializer, 
+    LiveStudentSessionSerializer
+)
 from .services.remote_session_manager import session_manager
 
 class ConnectSessionView(views.APIView):
@@ -176,6 +181,198 @@ class LecturerTerminateSessionView(views.APIView):
             
         session = session_manager.terminate(session, request.user)
         serializer = RemoteSessionSerializer(session)
+        return Response({
+            "success": True,
+            "data": serializer.data
+        })
+
+class LecturerExamSessionListCreateView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated, IsLecturer]
+    
+    def get_queryset(self):
+        return ExamSession.objects.filter(lecturer=self.request.user).order_by('-created_at')
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return ExamSessionCreateSerializer
+        return ExamSessionSerializer
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({"success": True, "data": serializer.data})
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            exam = serializer.save(lecturer=request.user, status='scheduled')
+            ActivityLog.objects.create(
+                user=request.user,
+                action='EXAM_SESSION_CREATED',
+                description=f"Created exam session: {exam.name}",
+                metadata={"exam_id": exam.id},
+                ip_address=request.META.get('REMOTE_ADDR')
+            )
+            response_serializer = ExamSessionSerializer(exam)
+            return Response({"success": True, "data": response_serializer.data}, status=status.HTTP_201_CREATED)
+        return Response({"success": False, "message": "Validation failed", "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+class LecturerExamSessionDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated, IsLecturer]
+    
+    def get_queryset(self):
+        return ExamSession.objects.filter(lecturer=self.request.user)
+
+    def get_serializer_class(self):
+        if self.request.method in ['PUT', 'PATCH']:
+            return ExamSessionCreateSerializer
+        return ExamSessionSerializer
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = ExamSessionSerializer(instance)
+        return Response({"success": True, "data": serializer.data})
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        data = request.data.copy()
+        if 'class_room' in data:
+            del data['class_room'] # Cannot change class_room after creation
+        
+        serializer = self.get_serializer(instance, data=data, partial=True, context={'request': request})
+        if serializer.is_valid():
+            exam = serializer.save()
+            response_serializer = ExamSessionSerializer(exam)
+            return Response({"success": True, "data": response_serializer.data})
+        return Response({"success": False, "message": "Validation failed", "errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.status != 'scheduled':
+            return Response({"success": False, "message": "Can only delete scheduled exams"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        instance.delete()
+        return Response({"success": True, "message": "Exam session deleted"}, status=status.HTTP_200_OK)
+
+class LecturerStartExamView(views.APIView):
+    permission_classes = [IsAuthenticated, IsLecturer]
+
+    def post(self, request, pk):
+        exam = get_object_or_404(ExamSession, pk=pk, lecturer=request.user)
+        if exam.status != 'scheduled':
+            return Response({"success": False, "message": "Exam must be scheduled to start"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        exam.status = 'active'
+        if not exam.starts_at or exam.starts_at > timezone.now():
+            exam.starts_at = timezone.now()
+        exam.save()
+
+        ActivityLog.objects.create(
+            user=request.user,
+            action='EXAM_STARTED',
+            description=f"Started exam session: {exam.name}",
+            metadata={"exam_id": exam.id},
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+
+        serializer = ExamSessionSerializer(exam)
+        return Response({"success": True, "data": serializer.data})
+
+class LecturerEndExamView(views.APIView):
+    permission_classes = [IsAuthenticated, IsLecturer]
+
+    def post(self, request, pk):
+        exam = get_object_or_404(ExamSession, pk=pk, lecturer=request.user)
+        exam.status = 'ended'
+        exam.ends_at = timezone.now()
+        exam.save()
+
+        # Find all active RemoteSessions for students in this exam's class
+        active_sessions = RemoteSession.objects.filter(
+            user__enrollments__class_room=exam.class_room,
+            status='active'
+        )
+        count = active_sessions.count()
+
+        for session in active_sessions:
+            session_manager.terminate(session, request.user)
+
+        ActivityLog.objects.create(
+            user=request.user,
+            action='EXAM_ENDED',
+            description=f"Ended exam session: {exam.name}",
+            metadata={"exam_id": exam.id, "terminated_sessions": count},
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+
+        serializer = ExamSessionSerializer(exam)
+        return Response({
+            "success": True, 
+            "data": {
+                "exam": serializer.data,
+                "terminated_sessions": count
+            }
+        })
+
+class LecturerMonitorView(views.APIView):
+    permission_classes = [IsAuthenticated, IsLecturer]
+
+    def get(self, request):
+        classes = Class.objects.filter(lecturer=request.user)
+        active_exams = ExamSession.objects.filter(lecturer=request.user, status='active')
+        
+        # Get active sessions for students in all classes
+        active_sessions = []
+        in_exam_count = 0
+        
+        for c in classes:
+            sessions = session_manager.get_active_sessions(class_room=c)
+            for s in sessions:
+                # Add duration calculation here so serializer has it
+                s.duration_seconds = int((timezone.now() - s.started_at).total_seconds())
+                active_sessions.append(s)
+
+        serializer = LiveStudentSessionSerializer(
+            active_sessions, 
+            many=True,
+            context={'active_exams': list(active_exams)}
+        )
+        
+        active_sessions_data = serializer.data
+        for s in active_sessions_data:
+            if s['is_in_exam']:
+                in_exam_count += 1
+                
+        exam_serializer = ExamSessionSerializer(active_exams, many=True)
+
+        return Response({
+            "success": True,
+            "data": {
+                "active_sessions": active_sessions_data,
+                "exam_sessions": exam_serializer.data,
+                "summary": {
+                    "total_active": len(active_sessions_data),
+                    "in_exam": in_exam_count,
+                    "free_sessions": len(active_sessions_data) - in_exam_count
+                }
+            }
+        })
+
+class StudentActiveExamSessionView(views.APIView):
+    permission_classes = [IsAuthenticated, IsStudent]
+
+    def get(self, request):
+        # Find if any class the student is enrolled in has an active exam
+        exam = ExamSession.objects.filter(
+            class_room__enrollments__student=request.user,
+            status='active'
+        ).first()
+
+        if not exam:
+            return Response({"success": True, "data": None})
+
+        # Calculate time remaining
+        serializer = ExamSessionSerializer(exam)
         return Response({
             "success": True,
             "data": serializer.data

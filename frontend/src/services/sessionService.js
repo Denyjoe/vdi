@@ -23,5 +23,25 @@ export const sessionService = {
     api.get('/admin/sessions/', { params }),
 
   adminTerminate: (session_id) =>
-    api.post(`/admin/sessions/${session_id}/terminate/`)
+    api.post(`/admin/sessions/${session_id}/terminate/`),
+
+  // Exam Sessions (Lecturer)
+  getExamSessions: () =>
+    api.get('/sessions/exam-sessions/'),
+  
+  createExamSession: (data) =>
+    api.post('/sessions/exam-sessions/', data),
+    
+  startExamSession: (id) =>
+    api.post(`/sessions/exam-sessions/${id}/start/`),
+    
+  endExamSession: (id) =>
+    api.post(`/sessions/exam-sessions/${id}/end/`),
+    
+  getMonitorData: () =>
+    api.get('/sessions/lecturer/monitor/'),
+
+  // Exam Sessions (Student)
+  getStudentActiveExam: () =>
+    api.get('/sessions/exam-sessions/active/'),
 };

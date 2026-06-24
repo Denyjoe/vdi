@@ -4,6 +4,7 @@ import useAuthStore from '../../store/authStore';
 import { Monitor, Link2, ClipboardList, Info } from 'lucide-react';
 import { sessionService } from '../../services/sessionService';
 import { vmService } from '../../services/vmService';
+import ExamBanner from '../../components/student/ExamBanner';
 
 export default function StudentDashboard() {
   const { user } = useAuthStore();
@@ -48,6 +49,9 @@ export default function StudentDashboard() {
         <h2 className="text-3xl font-bold text-white font-inter">Welcome, {user?.first_name}</h2>
         <p className="text-slate-400 mt-1">Access your virtual desktop and class resources</p>
       </div>
+
+      {/* Exam Banner — only visible when a lecturer has started an exam */}
+      <ExamBanner />
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
