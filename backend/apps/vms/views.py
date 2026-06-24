@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from apps.users.permissions import IsStudent, IsAdmin
 from .models import VMTemplate, VirtualMachine
-from .serializers import VMTemplateSerializer, VirtualMachineSerializer, VMRequestSerializer
+from .serializers import VMTemplateSerializer, AdminVMTemplateSerializer, VirtualMachineSerializer, VMRequestSerializer
 from .services.vm_orchestrator import orchestrator
 import threading
 import random
@@ -347,4 +347,98 @@ class HardwareCpuHistoryView(views.APIView):
             "success": True,
             "data": history,
             "message": "CPU history retrieved successfully"
+        }, status=status.HTTP_200_OK)
+
+
+class AdminTemplateListCreateView(views.APIView):
+    """
+    GET  /api/admin/vms/templates/  — List ALL templates (including unavailable).
+    POST /api/admin/vms/templates/  — Create a new template.
+    """
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        queryset = VMTemplate.objects.all().order_by('name')
+        serializer = AdminVMTemplateSerializer(queryset, many=True)
+        return Response({
+            "success": True,
+            "data": serializer.data,
+            "message": "Templates retrieved successfully"
+        }, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        serializer = AdminVMTemplateSerializer(data=request.data)
+        if serializer.is_valid():
+            template = serializer.save()
+            return Response({
+                "success": True,
+                "data": AdminVMTemplateSerializer(template).data,
+                "message": "Template created successfully"
+            }, status=status.HTTP_201_CREATED)
+        return Response({
+            "success": False,
+            "error": serializer.errors,
+            "message": "Template creation failed"
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminTemplateDetailView(views.APIView):
+    """
+    GET    /api/admin/vms/templates/<id>/  — Retrieve single template.
+    PATCH  /api/admin/vms/templates/<id>/  — Update any template field.
+    DELETE /api/admin/vms/templates/<id>/  — Soft-delete (sets is_available=False).
+    """
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def _get_template(self, pk):
+        """Helper that returns a template or raises a 404 response."""
+        try:
+            return VMTemplate.objects.get(pk=pk), None
+        except VMTemplate.DoesNotExist:
+            return None, Response({
+                "success": False,
+                "error": "Template not found",
+                "message": "Operation failed"
+            }, status=status.HTTP_404_NOT_FOUND)
+
+    def get(self, request, pk):
+        template, err = self._get_template(pk)
+        if err:
+            return err
+        serializer = AdminVMTemplateSerializer(template)
+        return Response({
+            "success": True,
+            "data": serializer.data,
+            "message": "Template retrieved successfully"
+        }, status=status.HTTP_200_OK)
+
+    def patch(self, request, pk):
+        template, err = self._get_template(pk)
+        if err:
+            return err
+        serializer = AdminVMTemplateSerializer(template, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                "success": True,
+                "data": serializer.data,
+                "message": "Template updated successfully"
+            }, status=status.HTTP_200_OK)
+        return Response({
+            "success": False,
+            "error": serializer.errors,
+            "message": "Template update failed"
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        """Soft-delete: set is_available=False. Never hard-delete (VMs reference this)."""
+        template, err = self._get_template(pk)
+        if err:
+            return err
+        template.is_available = False
+        template.save(update_fields=['is_available'])
+        return Response({
+            "success": True,
+            "data": {"id": template.id, "is_available": False},
+            "message": f"Template '{template.name}' has been deactivated."
         }, status=status.HTTP_200_OK)

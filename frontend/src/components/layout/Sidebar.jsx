@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { 
   LayoutDashboard, Monitor, Server, Users, ScrollText, 
-  GraduationCap, Eye, FolderOpen, ClipboardList 
+  GraduationCap, Eye, FolderOpen, ClipboardList, LayoutGrid
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
@@ -12,6 +12,7 @@ export default function Sidebar() {
   const adminLinks = [
     { name: 'Overview', path: '/admin/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
     { name: 'Virtual Machines', path: '/admin/vms', icon: <Monitor className="w-5 h-5" /> },
+    { name: 'VM Templates', path: '/admin/templates', icon: <LayoutGrid className="w-5 h-5" /> },
     { name: 'Hardware', path: '/admin/hardware', icon: <Server className="w-5 h-5" /> },
     { name: 'Users', path: '/admin/users', icon: <Users className="w-5 h-5" /> },
     { name: 'Logs', path: '/admin/logs', icon: <ScrollText className="w-5 h-5" /> },

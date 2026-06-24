@@ -2,10 +2,29 @@ import { useState, useEffect, useRef } from 'react';
 import { vmService } from '../../services/vmService';
 import { 
   Monitor, Compass, BarChart2, Code2, Palette, Network, 
-  RefreshCw, Play, Square, Trash2, Cpu, MemoryStick 
+  RefreshCw, Play, Square, Trash2, Cpu, MemoryStick,
+  Shield, Building2, BrainCircuit, Smartphone, Database, Film, Globe, Server
 } from 'lucide-react';
 import EmptyState from '../../components/shared/EmptyState';
 import Toast from '../../components/shared/Toast';
+
+/** Map icon name strings (stored in DB) to Lucide components. */
+const ICON_MAP = {
+  Compass: <Compass className="w-12 h-12 text-blue-400" />,
+  BarChart2: <BarChart2 className="w-12 h-12 text-blue-400" />,
+  Code2: <Code2 className="w-12 h-12 text-blue-400" />,
+  Palette: <Palette className="w-12 h-12 text-blue-400" />,
+  Network: <Network className="w-12 h-12 text-blue-400" />,
+  Shield: <Shield className="w-12 h-12 text-blue-400" />,
+  Building2: <Building2 className="w-12 h-12 text-blue-400" />,
+  BrainCircuit: <BrainCircuit className="w-12 h-12 text-blue-400" />,
+  Smartphone: <Smartphone className="w-12 h-12 text-blue-400" />,
+  Database: <Database className="w-12 h-12 text-blue-400" />,
+  Film: <Film className="w-12 h-12 text-blue-400" />,
+  Globe: <Globe className="w-12 h-12 text-blue-400" />,
+  Server: <Server className="w-12 h-12 text-blue-400" />,
+  Monitor: <Monitor className="w-12 h-12 text-blue-400" />,
+};
 
 export default function StudentVMsPage() {
   const [vms, setVms] = useState([]);
@@ -120,13 +139,8 @@ export default function StudentVMsPage() {
     return `${h}h ${m}m ${s}s`;
   };
 
-  const getTemplateIcon = (name) => {
-    if (name.includes('AutoCAD')) return <Compass className="w-12 h-12 text-blue-400" />;
-    if (name.includes('MATLAB')) return <BarChart2 className="w-12 h-12 text-blue-400" />;
-    if (name.includes('Programming')) return <Code2 className="w-12 h-12 text-blue-400" />;
-    if (name.includes('Graphic')) return <Palette className="w-12 h-12 text-blue-400" />;
-    if (name.includes('Network')) return <Network className="w-12 h-12 text-blue-400" />;
-    return <Monitor className="w-12 h-12 text-blue-400" />;
+  const getTemplateIcon = (template) => {
+    return ICON_MAP[template.icon] || ICON_MAP['Monitor'];
   };
 
   const hasActiveVM = vms.some(vm => ['provisioning', 'running'].includes(vm.status));
@@ -280,7 +294,7 @@ export default function StudentVMsPage() {
           {templates.map(template => (
             <div key={template.id} className="bg-slate-800 rounded-xl shadow-md border border-slate-700 flex flex-col overflow-hidden">
               <div className="bg-gradient-to-br from-blue-900 to-slate-800 p-8 flex items-center justify-center border-b border-slate-700">
-                {getTemplateIcon(template.name)}
+                {getTemplateIcon(template)}
               </div>
               <div className="p-6 flex flex-col flex-1">
                 <h3 className="text-lg font-bold text-white mb-1">{template.name}</h3>

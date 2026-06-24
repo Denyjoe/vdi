@@ -23,6 +23,7 @@ import RegisterPage from "./pages/auth/RegisterPage";
 // Dashboard pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminHardwarePage from "./pages/admin/AdminHardwarePage";
+import AdminTemplatesPage from "./pages/admin/AdminTemplatesPage";
 import AdminVMsPage from "./pages/admin/AdminVMsPage";
 import LecturerDashboard from "./pages/lecturer/LecturerDashboard";
 import StudentDashboard from "./pages/student/StudentDashboard";
@@ -74,6 +75,16 @@ export default function App() {
             <ProtectedRoute>
               <Layout>
                 <AdminHardwarePage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/templates"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <AdminTemplatesPage />
               </Layout>
             </ProtectedRoute>
           }
