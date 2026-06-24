@@ -1,4 +1,8 @@
 import { NavLink } from 'react-router-dom';
+import { 
+  LayoutDashboard, Monitor, Server, Users, ScrollText, 
+  GraduationCap, Eye, FolderOpen, ClipboardList 
+} from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
 export default function Sidebar() {
@@ -6,26 +10,26 @@ export default function Sidebar() {
   const role = user?.role || 'student';
 
   const adminLinks = [
-    { name: 'Overview', path: '/admin/dashboard', icon: '🏠' },
-    { name: 'Virtual Machines', path: '/admin/vms', icon: '🖥️' },
-    { name: 'Hardware', path: '/admin/hardware', icon: '⚙️' },
-    { name: 'Users', path: '/admin/users', icon: '👥' },
-    { name: 'Logs', path: '/admin/logs', icon: '📋' },
+    { name: 'Overview', path: '/admin/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
+    { name: 'Virtual Machines', path: '/admin/vms', icon: <Monitor className="w-5 h-5" /> },
+    { name: 'Hardware', path: '/admin/hardware', icon: <Server className="w-5 h-5" /> },
+    { name: 'Users', path: '/admin/users', icon: <Users className="w-5 h-5" /> },
+    { name: 'Logs', path: '/admin/logs', icon: <ScrollText className="w-5 h-5" /> },
   ];
 
   const lecturerLinks = [
-    { name: 'Overview', path: '/lecturer/dashboard', icon: '🏠' },
-    { name: 'My Classes', path: '/lecturer/classes', icon: '👨‍🎓' },
-    { name: 'Monitor Sessions', path: '/lecturer/monitor', icon: '👁️' },
-    { name: 'Materials', path: '/lecturer/materials', icon: '📁' },
-    { name: 'Assignments', path: '/lecturer/assignments', icon: '📝' },
+    { name: 'Overview', path: '/lecturer/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
+    { name: 'My Classes', path: '/lecturer/classes', icon: <GraduationCap className="w-5 h-5" /> },
+    { name: 'Monitor Sessions', path: '/lecturer/monitor', icon: <Eye className="w-5 h-5" /> },
+    { name: 'Materials', path: '/lecturer/materials', icon: <FolderOpen className="w-5 h-5" /> },
+    { name: 'Assignments', path: '/lecturer/assignments', icon: <ClipboardList className="w-5 h-5" /> },
   ];
 
   const studentLinks = [
-    { name: 'Overview', path: '/student/dashboard', icon: '🏠' },
-    { name: 'My VMs', path: '/student/vms', icon: '🖥️' },
-    { name: 'Class Materials', path: '/student/materials', icon: '📁' },
-    { name: 'Assignments', path: '/student/assignments', icon: '📝' },
+    { name: 'Overview', path: '/student/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
+    { name: 'My VMs', path: '/student/vms', icon: <Monitor className="w-5 h-5" /> },
+    { name: 'Class Materials', path: '/student/materials', icon: <FolderOpen className="w-5 h-5" /> },
+    { name: 'Assignments', path: '/student/assignments', icon: <ClipboardList className="w-5 h-5" /> },
   ];
 
   const getLinksForRole = () => {
@@ -55,7 +59,7 @@ export default function Sidebar() {
                 }`
               }
             >
-              <span className="text-lg">{link.icon}</span>
+              {link.icon}
               {link.name}
             </NavLink>
           ))}

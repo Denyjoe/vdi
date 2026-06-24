@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
+import { Monitor, Link2, ClipboardList, Info } from 'lucide-react';
 
 export default function StudentDashboard() {
   const { user } = useAuthStore();
@@ -32,7 +33,9 @@ export default function StudentDashboard() {
       {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-slate-800 rounded-xl p-6 shadow-md border border-slate-700 flex items-center gap-4 transition-transform hover:scale-105">
-          <div className="bg-blue-500/20 p-4 rounded-lg text-2xl">🖥️</div>
+          <div className="bg-blue-500/20 p-4 rounded-lg">
+            <Monitor className="w-6 h-6 text-blue-400" />
+          </div>
           <div>
             <p className="text-slate-400 text-sm font-medium">My VMs</p>
             <p className="text-2xl font-bold text-white">0</p>
@@ -40,7 +43,9 @@ export default function StudentDashboard() {
         </div>
         
         <div className="bg-slate-800 rounded-xl p-6 shadow-md border border-slate-700 flex items-center gap-4 transition-transform hover:scale-105">
-          <div className="bg-emerald-500/20 p-4 rounded-lg text-2xl">🔗</div>
+          <div className="bg-emerald-500/20 p-4 rounded-lg">
+            <Link2 className="w-6 h-6 text-emerald-400" />
+          </div>
           <div>
             <p className="text-slate-400 text-sm font-medium">Active Session</p>
             <p className="text-2xl font-bold text-slate-500">None</p>
@@ -48,7 +53,9 @@ export default function StudentDashboard() {
         </div>
 
         <div className="bg-slate-800 rounded-xl p-6 shadow-md border border-slate-700 flex items-center gap-4 transition-transform hover:scale-105">
-          <div className="bg-purple-500/20 p-4 rounded-lg text-2xl">📝</div>
+          <div className="bg-purple-500/20 p-4 rounded-lg">
+            <ClipboardList className="w-6 h-6 text-purple-400" />
+          </div>
           <div>
             <p className="text-slate-400 text-sm font-medium">Pending Assignments</p>
             <p className="text-2xl font-bold text-white">0</p>
@@ -59,7 +66,9 @@ export default function StudentDashboard() {
       {/* Announcement Card */}
       <div className="bg-blue-900/40 border border-blue-500/30 rounded-xl p-6 shadow-sm">
         <div className="flex gap-4">
-          <div className="text-2xl">💡</div>
+          <div className="mt-1">
+            <Info className="w-6 h-6 text-blue-400" />
+          </div>
           <div>
             <p className="text-blue-100 leading-relaxed">
               New to DIT VDI? Start by requesting a Virtual Machine from the VM catalog. 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
+import { Monitor } from 'lucide-react';
 import api from '../../services/api';
 
 export default function LoginPage() {
@@ -40,15 +41,13 @@ export default function LoginPage() {
     return (
         <div className="min-h-screen bg-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
             <div className="sm:mx-auto sm:w-full sm:max-w-md flex flex-col items-center">
-                <div className="bg-blue-500 rounded-full h-16 w-16 flex items-center justify-center mb-4 text-3xl shadow-lg">
-                    🖥️
+                <div className="text-center mb-8">
+                  <div className="flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mx-auto mb-4">
+                    <Monitor className="w-8 h-8 text-white" />
+                  </div>
+                  <h1 className="text-3xl font-bold text-white font-inter">DIT VDI System</h1>
+                  <p className="text-slate-400 mt-2">Virtual Desktop Infrastructure</p>
                 </div>
-                <h2 className="text-center text-3xl font-extrabold text-white font-inter">
-                    DIT VDI System
-                </h2>
-                <p className="mt-2 text-center text-sm text-slate-400 font-inter">
-                    Virtual Desktop Infrastructure
-                </p>
             </div>
 
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">

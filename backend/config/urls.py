@@ -17,6 +17,10 @@ urlpatterns = [
     # Django admin panel
     path("admin/", admin.site.urls),
 
+    # API Routes
+    path("api/vms/", include("apps.vms.urls")),
+    path("api/admin/", include("apps.vms.admin_urls")),
+
     # ── Health check ─────────────────────────────────────────────────────────
     # Public endpoint — no authentication required.
     path("api/health/", HealthCheckView.as_view(), name="health-check"),

@@ -22,8 +22,11 @@ import RegisterPage from "./pages/auth/RegisterPage";
 
 // Dashboard pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminHardwarePage from "./pages/admin/AdminHardwarePage";
+import AdminVMsPage from "./pages/admin/AdminVMsPage";
 import LecturerDashboard from "./pages/lecturer/LecturerDashboard";
 import StudentDashboard from "./pages/student/StudentDashboard";
+import StudentVMsPage from "./pages/student/StudentVMsPage";
 
 // Layout & guards
 import Layout from "./components/layout/Layout";
@@ -55,6 +58,26 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/admin/vms"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <AdminVMsPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/hardware"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <AdminHardwarePage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
 
         {/* ── Lecturer routes ───────────────────────────────────── */}
         <Route
@@ -75,6 +98,16 @@ export default function App() {
             <ProtectedRoute>
               <Layout>
                 <StudentDashboard />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student/vms"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <StudentVMsPage />
               </Layout>
             </ProtectedRoute>
           }

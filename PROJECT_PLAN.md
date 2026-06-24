@@ -200,7 +200,7 @@ dit-vdi-system/
 ### Phase Checklist
 - [x] Phase 0 — Foundation
 - [x] Phase 1 — Authentication & User Management
-- [ ] Phase 2 — VM Allocation Subsystem
+- [x] Phase 2 — VM Allocation Subsystem
 - [ ] Phase 3 — Web-Based Remote Access
 - [ ] Phase 4 — Lecturer Monitoring & Session Control
 - [ ] Phase 5 — File Sharing & Assignment Submission

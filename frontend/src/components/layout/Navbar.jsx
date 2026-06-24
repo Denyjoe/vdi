@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
+import { Monitor } from 'lucide-react';
 
 export default function Navbar() {
   const { user, logout } = useAuthStore();
@@ -26,7 +27,7 @@ export default function Navbar() {
     <nav className="bg-slate-800 border-b border-slate-700 px-6 py-4 flex items-center justify-between sticky top-0 z-50 shadow-md">
       {/* Left — system branding */}
       <div className="flex items-center gap-3">
-        <span className="text-blue-500 text-xl font-bold">🖥️</span>
+        <Monitor className="w-6 h-6 text-blue-500" />
         <h1 className="text-white font-semibold text-lg font-inter">DIT VDI System</h1>
       </div>
 
