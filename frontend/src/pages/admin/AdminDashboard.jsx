@@ -145,14 +145,14 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mt-8">
         {/* Left column — Recent Activity Feed */}
-        <div className="bg-slate-800 rounded-xl shadow-md border border-slate-700 flex flex-col min-h-[400px]">
+        <div className="bg-slate-800 rounded-xl shadow-md border border-slate-700 flex flex-col lg:col-span-3 min-h-[400px]">
           <div className="px-6 py-5 border-b border-slate-700">
             <h3 className="text-lg font-semibold text-white">Recent Activity</h3>
           </div>
           
-          <div className="p-6 flex-1 overflow-y-auto">
+          <div className="p-6 flex-1 overflow-y-auto max-h-[320px]">
             {logs.length > 0 ? (
               <div className="space-y-4">
                 {logs.slice(0, 8).map((log) => (
@@ -180,12 +180,12 @@ export default function AdminDashboard() {
         </div>
 
         {/* Right column — Quick Stats Chart */}
-        <div className="bg-slate-800 rounded-xl shadow-md border border-slate-700 flex flex-col min-h-[400px]">
+        <div className="bg-slate-800 rounded-xl shadow-md border border-slate-700 flex flex-col lg:col-span-2 min-h-[400px]">
           <div className="px-6 py-5 border-b border-slate-700">
-            <h3 className="text-lg font-semibold text-white">Users by Role</h3>
+            <h3 className="text-lg font-semibold text-white">Platform Users by Role</h3>
           </div>
           <div className="p-6 flex-1 flex flex-col">
-            <div className="flex-1 min-h-[300px]">
+            <div className="flex-1 h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={usersData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
