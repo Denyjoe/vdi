@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { 
   LayoutDashboard, Monitor, Server, Users, ScrollText, 
-  GraduationCap, Eye, FolderOpen, ClipboardList, LayoutGrid
+  GraduationCap, Eye, FolderOpen, ClipboardList, LayoutGrid, History
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
@@ -29,6 +29,7 @@ export default function Sidebar() {
   const studentLinks = [
     { name: 'Overview', path: '/student/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
     { name: 'My VMs', path: '/student/vms', icon: <Monitor className="w-5 h-5" /> },
+    { name: 'Session History', path: '/student/sessions', icon: <History className="w-5 h-5" /> },
     { name: 'Class Materials', path: '/student/materials', icon: <FolderOpen className="w-5 h-5" /> },
     { name: 'Assignments', path: '/student/assignments', icon: <ClipboardList className="w-5 h-5" /> },
   ];

@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { vmService } from '../../services/vmService';
+import { sessionService } from '../../services/sessionService';
 import { 
   Monitor, Compass, BarChart2, Code2, Palette, Network, 
   RefreshCw, Play, Square, Trash2, Cpu, MemoryStick,
@@ -27,10 +29,16 @@ const ICON_MAP = {
 };
 
 export default function StudentVMsPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [vms, setVms] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
+  
+  // Session State
+  const [activeSession, setActiveSession] = useState(null);
+  const [connectingVmId, setConnectingVmId] = useState(null);
   
   // Modal State
   const [showModal, setShowModal] = useState(false);
@@ -59,16 +67,34 @@ export default function StudentVMsPage() {
     }
   };
 
+  const fetchActiveSession = async () => {
+    try {
+      const res = await sessionService.getActiveSession();
+      if (res.data.success && res.data.data) {
+        setActiveSession(res.data.data);
+      } else {
+        setActiveSession(null);
+      }
+    } catch (error) {
+      console.error("Failed to fetch active session:", error);
+    }
+  };
+
   const loadData = async () => {
     setLoading(true);
-    await Promise.all([fetchVMs(), fetchTemplates()]);
+    await Promise.all([fetchVMs(), fetchTemplates(), fetchActiveSession()]);
     setLoading(false);
   };
 
   useEffect(() => {
+    if (location.state?.disconnected) {
+      setToast({ show: true, message: 'Session disconnected successfully', type: 'success' });
+      // Clear the state so it doesn't reappear on reload
+      navigate(location.pathname, { replace: true });
+    }
     loadData();
     return () => stopPolling();
-  }, []);
+  }, [location.state, location.pathname, navigate]);
 
   // Polling Logic
   useEffect(() => {
@@ -131,6 +157,22 @@ export default function StudentVMsPage() {
     }
   };
 
+  const handleConnect = async (vm) => {
+    setConnectingVmId(vm.id);
+    try {
+      const res = await sessionService.connect(vm.id);
+      if (res.data.success) {
+        navigate(`/session/${res.data.data.session_id}`, {
+          state: { sessionData: res.data.data, vmData: vm }
+        });
+      }
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || 'Failed to connect to VM';
+      setToast({ show: true, message: errorMsg, type: 'error' });
+      setConnectingVmId(null);
+    }
+  };
+
   const formatUptime = (seconds) => {
     if (!seconds) return '0h 0m 0s';
     const h = Math.floor(seconds / 3600);
@@ -157,6 +199,27 @@ export default function StudentVMsPage() {
           type={toast.type} 
           onClose={() => setToast({ show: false, message: '', type: '' })} 
         />
+      )}
+
+      {/* Active Session Banner */}
+      {activeSession && (
+        <div className="bg-blue-600/20 border border-blue-500/50 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-500 p-2 rounded-full">
+              <Monitor className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <p className="text-white font-medium">You have an active session — {activeSession.vm.name}</p>
+              <p className="text-blue-300 text-sm">Duration: {activeSession.duration_display}</p>
+            </div>
+          </div>
+          <button 
+            onClick={() => navigate(`/session/${activeSession.id}`)}
+            className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shadow-md"
+          >
+            Resume Session
+          </button>
+        </div>
       )}
 
       {/* SECTION A — My Virtual Machines */}
@@ -249,9 +312,13 @@ export default function StudentVMsPage() {
                 <div className="flex gap-3 mt-4 pt-4 border-t border-slate-700">
                   {vm.status === 'running' && (
                     <>
-                      <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
-                        <Monitor className="w-4 h-4" />
-                        Connect
+                      <button 
+                        onClick={() => handleConnect(vm)}
+                        disabled={connectingVmId === vm.id}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {connectingVmId === vm.id ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Monitor className="w-4 h-4" />}
+                        {connectingVmId === vm.id ? 'Connecting...' : 'Connect'}
                       </button>
                       <button 
                         onClick={() => handleAction(vm.id, 'stop')}

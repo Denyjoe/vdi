@@ -201,7 +201,7 @@ dit-vdi-system/
 - [x] Phase 0 — Foundation
 - [x] Phase 1 — Authentication & User Management
 - [x] Phase 2 — VM Allocation Subsystem
-- [ ] Phase 3 — Web-Based Remote Access
+- [x] Phase 3 — Web-Based Remote Access
 - [ ] Phase 4 — Lecturer Monitoring & Session Control
 - [ ] Phase 5 — File Sharing & Assignment Submission
 - [ ] Phase 6 — Analytics / Reporting Dashboard

@@ -74,6 +74,11 @@ class RemoteSession(models.Model):
         blank=True,
         help_text="The client IP address that initiated the connection.",
     )
+    metadata = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Arbitrary JSON context for the session (e.g. session token).",
+    )
 
     class Meta:
         db_table = "remote_sessions"

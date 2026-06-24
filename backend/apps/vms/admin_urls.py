@@ -5,6 +5,8 @@ from .views import (
     AdminTemplateListCreateView, AdminTemplateDetailView
 )
 
+from apps.sessions.views import AdminSessionsView, AdminTerminateSessionView
+
 urlpatterns = [
     path('vms/', AdminVMListView.as_view(), name='admin-vm-list'),
     path('vms/<int:pk>/force-stop/', AdminVMForceStopView.as_view(), name='admin-vm-force-stop'),
@@ -12,5 +14,7 @@ urlpatterns = [
     path('vms/templates/<int:pk>/', AdminTemplateDetailView.as_view(), name='admin-template-detail'),
     path('hardware/', HardwareStatsView.as_view(), name='admin-hardware-stats'),
     path('hardware/cpu-history/', HardwareCpuHistoryView.as_view(), name='admin-hardware-cpu-history'),
+    path('sessions/', AdminSessionsView.as_view(), name='admin-session-list'),
+    path('sessions/<int:pk>/terminate/', AdminTerminateSessionView.as_view(), name='admin-session-terminate'),
 ]
 

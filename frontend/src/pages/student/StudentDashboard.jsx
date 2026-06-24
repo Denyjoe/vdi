@@ -2,17 +2,36 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 import { Monitor, Link2, ClipboardList, Info } from 'lucide-react';
+import { sessionService } from '../../services/sessionService';
+import { vmService } from '../../services/vmService';
 
 export default function StudentDashboard() {
   const { user } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
+  const [activeSession, setActiveSession] = useState(null);
+  const [vmCount, setVmCount] = useState(0);
 
   useEffect(() => {
-    // Simulate API call for now since we have hardcoded data
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
+    const fetchDashboardData = async () => {
+      try {
+        const [sessionRes, vmsRes] = await Promise.all([
+          sessionService.getActiveSession(),
+          vmService.getMyVMs()
+        ]);
+        
+        if (sessionRes.data.success && sessionRes.data.data) {
+          setActiveSession(sessionRes.data.data);
+        }
+        if (vmsRes.data.success) {
+          setVmCount(vmsRes.data.data.length);
+        }
+      } catch (error) {
+        console.error("Failed to fetch dashboard data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchDashboardData();
   }, []);
 
   if (isLoading) {
@@ -38,19 +57,31 @@ export default function StudentDashboard() {
           </div>
           <div>
             <p className="text-slate-400 text-sm font-medium">My VMs</p>
-            <p className="text-2xl font-bold text-white">0</p>
+            <p className="text-2xl font-bold text-white">{vmCount}</p>
           </div>
         </div>
         
-        <div className="bg-slate-800 rounded-xl p-6 shadow-md border border-slate-700 flex items-center gap-4 transition-transform hover:scale-105">
-          <div className="bg-emerald-500/20 p-4 rounded-lg">
-            <Link2 className="w-6 h-6 text-emerald-400" />
+        {activeSession ? (
+          <Link to={`/session/${activeSession.id}`} className="bg-slate-800 rounded-xl p-6 shadow-md border border-emerald-500/50 flex items-center gap-4 transition-transform hover:scale-105 group cursor-pointer">
+            <div className="bg-emerald-500 p-4 rounded-lg group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+              <Link2 className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <p className="text-emerald-400 text-sm font-medium">Active Session</p>
+              <p className="text-2xl font-bold text-white">1 Active</p>
+            </div>
+          </Link>
+        ) : (
+          <div className="bg-slate-800 rounded-xl p-6 shadow-md border border-slate-700 flex items-center gap-4 transition-transform hover:scale-105">
+            <div className="bg-slate-700/50 p-4 rounded-lg">
+              <Link2 className="w-6 h-6 text-slate-500" />
+            </div>
+            <div>
+              <p className="text-slate-400 text-sm font-medium">Active Session</p>
+              <p className="text-2xl font-bold text-slate-500">None</p>
+            </div>
           </div>
-          <div>
-            <p className="text-slate-400 text-sm font-medium">Active Session</p>
-            <p className="text-2xl font-bold text-slate-500">None</p>
-          </div>
-        </div>
+        )}
 
         <div className="bg-slate-800 rounded-xl p-6 shadow-md border border-slate-700 flex items-center gap-4 transition-transform hover:scale-105">
           <div className="bg-purple-500/20 p-4 rounded-lg">

@@ -28,6 +28,8 @@ import AdminVMsPage from "./pages/admin/AdminVMsPage";
 import LecturerDashboard from "./pages/lecturer/LecturerDashboard";
 import StudentDashboard from "./pages/student/StudentDashboard";
 import StudentVMsPage from "./pages/student/StudentVMsPage";
+import SessionHistoryPage from "./pages/student/SessionHistoryPage";
+import DesktopSessionPage from "./pages/student/DesktopSessionPage";
 
 // Layout & guards
 import Layout from "./components/layout/Layout";
@@ -120,6 +122,24 @@ export default function App() {
               <Layout>
                 <StudentVMsPage />
               </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student/sessions"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <SessionHistoryPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/session/:sessionId"
+          element={
+            <ProtectedRoute>
+              <DesktopSessionPage />
             </ProtectedRoute>
           }
         />
