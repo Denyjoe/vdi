@@ -25,6 +25,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminHardwarePage from "./pages/admin/AdminHardwarePage";
 import AdminTemplatesPage from "./pages/admin/AdminTemplatesPage";
 import AdminVMsPage from "./pages/admin/AdminVMsPage";
+import AdminAnalyticsPage from "./pages/admin/AdminAnalyticsPage";
 import LecturerDashboard from "./pages/lecturer/LecturerDashboard";
 import LecturerMonitorPage from "./pages/lecturer/LecturerMonitorPage";
 import LecturerClassesPage from "./pages/lecturer/LecturerClassesPage";
@@ -91,6 +92,16 @@ export default function App() {
             <ProtectedRoute>
               <Layout>
                 <AdminTemplatesPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/analytics"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <AdminAnalyticsPage />
               </Layout>
             </ProtectedRoute>
           }
