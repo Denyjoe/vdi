@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from apps.vms.models import VMTemplate
-from apps.classes.models import Class, ClassEnrollment
+from apps.classes.models import Class, ClassEnrollment, CourseStream
 
 User = get_user_model()
 
@@ -192,4 +192,90 @@ class Command(BaseCommand):
                     else:
                         self.stdout.write(self.style.WARNING(f'  – {email} already enrolled'))
 
-        self.stdout.write(self.style.SUCCESS('\nSeeding complete!'))
+        # ── 4. Seed Course Streams ───────────────────────────────────────
+        self.stdout.write('\nSeeding DIT course streams...')
+        streams_data = [
+            # Computer Engineering
+            {
+                "code": "BENG22 COE-1",
+                "name": "Computer Engineering Group 1",
+                "department": "Computer Engineering",
+                "year_of_study": 4,
+            },
+            {
+                "code": "BENG22 COE-2",
+                "name": "Computer Engineering Group 2",
+                "department": "Computer Engineering",
+                "year_of_study": 4,
+            },
+            {
+                "code": "BENG21 COE-1",
+                "name": "Computer Engineering Group 1",
+                "department": "Computer Engineering",
+                "year_of_study": 3,
+            },
+            {
+                "code": "BENG21 COE-2",
+                "name": "Computer Engineering Group 2",
+                "department": "Computer Engineering",
+                "year_of_study": 3,
+            },
+            # Civil Engineering
+            {
+                "code": "BENG22 CVE-1",
+                "name": "Civil Engineering Group 1",
+                "department": "Civil Engineering",
+                "year_of_study": 4,
+            },
+            {
+                "code": "BENG22 CVE-2",
+                "name": "Civil Engineering Group 2",
+                "department": "Civil Engineering",
+                "year_of_study": 4,
+            },
+            # Electrical Engineering
+            {
+                "code": "BENG22 EEE-1",
+                "name": "Electrical Engineering Group 1",
+                "department": "Electrical Engineering",
+                "year_of_study": 4,
+            },
+            # Business IT
+            {
+                "code": "BBIT22 BIT-1",
+                "name": "Business IT Group 1",
+                "department": "Business Information Technology",
+                "year_of_study": 4,
+            },
+            {
+                "code": "BBIT22 BIT-2",
+                "name": "Business IT Group 2",
+                "department": "Business Information Technology",
+                "year_of_study": 4,
+            },
+        ]
+
+        for s in streams_data:
+            stream, created = CourseStream.objects.get_or_create(
+                code=s['code'], defaults=s
+            )
+            if created:
+                self.stdout.write(self.style.SUCCESS(f'  ✓ Created stream: {stream}'))
+            else:
+                self.stdout.write(self.style.WARNING(f'  – Stream exists: {stream}'))
+
+        # ── 5. Assign Denis's stream ──────────────────────────────────────
+        try:
+            denis = User.objects.get(email='denis@dit.ac.tz')
+            coe2 = CourseStream.objects.get(code='BENG22 COE-2')
+            denis.stream = coe2
+            denis.department = 'Computer Engineering'
+            denis.year_of_study = 4
+            denis.save()
+            self.stdout.write(self.style.SUCCESS(f'  ✓ Denis stream set to: {coe2}'))
+        except User.DoesNotExist:
+            self.stdout.write(self.style.WARNING('  – Denis user not found, skipping stream assignment.'))
+        except CourseStream.DoesNotExist:
+            self.stdout.write(self.style.WARNING('  – BENG22 COE-2 stream not found.'))
+
+        self.stdout.write(self.style.SUCCESS('\nAll seeding complete!'))

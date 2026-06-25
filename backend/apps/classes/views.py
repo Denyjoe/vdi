@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
 from apps.users.permissions import IsLecturer, IsAdmin, IsStudent
 from apps.users.models import User
-from .models import Class, ClassEnrollment, EnrollmentRequest
+from .models import Class, ClassEnrollment, EnrollmentRequest, CourseStream
 from .serializers import ClassSerializer, ClassEnrollmentSerializer, EnrollmentRequestSerializer
 from apps.sessions.models import ActivityLog
 from django.db.models import Exists, OuterRef, Prefetch
@@ -403,3 +403,120 @@ class AdminEnrollStudentView(generics.GenericAPIView):
             )
             
         return Response({"success": True, "message": "Student enrolled successfully."})
+
+
+# ── CourseStream Views ────────────────────────────────────────────────────────
+
+class CourseStreamSerializer:
+    """Inline serialiser for CourseStream (lightweight — no DRF model serializer needed)."""
+
+    @staticmethod
+    def serialize(stream):
+        """Return a dict representation of a CourseStream instance."""
+        return {
+            "id": stream.id,
+            "code": stream.code,
+            "name": stream.name,
+            "department": stream.department,
+            "year_of_study": stream.year_of_study,
+            "is_active": stream.is_active,
+        }
+
+
+class CourseStreamListView(generics.GenericAPIView):
+    """
+    GET /api/classes/streams/
+
+    Returns all active CourseStream records, optionally filtered by department.
+    Used by the registration and profile pages as a structured dropdown.
+    Permission: any authenticated user.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        qs = CourseStream.objects.filter(is_active=True)
+        department = request.query_params.get('department')
+        if department:
+            qs = qs.filter(department__icontains=department)
+        data = [CourseStreamSerializer.serialize(s) for s in qs]
+        return Response({"success": True, "data": data})
+
+
+class AdminStreamCreateView(generics.GenericAPIView):
+    """
+    POST /api/admin/classes/streams/
+
+    Admin-only endpoint to create a new CourseStream.
+    Required fields: code, name, department, year_of_study.
+    """
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def post(self, request, *args, **kwargs):
+        required = ['code', 'name', 'department', 'year_of_study']
+        for field in required:
+            if not request.data.get(field):
+                return Response(
+                    {"success": False, "message": f"'{field}' is required."},
+                    status=400
+                )
+
+        code = request.data['code'].strip()
+        if CourseStream.objects.filter(code=code).exists():
+            return Response(
+                {"success": False, "message": f"Stream with code '{code}' already exists."},
+                status=400
+            )
+
+        stream = CourseStream.objects.create(
+            code=code,
+            name=request.data['name'],
+            department=request.data['department'],
+            year_of_study=int(request.data['year_of_study']),
+            is_active=request.data.get('is_active', True),
+        )
+
+        log_activity(
+            user=request.user,
+            action="STREAM_CREATED",
+            description=f"Admin created course stream: {stream}"
+        )
+
+        return Response(
+            {"success": True, "data": CourseStreamSerializer.serialize(stream),
+             "message": "Course stream created."},
+            status=201
+        )
+
+
+class AdminStreamUpdateView(generics.GenericAPIView):
+    """
+    PATCH /api/admin/classes/streams/<id>/
+
+    Admin-only endpoint to update or deactivate a CourseStream.
+    Accepts partial updates: name, department, year_of_study, is_active.
+    """
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def patch(self, request, *args, **kwargs):
+        try:
+            stream = CourseStream.objects.get(pk=self.kwargs['pk'])
+        except CourseStream.DoesNotExist:
+            return Response({"success": False, "message": "Stream not found."}, status=404)
+
+        allowed = ['name', 'department', 'year_of_study', 'is_active']
+        for field in allowed:
+            if field in request.data:
+                setattr(stream, field, request.data[field])
+        stream.save()
+
+        log_activity(
+            user=request.user,
+            action="STREAM_UPDATED",
+            description=f"Admin updated course stream: {stream}"
+        )
+
+        return Response(
+            {"success": True, "data": CourseStreamSerializer.serialize(stream),
+             "message": "Course stream updated."}
+        )
+

@@ -6,7 +6,10 @@ from .views import (
 )
 
 from apps.sessions.views import AdminSessionsView, AdminTerminateSessionView
-from apps.classes.views import AdminClassListView, AdminCreateClassView, AdminEnrollStudentView
+from apps.classes.views import (
+    AdminClassListView, AdminCreateClassView, AdminEnrollStudentView,
+    AdminStreamCreateView, AdminStreamUpdateView
+)
 
 urlpatterns = [
     path('vms/', AdminVMListView.as_view(), name='admin-vm-list'),
@@ -20,5 +23,8 @@ urlpatterns = [
     path('classes/', AdminClassListView.as_view(), name='admin-class-list'),
     path('classes/create/', AdminCreateClassView.as_view(), name='admin-class-create'),
     path('classes/<int:pk>/enroll/', AdminEnrollStudentView.as_view(), name='admin-class-enroll'),
+    # Course Streams
+    path('classes/streams/', AdminStreamCreateView.as_view(), name='admin-stream-create'),
+    path('classes/streams/<int:pk>/', AdminStreamUpdateView.as_view(), name='admin-stream-update'),
 ]
 

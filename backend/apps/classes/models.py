@@ -10,6 +10,55 @@ from django.conf import settings
 from django.db import models
 
 
+class CourseStream(models.Model):
+    """
+    A DIT degree programme stream/group, used to categorise students.
+
+    Examples: "BENG22 COE-1", "BENG22 COE-2" (Computer Engineering Year 4).
+    Used as a ForeignKey on the User model so dropdown selection replaces
+    free-text stream entry.
+
+    Attributes:
+        code (str): Short unique code, e.g. "BENG22 COE-2".
+        name (str): Full descriptive name, e.g. "Computer Engineering Group 2".
+        department (str): The department this stream belongs to.
+        year_of_study (int): Year of study (2, 3, or 4).
+        is_active (bool): Inactive streams are hidden from registration dropdowns.
+        created_at (datetime): When the stream record was created.
+    """
+
+    code = models.CharField(
+        max_length=20,
+        unique=True,
+        help_text="Short unique stream code, e.g. 'BENG22 COE-2'.",
+    )
+    name = models.CharField(
+        max_length=100,
+        help_text="Full descriptive name, e.g. 'Computer Engineering Group 2'.",
+    )
+    department = models.CharField(
+        max_length=100,
+        help_text="Department this stream belongs to, e.g. 'Computer Engineering'.",
+    )
+    year_of_study = models.IntegerField(
+        help_text="Year of study (e.g. 2, 3, or 4).",
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Inactive streams are hidden from registration dropdowns.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "course_streams"
+        verbose_name = "Course Stream"
+        verbose_name_plural = "Course Streams"
+        ordering = ["department", "year_of_study", "code"]
+
+    def __str__(self):
+        return f"{self.code} — {self.name}"
+
+
 class Class(models.Model):
     """
     A course or subject taught by a lecturer at DIT.

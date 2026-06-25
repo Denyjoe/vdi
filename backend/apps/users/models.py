@@ -60,6 +60,25 @@ class User(AbstractUser):
         null=True,
         help_text="Profile photo. Stored in MEDIA_ROOT/avatars/.",
     )
+    department = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Department the user belongs to (e.g. 'Computer Engineering').",
+    )
+    year_of_study = models.IntegerField(
+        blank=True,
+        null=True,
+        help_text="Current year of study (e.g. 2, 3, 4). Students only.",
+    )
+    stream = models.ForeignKey(
+        'classes.CourseStream',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='students',
+        help_text="The DIT programme stream the student belongs to (e.g. BENG22 COE-2).",
+    )
     is_approved = models.BooleanField(
         default=True,
         help_text="Unapproved accounts cannot log in. Admins control this.",

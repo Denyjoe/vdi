@@ -6,10 +6,40 @@ from rest_framework.exceptions import ValidationError
 User = get_user_model()
 
 class UserProfileSerializer(serializers.ModelSerializer):
+    """
+    Serialises a full user profile for the profile page.
+
+    The `stream` field is returned as a nested object (id, code, name,
+    department, year_of_study) instead of a raw FK integer, so the
+    frontend can display the stream name without a second request.
+    """
+    stream = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'last_name', 'email', 'role', 'student_id', 'phone', 'avatar', 'is_approved', 'created_at']
-        read_only_fields = ['id', 'first_name', 'last_name', 'email', 'role', 'student_id', 'is_approved', 'created_at']
+        fields = [
+            'id', 'first_name', 'last_name', 'email', 'role',
+            'student_id', 'phone', 'avatar', 'is_approved', 'created_at',
+            'department', 'year_of_study', 'stream',
+        ]
+        read_only_fields = [
+            'id', 'first_name', 'last_name', 'email', 'role',
+            'student_id', 'is_approved', 'created_at',
+        ]
+
+    def get_stream(self, obj):
+        """Return stream as a structured object, or None if not assigned."""
+        if obj.stream_id is None:
+            return None
+        s = obj.stream
+        return {
+            'id': s.id,
+            'code': s.code,
+            'name': s.name,
+            'department': s.department,
+            'year_of_study': s.year_of_study,
+        }
+
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)

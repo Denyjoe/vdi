@@ -4,7 +4,19 @@ Admin registration for the classes application.
 
 from django.contrib import admin
 
-from .models import Class, ClassEnrollment
+from .models import Class, ClassEnrollment, EnrollmentRequest, CourseStream
+
+
+@admin.register(CourseStream)
+class CourseStreamAdmin(admin.ModelAdmin):
+    """Admin view for DIT course stream records."""
+
+    list_display = ("code", "name", "department", "year_of_study", "is_active")
+    list_filter = ("department", "year_of_study", "is_active")
+    search_fields = ("code", "name", "department")
+    ordering = ("department", "year_of_study", "code")
+    list_editable = ("is_active",)
+
 
 
 @admin.register(Class)
