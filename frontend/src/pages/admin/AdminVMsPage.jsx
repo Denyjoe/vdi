@@ -74,7 +74,7 @@ export default function AdminVMsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-slate-800 rounded-xl p-5 border border-slate-700 flex items-center gap-4">
           <div className="bg-blue-500/20 p-3 rounded-lg"><Server className="w-5 h-5 text-blue-400" /></div>
           <div>

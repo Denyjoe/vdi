@@ -82,11 +82,14 @@ export default function RegisterPage() {
         <div className="min-h-screen bg-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
             <div className="sm:mx-auto sm:w-full sm:max-w-md flex flex-col items-center">
                 <div className="text-center mb-8">
-                    <div className="flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mx-auto mb-4">
-                        <Monitor className="w-8 h-8 text-white" />
+                    <div className="flex items-center justify-center mb-4">
+                        <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-900/50">
+                            <Monitor className="w-8 h-8 text-white" />
+                        </div>
                     </div>
-                    <h1 className="text-3xl font-bold text-white font-inter">Create Account</h1>
-                    <p className="text-slate-400 mt-2">DIT Virtual Desktop Infrastructure</p>
+                    <h1 className="text-2xl font-bold text-white">DIT VDI System</h1>
+                    <p className="text-slate-400 text-sm mt-1">Virtual Desktop Infrastructure</p>
+                    <p className="text-slate-500 text-xs mt-1">Dar es Salaam Institute of Technology</p>
                 </div>
             </div>
 

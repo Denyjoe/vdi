@@ -5,9 +5,10 @@
  *   - /         → redirects to /login
  *   - /login    → LoginPage (no layout)
  *   - /register → RegisterPage (no layout)
- *   - /admin/*  → AdminDashboard  (wrapped in Layout + ProtectedRoute)
- *   - /lecturer/* → LecturerDashboard (wrapped in Layout + ProtectedRoute)
- *   - /student/* → StudentDashboard (wrapped in Layout + ProtectedRoute)
+ *   - /admin/*  → Admin pages (wrapped in Layout + ProtectedRoute)
+ *   - /lecturer/* → Lecturer pages (wrapped in Layout + ProtectedRoute)
+ *   - /student/* → Student pages (wrapped in Layout + ProtectedRoute)
+ *   - *         → NotFoundPage (catch-all)
  *
  * @returns {JSX.Element} The routed application.
  */
@@ -20,16 +21,22 @@ import useAuthStore from "./store/authStore";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 
-// Dashboard pages
+// Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminHardwarePage from "./pages/admin/AdminHardwarePage";
 import AdminTemplatesPage from "./pages/admin/AdminTemplatesPage";
 import AdminVMsPage from "./pages/admin/AdminVMsPage";
 import AdminAnalyticsPage from "./pages/admin/AdminAnalyticsPage";
+import AdminUsersPage from "./pages/admin/AdminUsersPage";
+import AdminLogsPage from "./pages/admin/AdminLogsPage";
+
+// Lecturer pages
 import LecturerDashboard from "./pages/lecturer/LecturerDashboard";
 import LecturerMonitorPage from "./pages/lecturer/LecturerMonitorPage";
 import LecturerClassesPage from "./pages/lecturer/LecturerClassesPage";
 import LecturerMaterialsPage from "./pages/lecturer/LecturerMaterialsPage";
+
+// Student pages
 import StudentDashboard from "./pages/student/StudentDashboard";
 import StudentVMsPage from "./pages/student/StudentVMsPage";
 import SessionHistoryPage from "./pages/student/SessionHistoryPage";
@@ -39,6 +46,9 @@ import StudentMaterialsPage from "./pages/student/StudentMaterialsPage";
 // Layout & guards
 import Layout from "./components/layout/Layout";
 import ProtectedRoute from "./components/shared/ProtectedRoute";
+
+// Shared pages
+import NotFoundPage from "./pages/shared/NotFoundPage";
 
 export default function App() {
   const initializeAuth = useAuthStore((state) => state.initializeAuth);
@@ -102,6 +112,26 @@ export default function App() {
             <ProtectedRoute>
               <Layout>
                 <AdminAnalyticsPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <AdminUsersPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/logs"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <AdminLogsPage />
               </Layout>
             </ProtectedRoute>
           }
@@ -223,8 +253,8 @@ export default function App() {
           }
         />
 
-        {/* ── Catch-all — redirect unknown paths to login ──────── */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        {/* ── 404 catch-all ──────────────────────────────────────── */}
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   );

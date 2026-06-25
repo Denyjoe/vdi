@@ -215,7 +215,7 @@ export default function LecturerMaterialsPage({ defaultTab = 'materials' }) {
           {/* Upload Card */}
           <div className="bg-navy-800 border border-navy-700 rounded-2xl p-6 shadow-xl">
             <h2 className="text-xl font-semibold text-white mb-6">Upload Material</h2>
-            <form onSubmit={handleUploadFile} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
+            <form onSubmit={handleUploadFile} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Select Class</label>
                 <select

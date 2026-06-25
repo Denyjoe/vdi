@@ -113,7 +113,7 @@ export default function AdminAnalyticsPage() {
       </div>
 
       {/* --- SECTION 1: Overview Cards --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Row 1 */}
         <div className="bg-slate-800 rounded-xl p-6 shadow-md border border-slate-700 flex items-center gap-4">
           <div className="bg-blue-500/20 p-4 rounded-lg">

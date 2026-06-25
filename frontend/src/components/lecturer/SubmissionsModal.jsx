@@ -81,59 +81,61 @@ export default function SubmissionsModal({ isOpen, onClose, assignment }) {
             </div>
           ) : (
             <div className="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden">
-              <table className="w-full text-left">
-                <thead className="bg-slate-800 text-slate-400 text-xs uppercase tracking-wider">
-                  <tr>
-                    <th className="px-6 py-4 font-medium">Student</th>
-                    <th className="px-6 py-4 font-medium">ID</th>
-                    <th className="px-6 py-4 font-medium">Submitted At</th>
-                    <th className="px-6 py-4 font-medium">Status</th>
-                    <th className="px-6 py-4 font-medium">File</th>
-                    <th className="px-6 py-4 font-medium text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-700/50">
-                  {submissions.map(sub => (
-                    <tr key={sub.id} className="hover:bg-slate-800/50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="font-medium text-white">{sub.student?.full_name}</div>
-                        <div className="text-xs text-slate-400">{sub.student?.email}</div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-slate-300">{sub.student?.student_id}</td>
-                      <td className="px-6 py-4 text-sm text-slate-300">
-                        {new Date(sub.submitted_at).toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4">
-                        {sub.is_late ? (
-                          <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
-                            Late
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">
-                            On Time
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-white truncate max-w-[150px]" title={sub.file_name}>
-                          {sub.file_name}
-                        </div>
-                        <div className="text-xs text-slate-400">{sub.file_size_display}</div>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => handleDownload(sub.id, sub.file_name)}
-                          className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors inline-flex items-center gap-1.5"
-                          title="Download File"
-                        >
-                          <Download className="w-4 h-4" />
-                          <span className="text-xs font-medium">Download</span>
-                        </button>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-800 text-slate-400 text-xs uppercase tracking-wider">
+                    <tr>
+                      <th className="px-6 py-4 font-medium">Student</th>
+                      <th className="px-6 py-4 font-medium">ID</th>
+                      <th className="px-6 py-4 font-medium">Submitted At</th>
+                      <th className="px-6 py-4 font-medium">Status</th>
+                      <th className="px-6 py-4 font-medium">File</th>
+                      <th className="px-6 py-4 font-medium text-right">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-700/50">
+                    {submissions.map(sub => (
+                      <tr key={sub.id} className="hover:bg-slate-800/50 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="font-medium text-white">{sub.student?.full_name}</div>
+                          <div className="text-xs text-slate-400">{sub.student?.email}</div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-300">{sub.student?.student_id}</td>
+                        <td className="px-6 py-4 text-sm text-slate-300">
+                          {new Date(sub.submitted_at).toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4">
+                          {sub.is_late ? (
+                            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+                              Late
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">
+                              On Time
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-white truncate max-w-[150px]" title={sub.file_name}>
+                            {sub.file_name}
+                          </div>
+                          <div className="text-xs text-slate-400">{sub.file_size_display}</div>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <button
+                            onClick={() => handleDownload(sub.id, sub.file_name)}
+                            className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors inline-flex items-center gap-1.5"
+                            title="Download File"
+                          >
+                            <Download className="w-4 h-4" />
+                            <span className="text-xs font-medium">Download</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>
