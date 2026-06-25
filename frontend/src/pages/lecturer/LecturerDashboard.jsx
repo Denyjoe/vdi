@@ -23,6 +23,7 @@ export default function LecturerDashboard() {
     activeStudents: 0,
     activeExams: 0,
     pendingSubmissions: 0,
+    pendingEnrollments: 0,
   });
 
   useEffect(() => {
@@ -35,15 +36,15 @@ export default function LecturerDashboard() {
         ]);
 
         const classCount = classesRes.data?.data?.length ?? 0;
+        const classes = classesRes.data?.data ?? [];
+        const pendingEnrollments = classes.reduce((sum, c) => sum + (c.pending_requests_count ?? 0), 0);
         const monitorData = monitorRes.data?.data ?? {};
         const activeStudents = monitorData.summary?.total_active ?? 0;
         const activeExams = monitorData.exam_sessions?.length ?? 0;
 
-        // Compute pending: for each assignment, (enrolled_count - submission_count)
         let pendingSubmissions = 0;
         if (assignmentsRes?.data?.success) {
           const assignmentList = assignmentsRes.data.data || [];
-          // Fetch enrolled counts per class in parallel
           const classIds = [...new Set(assignmentList.map(a => a.class_room?.id).filter(Boolean))];
           const classDetails = await Promise.all(
             classIds.map(id => classService.getClassDetails(id).catch(() => null))
@@ -62,7 +63,7 @@ export default function LecturerDashboard() {
           }, 0);
         }
 
-        setStats({ classCount, activeStudents, activeExams, pendingSubmissions });
+        setStats({ classCount, activeStudents, activeExams, pendingSubmissions, pendingEnrollments });
       } catch (error) {
         console.error('Failed to load lecturer dashboard data:', error);
       } finally {
@@ -95,11 +96,11 @@ export default function LecturerDashboard() {
       valueColor: stats.activeStudents > 0 ? 'text-blue-400' : 'text-slate-400',
     },
     {
-      label: 'Pending Submissions',
-      value: stats.pendingSubmissions > 0 ? stats.pendingSubmissions : 'All done!',
-      icon: <ClipboardList className={`w-6 h-6 ${stats.pendingSubmissions > 0 ? 'text-amber-400' : 'text-emerald-400'}`} />,
-      bg: stats.pendingSubmissions > 0 ? 'bg-amber-500/20' : 'bg-emerald-500/20',
-      valueColor: stats.pendingSubmissions > 0 ? 'text-amber-400' : 'text-emerald-400',
+      label: 'Pending Enrollments',
+      value: stats.pendingEnrollments > 0 ? stats.pendingEnrollments : 'None',
+      icon: <ClipboardList className={`w-6 h-6 ${stats.pendingEnrollments > 0 ? 'text-amber-400' : 'text-emerald-400'}`} />,
+      bg: stats.pendingEnrollments > 0 ? 'bg-amber-500/20' : 'bg-emerald-500/20',
+      valueColor: stats.pendingEnrollments > 0 ? 'text-amber-400' : 'text-emerald-400',
     },
     {
       label: 'Active Exams',

@@ -39,6 +39,7 @@ import LecturerMaterialsPage from "./pages/lecturer/LecturerMaterialsPage";
 // Student pages
 import StudentDashboard from "./pages/student/StudentDashboard";
 import StudentVMsPage from "./pages/student/StudentVMsPage";
+import StudentClassesPage from "./pages/student/StudentClassesPage";
 import SessionHistoryPage from "./pages/student/SessionHistoryPage";
 import DesktopSessionPage from "./pages/student/DesktopSessionPage";
 import StudentMaterialsPage from "./pages/student/StudentMaterialsPage";
@@ -209,6 +210,16 @@ export default function App() {
             <ProtectedRoute>
               <Layout>
                 <StudentVMsPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student/classes"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <StudentClassesPage />
               </Layout>
             </ProtectedRoute>
           }

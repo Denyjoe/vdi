@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
-import { Monitor, Link2, ClipboardList, Info } from 'lucide-react';
+import { Monitor, Link2, ClipboardList, Info, GraduationCap } from 'lucide-react';
 import { sessionService } from '../../services/sessionService';
 import { vmService } from '../../services/vmService';
 import { assignmentService } from '../../services/assignmentService';
+import { classService } from '../../services/classService';
 import ExamBanner from '../../components/student/ExamBanner';
 
 export default function StudentDashboard() {
@@ -13,15 +14,20 @@ export default function StudentDashboard() {
   const [activeSession, setActiveSession] = useState(null);
   const [vmCount, setVmCount] = useState(0);
   const [pendingAssignments, setPendingAssignments] = useState(0);
+  const [enrolledCount, setEnrolledCount] = useState(0);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [sessionRes, vmsRes, assignmentsRes] = await Promise.all([
+        const [sessionRes, vmsRes, assignmentsRes, classesRes] = await Promise.all([
           sessionService.getActiveSession(),
           vmService.getMyVMs(),
-          assignmentService.getStudentAssignments().catch(() => null)
+          assignmentService.getStudentAssignments().catch(() => null),
+          classService.getEnrolledClasses().catch(() => null)
         ]);
+        if (classesRes?.data?.success) {
+          setEnrolledCount(classesRes.data.data?.length ?? 0);
+        }
         
         if (sessionRes.data.success && sessionRes.data.data) {
           setActiveSession(sessionRes.data.data);
@@ -143,7 +149,13 @@ export default function StudentDashboard() {
           <h3 className="text-lg font-semibold text-white">Quick Actions</h3>
         </div>
         
-        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Link 
+            to="/student/classes" 
+            className="flex items-center justify-center py-3 px-4 border border-emerald-500 text-emerald-400 rounded-lg hover:bg-emerald-500 hover:text-white transition-colors"
+          >
+            My Classes ({enrolledCount})
+          </Link>
           <Link 
             to="/student/vms" 
             className="flex items-center justify-center py-3 px-4 border border-blue-500 text-blue-400 rounded-lg hover:bg-blue-500 hover:text-white transition-colors"

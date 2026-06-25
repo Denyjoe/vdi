@@ -44,6 +44,7 @@ export default function Sidebar({ onClose }) {
   /** Student navigation links */
   const studentLinks = [
     { name: 'Overview', path: '/student/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
+    { name: 'My Classes', path: '/student/classes', icon: <GraduationCap className="w-5 h-5" /> },
     { name: 'My VMs', path: '/student/vms', icon: <Monitor className="w-5 h-5" /> },
     { name: 'Session History', path: '/student/sessions', icon: <History className="w-5 h-5" /> },
     { name: 'Class Materials', path: '/student/materials', icon: <FolderOpen className="w-5 h-5" /> },
