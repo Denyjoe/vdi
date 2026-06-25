@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { 
-  FileText, Archive, Compass, File, Download, 
-  Calendar, Clock, AlertCircle, CheckCircle, Send, FolderOpen
+import {
+  FileText, Archive, Compass, File, Download,
+  Calendar, Clock, AlertCircle, CheckCircle, Send, FolderOpen,
+  Video, Music, Image as ImageIcon, Code2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { classService } from '../../services/classService';
@@ -70,15 +71,54 @@ export default function StudentMaterialsPage({ defaultTab = 'materials' }) {
     }
   };
 
+  /**
+   * Returns a colour-coded Lucide icon based on the file extension.
+   * @param {string} ext - The raw file extension string (case-insensitive).
+   * @returns {JSX.Element} Lucide icon component.
+   */
   const getFileIcon = (ext) => {
-    const extUpper = ext?.toUpperCase() || '';
-    if (['PDF'].includes(extUpper)) return <FileText className="w-8 h-8 text-red-400" />;
-    if (['DOC', 'DOCX'].includes(extUpper)) return <FileText className="w-8 h-8 text-blue-400" />;
-    if (['XLS', 'XLSX'].includes(extUpper)) return <FileText className="w-8 h-8 text-green-400" />;
-    if (['PPT', 'PPTX'].includes(extUpper)) return <FileText className="w-8 h-8 text-orange-400" />;
-    if (['ZIP', 'RAR'].includes(extUpper)) return <Archive className="w-8 h-8 text-yellow-400" />;
-    if (['DWG'].includes(extUpper)) return <Compass className="w-8 h-8 text-purple-400" />;
-    return <File className="w-8 h-8 text-slate-400" />;
+    const extLower = ext?.toLowerCase() || '';
+    switch (extLower) {
+      case 'pdf':
+        return <FileText className="w-8 h-8 text-red-400" />;
+      case 'doc':
+      case 'docx':
+        return <FileText className="w-8 h-8 text-blue-400" />;
+      case 'xls':
+      case 'xlsx':
+      case 'csv':
+        return <FileText className="w-8 h-8 text-green-400" />;
+      case 'ppt':
+      case 'pptx':
+        return <FileText className="w-8 h-8 text-orange-400" />;
+      case 'zip':
+      case 'rar':
+      case '7z':
+        return <Archive className="w-8 h-8 text-yellow-400" />;
+      case 'dwg':
+      case 'dxf':
+        return <Compass className="w-8 h-8 text-purple-400" />;
+      case 'mp4':
+      case 'avi':
+      case 'mov':
+        return <Video className="w-8 h-8 text-pink-400" />;
+      case 'mp3':
+      case 'wav':
+        return <Music className="w-8 h-8 text-indigo-400" />;
+      case 'png':
+      case 'jpg':
+      case 'jpeg':
+      case 'gif':
+        return <ImageIcon className="w-8 h-8 text-cyan-400" />;
+      case 'py':
+        return <Code2 className="w-8 h-8 text-yellow-400" />;
+      case 'js':
+      case 'html':
+      case 'css':
+        return <Code2 className="w-8 h-8 text-green-400" />;
+      default:
+        return <File className="w-8 h-8 text-gray-400" />;
+    }
   };
 
   return (

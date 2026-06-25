@@ -42,11 +42,19 @@ class FileSerializer(serializers.ModelSerializer):
         return ""
 
     def get_file_size_display(self, obj):
-        if not obj.file_size:
-            return "0 KB"
-        if obj.file_size < 1024 * 1024:
-            return f"{obj.file_size / 1024:.0f} KB"
-        return f"{obj.file_size / (1024 * 1024):.1f} MB"
+        """Return a human-readable file size string.
+
+        Returns:
+            str: Size formatted as B / KB / MB, or 'Unknown' if not recorded.
+        """
+        size = obj.file_size
+        if not size or size == 0:
+            return "Unknown"
+        if size < 1024:
+            return f"{size} B"
+        if size < 1024 * 1024:
+            return f"{size / 1024:.1f} KB"
+        return f"{size / (1024 * 1024):.1f} MB"
 
 
 class AssignmentSerializer(serializers.ModelSerializer):

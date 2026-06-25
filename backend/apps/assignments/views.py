@@ -41,6 +41,14 @@ class LecturerFileUploadView(views.APIView):
 
         file_size = file_obj.size
 
+        # Enforce 100 MB maximum upload size.
+        MAX_UPLOAD_BYTES = 100 * 1024 * 1024  # 100 MB in bytes
+        if file_size > MAX_UPLOAD_BYTES:
+            return Response(
+                {"success": False, "message": "File too large. Maximum size is 100MB."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         new_file = File.objects.create(
             class_room=class_room,
             uploader=request.user,
