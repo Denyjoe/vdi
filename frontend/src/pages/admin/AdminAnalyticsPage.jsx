@@ -42,6 +42,8 @@ export default function AdminAnalyticsPage() {
         if (assignmentRes.data.success) setAssignmentStats(assignmentRes.data.data);
       } catch (error) {
         console.error("Failed to fetch analytics data", error);
+        console.error('Full error:', error);
+        console.error('Response:', error.response?.data);
         toast.error("Failed to load analytics dashboard");
       } finally {
         setLoading(false);

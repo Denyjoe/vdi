@@ -128,6 +128,8 @@ export default function AdminHardwarePage() {
       setSecondsSince(0);
     } catch (err) {
       console.error('Hardware stats fetch failed:', err);
+      console.error('Full error:', err);
+      console.error('Response:', err.response?.data);
     }
   }, []);
 
@@ -143,6 +145,8 @@ export default function AdminHardwarePage() {
       });
     } catch (err) {
       console.error('CPU history fetch failed:', err);
+      console.error('Full error:', err);
+      console.error('Response:', err.response?.data);
     }
   }, []);
 
@@ -159,6 +163,8 @@ export default function AdminHardwarePage() {
         setHistory(historyRes.data.data);
       } catch (err) {
         console.error('Initial hardware load failed:', err);
+        console.error('Full error:', err);
+        console.error('Response:', err.response?.data);
       } finally {
         setLoading(false);
       }
