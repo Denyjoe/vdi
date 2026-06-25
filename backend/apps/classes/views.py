@@ -75,3 +75,20 @@ class AdminClassListView(generics.ListAPIView):
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
         return Response({"success": True, "data": serializer.data})
+
+
+class StudentEnrolledClassesView(generics.ListAPIView):
+    """Returns all classes a student is enrolled in."""
+    permission_classes = [IsAuthenticated]
+    serializer_class = ClassSerializer
+
+    def get_queryset(self):
+        return Class.objects.filter(
+            enrollments__student=self.request.user,
+            is_active=True
+        ).order_by('-created_at')
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({"success": True, "data": serializer.data})

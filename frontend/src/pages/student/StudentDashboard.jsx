@@ -4,6 +4,7 @@ import useAuthStore from '../../store/authStore';
 import { Monitor, Link2, ClipboardList, Info } from 'lucide-react';
 import { sessionService } from '../../services/sessionService';
 import { vmService } from '../../services/vmService';
+import { assignmentService } from '../../services/assignmentService';
 import ExamBanner from '../../components/student/ExamBanner';
 
 export default function StudentDashboard() {
@@ -11,20 +12,28 @@ export default function StudentDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeSession, setActiveSession] = useState(null);
   const [vmCount, setVmCount] = useState(0);
+  const [pendingAssignments, setPendingAssignments] = useState(0);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [sessionRes, vmsRes] = await Promise.all([
+        const [sessionRes, vmsRes, assignmentsRes] = await Promise.all([
           sessionService.getActiveSession(),
-          vmService.getMyVMs()
+          vmService.getMyVMs(),
+          assignmentService.getStudentAssignments().catch(() => null)
         ]);
         
         if (sessionRes.data.success && sessionRes.data.data) {
           setActiveSession(sessionRes.data.data);
         }
         if (vmsRes.data.success) {
-          setVmCount(vmsRes.data.data.length);
+          setVmCount(vmsRes.data.data?.length ?? 0);
+        }
+        if (assignmentsRes?.data?.success) {
+          const pending = (assignmentsRes.data.data || []).filter(
+            a => !a.has_submitted && !a.is_overdue
+          ).length;
+          setPendingAssignments(pending);
         }
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
@@ -87,15 +96,30 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        <div className="bg-slate-800 rounded-xl p-6 shadow-md border border-slate-700 flex items-center gap-4 transition-transform hover:scale-105">
-          <div className="bg-purple-500/20 p-4 rounded-lg">
-            <ClipboardList className="w-6 h-6 text-purple-400" />
+        <Link
+          to="/student/materials"
+          className={`rounded-xl p-6 shadow-md border flex items-center gap-4 transition-transform hover:scale-105 ${
+            pendingAssignments > 0
+              ? 'bg-amber-900/30 border-amber-500/40 hover:border-amber-400/60'
+              : 'bg-slate-800 border-slate-700'
+          }`}
+        >
+          <div className={`p-4 rounded-lg ${
+            pendingAssignments > 0 ? 'bg-amber-500/20' : 'bg-green-500/20'
+          }`}>
+            <ClipboardList className={`w-6 h-6 ${
+              pendingAssignments > 0 ? 'text-amber-400' : 'text-green-400'
+            }`} />
           </div>
           <div>
             <p className="text-slate-400 text-sm font-medium">Pending Assignments</p>
-            <p className="text-2xl font-bold text-white">0</p>
+            <p className={`text-2xl font-bold ${
+              pendingAssignments > 0 ? 'text-amber-400' : 'text-green-400'
+            }`}>
+              {pendingAssignments > 0 ? pendingAssignments : 'All done!'}
+            </p>
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* Announcement Card */}

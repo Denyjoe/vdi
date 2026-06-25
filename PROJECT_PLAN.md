@@ -203,7 +203,7 @@ dit-vdi-system/
 - [x] Phase 2 — VM Allocation Subsystem
 - [x] Phase 3 — Web-Based Remote Access
 - [x] Phase 4 — Lecturer Monitoring & Session Control
-- [ ] Phase 5 — File Sharing & Assignment Submission
+- [x] Phase 5 — File Sharing & Assignment Submission
 - [ ] Phase 6 — Analytics / Reporting Dashboard
 - [ ] Phase 7 — Polish & Packaging 
  

@@ -28,10 +28,12 @@ import AdminVMsPage from "./pages/admin/AdminVMsPage";
 import LecturerDashboard from "./pages/lecturer/LecturerDashboard";
 import LecturerMonitorPage from "./pages/lecturer/LecturerMonitorPage";
 import LecturerClassesPage from "./pages/lecturer/LecturerClassesPage";
+import LecturerMaterialsPage from "./pages/lecturer/LecturerMaterialsPage";
 import StudentDashboard from "./pages/student/StudentDashboard";
 import StudentVMsPage from "./pages/student/StudentVMsPage";
 import SessionHistoryPage from "./pages/student/SessionHistoryPage";
 import DesktopSessionPage from "./pages/student/DesktopSessionPage";
+import StudentMaterialsPage from "./pages/student/StudentMaterialsPage";
 
 // Layout & guards
 import Layout from "./components/layout/Layout";
@@ -127,6 +129,28 @@ export default function App() {
           }
         />
 
+        <Route
+          path="/lecturer/materials"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <LecturerMaterialsPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        {/* Alias: /lecturer/assignments → LecturerMaterialsPage Tab 2 */}
+        <Route
+          path="/lecturer/assignments"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <LecturerMaterialsPage defaultTab="assignments" />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
         {/* ── Student routes ────────────────────────────────────── */}
         <Route
           path="/student/dashboard"
@@ -154,6 +178,27 @@ export default function App() {
             <ProtectedRoute>
               <Layout>
                 <SessionHistoryPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student/materials"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <StudentMaterialsPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        {/* Alias: /student/assignments → StudentMaterialsPage Tab 2 */}
+        <Route
+          path="/student/assignments"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <StudentMaterialsPage defaultTab="assignments" />
               </Layout>
             </ProtectedRoute>
           }

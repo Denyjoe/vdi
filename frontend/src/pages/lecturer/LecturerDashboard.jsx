@@ -4,6 +4,7 @@ import useAuthStore from '../../store/authStore';
 import { GraduationCap, Users, ClipboardList, ShieldAlert } from 'lucide-react';
 import { classService } from '../../services/classService';
 import { sessionService } from '../../services/sessionService';
+import { assignmentService } from '../../services/assignmentService';
 
 /**
  * LecturerDashboard — overview page for lecturers.
@@ -27,9 +28,10 @@ export default function LecturerDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [classesRes, monitorRes] = await Promise.all([
+        const [classesRes, monitorRes, assignmentsRes] = await Promise.all([
           classService.getMyClasses(),
           sessionService.getMonitorData(),
+          assignmentService.getLecturerAssignments().catch(() => null)
         ]);
 
         const classCount = classesRes.data?.data?.length ?? 0;
@@ -37,7 +39,30 @@ export default function LecturerDashboard() {
         const activeStudents = monitorData.summary?.total_active ?? 0;
         const activeExams = monitorData.exam_sessions?.length ?? 0;
 
-        setStats({ classCount, activeStudents, activeExams, pendingSubmissions: 0 });
+        // Compute pending: for each assignment, (enrolled_count - submission_count)
+        let pendingSubmissions = 0;
+        if (assignmentsRes?.data?.success) {
+          const assignmentList = assignmentsRes.data.data || [];
+          // Fetch enrolled counts per class in parallel
+          const classIds = [...new Set(assignmentList.map(a => a.class_room?.id).filter(Boolean))];
+          const classDetails = await Promise.all(
+            classIds.map(id => classService.getClassDetails(id).catch(() => null))
+          );
+          const enrolledByClass = {};
+          classDetails.forEach(res => {
+            if (res?.data?.success) {
+              const cls = res.data.data;
+              enrolledByClass[cls.id] = cls.enrolled_count ?? 0;
+            }
+          });
+          pendingSubmissions = assignmentList.reduce((sum, a) => {
+            const enrolled = enrolledByClass[a.class_room?.id] ?? 0;
+            const submitted = a.submission_count ?? 0;
+            return sum + Math.max(0, enrolled - submitted);
+          }, 0);
+        }
+
+        setStats({ classCount, activeStudents, activeExams, pendingSubmissions });
       } catch (error) {
         console.error('Failed to load lecturer dashboard data:', error);
       } finally {
@@ -71,9 +96,10 @@ export default function LecturerDashboard() {
     },
     {
       label: 'Pending Submissions',
-      value: stats.pendingSubmissions,
-      icon: <ClipboardList className="w-6 h-6 text-emerald-400" />,
-      bg: 'bg-emerald-500/20',
+      value: stats.pendingSubmissions > 0 ? stats.pendingSubmissions : 'All done!',
+      icon: <ClipboardList className={`w-6 h-6 ${stats.pendingSubmissions > 0 ? 'text-amber-400' : 'text-emerald-400'}`} />,
+      bg: stats.pendingSubmissions > 0 ? 'bg-amber-500/20' : 'bg-emerald-500/20',
+      valueColor: stats.pendingSubmissions > 0 ? 'text-amber-400' : 'text-emerald-400',
     },
     {
       label: 'Active Exams',
