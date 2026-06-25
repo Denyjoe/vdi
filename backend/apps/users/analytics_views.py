@@ -7,9 +7,9 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
 from apps.users.permissions import IsAdmin
-from apps.users.models import User, ActivityLog
+from apps.users.models import User
 from apps.vms.models import VirtualMachine, VMTemplate
-from apps.sessions.models import RemoteSession, ExamSession
+from apps.sessions.models import RemoteSession, ExamSession, ActivityLog
 from apps.classes.models import Class, ClassEnrollment
 from apps.assignments.models import Assignment, Submission
 
