@@ -14,4 +14,12 @@ urlpatterns = [
     path('exam-sessions/<int:pk>/start/', views.LecturerStartExamView.as_view(), name='exam_session_start'),
     path('exam-sessions/<int:pk>/end/', views.LecturerEndExamView.as_view(), name='exam_session_end'),
     path('lecturer/monitor/', views.LecturerMonitorView.as_view(), name='lecturer_monitor'),
+    
+    # ── Practical Sessions ────────────────────────────────────
+    path('practical-sessions/', views.LecturerPracticalSessionListView.as_view(), name='practical_session_list'),
+    path('practical-sessions/<int:pk>/', views.LecturerPracticalSessionDetailView.as_view(), name='practical_session_detail'),
+    path('practical-sessions/<int:pk>/start/', views.LecturerStartPracticalView.as_view(), name='practical_session_start'),
+    path('practical-sessions/<int:pk>/end/', views.LecturerEndPracticalView.as_view(), name='practical_session_end'),
+    path('practical-sessions/student/', views.StudentPracticalSessionsView.as_view(), name='student_practical_sessions'),
+    path('practical-sessions/<int:pk>/submit/', views.StudentPracticalSubmitView.as_view(), name='student_practical_submit'),
 ]

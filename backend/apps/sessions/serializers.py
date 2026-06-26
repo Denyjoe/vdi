@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.utils import timezone
-from .models import RemoteSession, ExamSession, ActivityLog
+from .models import RemoteSession, ExamSession, ActivityLog, PracticalSession, StudentPracticalAccess
 
 class RemoteSessionSerializer(serializers.ModelSerializer):
     vm = serializers.SerializerMethodField()
@@ -158,3 +158,58 @@ class ActivityLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = ActivityLog
         fields = ['id', 'user', 'action', 'description', 'timestamp', 'ip_address']
+
+
+class PracticalSessionSerializer(serializers.ModelSerializer):
+    """
+    Serializer for PracticalSession with nested lecturer and class info.
+    """
+    lecturer_name = serializers.SerializerMethodField()
+    class_name = serializers.CharField(source='class_room.name', read_only=True)
+    vm_template_name = serializers.CharField(
+        source='required_vm_template.name', read_only=True, default=''
+    )
+    attendance_count = serializers.SerializerMethodField()
+    total_students = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PracticalSession
+        fields = [
+            'id', 'name', 'session_type', 'class_room', 'class_name', 'lecturer',
+            'lecturer_name', 'required_vm_template', 'vm_template_name', 'submission_type',
+            'scheduled_date', 'start_time', 'end_time', 'status',
+            'instructions', 'max_concurrent_vms', 'auto_terminate',
+            'attendance_count', 'total_students', 'created_at',
+        ]
+
+    def get_lecturer_name(self, obj):
+        return f"{obj.lecturer.first_name} {obj.lecturer.last_name}".strip()
+
+    def get_attendance_count(self, obj):
+        return obj.student_access.filter(has_attended=True).count()
+
+    def get_total_students(self, obj):
+        return obj.student_access.count()
+
+
+class StudentPracticalAccessSerializer(serializers.ModelSerializer):
+    """
+    Serializer for StudentPracticalAccess with nested student info.
+    """
+    student_name = serializers.SerializerMethodField()
+    student_email = serializers.CharField(source='student.email', read_only=True)
+    session_name = serializers.CharField(
+        source='practical_session.name', read_only=True
+    )
+
+    class Meta:
+        model = StudentPracticalAccess
+        fields = [
+            'id', 'practical_session', 'session_name', 'student',
+            'student_name', 'student_email', 'has_attended',
+            'joined_at', 'left_at', 'submission_file', 'submitted_at',
+            'grade', 'lecturer_notes',
+        ]
+
+    def get_student_name(self, obj):
+        return f"{obj.student.first_name} {obj.student.last_name}".strip()

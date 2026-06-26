@@ -60,11 +60,21 @@ class User(AbstractUser):
         null=True,
         help_text="Profile photo. Stored in MEDIA_ROOT/avatars/.",
     )
-    department = models.CharField(
-        max_length=100,
-        blank=True,
+    department = models.ForeignKey(
+        'classes.Department',
+        on_delete=models.SET_NULL,
         null=True,
-        help_text="Department the user belongs to (e.g. 'Computer Engineering').",
+        blank=True,
+        related_name='members',
+        help_text="Department the user belongs to.",
+    )
+    programme = models.ForeignKey(
+        'classes.Programme',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='students',
+        help_text="The academic programme the user is enrolled in (e.g. Bachelor of Computer Engineering).",
     )
     year_of_study = models.IntegerField(
         blank=True,

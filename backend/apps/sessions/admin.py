@@ -4,7 +4,7 @@ Admin registration for the sessions application.
 
 from django.contrib import admin
 
-from .models import ActivityLog, ExamSession, RemoteSession
+from .models import ActivityLog, ExamSession, RemoteSession, PracticalSession, StudentPracticalAccess
 
 
 @admin.register(RemoteSession)
@@ -49,3 +49,26 @@ class ActivityLogAdmin(admin.ModelAdmin):
     def has_change_permission(self, request, obj=None):
         """Prevent editing of log entries via admin."""
         return False
+
+
+@admin.register(PracticalSession)
+class PracticalSessionAdmin(admin.ModelAdmin):
+    """Admin view for practical lab sessions."""
+
+    list_display = ("name", "class_room", "lecturer", "start_time", "end_time", "status")
+    list_filter = ("status", "start_time", "class_room__department")
+    search_fields = ("name", "class_room__name", "lecturer__username")
+    ordering = ("-start_time",)
+
+
+@admin.register(StudentPracticalAccess)
+class StudentPracticalAccessAdmin(admin.ModelAdmin):
+    """Admin view for student access to practical sessions."""
+
+    list_display = (
+        "student", "practical_session", "has_attended",
+        "joined_at", "submitted_at", "grade"
+    )
+    list_filter = ("has_attended", "practical_session")
+    search_fields = ("student__username", "student__email")
+    ordering = ("-practical_session__scheduled_date",)
