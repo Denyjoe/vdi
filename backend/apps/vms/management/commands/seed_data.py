@@ -386,6 +386,7 @@ class Command(BaseCommand):
         self.stdout.write('\n── Seeding Class & Enrollments ──')
 
         lecturer = created_users.get('shija@dit.ac.tz')
+        admin_user = created_users.get('admin@dit.ac.tz')
         if not lecturer:
             self.stdout.write(self.style.WARNING('  – Lecturer not found, skipping class creation.'))
             return
@@ -397,6 +398,8 @@ class Command(BaseCommand):
             name='Computer Engineering Lab',
             defaults={
                 'lecturer': lecturer,
+                'created_by': admin_user,
+                'class_type': 'official',
                 'description': 'Practical lab sessions for Computer Engineering students',
                 'department': cs,
                 'programme': bcoe,
@@ -413,7 +416,11 @@ class Command(BaseCommand):
             class_room.streams.set(coe_streams)
             self.stdout.write(self.style.SUCCESS('  ✓ Created class: Computer Engineering Lab'))
         else:
-            self.stdout.write(self.style.WARNING('  – Class already exists: Computer Engineering Lab'))
+            # Update existing class to have correct type and creator
+            class_room.class_type = 'official'
+            class_room.created_by = admin_user
+            class_room.save()
+            self.stdout.write(self.style.WARNING('  – Class already exists: Computer Engineering Lab (updated type)'))
 
         # Enroll students
         student_emails = ['denis@dit.ac.tz', 'student2@dit.ac.tz', 'student3@dit.ac.tz']

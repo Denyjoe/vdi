@@ -359,19 +359,32 @@ class LecturerMonitorView(views.APIView):
         })
 
 class StudentActiveExamSessionView(views.APIView):
+    """
+    GET /api/sessions/exam/active/
+
+    Returns the currently active exam session for the student,
+    scoped strictly to classes they are enrolled in via ClassEnrollment.
+
+    Permission: IsStudent
+    """
     permission_classes = [IsAuthenticated, IsStudent]
 
     def get(self, request):
-        # Find if any class the student is enrolled in has an active exam
+        """Return active exam for the student's enrolled classes only."""
+        from apps.classes.models import ClassEnrollment
+
+        enrolled_class_ids = ClassEnrollment.objects.filter(
+            student=request.user
+        ).values_list('class_room_id', flat=True)
+
         exam = ExamSession.objects.filter(
-            class_room__enrollments__student=request.user,
+            class_room_id__in=enrolled_class_ids,
             status='active'
         ).first()
 
         if not exam:
             return Response({"success": True, "data": None})
 
-        # Calculate time remaining
         serializer = ExamSessionSerializer(exam)
         return Response({
             "success": True,
@@ -546,15 +559,30 @@ class LecturerEndPracticalView(generics.GenericAPIView):
 
 
 class StudentPracticalSessionsView(generics.ListAPIView):
+    """
+    GET /api/sessions/practical/student/
+
+    List practical sessions scoped to classes the student is enrolled in.
+    Enforces strict content isolation via ClassEnrollment.
+
+    Permission: IsStudent
+    """
     permission_classes = [IsAuthenticated, IsStudent]
     serializer_class = PracticalSessionSerializer
 
     def get_queryset(self):
+        """Return practical sessions only for the student's enrolled classes."""
+        from apps.classes.models import ClassEnrollment
+        enrolled_class_ids = ClassEnrollment.objects.filter(
+            student=self.request.user
+        ).values_list('class_room_id', flat=True)
+
         return PracticalSession.objects.filter(
-            student_access__student=self.request.user
+            class_room_id__in=enrolled_class_ids
         ).select_related('class_room', 'required_vm_template', 'lecturer')
 
     def list(self, request, *args, **kwargs):
+        """Return practical sessions with per-student access metadata."""
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
         data = serializer.data
@@ -577,9 +605,18 @@ class StudentPracticalSessionsView(generics.ListAPIView):
 
 
 class StudentPracticalSubmitView(generics.GenericAPIView):
+    """
+    POST /api/sessions/practical/<pk>/submit/
+
+    Submit a file for a practical session.
+    Validates the student has access via StudentPracticalAccess.
+
+    Permission: IsStudent
+    """
     permission_classes = [IsAuthenticated, IsStudent]
 
     def post(self, request, *args, **kwargs):
+        """Handle practical session file submission."""
         session_id = self.kwargs['pk']
 
         try:

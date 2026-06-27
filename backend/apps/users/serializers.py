@@ -83,7 +83,8 @@ class ProgrammeField(serializers.RelatedField):
             'code': value.code,
             'name': value.name,
             'department': value.department.name if value.department else '',
-            'nta_level': value.nta_level,
+            'nta_range': value.nta_range,
+            'level': value.level,
         }
 
     def to_internal_value(self, data):
@@ -212,15 +213,17 @@ class RegisterSerializer(serializers.ModelSerializer):
     Serializer for new user registration.
 
     Validates role-specific requirements:
-    - Students must provide student_id, department, programme, stream, year_of_study.
+    - Students must provide student_id, department, programme, year_of_study.
     - Lecturers must provide department.
     - Passwords must match.
+
+    Note: Stream/group is NOT collected at registration.
+    Admin assigns students to classes (and streams) later.
     """
     password = serializers.CharField(write_only=True, min_length=8)
     confirm_password = serializers.CharField(write_only=True, min_length=8)
     department = serializers.IntegerField(required=False, allow_null=True, write_only=True)
     programme = serializers.IntegerField(required=False, allow_null=True, write_only=True)
-    stream = serializers.IntegerField(required=False, allow_null=True, write_only=True)
     year_of_study = serializers.IntegerField(required=False, allow_null=True)
 
     class Meta:
@@ -228,7 +231,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = [
             'first_name', 'last_name', 'email', 'password',
             'confirm_password', 'role', 'student_id',
-            'department', 'programme', 'stream', 'year_of_study',
+            'department', 'programme', 'year_of_study',
         ]
 
     def validate_role(self, value):
@@ -255,7 +258,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
         Checks:
         - Passwords match.
-        - Students must provide student_id, department, programme, stream, year_of_study.
+        - Students must provide student_id, department, programme, year_of_study.
         - Lecturers must provide department.
 
         Args:
@@ -279,8 +282,6 @@ class RegisterSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({"department": "Department is required for students."})
             if not data.get('programme'):
                 raise serializers.ValidationError({"programme": "Programme is required for students."})
-            if not data.get('stream'):
-                raise serializers.ValidationError({"stream": "Stream is required for students."})
             if not data.get('year_of_study'):
                 raise serializers.ValidationError({"year_of_study": "Year of study is required for students."})
 
@@ -294,8 +295,8 @@ class RegisterSerializer(serializers.ModelSerializer):
         """
         Create a new user with the validated registration data.
 
-        Resolves FK IDs for department, programme, and stream before
-        creating the user instance.
+        Resolves FK IDs for department and programme before
+        creating the user instance. Stream is NOT set at registration.
 
         Args:
             validated_data: Dict of validated registration fields.
@@ -308,7 +309,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         # Resolve FK references from IDs
         department_id = validated_data.pop('department', None)
         programme_id = validated_data.pop('programme', None)
-        stream_id = validated_data.pop('stream', None)
 
         if department_id:
             from apps.classes.models import Department
@@ -323,13 +323,6 @@ class RegisterSerializer(serializers.ModelSerializer):
                 validated_data['programme'] = Programme.objects.get(id=programme_id)
             except Programme.DoesNotExist:
                 raise serializers.ValidationError({"programme": "Programme not found."})
-
-        if stream_id:
-            from apps.classes.models import CourseStream
-            try:
-                validated_data['stream'] = CourseStream.objects.get(id=stream_id)
-            except CourseStream.DoesNotExist:
-                raise serializers.ValidationError({"stream": "Course stream not found."})
 
         # Map email to username as required by AbstractUser
         validated_data['username'] = validated_data['email']

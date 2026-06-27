@@ -210,10 +210,16 @@ class Class(models.Model):
     A class belongs to a Department and Programme, and can be assigned
     to multiple CourseStreams via a ManyToManyField.
 
+    Two class types exist:
+    - 'official': Created by admin, linked to academic structure.
+    - 'working_group': Created by lecturer for practical/lab sessions.
+
     Attributes:
         name (str): Human-readable course name (e.g. "Engineering Drawing 2").
         description (str): Optional longer description of the class.
+        class_type (str): Either 'official' or 'working_group'.
         lecturer (User): The lecturer who owns and manages this class.
+        created_by (User): The user who created this class record.
         department (Department): Department hosting this class.
         programme (Programme): Programme this class belongs to.
         streams (M2M CourseStream): Which streams take this class.
@@ -224,6 +230,13 @@ class Class(models.Model):
         is_active (bool): Inactive classes are hidden from students.
     """
 
+    CLASS_TYPE_OFFICIAL = 'official'
+    CLASS_TYPE_WORKING_GROUP = 'working_group'
+    CLASS_TYPE_CHOICES = [
+        (CLASS_TYPE_OFFICIAL, 'Official Class'),
+        (CLASS_TYPE_WORKING_GROUP, 'Working Group / Lab'),
+    ]
+
     name = models.CharField(
         max_length=200,
         help_text="Full name of the course or class (e.g. Engineering Drawing 2).",
@@ -233,12 +246,26 @@ class Class(models.Model):
         null=True,
         help_text="Optional longer description of the class.",
     )
+    class_type = models.CharField(
+        max_length=20,
+        choices=CLASS_TYPE_CHOICES,
+        default=CLASS_TYPE_WORKING_GROUP,
+        help_text="Type of class: official (admin-created) or working_group (lecturer-created).",
+    )
     lecturer = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="classes_taught",
         limit_choices_to={"role": "lecturer"},
         help_text="The lecturer who owns this class.",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_classes",
+        help_text="The user who created this class record.",
     )
     department = models.ForeignKey(
         Department,

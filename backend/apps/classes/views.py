@@ -11,7 +11,7 @@ Covers:
 
 from rest_framework import generics, status
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.utils import timezone
 from apps.users.permissions import IsLecturer, IsAdmin, IsStudent
 from apps.users.models import User
@@ -616,7 +616,7 @@ class DepartmentListView(generics.GenericAPIView):
     Returns all active departments with their programme and stream counts.
     Permission: IsAuthenticated
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def get(self, request, *args, **kwargs):
         """Return departments with annotated counts."""
@@ -649,7 +649,7 @@ class ProgrammeListView(generics.ListAPIView):
 
     Permission: IsAuthenticated
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     serializer_class = ProgrammeSerializer
 
     def get_queryset(self):
@@ -685,7 +685,7 @@ class CourseStreamListView(generics.GenericAPIView):
 
     Permission: IsAuthenticated
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def get(self, request, *args, **kwargs):
         """Return streams grouped by department."""

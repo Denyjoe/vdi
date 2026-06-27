@@ -58,6 +58,10 @@ export default function LecturerMaterialsPage({ defaultTab = 'materials' }) {
   };
 
   const loadFiles = async (classId) => {
+    if (!classId) {
+      setFiles([]);
+      return;
+    }
     try {
       const res = await assignmentService.getClassFiles(classId);
       setFiles(res.data?.data || []);
@@ -67,9 +71,13 @@ export default function LecturerMaterialsPage({ defaultTab = 'materials' }) {
   };
 
   const loadAssignments = async () => {
+    if (!selectedClassId) {
+      setAssignments([]);
+      return;
+    }
     setIsAssignmentsLoading(true);
     try {
-      const res = await assignmentService.getLecturerAssignments();
+      const res = await assignmentService.getLecturerAssignments(selectedClassId);
       setAssignments(res.data?.data || []);
     } catch (error) {
       toast.error('Failed to load assignments');
@@ -179,9 +187,24 @@ export default function LecturerMaterialsPage({ defaultTab = 'materials' }) {
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white tracking-tight">Materials & Assignments</h1>
-        <p className="text-slate-400 mt-2 text-lg">Manage class resources and student tasks</p>
+      <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-white tracking-tight">Materials & Assignments</h1>
+          <p className="text-slate-400 mt-2 text-lg">Manage class resources and student tasks</p>
+        </div>
+        <div className="w-full md:w-80">
+          <label className="block text-sm font-medium text-slate-300 mb-2">Filter by Class</label>
+          <select
+            value={selectedClassId}
+            onChange={(e) => setSelectedClassId(e.target.value)}
+            className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
+          >
+            <option value="">Select a class...</option>
+            {classes.map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -215,21 +238,7 @@ export default function LecturerMaterialsPage({ defaultTab = 'materials' }) {
           {/* Upload Card */}
           <div className="bg-navy-800 border border-navy-700 rounded-2xl p-6 shadow-xl">
             <h2 className="text-xl font-semibold text-white mb-6">Upload Material</h2>
-            <form onSubmit={handleUploadFile} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Select Class</label>
-                <select
-                  value={selectedClassId}
-                  onChange={(e) => setSelectedClassId(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
-                >
-                  <option value="">Select a class...</option>
-                  {classes.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-              
+            <form onSubmit={handleUploadFile} className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Title</label>
                 <input

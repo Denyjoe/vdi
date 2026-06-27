@@ -139,11 +139,28 @@ class LecturerAssignmentListView(views.APIView):
 
 
 class LecturerAssignmentCreateView(views.APIView):
+    """
+    POST /api/assignments/create/
+
+    Create a new assignment for one of the lecturer's classes.
+    Validates that the lecturer owns the class (class_room.lecturer == request.user).
+
+    Permission: IsLecturer
+    """
     permission_classes = [IsLecturer]
 
     def post(self, request):
+        """Create a new assignment after validating class ownership."""
         serializer = AssignmentCreateSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
+            # Double-check class ownership (serializer also checks, but belt-and-suspenders)
+            class_room = serializer.validated_data.get('class_room')
+            if class_room and class_room.lecturer != request.user:
+                return Response({
+                    "success": False,
+                    "message": "You do not have permission to create assignments for this class."
+                }, status=status.HTTP_403_FORBIDDEN)
+
             assignment = serializer.save(lecturer=request.user)
             
             ActivityLog.objects.create(
@@ -222,11 +239,31 @@ class LecturerAssignmentDetailView(views.APIView):
 
 
 class StudentAssignmentListView(views.APIView):
+    """
+    GET /api/assignments/student/
+
+    List assignments for classes the student is enrolled in.
+    Enforces strict content isolation: only returns assignments
+    from classes where the student has an active ClassEnrollment.
+
+    Permission: IsStudent
+    """
     permission_classes = [IsStudent]
 
     def get(self, request):
-        enrolled_class_ids = request.user.enrollments.values_list('class_room_id', flat=True)
-        assignments = Assignment.objects.filter(class_room_id__in=enrolled_class_ids, is_active=True).order_by('due_date')
+        """Return assignments scoped to the student's enrolled classes."""
+        from apps.classes.models import ClassEnrollment
+
+        enrolled_class_ids = ClassEnrollment.objects.filter(
+            student=request.user
+        ).values_list('class_room_id', flat=True)
+
+        assignments = Assignment.objects.filter(
+            class_room_id__in=enrolled_class_ids,
+            is_active=True
+        ).select_related(
+            'class_room', 'lecturer'
+        ).order_by('due_date')
         
         overdue_filter = request.query_params.get('overdue')
         now = timezone.now()
