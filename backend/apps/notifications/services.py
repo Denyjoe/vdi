@@ -2,23 +2,37 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from .models import Notification
 
-def send_notification(user, title, message, type='info', action_url=None):
+def send_notification(recipient, notification_type, title, message, data=None):
     """
-    Creates a Notification record in the database and pushes it to the user 
-    via WebSocket.
+    Create a notification in the database and push it via WebSocket.
     """
-    # 1. Save to DB
+    channel_layer = get_channel_layer()
+    if not channel_layer:
+        return None
+
+    # Determine action_url from data if provided, otherwise default based on type
+    action_url = None
+    if data and 'action_url' in data:
+        action_url = data['action_url']
+    elif notification_type == 'New Material':
+        action_url = '/student/materials'
+    elif notification_type == 'New Assignment':
+        action_url = '/student/assignments'
+    elif notification_type == 'Practical Started' or notification_type == 'Practical Ended':
+        action_url = '/student/practicals'
+
+    # Create DB record
     notification = Notification.objects.create(
-        user=user,
+        user=recipient,
+        type=notification_type,
         title=title,
         message=message,
-        type=type,
         action_url=action_url
     )
 
     # 2. Push via WebSocket
     channel_layer = get_channel_layer()
-    group_name = f"user_{user.id}_notifications"
+    group_name = f"user_{recipient.id}_notifications"
     
     payload = {
         'id': notification.id,
@@ -30,6 +44,7 @@ def send_notification(user, title, message, type='info', action_url=None):
         'created_at': notification.created_at.isoformat()
     }
 
+    print(f"WS PUSH: Sending to {group_name}")
     async_to_sync(channel_layer.group_send)(
         group_name,
         {
@@ -37,5 +52,6 @@ def send_notification(user, title, message, type='info', action_url=None):
             'message': payload
         }
     )
+    print(f"WS PUSH: Sent to {group_name}")
     
     return notification

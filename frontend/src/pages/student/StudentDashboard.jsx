@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
-import { Monitor, Link2, ClipboardList, Info, GraduationCap } from 'lucide-react';
+import { Monitor, Link2, ClipboardList, Info, GraduationCap, Megaphone } from 'lucide-react';
 import { sessionService } from '../../services/sessionService';
 import { vmService } from '../../services/vmService';
 import { assignmentService } from '../../services/assignmentService';
@@ -15,6 +15,7 @@ export default function StudentDashboard() {
   const [vmCount, setVmCount] = useState(0);
   const [pendingAssignments, setPendingAssignments] = useState(0);
   const [enrolledCount, setEnrolledCount] = useState(0);
+  const [announcement, setAnnouncement] = useState('');
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -23,7 +24,8 @@ export default function StudentDashboard() {
           sessionService.getActiveSession(),
           vmService.getMyVMs(),
           assignmentService.getStudentAssignments().catch(() => null),
-          classService.getEnrolledClasses().catch(() => null)
+          classService.getEnrolledClasses().catch(() => null),
+          api.get('/settings/public/').catch(() => null)
         ]);
         if (classesRes?.data?.success) {
           setEnrolledCount(classesRes.data.data?.length ?? 0);
@@ -40,6 +42,11 @@ export default function StudentDashboard() {
             a => !a.has_submitted && !a.is_overdue
           ).length;
           setPendingAssignments(pending);
+        }
+        
+        const settingsRes = arguments[0]?.[4] || (await api.get('/settings/public/').catch(() => null));
+        if (settingsRes?.data?.success && settingsRes.data.data?.system_announcement) {
+          setAnnouncement(settingsRes.data.data.system_announcement);
         }
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
@@ -64,6 +71,13 @@ export default function StudentDashboard() {
         <h2 className="text-3xl font-bold text-white font-inter">Welcome, {user?.first_name}</h2>
         <p className="text-slate-400 mt-1">Access your virtual desktop and class resources</p>
       </div>
+
+      {announcement && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-6 flex items-start gap-3">
+          <Megaphone className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
+          <p className="text-amber-200 text-sm">{announcement}</p>
+        </div>
+      )}
 
       {/* Exam Banner — only visible when a lecturer has started an exam */}
       <ExamBanner />

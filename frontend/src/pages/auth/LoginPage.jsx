@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 import { Monitor } from 'lucide-react';
@@ -13,6 +13,24 @@ export default function LoginPage() {
     
     const navigate = useNavigate();
     const login = useAuthStore((state) => state.login);
+    
+    const [publicSettings, setPublicSettings] = useState({
+        institution_short_name: 'DIT',
+        institution_name: 'Dar es Salaam Institute of Technology'
+    });
+
+    useEffect(() => {
+        api.get('/settings/public/')
+            .then(res => {
+                if (res.data?.success) {
+                    setPublicSettings(prev => ({
+                        ...prev,
+                        ...res.data.data
+                    }));
+                }
+            })
+            .catch(err => console.error('Failed to load public settings:', err));
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -47,9 +65,9 @@ export default function LoginPage() {
                       <Monitor className="w-8 h-8 text-white" />
                     </div>
                   </div>
-                  <h1 className="text-2xl font-bold text-white">DIT VDI System</h1>
+                  <h1 className="text-2xl font-bold text-white">{publicSettings.institution_short_name} VDI System</h1>
                   <p className="text-slate-400 text-sm mt-1">Virtual Desktop Infrastructure</p>
-                  <p className="text-slate-500 text-xs mt-1">Dar es Salaam Institute of Technology</p>
+                  <p className="text-slate-500 text-xs mt-1">{publicSettings.institution_name}</p>
                 </div>
             </div>
 

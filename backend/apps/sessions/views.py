@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from apps.notifications.services import send_notification
 from apps.users.permissions import IsStudent, IsLecturer, IsAdmin
 from apps.vms.models import VirtualMachine
 from apps.classes.models import Class
@@ -441,6 +442,16 @@ class LecturerPracticalSessionListView(generics.ListCreateAPIView):
             ip_address=request.META.get('REMOTE_ADDR')
         )
 
+        from apps.notifications.services import send_notification
+        for enrollment in enrollments:
+            send_notification(
+                recipient=enrollment.student,
+                notification_type='New Practical Session',
+                title='New Lab Session',
+                message=f"A new practical session '{session.name}' has been scheduled for {session.class_room.name}.",
+                data={'action_url': '/student/practicals'}
+            )
+
         return Response(
             {"success": True, "data": serializer.data, "message": "Practical session created."},
             status=201
@@ -512,7 +523,7 @@ class LecturerStartPracticalView(generics.GenericAPIView):
         from apps.classes.models import ClassEnrollment
         enrollments = ClassEnrollment.objects.filter(class_room=session.class_room)
         for e in enrollments:
-            send_notification(e.student, 'Practical Started', f'Practical session for {session.class_room.name} has started.', 'info', f'/student/practicals')
+            send_notification(e.student, 'practical_started', 'Practical Started', f'Practical session for {session.class_room.name} has started.', data={'action_url': f'/student/practicals'})
     
 
         ActivityLog.objects.create(
@@ -556,7 +567,7 @@ class LecturerEndPracticalView(generics.GenericAPIView):
         from apps.classes.models import ClassEnrollment
         enrollments = ClassEnrollment.objects.filter(class_room=session.class_room)
         for e in enrollments:
-            send_notification(e.student, 'Practical Ended', f'Practical session for {session.class_room.name} has ended.', 'info', f'/student/practicals')
+            send_notification(e.student, 'practical_ended', 'Practical Ended', f'Practical session for {session.class_room.name} has ended.', data={'action_url': f'/student/practicals'})
     
 
         ActivityLog.objects.create(
@@ -667,6 +678,15 @@ class StudentPracticalSubmitView(generics.GenericAPIView):
             action="PRACTICAL_SUBMISSION",
             description=f"Submitted work for: {session.name}",
             ip_address=request.META.get('REMOTE_ADDR')
+        )
+
+        # Notify the lecturer
+        send_notification(
+            recipient=session.class_room.lecturer,
+            notification_type='Practical Submitted',
+            title='Lab Submission',
+            message=f"{request.user.first_name} {request.user.last_name} submitted work for {session.name}.",
+            data={'action_url': f'/lecturer/classes/{session.class_room.id}'}
         )
 
         serializer = StudentPracticalAccessSerializer(access)

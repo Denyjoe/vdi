@@ -11,6 +11,7 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from apps.users.permissions import IsLecturer, IsStudent
 from apps.classes.models import Class
 from apps.sessions.models import ActivityLog
+from apps.notifications.services import send_notification
 
 from .models import File, Assignment, Submission
 from .serializers import (
@@ -63,6 +64,13 @@ class LecturerFileUploadView(views.APIView):
             action='FILE_UPLOADED',
             metadata={"file_id": new_file.id, "class_room_id": class_room.id}
         )
+
+        # Notify students
+        from apps.classes.models import ClassEnrollment
+        from apps.notifications.services import send_notification
+        enrollments = ClassEnrollment.objects.filter(class_room=class_room)
+        for e in enrollments:
+            send_notification(e.student, 'New Material', 'New Material', f'New material uploaded: {title}', data={'action_url': '/student/materials'})
 
         serializer = FileSerializer(new_file, context={'request': request})
         return Response({
@@ -124,7 +132,7 @@ class LecturerAssignmentListView(views.APIView):
     permission_classes = [IsLecturer]
 
     def get(self, request):
-        assignments = Assignment.objects.filter(lecturer=request.user).order_by('due_date')
+        assignments = Assignment.objects.filter(lecturer=request.user, is_active=True).order_by('due_date')
         
         class_id = request.query_params.get('class_id')
         if class_id:
@@ -164,13 +172,11 @@ class LecturerAssignmentCreateView(views.APIView):
 
             assignment = serializer.save(lecturer=request.user)
 
-        assignment = serializer.instance
-        # Notify students
-        from apps.classes.models import ClassEnrollment
-        enrollments = ClassEnrollment.objects.filter(class_room=assignment.class_room)
-        for e in enrollments:
-            send_notification(e.student, 'New Assignment', f'New assignment posted: {assignment.title}', 'info', '/student/assignments')
-    
+            # Notify students
+            from apps.classes.models import ClassEnrollment
+            enrollments = ClassEnrollment.objects.filter(class_room=assignment.class_room)
+            for e in enrollments:
+                send_notification(e.student, 'New Assignment', 'New Assignment', f'New assignment posted: {assignment.title}', data={'action_url': '/student/assignments'})
             
             ActivityLog.objects.create(
                 user=request.user,
@@ -332,6 +338,16 @@ class StudentSubmitView(views.APIView):
                 user=request.user,
                 action='ASSIGNMENT_SUBMITTED',
                 metadata={"submission_id": submission.id, "is_late": is_late}
+            )
+
+            # Notify the lecturer
+            from apps.notifications.services import send_notification
+            send_notification(
+                recipient=assignment.lecturer,
+                notification_type='Assignment Submitted',
+                title='New Submission',
+                message=f"{request.user.first_name} {request.user.last_name} submitted {assignment.title}.",
+                data={'action_url': f'/lecturer/classes/{assignment.class_room.id}'}
             )
 
             response_serializer = SubmissionSerializer(submission, context={'request': request})

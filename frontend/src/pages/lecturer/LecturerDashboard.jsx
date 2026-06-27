@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
-import { GraduationCap, Users, ClipboardList, ShieldAlert } from 'lucide-react';
+import { GraduationCap, Users, ClipboardList, ShieldAlert, Megaphone } from 'lucide-react';
+import api from '../../services/api';
 import { classService } from '../../services/classService';
 import { sessionService } from '../../services/sessionService';
 import { assignmentService } from '../../services/assignmentService';
@@ -25,14 +26,16 @@ export default function LecturerDashboard() {
     pendingSubmissions: 0,
     pendingEnrollments: 0,
   });
+  const [announcement, setAnnouncement] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [classesRes, monitorRes, assignmentsRes] = await Promise.all([
+        const [classesRes, monitorRes, assignmentsRes, settingsRes] = await Promise.all([
           classService.getMyClasses(),
           sessionService.getMonitorData(),
-          assignmentService.getLecturerAssignments().catch(() => null)
+          assignmentService.getLecturerAssignments().catch(() => null),
+          api.get('/settings/public/').catch(() => null)
         ]);
 
         const classCount = classesRes.data?.data?.length ?? 0;
@@ -61,6 +64,9 @@ export default function LecturerDashboard() {
             const submitted = a.submission_count ?? 0;
             return sum + Math.max(0, enrolled - submitted);
           }, 0);
+        }
+        if (settingsRes?.data?.success && settingsRes.data.data?.system_announcement) {
+          setAnnouncement(settingsRes.data.data.system_announcement);
         }
 
         setStats({ classCount, activeStudents, activeExams, pendingSubmissions, pendingEnrollments });
@@ -119,6 +125,13 @@ export default function LecturerDashboard() {
         </h2>
         <p className="text-slate-400 mt-1">Manage your classes and monitor student sessions</p>
       </div>
+
+      {announcement && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-6 flex items-start gap-3">
+          <Megaphone className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
+          <p className="text-amber-200 text-sm">{announcement}</p>
+        </div>
+      )}
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

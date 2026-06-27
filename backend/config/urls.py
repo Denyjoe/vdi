@@ -32,6 +32,7 @@ urlpatterns = [
 
     # ── Authentication & User Endpoints ──────────────────────────────────────
     path("api/", include("apps.users.urls")),
+    path("api/", include("apps.users.public_urls")),
 ]
 
 # Serve uploaded media files during development.

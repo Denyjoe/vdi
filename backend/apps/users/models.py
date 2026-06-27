@@ -124,3 +124,40 @@ class User(AbstractUser):
     def is_admin_user(self):
         """Return True if this user has the admin role."""
         return self.role == self.Role.ADMIN
+
+
+class SystemSetting(models.Model):
+    key = models.CharField(max_length=100, unique=True)
+    value = models.TextField()
+    description = models.TextField(blank=True)
+    updated_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "system_settings"
+        verbose_name = "System Setting"
+        verbose_name_plural = "System Settings"
+        ordering = ["key"]
+
+    def __str__(self):
+        return f"{self.key} = {self.value}"
+
+    @classmethod
+    def get(cls, key, default=None):
+        try:
+            return cls.objects.get(key=key).value
+        except cls.DoesNotExist:
+            return default
+
+    @classmethod
+    def set(cls, key, value, user=None):
+        obj, _ = cls.objects.update_or_create(
+            key=key,
+            defaults={
+                'value': str(value),
+                'updated_by': user
+            }
+        )
+        return obj

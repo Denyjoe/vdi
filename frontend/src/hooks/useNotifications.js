@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import useAuthStore from '../store/authStore';
+import api from '../services/api';
 
 export function useNotifications() {
   const [notifications, setNotifications] = useState([]);
@@ -12,22 +13,23 @@ export function useNotifications() {
     if (!isAuthenticated || !token) return;
 
     // Fetch initial list
-    fetch('/api/notifications/', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setNotifications(data.data);
-          setUnreadCount(data.data.filter(n => !n.is_read).length);
+    api.get('/notifications/')
+      .then(res => {
+        if (res.data.success) {
+          setNotifications(res.data.data);
+          setUnreadCount(res.data.data.filter(n => !n.is_read).length);
         }
-      });
+      })
+      .catch(console.error);
 
     // Connect WebSocket
     const wsUrl = `ws://localhost:8000/ws/notifications/?token=${token}`;
     ws.current = new WebSocket(wsUrl);
 
-    ws.current.onopen = () => setIsConnected(true);
+    ws.current.onopen = () => {
+      setIsConnected(true);
+      console.log("Notifications WS connected");
+    };
     
     ws.current.onmessage = (e) => {
       const data = JSON.parse(e.data);
@@ -49,10 +51,7 @@ export function useNotifications() {
 
   const markAsRead = async (id) => {
     try {
-      await fetch(`/api/notifications/${id}/read/`, {
-        method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      await api.patch(`/notifications/${id}/read/`);
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (e) {
@@ -62,10 +61,7 @@ export function useNotifications() {
 
   const markAllAsRead = async () => {
     try {
-      await fetch('/api/notifications/read-all/', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      await api.post('/notifications/read-all/');
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
       setUnreadCount(0);
     } catch (e) {

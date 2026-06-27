@@ -3,7 +3,8 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
     RegisterView, LoginView, LogoutView, MeView, ChangePasswordView,
     UserListView, UserDetailView, UserDeactivateView, UserActivateView,
-    AdminLogsView, UpdateProfileView, AvatarView, UserStatsView
+    AdminLogsView, UpdateProfileView, AvatarView, UserStatsView,
+    SystemSettingsView, UpdateSystemSettingView
 )
 
 urlpatterns = [
@@ -28,4 +29,8 @@ urlpatterns = [
     
     # Admin Logs
     path('admin/logs/', AdminLogsView.as_view(), name='admin-logs'),
+    
+    # Admin Settings
+    path('admin/settings/', SystemSettingsView.as_view(), name='admin-settings'),
+    path('admin/settings/<str:key>/', UpdateSystemSettingView.as_view(), name='admin-setting-update'),
 ]

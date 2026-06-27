@@ -82,14 +82,18 @@ class VMRequestSerializer(serializers.Serializer):
 
     def validate(self, data):
         user = self.context['request'].user
+        
+        from apps.users.models import SystemSetting
+        max_vms = int(SystemSetting.get('max_vms_per_student', '1'))
+
         # Block if student already has a provisioning or running VM
-        has_active = VirtualMachine.objects.filter(
+        active_count = VirtualMachine.objects.filter(
             owner=user,
             status__in=['provisioning', 'running']
-        ).exists()
+        ).count()
 
-        if has_active:
+        if active_count >= max_vms:
             raise serializers.ValidationError(
-                "You already have an active VM. Stop it before requesting a new one."
+                f"You can only have {max_vms} active VM(s) at a time."
             )
         return data

@@ -511,3 +511,57 @@ class HealthCheckView(views.APIView):
             "data": {},
             "message": "API is healthy"
         }, status=status.HTTP_200_OK)
+
+# --- Settings API ---
+
+from apps.users.models import SystemSetting
+from apps.users.permissions import IsAdmin
+
+class SystemSettingsView(views.APIView):
+    """GET /api/admin/settings/ - Get all system settings"""
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        settings = SystemSetting.objects.all()
+        data = {s.key: {"value": s.value, "description": s.description} for s in settings}
+        return Response({"success": True, "data": data})
+
+class UpdateSystemSettingView(views.APIView):
+    """PATCH /api/admin/settings/<key>/ - Update a single setting"""
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def patch(self, request, key):
+        value = request.data.get('value')
+        if value is None:
+            return Response({"success": False, "message": "No value provided"}, status=400)
+
+        setting = SystemSetting.set(key, value, request.user)
+        
+        ActivityLog.objects.create(
+            user=request.user,
+            action='SETTING_UPDATED',
+            description=f"Setting {key} changed to {value}",
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+
+        return Response({
+            "success": True, 
+            "data": {"key": setting.key, "value": setting.value},
+            "message": f"Setting {key} updated"
+        })
+
+class PublicSettingsView(views.APIView):
+    """GET /api/settings/public/ - Get non-sensitive public settings"""
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        keys = [
+            'institution_name', 'institution_short_name', 
+            'current_academic_year', 'current_semester', 
+            'system_announcement', 'maintenance_mode'
+        ]
+        
+        settings = SystemSetting.objects.filter(key__in=keys)
+        data = {s.key: s.value for s in settings}
+        
+        return Response({"success": True, "data": data})

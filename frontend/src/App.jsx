@@ -29,6 +29,7 @@ import AdminVMsPage from "./pages/admin/AdminVMsPage";
 import AdminAnalyticsPage from "./pages/admin/AdminAnalyticsPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
 import AdminLogsPage from "./pages/admin/AdminLogsPage";
+import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
 
 // Lecturer pages
 import LecturerDashboard from "./pages/lecturer/LecturerDashboard";
@@ -162,6 +163,17 @@ export default function App() {
             <ProtectedRoute>
               <Layout>
                 <AdminLogsPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <AdminSettingsPage />
               </Layout>
             </ProtectedRoute>
           }

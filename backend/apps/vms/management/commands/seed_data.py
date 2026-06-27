@@ -39,8 +39,43 @@ class Command(BaseCommand):
         self._seed_class(created_users)
         self._assign_user_profiles(created_users)
         self._seed_practical_session(created_users)
+        self._seed_system_settings()
 
         self.stdout.write(self.style.SUCCESS('\nAll seeding complete!'))
+
+    def _seed_system_settings(self):
+        """Seed default system settings."""
+        self.stdout.write('\n── Seeding System Settings ──')
+        from apps.users.models import SystemSetting
+        
+        default_settings = [
+            {'key': 'max_vms_per_student', 'value': '1', 'description': 'Maximum number of VMs a student can have running at once'},
+            {'key': 'max_session_hours', 'value': '8', 'description': 'Maximum session duration in hours before auto-disconnect'},
+            {'key': 'vm_provisioning_timeout', 'value': '300', 'description': 'VM provisioning timeout in seconds'},
+            {'key': 'allow_student_registration', 'value': 'true', 'description': 'Allow new student self-registration'},
+            {'key': 'require_enrollment_approval', 'value': 'true', 'description': 'Require lecturer approval for class enrollment requests'},
+            {'key': 'current_academic_year', 'value': '2025/2026', 'description': 'Current academic year displayed across the system'},
+            {'key': 'current_semester', 'value': '1', 'description': 'Current semester (1 or 2)'},
+            {'key': 'institution_name', 'value': 'Dar es Salaam Institute of Technology', 'description': 'Institution name shown in system'},
+            {'key': 'institution_short_name', 'value': 'DIT', 'description': 'Short name / acronym'},
+            {'key': 'max_file_upload_mb', 'value': '100', 'description': 'Maximum file upload size in MB'},
+            {'key': 'session_timeout_minutes', 'value': '480', 'description': 'Idle session timeout in minutes'},
+            {'key': 'maintenance_mode', 'value': 'false', 'description': 'Put system in maintenance mode. Only admins can login.'},
+            {'key': 'system_announcement', 'value': '', 'description': 'System-wide announcement shown to all users on login'},
+        ]
+
+        for s in default_settings:
+            obj, created = SystemSetting.objects.get_or_create(
+                key=s['key'],
+                defaults={
+                    'value': s['value'],
+                    'description': s['description']
+                }
+            )
+            if created:
+                self.stdout.write(self.style.SUCCESS(f"  ✓ Created setting: {s['key']} = {s['value']}"))
+            else:
+                self.stdout.write(self.style.WARNING(f"  – Setting exists: {s['key']}"))
 
     def _seed_users(self):
         """

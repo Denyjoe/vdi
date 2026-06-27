@@ -13,7 +13,7 @@
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Monitor, Server, Users, ScrollText,
-  GraduationCap, Eye, FolderOpen, ClipboardList, LayoutGrid, History, BarChart2, X, FlaskConical, TestTube2, UserCircle
+  GraduationCap, Eye, FolderOpen, ClipboardList, LayoutGrid, History, BarChart2, X, FlaskConical, TestTube2, UserCircle, Settings
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
@@ -29,6 +29,7 @@ export default function Sidebar({ onClose }) {
     { name: 'Hardware', path: '/admin/hardware', icon: <Server className="w-5 h-5" /> },
     { name: 'Users', path: '/admin/users', icon: <Users className="w-5 h-5" /> },
     { name: 'Analytics', path: '/admin/analytics', icon: <BarChart2 className="w-5 h-5" /> },
+    { name: 'Settings', path: '/admin/settings', icon: <Settings className="w-5 h-5" /> },
     { name: 'Logs', path: '/admin/logs', icon: <ScrollText className="w-5 h-5" /> },
     { name: 'My Profile', path: '/profile', icon: <UserCircle className="w-5 h-5" /> },
   ];
