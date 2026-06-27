@@ -238,7 +238,7 @@ export default function LecturerMaterialsPage({ defaultTab = 'materials' }) {
           {/* Upload Card */}
           <div className="bg-navy-800 border border-navy-700 rounded-2xl p-6 shadow-xl">
             <h2 className="text-xl font-semibold text-white mb-6">Upload Material</h2>
-            <form onSubmit={handleUploadFile} className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+            <form onSubmit={handleUploadFile} className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Title</label>
                 <input
@@ -275,7 +275,8 @@ export default function LecturerMaterialsPage({ defaultTab = 'materials' }) {
                 </div>
               </div>
 
-              <div className="flex flex-col justify-end">
+              <div className="flex flex-col justify-start">
+                <label className="block text-sm font-medium text-slate-300 mb-2 invisible">Upload</label>
                 <button
                   type="submit"
                   disabled={isUploading || !uploadData.file || !uploadData.title || !selectedClassId}

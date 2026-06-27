@@ -16,6 +16,15 @@ class VMTemplateListView(generics.ListAPIView):
     def get_queryset(self):
         return VMTemplate.objects.filter(is_available=True)
 
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({
+            "success": True,
+            "data": serializer.data,
+            "message": "Templates retrieved successfully"
+        }, status=status.HTTP_200_OK)
+
 class VMTemplateDetailView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = VMTemplateSerializer

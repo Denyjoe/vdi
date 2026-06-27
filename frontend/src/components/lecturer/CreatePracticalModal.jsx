@@ -150,6 +150,13 @@ export default function CreatePracticalModal({ onClose, onCreated }) {
     return Math.max(0, (d - e) / 60000).toFixed(0);
   };
 
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return 'Not set';
+    return new Date(dateStr).toLocaleString('en-US', {
+      month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+    });
+  };
+
   const selectedClassObj = classes.find(c => c.id.toString() === formData.class_room);
   const selectedTemplateObj = templates.find(t => t.id.toString() === formData.required_vm_template);
 

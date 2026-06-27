@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { 
-  FlaskConical, Upload, X, Monitor, Cpu, Server, Check, Loader2, RefreshCw
+  FlaskConical, Upload, X, Monitor, Cpu, Server, Check, Loader2, RefreshCw, File
 } from 'lucide-react';
 import { practicalService } from '../../services/practicalService';
 import { vmService } from '../../services/vmService';
@@ -430,7 +430,7 @@ export default function LabWorkspacePage() {
                       <h4 className="text-sm font-bold text-slate-300 mb-2">1. Upload File</h4>
                       
                       {!file ? (
-                        <div className="border-2 border-dashed border-slate-600 hover:border-blue-500 rounded-xl p-6 text-center cursor-pointer transition-colors group bg-slate-900/50">
+                        <div className="relative border-2 border-dashed border-slate-600 hover:border-blue-500 rounded-xl p-6 text-center cursor-pointer transition-colors group bg-slate-900/50">
                           <Upload className="w-8 h-8 text-slate-500 group-hover:text-blue-400 mx-auto mb-2 transition-colors" />
                           <p className="text-sm text-slate-300 font-medium mb-1 group-hover:text-white">Click to browse or drag file here</p>
                           <p className="text-[11px] text-slate-500">Max size: {session.max_file_size_mb || 10}MB</p>

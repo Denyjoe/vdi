@@ -181,6 +181,7 @@ class PracticalSessionSerializer(serializers.ModelSerializer):
             'instructions', 'max_concurrent_vms', 'auto_terminate',
             'attendance_count', 'total_students', 'created_at',
         ]
+        read_only_fields = ['lecturer']
 
     def get_lecturer_name(self, obj):
         return f"{obj.lecturer.first_name} {obj.lecturer.last_name}".strip()

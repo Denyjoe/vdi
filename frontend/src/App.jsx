@@ -34,6 +34,7 @@ import AdminLogsPage from "./pages/admin/AdminLogsPage";
 import LecturerDashboard from "./pages/lecturer/LecturerDashboard";
 import LecturerMonitorPage from "./pages/lecturer/LecturerMonitorPage";
 import LecturerClassesPage from "./pages/lecturer/LecturerClassesPage";
+import ProfilePage from './pages/shared/ProfilePage';
 import LecturerMaterialsPage from "./pages/lecturer/LecturerMaterialsPage";
 import LecturerPracticalPage from "./pages/lecturer/LecturerPracticalPage";
 
@@ -68,6 +69,18 @@ export default function App() {
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+
+        {/* Profile */}
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <ProfilePage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
 
         {/* ── Admin routes ──────────────────────────────────────── */}
         <Route

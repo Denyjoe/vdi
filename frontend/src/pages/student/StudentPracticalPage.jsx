@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   FlaskConical, TestTube2, FileText, File, Calendar, Clock, Monitor, 
-  ChevronDown, ChevronUp
+  ChevronDown, ChevronUp, CheckCircle, ChevronRight
 } from 'lucide-react';
 import { practicalService } from '../../services/practicalService';
 import { vmService } from '../../services/vmService';

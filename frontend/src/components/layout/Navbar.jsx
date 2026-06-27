@@ -30,6 +30,21 @@ const ROLE_LABELS = {
 export default function Navbar({ onMenuClick }) {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  // Avatar fallback gradient
+  const getGradient = () => {
+    if (user?.role === 'admin') return 'from-red-600 to-red-800';
+    if (user?.role === 'lecturer') return 'from-purple-600 to-purple-800';
+    return 'from-blue-600 to-blue-800';
+  };
+  
+  const getInitials = () => {
+    return `${user?.first_name?.[0] || ''}${user?.last_name?.[0] || ''}`.toUpperCase() || 'U';
+  };
+  
+  const avatarUrl = user?.avatar_url || user?.avatar;
 
   /**
    * Handles user logout by clearing auth state and redirecting to login.
@@ -80,13 +95,31 @@ export default function Navbar({ onMenuClick }) {
       </div>
 
       {/* Right — user info */}
-      <div className="flex items-center gap-2 sm:gap-4">
+      <div className="flex items-center gap-4">
         {user ? (
           <>
-            <span className="text-slate-300 text-sm font-medium hidden sm:inline">
-              {user.first_name} {user.last_name}
-            </span>
-            {getRoleBadge(user.role)}
+            {/* User Profile display */}
+            <div className="hidden md:flex items-center gap-3 bg-slate-800/50 py-1.5 px-3 rounded-full border border-slate-700">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="Avatar" className="w-8 h-8 rounded-full object-cover border border-slate-600" />
+              ) : (
+                <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${getGradient()} flex items-center justify-center border border-slate-600`}>
+                  <span className="text-xs font-bold text-white">{getInitials()}</span>
+                </div>
+              )}
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold text-white leading-tight">
+                  {user?.first_name} {user?.last_name}
+                </span>
+                <span className={`text-[10px] font-medium uppercase tracking-wider
+                  ${user?.role === 'admin' ? 'text-red-400' : 
+                    user?.role === 'lecturer' ? 'text-purple-400' : 'text-blue-400'}`}
+                >
+                  {user?.role}
+                </span>
+              </div>
+            </div>
+
             <button
               onClick={handleLogout}
               className="text-sm font-medium text-slate-400 hover:text-white transition-colors ml-2 sm:ml-4 bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-md"

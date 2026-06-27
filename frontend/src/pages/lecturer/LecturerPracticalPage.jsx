@@ -6,7 +6,32 @@ import {
 import { practicalService } from '../../services/practicalService';
 import CreatePracticalModal from '../../components/lecturer/CreatePracticalModal';
 
-export default function LecturerPracticalPage() {
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("ErrorBoundary caught:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-10 bg-red-900/20 text-red-400 h-screen">
+          <h1 className="text-2xl font-bold mb-4">React Crashed</h1>
+          <pre className="whitespace-pre-wrap">{this.state.error?.toString()}</pre>
+          <pre className="whitespace-pre-wrap mt-4 text-xs opacity-70">{this.state.error?.stack}</pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function LecturerPracticalPageContent() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [practicals, setPracticals] = useState([]);
@@ -453,5 +478,13 @@ export default function LecturerPracticalPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function LecturerPracticalPage() {
+  return (
+    <ErrorBoundary>
+      <LecturerPracticalPageContent />
+    </ErrorBoundary>
   );
 }

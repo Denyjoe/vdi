@@ -11,6 +11,8 @@ from rest_framework.exceptions import ValidationError
 
 User = get_user_model()
 
+from apps.classes.models import Department, Programme
+
 
 # ── Custom RelatedField helpers ──────────────────────────────────────────────
 
@@ -204,6 +206,56 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'id', 'first_name', 'last_name', 'email', 'role',
             'student_id', 'is_approved', 'created_at',
         ]
+
+
+# ── Update Profile Serializer ───────────────────────────────────────────────
+
+class UpdateProfileSerializer(serializers.ModelSerializer):
+    """
+    Serializer for updating a user's profile.
+    """
+    department = serializers.PrimaryKeyRelatedField(
+        queryset=Department.objects.all(),
+        allow_null=True,
+        required=False
+    )
+    programme = serializers.PrimaryKeyRelatedField(
+        queryset=Programme.objects.all(),
+        allow_null=True,
+        required=False
+    )
+    year_of_study = serializers.IntegerField(
+        min_value=1,
+        max_value=4,
+        allow_null=True,
+        required=False
+    )
+    avatar = serializers.ImageField(
+        allow_null=True,
+        required=False
+    )
+
+    class Meta:
+        model = User
+        fields = [
+            'first_name', 'last_name', 'phone',
+            'department', 'programme', 'year_of_study', 'avatar'
+        ]
+
+    def validate_avatar(self, value):
+        if value:
+            # Validate max size 2MB
+            if value.size > 2 * 1024 * 1024:
+                raise serializers.ValidationError("Avatar size cannot exceed 2MB.")
+            # Validate extension
+            import os
+            ext = os.path.splitext(value.name)[1].lower()
+            allowed_extensions = ['.jpg', '.jpeg', '.png', '.webp']
+            if ext not in allowed_extensions:
+                raise serializers.ValidationError(
+                    f"Unsupported file extension {ext}. Allowed types are: jpg, jpeg, png, webp."
+                )
+        return value
 
 
 # ── Registration Serializer ─────────────────────────────────────────────────

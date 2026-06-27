@@ -13,7 +13,7 @@
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Monitor, Server, Users, ScrollText,
-  GraduationCap, Eye, FolderOpen, ClipboardList, LayoutGrid, History, BarChart2, X, FlaskConical
+  GraduationCap, Eye, FolderOpen, ClipboardList, LayoutGrid, History, BarChart2, X, FlaskConical, TestTube2, UserCircle
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
@@ -30,27 +30,28 @@ export default function Sidebar({ onClose }) {
     { name: 'Users', path: '/admin/users', icon: <Users className="w-5 h-5" /> },
     { name: 'Analytics', path: '/admin/analytics', icon: <BarChart2 className="w-5 h-5" /> },
     { name: 'Logs', path: '/admin/logs', icon: <ScrollText className="w-5 h-5" /> },
+    { name: 'My Profile', path: '/profile', icon: <UserCircle className="w-5 h-5" /> },
   ];
 
   /** Lecturer navigation links */
   const lecturerLinks = [
     { name: 'Overview', path: '/lecturer/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
     { name: 'My Classes', path: '/lecturer/classes', icon: <GraduationCap className="w-5 h-5" /> },
-    { name: 'Practicals', path: '/lecturer/practicals', icon: <FlaskConical className="w-5 h-5" /> },
+    { name: 'Practicals & Labs', path: '/lecturer/practicals', icon: <FlaskConical className="w-5 h-5" /> },
     { name: 'Monitor Sessions', path: '/lecturer/monitor', icon: <Eye className="w-5 h-5" /> },
-    { name: 'Materials', path: '/lecturer/materials', icon: <FolderOpen className="w-5 h-5" /> },
-    { name: 'Assignments', path: '/lecturer/assignments', icon: <ClipboardList className="w-5 h-5" /> },
+    { name: 'Materials & Assignments', path: '/lecturer/materials', icon: <FolderOpen className="w-5 h-5" /> },
+    { name: 'My Profile', path: '/profile', icon: <UserCircle className="w-5 h-5" /> },
   ];
 
   /** Student navigation links */
   const studentLinks = [
     { name: 'Overview', path: '/student/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
     { name: 'My Classes', path: '/student/classes', icon: <GraduationCap className="w-5 h-5" /> },
-    { name: 'Practicals', path: '/student/practicals', icon: <FlaskConical className="w-5 h-5" /> },
     { name: 'My VMs', path: '/student/vms', icon: <Monitor className="w-5 h-5" /> },
     { name: 'Session History', path: '/student/sessions', icon: <History className="w-5 h-5" /> },
-    { name: 'Class Materials', path: '/student/materials', icon: <FolderOpen className="w-5 h-5" /> },
-    { name: 'Assignments', path: '/student/assignments', icon: <ClipboardList className="w-5 h-5" /> },
+    { name: 'Practicals & Labs', path: '/student/practicals', icon: <TestTube2 className="w-5 h-5" /> },
+    { name: 'Materials & Assignments', path: '/student/materials', icon: <FolderOpen className="w-5 h-5" /> },
+    { name: 'My Profile', path: '/profile', icon: <UserCircle className="w-5 h-5" /> },
   ];
 
   /**
