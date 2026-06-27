@@ -143,6 +143,14 @@ export default function LoginPage() {
                             Don't have an account? Register here
                         </Link>
                     </div>
+
+                    {publicSettings.system_announcement && (
+                        <div className="mt-4 bg-amber-500/10 border border-amber-500/30 rounded-xl p-3">
+                            <p className="text-amber-200 text-xs text-center">
+                                📢 {publicSettings.system_announcement}
+                            </p>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

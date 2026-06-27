@@ -29,13 +29,25 @@ export default function LecturerDashboard() {
   const [announcement, setAnnouncement] = useState('');
 
   useEffect(() => {
+    const fetchPublicSettings = async () => {
+      try {
+        const res = await api.get('/settings/public/');
+        const ann = res.data?.data?.system_announcement || '';
+        setAnnouncement(ann);
+      } catch (err) {
+        console.error('Failed to fetch settings:', err);
+      }
+    };
+    fetchPublicSettings();
+  }, []);
+
+  useEffect(() => {
     const fetchData = async () => {
       try {
-        const [classesRes, monitorRes, assignmentsRes, settingsRes] = await Promise.all([
+        const [classesRes, monitorRes, assignmentsRes] = await Promise.all([
           classService.getMyClasses(),
           sessionService.getMonitorData(),
-          assignmentService.getLecturerAssignments().catch(() => null),
-          api.get('/settings/public/').catch(() => null)
+          assignmentService.getLecturerAssignments().catch(() => null)
         ]);
 
         const classCount = classesRes.data?.data?.length ?? 0;
@@ -64,9 +76,6 @@ export default function LecturerDashboard() {
             const submitted = a.submission_count ?? 0;
             return sum + Math.max(0, enrolled - submitted);
           }, 0);
-        }
-        if (settingsRes?.data?.success && settingsRes.data.data?.system_announcement) {
-          setAnnouncement(settingsRes.data.data.system_announcement);
         }
 
         setStats({ classCount, activeStudents, activeExams, pendingSubmissions, pendingEnrollments });
@@ -119,19 +128,29 @@ export default function LecturerDashboard() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8 animate-fade-in">
+      {announcement && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-6 flex items-start gap-3">
+          <svg className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" 
+            fill="none" 
+            viewBox="0 0 24 24" 
+            stroke="currentColor">
+            <path strokeLinecap="round" 
+              strokeLinejoin="round" 
+              strokeWidth={2} 
+              d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625 -1.234 9.168-3v14c-1.543-1.766 -5.067-3-9.168-3H7a3.988 3.988 0 01-2.564-.917z" />
+          </svg>
+          <p className="text-amber-200 text-sm leading-relaxed">
+            {announcement}
+          </p>
+        </div>
+      )}
+
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-white font-inter">
           Welcome, {user?.first_name}
         </h2>
         <p className="text-slate-400 mt-1">Manage your classes and monitor student sessions</p>
       </div>
-
-      {announcement && (
-        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-6 flex items-start gap-3">
-          <Megaphone className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
-          <p className="text-amber-200 text-sm">{announcement}</p>
-        </div>
-      )}
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
