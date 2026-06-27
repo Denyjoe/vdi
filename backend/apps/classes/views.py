@@ -61,8 +61,11 @@ class MyClassesView(generics.ListAPIView):
     serializer_class = ClassSerializer
 
     def get_queryset(self):
-        """Return classes taught by the current user, newest first."""
-        return Class.objects.filter(lecturer=self.request.user).order_by('-created_at')
+        """Return classes taught by the current user or created by them, newest first."""
+        from django.db.models import Q
+        return Class.objects.filter(
+            Q(lecturer=self.request.user) | Q(created_by=self.request.user)
+        ).distinct().order_by('-created_at')
 
     def list(self, request, *args, **kwargs):
         """Wrap the standard list response in our API envelope."""
@@ -152,6 +155,100 @@ class AdminClassListView(generics.ListAPIView):
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
         return Response({"success": True, "data": serializer.data})
+
+
+class AdminClassUpdateView(generics.UpdateAPIView):
+    """
+    PATCH /api/admin/classes/<id>/
+    
+    Update class details (e.g., assign lecturer, toggle active status)
+    Permission: IsAuthenticated + IsAdmin
+    """
+    permission_classes = [IsAuthenticated, IsAdmin]
+    serializer_class = ClassSerializer
+    queryset = Class.objects.all()
+    
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', True)
+        instance = self.get_object()
+        
+        # Handle lecturer_id specifically if passed
+        if 'lecturer_id' in request.data:
+            lecturer_id = request.data.get('lecturer_id')
+            if lecturer_id:
+                instance.lecturer_id = lecturer_id
+            else:
+                instance.lecturer = None
+                
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        
+        log_activity(
+            user=request.user,
+            action="CLASS_UPDATED_ADMIN",
+            description=f"Admin updated class {instance.name}"
+        )
+        return Response({"success": True, "data": serializer.data})
+
+
+class AdminAutoEnrollView(generics.GenericAPIView):
+    """
+    POST /api/admin/classes/<id>/auto-enroll/
+
+    Finds all students matching the class's programme + year and enrolls them.
+    Permission: IsAuthenticated + IsAdmin
+    """
+    permission_classes = [IsAuthenticated, IsAdmin]
+    
+    def post(self, request, *args, **kwargs):
+        """Auto-enroll matching students."""
+        class_room = Class.objects.filter(id=self.kwargs['pk']).first()
+        if not class_room:
+            return Response({"success": False, "message": "Class not found"}, status=404)
+            
+        if not class_room.programme or not class_room.year_of_study:
+            return Response({
+                "success": False, 
+                "message": "Class must have a programme and year of study set for auto-enrollment."
+            }, status=400)
+            
+        matching_students = User.objects.filter(
+            role='student',
+            programme=class_room.programme,
+            year_of_study=class_room.year_of_study
+        )
+        
+        # Optionally filter by streams if the class has streams assigned
+        if class_room.streams.exists():
+            stream_ids = class_room.streams.values_list('id', flat=True)
+            matching_students = matching_students.filter(stream_id__in=stream_ids)
+            
+        existing_enrollments = ClassEnrollment.objects.filter(
+            class_room=class_room
+        ).values_list('student_id', flat=True)
+        
+        students_to_enroll = matching_students.exclude(id__in=existing_enrollments)
+        
+        enrollments = [
+            ClassEnrollment(class_room=class_room, student=student)
+            for student in students_to_enroll
+        ]
+        
+        if enrollments:
+            ClassEnrollment.objects.bulk_create(enrollments)
+            
+            log_activity(
+                user=request.user,
+                action="CLASS_AUTO_ENROLL",
+                description=f"Admin auto-enrolled {len(enrollments)} students to {class_room.name}"
+            )
+            
+        return Response({
+            "success": True,
+            "message": f"Successfully auto-enrolled {len(enrollments)} students.",
+            "data": {"enrolled_count": len(enrollments)}
+        })
 
 
 class StudentEnrolledClassesView(generics.ListAPIView):
@@ -406,7 +503,7 @@ class StudentAvailableClassesView(generics.ListAPIView):
         ).order_by('department', 'name')
 
     def list(self, request, *args, **kwargs):
-        """Add enrollment request status annotations to each class."""
+        """Split available classes into recommended (official matching prog+year) and open groups."""
         queryset = self.get_queryset()
         requests_dict = {
             req.class_room_id: req
@@ -415,6 +512,12 @@ class StudentAvailableClassesView(generics.ListAPIView):
 
         serializer = self.get_serializer(queryset, many=True)
         data = serializer.data
+        
+        recommended = []
+        open_groups = []
+        
+        user = request.user
+        
         for item in data:
             req = requests_dict.get(item['id'])
             if req:
@@ -425,8 +528,25 @@ class StudentAvailableClassesView(generics.ListAPIView):
             else:
                 item['is_requested'] = False
                 item['request_status'] = None
+                
+            # Categorize based on class type and matching profile
+            is_matching_profile = (
+                item.get('programme') == user.programme_id and
+                item.get('year_of_study') == user.year_of_study
+            )
+            
+            if item.get('class_type') == 'official' and is_matching_profile:
+                recommended.append(item)
+            else:
+                open_groups.append(item)
 
-        return Response({"success": True, "data": data})
+        return Response({
+            "success": True, 
+            "data": {
+                "recommended": recommended,
+                "open_groups": open_groups
+            }
+        })
 
 
 class StudentRequestEnrollmentView(generics.GenericAPIView):

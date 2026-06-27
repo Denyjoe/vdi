@@ -8,7 +8,8 @@ from .views import (
 from apps.sessions.views import AdminSessionsView, AdminTerminateSessionView
 from apps.classes.views import (
     AdminClassListView, AdminCreateClassView, AdminEnrollStudentView,
-    AdminStreamCreateView, AdminStreamUpdateView
+    AdminStreamCreateView, AdminStreamUpdateView, AdminAutoEnrollView,
+    AdminClassUpdateView
 )
 
 urlpatterns = [
@@ -22,7 +23,9 @@ urlpatterns = [
     path('sessions/<int:pk>/terminate/', AdminTerminateSessionView.as_view(), name='admin-session-terminate'),
     path('classes/', AdminClassListView.as_view(), name='admin-class-list'),
     path('classes/create/', AdminCreateClassView.as_view(), name='admin-class-create'),
+    path('classes/<int:pk>/', AdminClassUpdateView.as_view(), name='admin-class-update'),
     path('classes/<int:pk>/enroll/', AdminEnrollStudentView.as_view(), name='admin-class-enroll'),
+    path('classes/<int:pk>/auto-enroll/', AdminAutoEnrollView.as_view(), name='admin-class-auto-enroll'),
     # Course Streams
     path('classes/streams/', AdminStreamCreateView.as_view(), name='admin-stream-create'),
     path('classes/streams/<int:pk>/', AdminStreamUpdateView.as_view(), name='admin-stream-update'),

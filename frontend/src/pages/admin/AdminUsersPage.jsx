@@ -18,14 +18,15 @@
  * @returns {JSX.Element}
  */
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Users, Search, X, Shield, GraduationCap, BookOpen,
   Calendar, Mail, Hash, Building, Activity, Plus,
-  ChevronDown, ChevronUp, CheckCircle, Loader2, AlertCircle, UserPlus
+  ChevronDown, ChevronUp, CheckCircle, Loader2, AlertCircle, UserPlus, FileText, Check, Settings
 } from 'lucide-react';
 import api from '../../services/api';
 import { classService } from '../../services/classService';
+import CreateOfficialClassModal from '../../components/admin/CreateOfficialClassModal';
+import AssignLecturerModal from '../../components/admin/AssignLecturerModal';
 
 /** Role filter tabs definition */
 const ROLE_TABS = [
@@ -62,106 +63,19 @@ function Toast({ message, type, onClose }) {
   );
 }
 
-/** CreateClassModal (admin version — selects lecturer) */
-function AdminCreateClassModal({ lecturers, onClose, onCreated }) {
-  const [form, setForm] = useState({
-    name: '', department: '', academic_year: '', stream: '', semester: 1,
-    max_students: 60, lecturer_id: lecturers[0]?.id || '',
-  });
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!form.name.trim()) { setError('Class name is required.'); return; }
-    if (!form.lecturer_id) { setError('Please select a lecturer.'); return; }
-    setSaving(true);
-    setError('');
-    try {
-      const res = await classService.adminCreateClass(form);
-      if (res.data.success) { onCreated(res.data.data); }
-      else { setError(res.data.message || 'Failed to create class.'); }
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create class.');
-    } finally { setSaving(false); }
-  };
-
-  const inputClass = 'w-full bg-slate-900/50 border border-slate-600 rounded-lg px-3 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
-
-  return (
-    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-slate-800 rounded-2xl border border-slate-700 shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
-           onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-700">
-          <h3 className="text-lg font-bold text-white">Create Class (Admin)</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-white p-1 rounded-lg"><X className="w-5 h-5" /></button>
-        </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Assign to Lecturer *</label>
-            <select name="lecturer_id" value={form.lecturer_id} onChange={handleChange} className={inputClass}>
-              {lecturers.map(l => (
-                <option key={l.id} value={l.id}>{l.first_name} {l.last_name} — {l.email}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Class Name *</label>
-            <input name="name" value={form.name} onChange={handleChange} placeholder="e.g. Engineering Drawing II" className={inputClass} />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Department</label>
-              <input name="department" value={form.department} onChange={handleChange} placeholder="e.g. Computer Engineering" className={inputClass} />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Academic Year</label>
-              <input name="academic_year" value={form.academic_year} onChange={handleChange} placeholder="2025/2026" className={inputClass} />
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Stream</label>
-              <input name="stream" value={form.stream} onChange={handleChange} placeholder="COE-2" className={inputClass} />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Semester</label>
-              <select name="semester" value={form.semester} onChange={handleChange} className={inputClass}>
-                <option value={1}>1</option><option value={2}>2</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Max Students</label>
-              <input type="number" name="max_students" value={form.max_students} onChange={handleChange} min={1} className={inputClass} />
-            </div>
-          </div>
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-4 py-3 rounded-lg">{error}</div>
-          )}
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 py-2.5 border border-slate-600 text-slate-300 hover:bg-slate-700 rounded-lg text-sm transition-colors">Cancel</button>
-            <button type="submit" disabled={saving} className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
-              {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-              {saving ? 'Creating...' : 'Create Class'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
 /** ClassesTab — admin view of all classes */
 function ClassesTab({ allUsers, showToast }) {
   const [classes, setClasses] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [expanded, setExpanded] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [assigningClass, setAssigningClass] = useState(null);
+  
   const [enrollingClass, setEnrollingClass] = useState(null);
   const [enrollStudentId, setEnrollStudentId] = useState('');
   const [enrolling, setEnrolling] = useState(false);
+  const [autoEnrolling, setAutoEnrolling] = useState(false);
+  const [classTab, setClassTab] = useState('official');
 
   const lecturers = useMemo(() => allUsers.filter(u => u.role === 'lecturer'), [allUsers]);
   const students = useMemo(() => allUsers.filter(u => u.role === 'student'), [allUsers]);
@@ -182,6 +96,12 @@ function ClassesTab({ allUsers, showToast }) {
     showToast(`Class "${newClass.name}" created.`);
   };
 
+  const handleLecturerAssigned = (updatedClass) => {
+    setClasses(prev => prev.map(c => c.id === updatedClass.id ? updatedClass : c));
+    setAssigningClass(null);
+    showToast(`Lecturer assigned to "${updatedClass.name}".`);
+  };
+
   const handleEnroll = async (classId) => {
     if (!enrollStudentId) { showToast('Select a student first.', 'error'); return; }
     setEnrolling(true);
@@ -200,96 +120,217 @@ function ClassesTab({ allUsers, showToast }) {
     } finally { setEnrolling(false); }
   };
 
+  const handleAutoEnroll = async (cls) => {
+    setAutoEnrolling(true);
+    try {
+      const res = await api.post(`/admin/classes/${cls.id}/auto-enroll/`);
+      if (res.data.success) {
+        showToast(res.data.message);
+        fetchClasses();
+      } else {
+        showToast(res.data.message || 'Auto-enroll failed.', 'error');
+      }
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Auto-enroll failed.', 'error');
+    } finally {
+      setAutoEnrolling(false);
+    }
+  };
+  
+  const handleToggleActive = async (cls) => {
+    try {
+      const res = await api.patch(`/admin/classes/${cls.id}/`, { is_active: !cls.is_active });
+      if (res.data.success) {
+        setClasses(prev => prev.map(c => c.id === cls.id ? res.data.data : c));
+        showToast(`Class marked as ${!cls.is_active ? 'Active' : 'Inactive'}`);
+      }
+    } catch (err) {
+      showToast('Failed to toggle class status', 'error');
+    }
+  };
+
+  const filteredClasses = classes.filter(c => c.class_type === classTab || (!c.class_type && classTab === 'working_group')); // Fallback for old ones
+
   if (isLoading) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-blue-400 animate-spin" /></div>;
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <p className="text-slate-400 text-sm">{classes.length} total classes</p>
-        <button
-          id="admin-create-class-btn"
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors">
-          <Plus className="w-4 h-4" /> Create Class
-        </button>
+        <div className="flex space-x-2 bg-slate-900/50 p-1 rounded-xl border border-slate-700">
+          <button
+            onClick={() => setClassTab('official')}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              classTab === 'official' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+            }`}>
+            Official Classes
+          </button>
+          <button
+            onClick={() => setClassTab('working_group')}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              classTab === 'working_group' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+            }`}>
+            Working Groups
+          </button>
+        </div>
+        
+        {classTab === 'official' && (
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors">
+            <Plus className="w-4 h-4" /> Create Official Class
+          </button>
+        )}
       </div>
 
-      <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
-        {classes.length === 0 ? (
+      <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-xl">
+        {filteredClasses.length === 0 ? (
           <div className="text-center py-16 text-slate-400">
             <GraduationCap className="w-12 h-12 mx-auto mb-3 text-slate-600" />
-            <p className="font-medium">No classes found</p>
+            <p className="font-medium">No {classTab === 'official' ? 'official classes' : 'working groups'} found</p>
           </div>
         ) : (
-          classes.map((cls) => (
-            <div key={cls.id} className="border-b border-slate-700/50 last:border-0">
-              <div
-                className="flex items-center justify-between px-5 py-4 hover:bg-slate-700/30 cursor-pointer transition-colors"
-                onClick={() => setExpanded(expanded === cls.id ? null : cls.id)}>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3">
-                    <span className="text-white font-medium text-sm truncate">{cls.name}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${cls.is_active ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-600/50 text-slate-400'}`}>
-                      {cls.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                  </div>
-                  <p className="text-slate-400 text-xs mt-0.5">
-                    {cls.lecturer?.name} · {cls.enrolled_count ?? 0}/{cls.max_students ?? 60} students
-                    {cls.department && ` · ${cls.department}`}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 ml-4 shrink-0">
-                  <button
-                    id={`admin-enroll-btn-${cls.id}`}
-                    onClick={(e) => { e.stopPropagation(); setEnrollingClass(cls); setEnrollStudentId(''); }}
-                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 border border-purple-500/30 rounded-lg transition-colors">
-                    <UserPlus className="w-3.5 h-3.5" /> Enroll Student
-                  </button>
-                  {expanded === cls.id ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-                </div>
-              </div>
-
-              {/* Expanded row — enroll form */}
-              {enrollingClass?.id === cls.id && (
-                <div className="px-5 pb-4 pt-1 bg-slate-900/30 border-t border-slate-700/50">
-                  <div className="flex gap-3 items-end">
-                    <div className="flex-1">
-                      <label className="block text-xs text-slate-400 mb-1.5">Select Student to Enroll</label>
-                      <select
-                        value={enrollStudentId}
-                        onChange={(e) => setEnrollStudentId(e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">— Choose student —</option>
-                        {students.map(s => (
-                          <option key={s.id} value={s.id}>{s.first_name} {s.last_name} ({s.email})</option>
-                        ))}
-                      </select>
-                    </div>
-                    <button
-                      onClick={() => handleEnroll(cls.id)}
-                      disabled={enrolling}
-                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-60 flex items-center gap-2">
-                      {enrolling ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                      Confirm
-                    </button>
-                    <button onClick={() => setEnrollingClass(null)} className="px-3 py-2 text-slate-400 hover:text-white text-sm rounded-lg transition-colors">
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left text-slate-300">
+              <thead className="bg-slate-900/50 text-xs uppercase text-slate-400 border-b border-slate-700">
+                <tr>
+                  <th className="px-6 py-4">Class Name</th>
+                  {classTab === 'official' && <th className="px-6 py-4">Programme & Year</th>}
+                  {classTab === 'working_group' && <th className="px-6 py-4">Created By</th>}
+                  <th className="px-6 py-4">Students</th>
+                  <th className="px-6 py-4">Lecturer</th>
+                  <th className="px-6 py-4 text-center">Status</th>
+                  <th className="px-6 py-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredClasses.map((cls) => (
+                  <React.Fragment key={cls.id}>
+                    <tr className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors">
+                      <td className="px-6 py-4 font-medium text-white">{cls.name}</td>
+                      
+                      {classTab === 'official' && (
+                        <td className="px-6 py-4">
+                          <span className="text-slate-400">{cls.department || 'N/A'}</span>
+                          <div className="text-xs text-slate-500 mt-1">Yr {cls.year_of_study || '-'} | Sem {cls.semester || '-'}</div>
+                        </td>
+                      )}
+                      
+                      {classTab === 'working_group' && (
+                        <td className="px-6 py-4 text-slate-400">{cls.created_by_name || 'N/A'}</td>
+                      )}
+                      
+                      <td className="px-6 py-4">
+                        <span className="font-medium text-blue-400">{cls.enrolled_count ?? 0}</span>
+                        <span className="text-slate-500"> / {cls.max_students ?? 60}</span>
+                      </td>
+                      
+                      <td className="px-6 py-4">
+                        {cls.lecturer ? (
+                           <span className="text-slate-300">{cls.lecturer.name || cls.lecturer.email}</span>
+                        ) : (
+                           <span className="text-slate-500 italic">Unassigned</span>
+                        )}
+                      </td>
+                      
+                      <td className="px-6 py-4 text-center">
+                        <button onClick={() => handleToggleActive(cls)} title="Toggle Active">
+                           <span className={`inline-block w-2.5 h-2.5 rounded-full ${cls.is_active ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500'}`} />
+                        </button>
+                      </td>
+                      
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => setExpanded(expanded === cls.id ? null : cls.id)}
+                            className="px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg text-xs font-medium transition-colors border border-blue-500/20"
+                          >
+                            View Students
+                          </button>
+                          
+                          {classTab === 'official' && (
+                            <button
+                              onClick={() => setAssigningClass(cls)}
+                              className="px-3 py-1.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 rounded-lg text-xs font-medium transition-colors border border-purple-500/20"
+                            >
+                              Assign Lecturer
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                    
+                    {/* Expanded Students Row */}
+                    {expanded === cls.id && (
+                      <tr>
+                        <td colSpan={7} className="px-6 py-5 bg-slate-900/30 border-b border-slate-700/50">
+                          <div className="flex items-end justify-between mb-4">
+                             <div>
+                                <h4 className="text-sm font-medium text-white mb-1">Manage Enrollments</h4>
+                                <p className="text-xs text-slate-400">Enroll students manually {classTab === 'official' && 'or auto-enroll matching students.'}</p>
+                             </div>
+                             
+                             {classTab === 'official' && (
+                                <button 
+                                  onClick={() => handleAutoEnroll(cls)}
+                                  disabled={autoEnrolling}
+                                  className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium rounded-lg transition-colors"
+                                >
+                                  {autoEnrolling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Settings className="w-3.5 h-3.5" />}
+                                  Auto-enroll matching students
+                                </button>
+                             )}
+                          </div>
+                          
+                          <div className="flex gap-3 items-end p-4 bg-slate-800 rounded-xl border border-slate-700">
+                            <div className="flex-1">
+                              <label className="block text-xs text-slate-400 mb-1.5">Select Student to Enroll</label>
+                              <select
+                                value={enrollStudentId}
+                                onChange={(e) => setEnrollStudentId(e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                <option value="">— Choose student —</option>
+                                {students.map(s => (
+                                  <option key={s.id} value={s.id}>{s.first_name} {s.last_name} ({s.email})</option>
+                                ))}
+                              </select>
+                            </div>
+                            <button
+                              onClick={() => handleEnroll(cls.id)}
+                              disabled={enrolling || !enrollStudentId}
+                              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2 h-[38px]">
+                              {enrolling ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                              Manual Enroll
+                            </button>
+                            <button onClick={() => setExpanded(null)} className="px-3 py-2 text-slate-400 hover:text-white text-sm rounded-lg transition-colors bg-slate-700 h-[38px]">
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
       {showCreateModal && (
-        <AdminCreateClassModal
-          lecturers={lecturers}
+        <CreateOfficialClassModal
           onClose={() => setShowCreateModal(false)}
           onCreated={handleClassCreated}
+        />
+      )}
+      
+      {assigningClass && (
+        <AssignLecturerModal
+          classItem={assigningClass}
+          lecturers={lecturers}
+          onClose={() => setAssigningClass(null)}
+          onAssigned={handleLecturerAssigned}
         />
       )}
     </div>

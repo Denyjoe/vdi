@@ -403,6 +403,7 @@ class Command(BaseCommand):
                 'description': 'Practical lab sessions for Computer Engineering students',
                 'department': cs,
                 'programme': bcoe,
+                'year_of_study': 4,
                 'academic_year': '2025/2026',
                 'semester': 1,
             }

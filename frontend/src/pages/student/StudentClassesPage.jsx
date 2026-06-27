@@ -114,7 +114,8 @@ function RequestModal({ cls, onClose, onRequested }) {
 /** Main StudentClassesPage */
 export default function StudentClassesPage() {
   const [enrolledClasses, setEnrolledClasses] = useState([]);
-  const [availableClasses, setAvailableClasses] = useState([]);
+  const [recommendedClasses, setRecommendedClasses] = useState([]);
+  const [openGroups, setOpenGroups] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [requestingClass, setRequestingClass] = useState(null);
@@ -131,7 +132,10 @@ export default function StudentClassesPage() {
         classService.getAvailableClasses(),
       ]);
       if (enrolledRes.data.success) setEnrolledClasses(enrolledRes.data.data);
-      if (availableRes.data.success) setAvailableClasses(availableRes.data.data);
+      if (availableRes.data.success) {
+        setRecommendedClasses(availableRes.data.data.recommended || []);
+        setOpenGroups(availableRes.data.data.open_groups || []);
+      }
     } catch (err) {
       console.error('Failed to load classes:', err);
     } finally {
@@ -142,11 +146,13 @@ export default function StudentClassesPage() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleRequested = (classId, requestData) => {
-    setAvailableClasses(prev => prev.map(c =>
+    const updateFn = prev => prev.map(c =>
       c.id === classId
         ? { ...c, is_requested: true, request_status: 'pending', request_id: requestData.id }
         : c
-    ));
+    );
+    setRecommendedClasses(updateFn);
+    setOpenGroups(updateFn);
     setRequestingClass(null);
     showToast('Enrollment request sent! Waiting for lecturer approval.');
   };
@@ -156,11 +162,13 @@ export default function StudentClassesPage() {
     setCancellingId(cls.id);
     try {
       await classService.cancelRequest(cls.request_id);
-      setAvailableClasses(prev => prev.map(c =>
+      const updateFn = prev => prev.map(c =>
         c.id === cls.id
           ? { ...c, is_requested: false, request_status: null, request_id: null }
           : c
-      ));
+      );
+      setRecommendedClasses(updateFn);
+      setOpenGroups(updateFn);
       showToast('Request cancelled.');
     } catch {
       showToast('Failed to cancel request.', 'error');
@@ -169,11 +177,14 @@ export default function StudentClassesPage() {
     }
   };
 
-  const filteredAvailable = availableClasses.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    (c.department || '').toLowerCase().includes(search.toLowerCase()) ||
-    (c.lecturer?.name || '').toLowerCase().includes(search.toLowerCase())
-  );
+  const searchLower = search.toLowerCase();
+  const filterFn = c =>
+    c.name.toLowerCase().includes(searchLower) ||
+    (c.department || '').toLowerCase().includes(searchLower) ||
+    (c.lecturer?.name || '').toLowerCase().includes(searchLower);
+
+  const filteredRecommended = recommendedClasses.filter(filterFn);
+  const filteredOpenGroups = openGroups.filter(filterFn);
 
   if (isLoading) {
     return (
@@ -233,13 +244,12 @@ export default function StudentClassesPage() {
         )}
       </section>
 
-      {/* Available Classes */}
+      {/* Available Classes Search */}
       <section>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <h3 className="text-lg font-semibold text-white flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-purple-400" />
-            Available Classes
-            <span className="text-sm font-normal text-slate-400 ml-1">({filteredAvailable.length})</span>
+            Class Discovery
           </h3>
           <div className="relative max-w-xs w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -253,25 +263,59 @@ export default function StudentClassesPage() {
           </div>
         </div>
 
-        {filteredAvailable.length === 0 ? (
-          <div className="bg-slate-800/50 border border-slate-700 rounded-2xl px-6 py-10 text-center text-slate-400">
-            <BookOpen className="w-12 h-12 mx-auto mb-3 text-slate-600" />
-            <p className="font-medium">{search ? 'No classes match your search' : 'No available classes right now'}</p>
-            <p className="text-sm mt-1">Check back later or contact your lecturer.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filteredAvailable.map((cls) => (
-              <AvailableClassCard
-                key={cls.id}
-                cls={cls}
-                cancelling={cancellingId === cls.id}
-                onRequest={() => setRequestingClass(cls)}
-                onCancel={() => handleCancelRequest(cls)}
-              />
-            ))}
-          </div>
-        )}
+        {/* Recommended Classes */}
+        <div className="mb-8">
+          <h4 className="text-md font-medium text-slate-300 mb-4 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+            Recommended Official Classes
+            <span className="text-xs font-normal text-slate-500 ml-1">({filteredRecommended.length})</span>
+          </h4>
+
+          {filteredRecommended.length === 0 ? (
+            <div className="bg-slate-800/50 border border-slate-700 rounded-2xl px-6 py-8 text-center text-slate-400">
+              <p className="font-medium text-sm">{search ? 'No recommended classes match your search' : 'No recommended classes found for your profile'}</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {filteredRecommended.map((cls) => (
+                <AvailableClassCard
+                  key={cls.id}
+                  cls={cls}
+                  cancelling={cancellingId === cls.id}
+                  onRequest={() => setRequestingClass(cls)}
+                  onCancel={() => handleCancelRequest(cls)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Open Working Groups */}
+        <div>
+          <h4 className="text-md font-medium text-slate-300 mb-4 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+            Open Working Groups
+            <span className="text-xs font-normal text-slate-500 ml-1">({filteredOpenGroups.length})</span>
+          </h4>
+
+          {filteredOpenGroups.length === 0 ? (
+            <div className="bg-slate-800/50 border border-slate-700 rounded-2xl px-6 py-8 text-center text-slate-400">
+              <p className="font-medium text-sm">{search ? 'No open groups match your search' : 'No open working groups available'}</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {filteredOpenGroups.map((cls) => (
+                <AvailableClassCard
+                  key={cls.id}
+                  cls={cls}
+                  cancelling={cancellingId === cls.id}
+                  onRequest={() => setRequestingClass(cls)}
+                  onCancel={() => handleCancelRequest(cls)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </section>
 
       {/* Request Modal */}

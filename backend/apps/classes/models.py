@@ -289,6 +289,11 @@ class Class(models.Model):
         related_name="classes_assigned",
         help_text="Course streams that take this class."
     )
+    year_of_study = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Year of study (1-4). Used for official classes."
+    )
     academic_year = models.CharField(
         max_length=20,
         blank=True,

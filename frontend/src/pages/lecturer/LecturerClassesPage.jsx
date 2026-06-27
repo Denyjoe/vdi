@@ -38,15 +38,12 @@ function Toast({ message, type, onClose }) {
   );
 }
 
-/** CreateClassModal — form to create a new class */
+/** CreateClassModal — form to create a new working group */
 function CreateClassModal({ onClose, onCreated }) {
   const [form, setForm] = useState({
     name: '',
     description: '',
     department: '',
-    academic_year: '',
-    stream: '',
-    semester: 1,
     max_students: 60,
   });
   const [saving, setSaving] = useState(false);
@@ -59,7 +56,7 @@ function CreateClassModal({ onClose, onCreated }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name.trim()) { setError('Class name is required.'); return; }
+    if (!form.name.trim()) { setError('Group name is required.'); return; }
     setSaving(true);
     setError('');
     try {
@@ -68,7 +65,7 @@ function CreateClassModal({ onClose, onCreated }) {
         onCreated(res.data.data);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create class. Please try again.');
+      setError(err.response?.data?.message || 'Failed to create group. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -83,10 +80,10 @@ function CreateClassModal({ onClose, onCreated }) {
            onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-5 border-b border-slate-700">
           <div className="flex items-center gap-3">
-            <div className="bg-blue-500/20 p-2 rounded-lg">
-              <Plus className="w-5 h-5 text-blue-400" />
+            <div className="bg-purple-500/20 p-2 rounded-lg">
+              <Plus className="w-5 h-5 text-purple-400" />
             </div>
-            <h3 className="text-lg font-bold text-white">Create New Class</h3>
+            <h3 className="text-lg font-bold text-white">Create Working Group</h3>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors">
             <X className="w-5 h-5" />
@@ -95,9 +92,9 @@ function CreateClassModal({ onClose, onCreated }) {
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className={labelClass}>Class Name *</label>
+            <label className={labelClass}>Group Name *</label>
             <input name="name" value={form.name} onChange={handleChange}
-              placeholder="e.g. Engineering Drawing II" className={inputClass} />
+              placeholder="e.g. Wednesday Afternoon Lab Group" className={inputClass} />
           </div>
           <div>
             <label className={labelClass}>Description</label>
@@ -107,28 +104,9 @@ function CreateClassModal({ onClose, onCreated }) {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={labelClass}>Department</label>
+              <label className={labelClass}>Department (Optional)</label>
               <input name="department" value={form.department} onChange={handleChange}
                 placeholder="e.g. Computer Engineering" className={inputClass} />
-            </div>
-            <div>
-              <label className={labelClass}>Academic Year</label>
-              <input name="academic_year" value={form.academic_year} onChange={handleChange}
-                placeholder="e.g. 2025/2026" className={inputClass} />
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className={labelClass}>Stream</label>
-              <input name="stream" value={form.stream} onChange={handleChange}
-                placeholder="e.g. COE-2" className={inputClass} />
-            </div>
-            <div>
-              <label className={labelClass}>Semester</label>
-              <select name="semester" value={form.semester} onChange={handleChange} className={inputClass}>
-                <option value={1}>1</option>
-                <option value={2}>2</option>
-              </select>
             </div>
             <div>
               <label className={labelClass}>Max Students</label>
@@ -149,9 +127,9 @@ function CreateClassModal({ onClose, onCreated }) {
               Cancel
             </button>
             <button type="submit" disabled={saving}
-              className="flex-1 py-2.5 px-4 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+              className="flex-1 py-2.5 px-4 text-sm font-medium bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-              {saving ? 'Creating...' : 'Create Class'}
+              {saving ? 'Creating...' : 'Create Group'}
             </button>
           </div>
         </form>
@@ -448,8 +426,8 @@ export default function LecturerClassesPage() {
         <button
           id="create-class-btn"
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors shadow-lg shadow-blue-500/20">
-          <Plus className="w-4 h-4" /> Create New Class
+          className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-xl transition-colors shadow-lg shadow-purple-500/20">
+          <Plus className="w-4 h-4" /> Create Working Group
         </button>
       </div>
 
@@ -581,7 +559,7 @@ function ClassCard({ cls, onManage }) {
         id={`manage-class-${cls.id}`}
         onClick={onManage}
         className="mt-auto w-full py-2.5 bg-slate-700 hover:bg-blue-600 text-slate-300 hover:text-white text-sm font-medium rounded-xl transition-colors flex items-center justify-center gap-2">
-        <Users className="w-4 h-4" /> Manage Class
+        <Users className="w-4 h-4" /> Manage
       </button>
     </div>
   );
