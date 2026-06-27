@@ -6,7 +6,7 @@ from django.http import FileResponse
 from rest_framework import generics, views, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from apps.users.permissions import IsLecturer, IsStudent
 from apps.classes.models import Class
@@ -148,6 +148,7 @@ class LecturerAssignmentCreateView(views.APIView):
     Permission: IsLecturer
     """
     permission_classes = [IsLecturer]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def post(self, request):
         """Create a new assignment after validating class ownership."""
@@ -162,6 +163,14 @@ class LecturerAssignmentCreateView(views.APIView):
                 }, status=status.HTTP_403_FORBIDDEN)
 
             assignment = serializer.save(lecturer=request.user)
+
+        assignment = serializer.instance
+        # Notify students
+        from apps.classes.models import ClassEnrollment
+        enrollments = ClassEnrollment.objects.filter(class_room=assignment.class_room)
+        for e in enrollments:
+            send_notification(e.student, 'New Assignment', f'New assignment posted: {assignment.title}', 'info', '/student/assignments')
+    
             
             ActivityLog.objects.create(
                 user=request.user,

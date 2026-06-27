@@ -64,11 +64,13 @@ class AssignmentSerializer(serializers.ModelSerializer):
     time_until_due = serializers.SerializerMethodField()
     submission_count = serializers.SerializerMethodField()
 
+    attachment_url = serializers.SerializerMethodField()
+
     class Meta:
         model = Assignment
         fields = ['id', 'class_room', 'lecturer', 'title', 'description', 'due_date',
                   'created_at', 'is_active', 'max_file_size_mb', 'is_overdue', 
-                  'time_until_due', 'submission_count']
+                  'time_until_due', 'submission_count', 'attachment_url']
 
     def get_class_room(self, obj):
         return {
@@ -107,11 +109,19 @@ class AssignmentSerializer(serializers.ModelSerializer):
     def get_submission_count(self, obj):
         return obj.submissions.count()
 
+    def get_attachment_url(self, obj):
+        request = self.context.get('request')
+        if obj.attachment and hasattr(obj.attachment, 'url'):
+            if request:
+                return request.build_absolute_uri(obj.attachment.url)
+            return obj.attachment.url
+        return None
+
 
 class AssignmentCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Assignment
-        fields = ['class_room', 'title', 'description', 'due_date', 'max_file_size_mb']
+        fields = ['class_room', 'title', 'description', 'due_date', 'max_file_size_mb', 'attachment']
         
     def validate(self, data):
         request = self.context.get('request')

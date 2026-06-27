@@ -22,7 +22,11 @@ export const assignmentService = {
     }),
 
   createAssignment: (data) =>
-    api.post('/assignments/create/', data),
+    api.post('/assignments/create/', data, data instanceof FormData ? {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    } : {}),
 
   updateAssignment: (id, data) =>
     api.patch(`/assignments/${id}/`, data),

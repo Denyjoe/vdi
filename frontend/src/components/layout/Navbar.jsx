@@ -9,8 +9,10 @@
  * @returns {JSX.Element} The top navigation bar.
  */
 
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
+import NotificationBell from '../shared/NotificationBell';
 import { Monitor, Menu } from 'lucide-react';
 
 /** Color mappings for role badges */
@@ -98,6 +100,7 @@ export default function Navbar({ onMenuClick }) {
       <div className="flex items-center gap-4">
         {user ? (
           <>
+            <NotificationBell />
             {/* User Profile display */}
             <div className="hidden md:flex items-center gap-3 bg-slate-800/50 py-1.5 px-3 rounded-full border border-slate-700">
               {avatarUrl ? (

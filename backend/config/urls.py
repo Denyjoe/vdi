@@ -24,6 +24,7 @@ urlpatterns = [
     path("api/assignments/", include("apps.assignments.urls")),
     path("api/admin/", include("apps.vms.admin_urls")),
     path("api/admin/", include("apps.users.analytics_urls")),
+    path("api/notifications/", include("apps.notifications.urls")),
 
     # ── Health check ─────────────────────────────────────────────────────────
     # Public endpoint — no authentication required.

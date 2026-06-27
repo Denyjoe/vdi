@@ -508,6 +508,13 @@ class LecturerStartPracticalView(generics.GenericAPIView):
         session.status = PracticalSession.Status.ACTIVE
         session.save()
 
+        # Notify students
+        from apps.classes.models import ClassEnrollment
+        enrollments = ClassEnrollment.objects.filter(class_room=session.class_room)
+        for e in enrollments:
+            send_notification(e.student, 'Practical Started', f'Practical session for {session.class_room.name} has started.', 'info', f'/student/practicals')
+    
+
         ActivityLog.objects.create(
             user=request.user,
             action="PRACTICAL_SESSION_STARTED",
@@ -544,6 +551,13 @@ class LecturerEndPracticalView(generics.GenericAPIView):
 
         session.status = PracticalSession.Status.COMPLETED
         session.save()
+
+        # Notify students
+        from apps.classes.models import ClassEnrollment
+        enrollments = ClassEnrollment.objects.filter(class_room=session.class_room)
+        for e in enrollments:
+            send_notification(e.student, 'Practical Ended', f'Practical session for {session.class_room.name} has ended.', 'info', f'/student/practicals')
+    
 
         ActivityLog.objects.create(
             user=request.user,

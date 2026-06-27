@@ -86,6 +86,8 @@ class Assignment(models.Model):
         created_at (datetime): When the assignment was created.
         is_active (bool): Inactive assignments do not accept submissions.
         max_file_size_mb (int): Maximum upload size for submissions in MB.
+        attachment (FileField): Optional document brief attached by the lecturer
+            (PDF, Word, etc.) that students can view/download.
     """
 
     class_room = models.ForeignKey(
@@ -118,6 +120,12 @@ class Assignment(models.Model):
     max_file_size_mb = models.IntegerField(
         default=10,
         help_text="Maximum allowed submission file size in megabytes.",
+    )
+    attachment = models.FileField(
+        upload_to="assignment_attachments/",
+        blank=True,
+        null=True,
+        help_text="Optional document brief (PDF, Word, etc.) for students to view.",
     )
 
     class Meta:

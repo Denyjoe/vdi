@@ -33,7 +33,7 @@ class RegisterView(views.APIView):
         if serializer.is_valid():
             user = serializer.save()
             tokens = get_tokens_for_user(user)
-            profile_data = UserProfileSerializer(user).data
+            profile_data = UserProfileSerializer(user, context={'request': request}).data
             
             ActivityLog.objects.create(
                 user=user,
@@ -66,7 +66,7 @@ class LoginView(views.APIView):
         if serializer.is_valid():
             user = serializer.validated_data['user']
             tokens = get_tokens_for_user(user)
-            profile_data = UserProfileSerializer(user).data
+            profile_data = UserProfileSerializer(user, context={'request': request}).data
             
             ActivityLog.objects.create(
                 user=user,
@@ -130,7 +130,7 @@ class MeView(views.APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        serializer = UserProfileSerializer(request.user)
+        serializer = UserProfileSerializer(request.user, context={'request': request})
         return Response({
             "success": True,
             "data": serializer.data,
@@ -138,7 +138,7 @@ class MeView(views.APIView):
         }, status=status.HTTP_200_OK)
         
     def patch(self, request):
-        serializer = UserProfileSerializer(request.user, data=request.data, partial=True)
+        serializer = UserProfileSerializer(request.user, data=request.data, partial=True, context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response({
@@ -196,7 +196,7 @@ class UpdateProfileView(views.APIView):
                 ip_address=request.META.get('REMOTE_ADDR')
             )
             # Return full profile
-            profile_data = UserProfileSerializer(request.user).data
+            profile_data = UserProfileSerializer(request.user, context={'request': request}).data
             return Response({
                 "success": True,
                 "data": profile_data,
@@ -382,7 +382,7 @@ class UserListView(views.APIView):
                 Q(email__icontains=search)
             )
             
-        serializer = UserProfileSerializer(queryset, many=True)
+        serializer = UserProfileSerializer(queryset, many=True, context={'request': request})
         return Response({
             "success": True,
             "data": serializer.data,
@@ -395,7 +395,7 @@ class UserDetailView(views.APIView):
     def get(self, request, pk):
         try:
             user = User.objects.get(pk=pk)
-            serializer = UserProfileSerializer(user)
+            serializer = UserProfileSerializer(user, context={'request': request})
             return Response({
                 "success": True,
                 "data": serializer.data,
@@ -418,7 +418,7 @@ class UserDetailView(views.APIView):
                 setattr(user, key, value)
             user.save()
             
-            serializer = UserProfileSerializer(user)
+            serializer = UserProfileSerializer(user, context={'request': request})
             return Response({
                 "success": True,
                 "data": serializer.data,
@@ -447,7 +447,7 @@ class UserDeactivateView(views.APIView):
                 metadata={'target_user_id': user.id, 'target_email': user.email}
             )
             
-            serializer = UserProfileSerializer(user)
+            serializer = UserProfileSerializer(user, context={'request': request})
             return Response({
                 "success": True,
                 "data": serializer.data,
@@ -476,7 +476,7 @@ class UserActivateView(views.APIView):
                 metadata={'target_user_id': user.id, 'target_email': user.email}
             )
             
-            serializer = UserProfileSerializer(user)
+            serializer = UserProfileSerializer(user, context={'request': request})
             return Response({
                 "success": True,
                 "data": serializer.data,

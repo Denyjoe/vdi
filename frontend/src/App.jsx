@@ -51,6 +51,7 @@ import LabWorkspacePage from "./pages/student/LabWorkspacePage";
 // Layout & guards
 import Layout from "./components/layout/Layout";
 import ProtectedRoute from "./components/shared/ProtectedRoute";
+import NotificationsPage from './pages/shared/NotificationsPage';
 
 // Shared pages
 import NotFoundPage from "./pages/shared/NotFoundPage";
@@ -69,6 +70,18 @@ export default function App() {
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+
+        {/* Notifications */}
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <NotificationsPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
 
         {/* Profile */}
         <Route

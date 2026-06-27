@@ -33,26 +33,28 @@ ALLOWED_HOSTS = config("ALLOWED_HOSTS", cast=Csv())
 # ─────────────────────────────────────────────────────────────────────────────
 
 INSTALLED_APPS = [
-    # Django built-ins
-    "django.contrib.admin",
-    "django.contrib.auth",
-    "django.contrib.contenttypes",
-    "django.contrib.sessions",
-    "django.contrib.messages",
-    "django.contrib.staticfiles",
+    # Django    # Core
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'daphne',
+    'django.contrib.staticfiles',
 
-    "rest_framework",
-    "rest_framework_simplejwt",
-    "rest_framework_simplejwt.token_blacklist",
-    "corsheaders",
-    "channels",
+    # Third Party
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'corsheaders',
+    'channels',
 
-    # Project applications
-    "apps.users",
-    "apps.vms",
-    "apps.sessions",
-    "apps.classes",
-    "apps.assignments",
+    # Local Apps
+    'apps.users',
+    'apps.classes',
+    'apps.assignments',
+    'apps.sessions',
+    'apps.vms',
+    'apps.notifications',
 ]
 
 
@@ -80,7 +82,6 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 ROOT_URLCONF = "config.urls"
 
-WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
 

@@ -1,3 +1,4 @@
+from apps.notifications.services import send_notification
 import threading
 import time
 import random

@@ -40,7 +40,8 @@ export default function LecturerMaterialsPage({ defaultTab = 'materials' }) {
     if (activeTab === 'materials' && selectedClassId) {
       loadFiles(selectedClassId);
     } else if (activeTab === 'assignments') {
-      loadAssignments();
+      // Pass selectedClassId explicitly to avoid stale closure.
+      loadAssignments(selectedClassId);
     }
   }, [activeTab, selectedClassId]);
 
@@ -70,14 +71,17 @@ export default function LecturerMaterialsPage({ defaultTab = 'materials' }) {
     }
   };
 
-  const loadAssignments = async () => {
-    if (!selectedClassId) {
-      setAssignments([]);
-      return;
-    }
+  /**
+   * Fetches assignments from the API for the given class (or all classes if no ID).
+   * Accepts an explicit classId to avoid stale closure bugs when called from modal callbacks.
+   * @param {string} [classId] - Optional class ID to filter by.
+   */
+  const loadAssignments = async (classId) => {
+    // Use the provided classId argument first, fall back to the current state value.
+    const effectiveClassId = classId !== undefined ? classId : selectedClassId;
     setIsAssignmentsLoading(true);
     try {
-      const res = await assignmentService.getLecturerAssignments(selectedClassId);
+      const res = await assignmentService.getLecturerAssignments(effectiveClassId || null);
       setAssignments(res.data?.data || []);
     } catch (error) {
       toast.error('Failed to load assignments');
@@ -120,7 +124,7 @@ export default function LecturerMaterialsPage({ defaultTab = 'materials' }) {
       } else if (itemToDelete.type === 'assignment') {
         await assignmentService.deleteAssignment(itemToDelete.id);
         toast.success('Assignment deleted');
-        loadAssignments();
+        loadAssignments(selectedClassId);
       }
     } catch (error) {
       toast.error(`Failed to delete ${itemToDelete.type}`);
@@ -429,16 +433,31 @@ export default function LecturerMaterialsPage({ defaultTab = 'materials' }) {
                   </div>
 
                   <div className="flex items-center justify-between pt-5 border-t border-slate-700">
-                    <button
-                      onClick={() => {
-                        setSelectedAssignment({...assign, enrolled_student_count: enrolled});
-                        setSubmissionsOpen(true);
-                      }}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
-                    >
-                      <Eye className="w-4 h-4" />
-                      View Submissions
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedAssignment({...assign, enrolled_student_count: enrolled});
+                          setSubmissionsOpen(true);
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                      >
+                        <Eye className="w-4 h-4" />
+                        View Submissions
+                      </button>
+
+                      {assign.attachment_url && (
+                        <a
+                          href={assign.attachment_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white rounded-lg text-sm font-medium transition-colors"
+                          title="View Assignment Document"
+                        >
+                          <FileText className="w-4 h-4" />
+                          Document
+                        </a>
+                      )}
+                    </div>
 
                     <div className="flex gap-2">
                       <button 
@@ -480,7 +499,7 @@ export default function LecturerMaterialsPage({ defaultTab = 'materials' }) {
       <CreateAssignmentModal
         isOpen={createAssignmentOpen}
         onClose={() => setCreateAssignmentOpen(false)}
-        onSuccess={loadAssignments}
+        onSuccess={() => loadAssignments(selectedClassId)}
       />
 
       <SubmissionsModal

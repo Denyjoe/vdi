@@ -12,7 +12,8 @@ export default function CreateAssignmentModal({ isOpen, onClose, onSuccess }) {
     title: '',
     description: '',
     due_date: '',
-    max_file_size_mb: 20
+    max_file_size_mb: 20,
+    attachment: null
   });
 
   useEffect(() => {
@@ -23,7 +24,8 @@ export default function CreateAssignmentModal({ isOpen, onClose, onSuccess }) {
         title: '',
         description: '',
         due_date: '',
-        max_file_size_mb: 20
+        max_file_size_mb: 20,
+        attachment: null
       });
     }
   }, [isOpen]);
@@ -44,8 +46,12 @@ export default function CreateAssignmentModal({ isOpen, onClose, onSuccess }) {
   if (!isOpen) return null;
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, files } = e.target;
+    if (type === 'file') {
+      setFormData(prev => ({ ...prev, [name]: files[0] }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -63,12 +69,19 @@ export default function CreateAssignmentModal({ isOpen, onClose, onSuccess }) {
 
     setIsSubmitting(true);
     try {
-      // Create local ISO string
-      const payload = {
-        ...formData,
-        due_date: selectedDate.toISOString(),
-      };
-      await assignmentService.createAssignment(payload);
+      // Create payload using FormData to support file upload
+      const submitData = new FormData();
+      submitData.append('class_room', formData.class_room);
+      submitData.append('title', formData.title);
+      submitData.append('description', formData.description);
+      submitData.append('due_date', selectedDate.toISOString());
+      submitData.append('max_file_size_mb', formData.max_file_size_mb);
+      
+      if (formData.attachment) {
+        submitData.append('attachment', formData.attachment);
+      }
+
+      await assignmentService.createAssignment(submitData);
       toast.success('Assignment created successfully!');
       onSuccess();
       onClose();
@@ -159,6 +172,32 @@ export default function CreateAssignmentModal({ isOpen, onClose, onSuccess }) {
                 max="100"
                 className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1">Attachment (Optional)</label>
+            <div className="relative">
+              <input
+                type="file"
+                name="attachment"
+                onChange={handleChange}
+                className="hidden"
+                id="assignment-attachment-upload"
+                accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.rar,.txt"
+              />
+              <label
+                htmlFor="assignment-attachment-upload"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white cursor-pointer flex items-center justify-between hover:bg-slate-800 transition-colors"
+              >
+                <span className="truncate text-slate-400">
+                  {formData.attachment ? formData.attachment.name : 'Choose file...'}
+                </span>
+                <span className="text-sm text-slate-500">Browse</span>
+              </label>
+              <p className="mt-1.5 text-xs text-slate-500">
+                Attach a PDF, Word document, or other resources for this assignment.
+              </p>
             </div>
           </div>
 
