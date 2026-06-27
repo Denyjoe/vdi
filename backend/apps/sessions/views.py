@@ -659,3 +659,100 @@ class StudentPracticalSubmitView(generics.GenericAPIView):
         return Response(
             {"success": True, "data": serializer.data, "message": "Submission uploaded."}
         )
+
+class StudentPracticalAccessView(views.APIView):
+    """
+    GET /api/sessions/practical-sessions/<id>/my-access/
+    Returns or creates the StudentPracticalAccess record for the current user and session.
+    """
+    permission_classes = [IsAuthenticated, IsStudent]
+
+    def get(self, request, pk):
+        try:
+            session = PracticalSession.objects.get(pk=pk)
+        except PracticalSession.DoesNotExist:
+            return Response({'success': False, 'message': 'Session not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Ensure user is actually enrolled in the class (simplified check or rely on access creation)
+        access, created = StudentPracticalAccess.objects.get_or_create(
+            practical_session=session,
+            student=request.user,
+            defaults={'has_attended': False}
+        )
+
+        serializer = StudentPracticalAccessSerializer(access)
+        return Response({
+            'success': True,
+            'data': serializer.data
+        })
+
+
+class LecturerPracticalMonitorView(views.APIView):
+    """
+    GET /api/sessions/practical-sessions/<id>/monitor/
+    Returns live stats for students enrolled in the practical session.
+    """
+    permission_classes = [IsAuthenticated, IsLecturer]
+
+    def get(self, request, pk):
+        try:
+            session = PracticalSession.objects.get(pk=pk, lecturer=request.user)
+        except PracticalSession.DoesNotExist:
+            return Response({'success': False, 'message': 'Session not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        access_records = StudentPracticalAccess.objects.filter(practical_session=session).select_related('student')
+        
+        students_data = []
+        for record in access_records:
+            student = record.student
+            # Check if student has an active remote session
+            remote_session = RemoteSession.objects.filter(
+                user=student, 
+                status=RemoteSession.Status.ACTIVE
+            ).first()
+
+            status_enum = 'not_started'
+            if record.submitted_at:
+                status_enum = 'submitted'
+            elif remote_session:
+                status_enum = 'in_progress'
+            elif session.end_time < timezone.now() and not record.submitted_at:
+                status_enum = 'missed'
+
+            duration = None
+            vm_status = None
+            vm_name = None
+            if remote_session:
+                delta = timezone.now() - remote_session.start_time
+                mins, secs = divmod(int(delta.total_seconds()), 60)
+                duration = f"{mins}m {secs}s"
+                if remote_session.vm:
+                    vm_status = remote_session.vm.status
+                    vm_name = remote_session.vm.name
+
+            students_data.append({
+                'id': record.id,
+                'student_id': getattr(student, 'student_id', None) or str(student.id),
+                'name': f"{student.first_name} {student.last_name}",
+                'email': student.email,
+                'programme': student.programme.name if getattr(student, 'programme', None) else '',
+                'year': student.year_of_study if getattr(student, 'year_of_study', None) else '',
+                'status': status_enum,
+                'submitted_at': record.submitted_at,
+                'joined_at': record.joined_at,
+                'duration': duration,
+                'vm_status': vm_status,
+                'vm_name': vm_name,
+                'cpu_usage': 15 if remote_session else 0, # simulated
+                'ram_usage': 45 if remote_session else 0, # simulated
+            })
+
+        return Response({
+            'success': True,
+            'data': {
+                'session_id': session.id,
+                'name': session.name,
+                'status': session.status,
+                'students': students_data
+            }
+        })

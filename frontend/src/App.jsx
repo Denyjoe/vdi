@@ -35,6 +35,7 @@ import LecturerDashboard from "./pages/lecturer/LecturerDashboard";
 import LecturerMonitorPage from "./pages/lecturer/LecturerMonitorPage";
 import LecturerClassesPage from "./pages/lecturer/LecturerClassesPage";
 import LecturerMaterialsPage from "./pages/lecturer/LecturerMaterialsPage";
+import LecturerPracticalPage from "./pages/lecturer/LecturerPracticalPage";
 
 // Student pages
 import StudentDashboard from "./pages/student/StudentDashboard";
@@ -43,6 +44,8 @@ import StudentClassesPage from "./pages/student/StudentClassesPage";
 import SessionHistoryPage from "./pages/student/SessionHistoryPage";
 import DesktopSessionPage from "./pages/student/DesktopSessionPage";
 import StudentMaterialsPage from "./pages/student/StudentMaterialsPage";
+import StudentPracticalPage from "./pages/student/StudentPracticalPage";
+import LabWorkspacePage from "./pages/student/LabWorkspacePage";
 
 // Layout & guards
 import Layout from "./components/layout/Layout";
@@ -170,6 +173,16 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/lecturer/practicals"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <LecturerPracticalPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/lecturer/materials"
@@ -235,6 +248,16 @@ export default function App() {
           }
         />
         <Route
+          path="/student/practicals"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <StudentPracticalPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/student/materials"
           element={
             <ProtectedRoute>
@@ -260,6 +283,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <DesktopSessionPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/lab/:sessionId"
+          element={
+            <ProtectedRoute>
+              <LabWorkspacePage />
             </ProtectedRoute>
           }
         />

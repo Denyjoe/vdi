@@ -21,5 +21,7 @@ urlpatterns = [
     path('practical-sessions/<int:pk>/start/', views.LecturerStartPracticalView.as_view(), name='practical_session_start'),
     path('practical-sessions/<int:pk>/end/', views.LecturerEndPracticalView.as_view(), name='practical_session_end'),
     path('practical-sessions/student/', views.StudentPracticalSessionsView.as_view(), name='student_practical_sessions'),
+    path('practical-sessions/<int:pk>/my-access/', views.StudentPracticalAccessView.as_view(), name='practical_session_my_access'),
     path('practical-sessions/<int:pk>/submit/', views.StudentPracticalSubmitView.as_view(), name='student_practical_submit'),
+    path('practical-sessions/<int:pk>/monitor/', views.LecturerPracticalMonitorView.as_view(), name='practical_session_monitor'),
 ]

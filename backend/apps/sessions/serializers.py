@@ -177,7 +177,7 @@ class PracticalSessionSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'session_type', 'class_room', 'class_name', 'lecturer',
             'lecturer_name', 'required_vm_template', 'vm_template_name', 'submission_type',
-            'scheduled_date', 'start_time', 'end_time', 'status',
+            'start_time', 'end_time', 'submission_deadline', 'status',
             'instructions', 'max_concurrent_vms', 'auto_terminate',
             'attendance_count', 'total_students', 'created_at',
         ]
