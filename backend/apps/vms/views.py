@@ -451,3 +451,29 @@ class AdminTemplateDetailView(views.APIView):
             "data": {"id": template.id, "is_available": False},
             "message": f"Template '{template.name}' has been deactivated."
         }, status=status.HTTP_200_OK)
+
+class VMTaskStatusView(views.APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, task_id):
+        try:
+            from celery.result import AsyncResult
+            result = AsyncResult(task_id)
+            return Response({
+                'success': True,
+                'data': {
+                    'task_id': task_id,
+                    'status': result.status,
+                    'result': result.result if result.ready() else None
+                },
+                'message': 'Task status retrieved'
+            }, status=status.HTTP_200_OK)
+        except Exception:
+            return Response({
+                'success': False,
+                'data': {
+                    'task_id': task_id,
+                    'status': 'UNKNOWN'
+                },
+                'message': 'Failed to retrieve task status'
+            }, status=status.HTTP_200_OK)

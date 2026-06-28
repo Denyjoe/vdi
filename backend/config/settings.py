@@ -221,3 +221,33 @@ CHANNEL_LAYERS = {
         "BACKEND": "channels.layers.InMemoryChannelLayer",
     }
 }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CELERY — Background task queue and periodic tasks
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Celery Configuration
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Africa/Dar_es_Salaam'
+
+# Fallback for Windows development 
+# (if Redis not available):
+# CELERY_BROKER_URL = 'memory://'
+# CELERY_RESULT_BACKEND = 'cache+memory://'
+
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+  'cleanup-stale-vms': {
+    'task': 'apps.vms.tasks.cleanup_stale_vms',
+    'schedule': crontab(minute='*/30'),
+  },
+  'cleanup-expired-sessions': {
+    'task': 'apps.vms.tasks.cleanup_expired_sessions',
+    'schedule': crontab(minute=0),
+  },
+}

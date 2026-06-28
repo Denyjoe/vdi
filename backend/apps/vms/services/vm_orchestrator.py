@@ -20,34 +20,44 @@ class VMOrchestrator:
         )
 
     def provision_vm(self, vm):
-        # Sets status = 'provisioning', saves
-        vm.status = 'provisioning'
-        vm.save()
-        
-        # Logs ActivityLog
         self._log_activity(vm, 'VM_PROVISIONING_STARTED')
+        
+        try:
+            from apps.vms.tasks import provision_vm_task
+            # Try Celery first
+            result = provision_vm_task.delay(vm.id)
+            print(f'VM {vm.id} dispatched to Celery worker (Task: {result.id})')
+            return result.id
+        except Exception as e:
+            # Fallback to threading if Celery/Redis not available
+            print(f'Celery unavailable, using thread: {e}')
+            vm.status = 'provisioning'
+            vm.save()
+            import threading
+            thread = threading.Thread(target=self._provision_sync, args=(vm.id,))
+            thread.daemon = True
+            thread.start()
+            return None
 
-        # Background thread for 8-second wait
-        def run_provisioning():
+    def _provision_sync(self, vm_id):
+        """Fallback sync provisioning"""
+        import time, random
+        from apps.vms.models import VirtualMachine
+        
+        try:
+            vm = VirtualMachine.objects.get(id=vm_id)
             time.sleep(8)
-            # Must refresh from db in case of concurrent updates, 
-            # but for this simulation it's fine.
             vm.refresh_from_db()
-            
-            # If deleted during provisioning, stop.
             if vm.status == 'deleted':
                 return
-                
             vm.status = 'running'
             vm.started_at = timezone.now()
             vm.cpu_usage = round(random.uniform(5.0, 25.0), 1)
             vm.ram_usage = round(random.uniform(20.0, 45.0), 1)
             vm.save()
-            
             self._log_activity(vm, 'VM_RUNNING')
-
-        thread = threading.Thread(target=run_provisioning)
-        thread.start()
+        except VirtualMachine.DoesNotExist:
+            pass
 
     def stop_vm(self, vm):
         vm.status = 'stopped'
@@ -61,7 +71,16 @@ class VMOrchestrator:
         vm.status = 'provisioning'
         vm.save()
         self._log_activity(vm, 'VM_START_REQUESTED')
-        self.provision_vm(vm)
+        
+        try:
+            from apps.vms.tasks import provision_vm_task
+            provision_vm_task.delay(vm.id)
+        except Exception as e:
+            print(f'Celery unavailable, using thread: {e}')
+            import threading
+            thread = threading.Thread(target=self._provision_sync, args=(vm.id,))
+            thread.daemon = True
+            thread.start()
 
     def delete_vm(self, vm):
         vm.status = 'deleted'

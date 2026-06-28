@@ -4,8 +4,10 @@ djangorestframework-simplejwt
 django-cors-headers
 psycopg2-binary
 python-decouple
-channels
-daphne
+channels==4.1.0
+daphne==4.1.2
+celery==5.3.6
+redis==5.0.1
 Pillow
 proxmoxer
 requests

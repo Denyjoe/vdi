@@ -39,6 +39,8 @@ Institution: DIT — BENG22 COE-2
 | Real-time | Django Channels + WebSocket |
 | Charts | Recharts |
 | Icons | Lucide React |
+| Celery | Background task queue |
+| Redis | Message broker (production) |
 | VM Layer | Proxmox VE (simulation in dev) |
 
 ### Features
@@ -79,7 +81,21 @@ Institution: DIT — BENG22 COE-2
    npm run dev
    ```
 
-4. **Production Build:**
+4. **Running Background Tasks**
+   
+   For development (Windows):
+   ```bash
+   cd backend
+   .\venv\Scripts\celery -A config worker --loglevel=info --pool=solo
+   ```
+   
+   For production (Linux):
+   ```bash
+   celery -A config worker --loglevel=info --concurrency=4
+   celery -A config beat --loglevel=info
+   ```
+
+5. **Production Build:**
    ```bash
    cd frontend
    npm run build

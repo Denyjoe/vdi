@@ -3,7 +3,8 @@ from .views import (
     VMTemplateListView, VMTemplateDetailView,
     VMListView, VMRequestView,
     VMDetailView, VMStatusView,
-    VMStopView, VMStartView
+    VMStopView, VMStartView,
+    VMTaskStatusView
 )
 
 urlpatterns = [
@@ -16,4 +17,5 @@ urlpatterns = [
     path('<int:pk>/status/', VMStatusView.as_view(), name='vm-status'),
     path('<int:pk>/stop/', VMStopView.as_view(), name='vm-stop'),
     path('<int:pk>/start/', VMStartView.as_view(), name='vm-start'),
+    path('tasks/<str:task_id>/', VMTaskStatusView.as_view(), name='vm-task-status'),
 ]
