@@ -23,7 +23,8 @@ export function useNotifications() {
       .catch(console.error);
 
     // Connect WebSocket
-    const wsUrl = `ws://localhost:8000/ws/notifications/?token=${token}`;
+    const WS_BASE_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000';
+    const wsUrl = `${WS_BASE_URL}/ws/notifications/?token=${token}`;
     ws.current = new WebSocket(wsUrl);
 
     ws.current.onopen = () => {

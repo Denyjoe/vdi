@@ -1,7 +1,13 @@
 import axios from 'axios';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const WS_BASE_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000';
+
 const api = axios.create({
-    baseURL: 'http://localhost:8000/api',
+    baseURL: API_BASE_URL,
+    headers: {
+        'Content-Type': 'application/json'
+    }
 });
 
 // Request interceptor for adding the bearer token
@@ -31,7 +37,7 @@ api.interceptors.response.use(
             if (refreshToken) {
                 try {
                     // Make a direct axios call to avoid interceptor loop
-                    const response = await axios.post('http://localhost:8000/api/auth/token/refresh/', {
+                    const response = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
                         refresh: refreshToken
                     });
 
