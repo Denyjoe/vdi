@@ -1,442 +1,202 @@
 import { useState, useEffect } from 'react';
-import {
-  Activity, ShieldAlert, Monitor, Eye, X,
-  Play, Edit, Trash2, StopCircle, BarChart2, Clock
+import { useParams, useNavigate } from 'react-router-dom';
+import { 
+    Activity, Users, ShieldAlert, Monitor, Eye, X,
+    Play, Edit, Trash2, StopCircle, BarChart2, Clock, 
+    ArrowLeft, AlertTriangle
 } from 'lucide-react';
-import toast from 'react-hot-toast';
-import { sessionService } from '../../services/sessionService';
-import ConfirmModal from '../../components/shared/ConfirmModal';
-import CreateExamModal from '../../components/instructor/CreateExamModal';
+import api from '../../services/api';
 
-// ─── helpers ────────────────────────────────────────────────────────────────
-
-/**
- * Format seconds into "Xh Xm Xs" display string.
- * @param {number} seconds
- * @returns {string}
- */
 function formatDuration(seconds) {
-  if (!seconds || seconds < 0) return '0s';
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  const parts = [];
-  if (h > 0) parts.push(`${h}h`);
-  if (m > 0 || h > 0) parts.push(`${m}m`);
-  parts.push(`${s}s`);
-  return parts.join(' ');
+    if (!seconds || seconds < 0) return '0s';
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    const parts = [];
+    if (h > 0) parts.push(`${h}h`);
+    if (m > 0 || h > 0) parts.push(`${m}m`);
+    parts.push(`${s}s`);
+    return parts.join(' ');
 }
 
-/**
- * Safely format a date string. Returns fallback if value is missing/invalid.
- * @param {string|null} dateStr
- * @param {string} fallback
- * @returns {string}
- */
-function safeDate(dateStr, fallback = 'Not set') {
-  if (!dateStr) return fallback;
-  try {
-    return new Date(dateStr).toLocaleString('en-GB', {
-      day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
-    });
-  } catch {
-    return fallback;
-  }
-}
-
-// ─── sub-components ─────────────────────────────────────────────────────────
-
-/** Pulsing "Live" indicator badge */
-function LiveBadge() {
-  return (
-    <div className="flex items-center gap-2 text-sm font-medium text-green-400">
-      <span className="relative flex h-3 w-3">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-        <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500" />
-      </span>
-      Live
-    </div>
-  );
-}
-
-/** Summary stat card at the top of the monitor page */
-function StatCard({ title, count, Icon, colorText, colorBg }) {
-  return (
-    <div className="bg-slate-800 rounded-xl p-4 border border-slate-700 flex items-center gap-4">
-      <div className={`p-3 rounded-lg ${colorBg}`}>
-        <Icon className={`w-6 h-6 ${colorText}`} />
-      </div>
-      <div>
-        <div className="text-2xl font-bold text-white">{count ?? 0}</div>
-        <div className="text-sm font-medium text-slate-400">{title}</div>
-      </div>
-    </div>
-  );
-}
-
-/** Status pill for sessions */
-function StatusPill({ isInExam }) {
-  if (isInExam) {
-    return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
-        <ShieldAlert className="w-3 h-3" /> Exam
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-slate-700 text-slate-300 border border-slate-600">
-      Free
-    </span>
-  );
-}
-
-/** Status badge for exam cards */
-function ExamStatusBadge({ status }) {
-  if (status === 'active') {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">
-        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-        Active
-      </span>
-    );
-  }
-  if (status === 'ended') {
-    return (
-      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-500 border border-slate-700">
-        Ended
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-700 text-slate-300">
-      Scheduled
-    </span>
-  );
-}
-
-// ─── main page ───────────────────────────────────────────────────────────────
-
-/**
- * LecturerMonitorPage — live command-centre for session supervision.
- *
- * Left column:  live student sessions table (auto-refreshes every 5 s).
- * Right column: exam session cards with create / start / end controls.
- *
- * @returns {JSX.Element}
- */
 export default function LecturerMonitorPage() {
-  const [monitorData, setMonitorData] = useState({
-    active_sessions: [],
-    exam_sessions: [],
-    summary: { total_active: 0, in_exam: 0, free_sessions: 0 },
-  });
-  const [allExams, setAllExams] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showTerminateSession, setShowTerminateSession] = useState(null);
-  const [showEndExam, setShowEndExam] = useState(null);
+    const { sessionId } = useParams();
+    const navigate = useNavigate();
+    
+    const [sessionData, setSessionData] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-  // ── data fetching ────────────────────────────────────────────────────────
+    useEffect(() => {
+        fetchMonitorData();
+        const interval = setInterval(fetchMonitorData, 5000);
+        return () => clearInterval(interval);
+    }, [sessionId]);
 
-  const fetchData = async () => {
-    try {
-      const [monitorRes, examsRes] = await Promise.all([
-        sessionService.getMonitorData(),
-        sessionService.getExamSessions(),
-      ]);
-      const mData = monitorRes.data?.data;
-      if (mData) setMonitorData(mData);
-      setAllExams(examsRes.data?.data || []);
-    } catch (err) {
-      console.error('Monitor fetch error:', err);
-    } finally {
-      setIsLoading(false);
+    const fetchMonitorData = async () => {
+        try {
+            const res = await api.get(`/sessions/live/${sessionId}/monitor/`);
+            if (res.data?.success) {
+                setSessionData(res.data.data);
+            }
+            setError(null);
+        } catch (err) {
+            setError('Failed to load session monitor data');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleRemoveParticipant = async (userId) => {
+        if (!confirm('Are you sure you want to remove this participant?')) return;
+        try {
+            await api.post(`/sessions/live/${sessionId}/remove_participant/`, { user_id: userId });
+            fetchMonitorData();
+        } catch (err) {
+            alert('Failed to remove participant');
+        }
+    };
+
+    const handleEndSession = async () => {
+        if (!confirm('Are you sure you want to end this session for everyone?')) return;
+        try {
+            await api.post(`/sessions/live/${sessionId}/end/`);
+            navigate('/instructor/sessions');
+        } catch (err) {
+            alert('Failed to end session');
+        }
+    };
+
+    if (isLoading && !sessionData) {
+        return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div></div>;
     }
-  };
 
-  useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // ── actions ──────────────────────────────────────────────────────────────
-
-  const handleTerminateSession = async () => {
-    if (!showTerminateSession) return;
-    try {
-      await sessionService.lecturerTerminate(showTerminateSession.id);
-      toast.success('Session terminated');
-      fetchData();
-    } catch {
-      toast.error('Failed to terminate session');
-    } finally {
-      setShowTerminateSession(null);
-    }
-  };
-
-  const handleStartExam = async (examId) => {
-    try {
-      await sessionService.startExamSession(examId);
-      toast.success('Exam started');
-      fetchData();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to start exam');
-    }
-  };
-
-  const handleEndExam = async () => {
-    if (!showEndExam) return;
-    try {
-      const res = await sessionService.endExamSession(showEndExam.id);
-      const count = res.data?.data?.terminated_sessions ?? 0;
-      toast.success(`Exam ended. ${count} session(s) terminated.`);
-      fetchData();
-    } catch {
-      toast.error('Failed to end exam');
-    } finally {
-      setShowEndExam(null);
-    }
-  };
-
-  // ── derived state ────────────────────────────────────────────────────────
-  const activeSessions = monitorData.active_sessions || [];
-  const summary        = monitorData.summary || { total_active: 0, in_exam: 0, free_sessions: 0 };
-
-  // ── render ───────────────────────────────────────────────────────────────
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-
-      {/* Page heading */}
-      <div>
-        <h1 className="text-3xl font-bold text-white">Session Monitor</h1>
-        <p className="text-slate-400 mt-1">Live supervision dashboard — refreshes every 5 seconds</p>
-      </div>
-
-      {/* ── Top summary cards ─────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard title="Total Active"  count={summary.total_active}  Icon={Activity}    colorText="text-green-400"  colorBg="bg-green-500/10" />
-        <StatCard title="In Exam"       count={summary.in_exam}       Icon={ShieldAlert} colorText="text-yellow-400" colorBg="bg-yellow-500/10" />
-        <StatCard title="Free Sessions" count={summary.free_sessions} Icon={Monitor}     colorText="text-indigo-400"   colorBg="bg-indigo-500/10" />
-      </div>
-
-      {/* ── Main grid ─────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-        {/* Left column — Live sessions table */}
-        <div className="lg:col-span-8">
-          <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-
-            {/* Table header */}
-            <div className="px-6 py-4 border-b border-slate-700 flex items-center justify-between">
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Monitor className="w-5 h-5 text-indigo-400" />
-                Live Student Sessions
-              </h2>
-              <LiveBadge />
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-slate-900/50 text-slate-400 text-xs uppercase tracking-wider">
-                  <tr>
-                    <th className="px-6 py-3 font-medium">Member</th>
-                    <th className="px-6 py-3 font-medium">VM</th>
-                    <th className="px-6 py-3 font-medium">Duration</th>
-                    <th className="px-6 py-3 font-medium">Exam Mode</th>
-                    <th className="px-6 py-3 font-medium text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-700/50">
-                  {activeSessions.length === 0 ? (
-                    <tr>
-                      <td colSpan={5}>
-                        <div className="flex flex-col items-center justify-center py-16 text-slate-500">
-                          <Eye className="w-10 h-10 mb-3 opacity-40" />
-                          <p className="text-sm font-medium">No Active Sessions</p>
-                          <p className="text-xs mt-1">Students appear here when they connect to their VMs</p>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    activeSessions.map((session) => (
-                      <tr key={session.id} className="hover:bg-slate-700/30 transition-colors">
-                        <td className="px-6 py-4">
-                          <div className="font-semibold text-white">{session.user?.full_name || 'Unknown'}</div>
-                          <div className="text-xs text-slate-400">{session.user?.email || ''}</div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-slate-200">{session.vm?.name || 'Unknown VM'}</div>
-                          <div className="text-xs text-slate-400">{session.vm?.template_name || ''}</div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="font-mono text-sm text-slate-300">
-                            {formatDuration(session.duration_seconds)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <StatusPill isInExam={session.is_in_exam} />
-                        </td>
-                        <td className="px-6 py-4 text-right space-x-1">
-                          <button
-                            className="p-2 text-slate-400 hover:text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-colors"
-                            title="View Session"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => setShowTerminateSession(session)}
-                            className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
-                            title="Terminate Session"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        {/* Right column — Exam sessions */}
-        <div className="lg:col-span-4">
-          <div className="bg-slate-800 rounded-xl border border-slate-700 flex flex-col">
-
-            {/* Panel header */}
-            <div className="px-6 py-4 border-b border-slate-700 flex items-center justify-between shrink-0">
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <ShieldAlert className="w-5 h-5 text-yellow-400" />
-                Exam Sessions
-              </h2>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
-              >
-                + New Exam
-              </button>
-            </div>
-
-            {/* Exam cards list */}
-            <div className="p-4 space-y-4 overflow-y-auto max-h-[720px]">
-              {allExams.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-slate-500">
-                  <ShieldAlert className="w-10 h-10 mb-3 opacity-40" />
-                  <p className="text-sm font-medium">No Exam Sessions</p>
-                  <p className="text-xs mt-1 text-center">Create an exam to start monitoring</p>
+    if (error) {
+        return (
+            <div className="p-8 max-w-7xl mx-auto">
+                <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-8 text-center max-w-md mx-auto">
+                    <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+                    <h2 className="text-xl font-bold text-white mb-2">Error</h2>
+                    <p className="text-red-300 mb-6">{error}</p>
+                    <button onClick={() => navigate('/instructor/sessions')} className="px-6 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-colors">
+                        Go Back
+                    </button>
                 </div>
-              ) : (
-                allExams.map((exam) => (
-                  <div
-                    key={exam.id}
-                    className="bg-slate-900/60 rounded-xl p-4 border border-slate-700 hover:border-slate-600 transition-colors space-y-3"
-                  >
-                    {/* Exam title & status */}
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <h3 className="font-semibold text-white text-sm truncate">{exam.name}</h3>
-                        <p className="text-xs text-slate-400 mt-0.5">{exam.class_room?.name || '—'}</p>
-                      </div>
-                      <ExamStatusBadge status={exam.status} />
-                    </div>
-
-                    {/* Time info */}
-                    <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                      <Clock className="w-3.5 h-3.5 shrink-0" />
-                      {exam.status === 'scheduled' && (
-                        <span>Starts: {safeDate(exam.starts_at)}</span>
-                      )}
-                      {exam.status === 'ended' && (
-                        <span>Ended: {safeDate(exam.ends_at)}</span>
-                      )}
-                      {exam.status === 'active' && (
-                        <span className={exam.time_remaining_seconds < 600 ? 'text-red-400 font-medium' : 'text-yellow-400'}>
-                          ⏱ {formatDuration(exam.time_remaining_seconds)} remaining
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Student count */}
-                    <p className="text-xs text-slate-400">
-                      {exam.enrolled_student_count ?? 0} students enrolled
-                    </p>
-
-                    {/* Action buttons */}
-                    <div className="flex gap-2 pt-1 border-t border-slate-700/60">
-                      {exam.status === 'scheduled' && (
-                        <>
-                          <button
-                            onClick={() => handleStartExam(exam.id)}
-                            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-green-600/10 text-green-400 hover:bg-green-600/20 text-xs font-medium rounded-lg transition-colors border border-green-600/20"
-                          >
-                            <Play className="w-3.5 h-3.5" /> Start Exam
-                          </button>
-                          <button className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors border border-slate-700" title="Edit">
-                            <Edit className="w-3.5 h-3.5" />
-                          </button>
-                          <button className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-900/20 rounded-lg transition-colors border border-slate-700" title="Delete">
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </>
-                      )}
-                      {exam.status === 'active' && (
-                        <button
-                          onClick={() => setShowEndExam(exam)}
-                          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-red-600/10 text-red-400 hover:bg-red-600/20 text-xs font-medium rounded-lg transition-colors border border-red-600/20"
-                        >
-                          <StopCircle className="w-3.5 h-3.5" /> End Exam
-                        </button>
-                      )}
-                      {exam.status === 'ended' && (
-                        <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-indigo-600/10 text-indigo-400 hover:bg-indigo-600/20 text-xs font-medium rounded-lg transition-colors border border-indigo-600/20">
-                          <BarChart2 className="w-3.5 h-3.5" /> View Report
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
             </div>
-          </div>
+        );
+    }
+
+    return (
+        <div className="p-8 max-w-7xl mx-auto animate-[fadeIn_0.3s_ease-out]">
+            <div className="flex items-center gap-4 mb-8">
+                <button onClick={() => navigate('/instructor/sessions')} className="p-2 hover:bg-white/5 rounded-lg text-slate-400 hover:text-white transition-colors">
+                    <ArrowLeft className="w-5 h-5" />
+                </button>
+                <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-1">
+                        <h1 className="text-3xl font-bold text-white">{sessionData?.name || 'Live Session'}</h1>
+                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold animate-pulse">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> LIVE
+                        </span>
+                    </div>
+                    <p className="text-slate-400 text-sm">Monitoring participants in real-time.</p>
+                </div>
+                <button onClick={handleEndSession} className="px-5 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl font-medium transition-all flex items-center gap-2">
+                    <StopCircle className="w-5 h-5" /> End Session
+                </button>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="bg-[#0B1120] rounded-2xl p-6 border border-white/5 flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center">
+                        <Users className="w-6 h-6 text-indigo-400" />
+                    </div>
+                    <div>
+                        <div className="text-sm font-medium text-slate-400 mb-1">Participants</div>
+                        <div className="text-2xl font-bold text-white">{sessionData?.participants?.length || 0}</div>
+                    </div>
+                </div>
+                <div className="bg-[#0B1120] rounded-2xl p-6 border border-white/5 flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                        <Activity className="w-6 h-6 text-emerald-400" />
+                    </div>
+                    <div>
+                        <div className="text-sm font-medium text-slate-400 mb-1">Status</div>
+                        <div className="text-2xl font-bold text-white capitalize">{sessionData?.status}</div>
+                    </div>
+                </div>
+                <div className="bg-[#0B1120] rounded-2xl p-6 border border-white/5 flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center">
+                        <Clock className="w-6 h-6 text-cyan-400" />
+                    </div>
+                    <div>
+                        <div className="text-sm font-medium text-slate-400 mb-1">Uptime</div>
+                        <div className="text-2xl font-bold text-white">
+                            {formatDuration(sessionData?.duration_seconds || 0)}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Participants Table */}
+            <div className="bg-[#0B1120] rounded-2xl border border-white/5 overflow-hidden">
+                <div className="p-6 border-b border-white/5 flex justify-between items-center bg-slate-900/50">
+                    <h2 className="text-lg font-bold text-white">Connected Students</h2>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="text-xs uppercase tracking-wider text-slate-500 bg-white/5 border-b border-white/10">
+                                <th className="p-4 font-medium">Student Name</th>
+                                <th className="p-4 font-medium">VM Status</th>
+                                <th className="p-4 font-medium">Connected Time</th>
+                                <th className="p-4 font-medium text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                            {!sessionData?.participants || sessionData.participants.length === 0 ? (
+                                <tr>
+                                    <td colSpan="4" className="p-8 text-center text-slate-400">
+                                        No participants connected yet.
+                                    </td>
+                                </tr>
+                            ) : (
+                                sessionData.participants.map(p => (
+                                    <tr key={p.id} className="hover:bg-white/[0.02] transition-colors">
+                                        <td className="p-4">
+                                            <div className="font-medium text-white">{p.first_name} {p.last_name}</div>
+                                            <div className="text-xs text-slate-500">{p.email}</div>
+                                        </td>
+                                        <td className="p-4">
+                                            {p.vm_status === 'running' ? (
+                                                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold w-max">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Running
+                                                </span>
+                                            ) : (
+                                                <span className="px-2.5 py-1 rounded-md bg-white/5 text-slate-300 text-xs font-medium border border-white/10 capitalize w-max inline-block">
+                                                    {p.vm_status || 'Pending'}
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="p-4 text-sm text-slate-300">
+                                            {formatDuration(p.connected_time_seconds || 0)}
+                                        </td>
+                                        <td className="p-4 text-right">
+                                            <button 
+                                                onClick={() => handleRemoveParticipant(p.id)}
+                                                className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-sm font-medium transition-colors"
+                                            >
+                                                Remove
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-      </div>
-
-      {/* ── Modals ────────────────────────────────────────────────────────── */}
-      <CreateExamModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onSuccess={fetchData}
-      />
-
-      <ConfirmModal
-        isOpen={!!showTerminateSession}
-        title="Terminate Session"
-        message={`Terminate ${showTerminateSession?.user?.full_name ?? 'this student'}'s session? All unsaved work will be lost.`}
-        confirmText="Terminate"
-        variant="danger"
-        onConfirm={handleTerminateSession}
-        onCancel={() => setShowTerminateSession(null)}
-      />
-
-      <ConfirmModal
-        isOpen={!!showEndExam}
-        title="End Exam Session"
-        message={`End "${showEndExam?.name ?? 'this exam'}"? All active student sessions for this exam will be terminated immediately.`}
-        confirmText="End Exam"
-        variant="danger"
-        onConfirm={handleEndExam}
-        onCancel={() => setShowEndExam(null)}
-      />
-    </div>
-  );
+    );
 }

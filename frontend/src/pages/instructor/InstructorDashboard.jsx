@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 import api from '../../services/api';
 import { Play, Copy, FolderOpen, Users, Video, ShieldAlert, ChevronRight, Activity, Plus } from 'lucide-react';
@@ -8,6 +8,7 @@ import CreateGroupModal from '../../components/instructor/CreateGroupModal';
 
 export default function InstructorDashboard() {
     const { user } = useAuthStore();
+    const navigate = useNavigate();
     const [stats, setStats] = useState(null);
     const [sessions, setSessions] = useState({ active: [], upcoming: [] });
     const [groups, setGroups] = useState([]);
@@ -116,10 +117,10 @@ export default function InstructorDashboard() {
                 {/* MY SESSIONS */}
                 <div className="lg:col-span-1 space-y-4">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                        <Link to="/instructor/sessions" className="text-xl font-bold text-white flex items-center gap-2 hover:text-indigo-400 transition-colors">
                             <Video className="w-5 h-5 text-indigo-400" />
-                            My Live Sessions
-                        </h2>
+                            My Live Sessions <ChevronRight className="w-5 h-5" />
+                        </Link>
                         {isPro && (
                             <button onClick={() => setIsCreateSessionOpen(true)} className="text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
                                 <Plus className="w-4 h-4" /> Create
@@ -165,10 +166,10 @@ export default function InstructorDashboard() {
                 {/* MY GROUPS */}
                 <div className="lg:col-span-2 space-y-4">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                        <Link to="/instructor/groups" className="text-xl font-bold text-white flex items-center gap-2 hover:text-indigo-400 transition-colors">
                             <Users className="w-5 h-5 text-indigo-400" />
-                            My Groups
-                        </h2>
+                            My Groups <ChevronRight className="w-5 h-5" />
+                        </Link>
                         {isPro && (
                             <button onClick={() => setIsCreateGroupOpen(true)} className="text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
                                 <Plus className="w-4 h-4" /> Create Group

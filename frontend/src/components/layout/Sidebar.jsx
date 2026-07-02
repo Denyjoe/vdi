@@ -1,27 +1,15 @@
-/**
- * Sidebar — vertical navigation for all dashboard pages.
- *
- * Renders role-specific navigation links based on the authenticated user's role.
- * Accepts an optional `onClose` callback used to dismiss the sidebar on mobile
- * after a link is clicked.
- *
- * @param {Object} props
- * @param {Function} [props.onClose] - Callback to close the mobile sidebar overlay.
- * @returns {JSX.Element} The sidebar navigation panel.
- */
-
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Monitor, Server, Users, ScrollText,
-  GraduationCap, Eye, FolderOpen, ClipboardList, LayoutGrid, History, BarChart2, X, FlaskConical, TestTube2, UserCircle, Settings
+  LayoutGrid, History, BarChart2, X, UserCircle, Settings,
+  Globe, Video, FolderOpen, ClipboardList
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
 export default function Sidebar({ onClose }) {
   const { user } = useAuthStore();
-  const role = user?.role || 'student';
+  const role = user?.role || 'member';
 
-  /** Admin navigation links */
   const adminLinks = [
     { name: 'Overview', path: '/admin/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
     { name: 'Virtual Machines', path: '/admin/vms', icon: <Monitor className="w-5 h-5" /> },
@@ -34,50 +22,125 @@ export default function Sidebar({ onClose }) {
     { name: 'My Profile', path: '/profile', icon: <UserCircle className="w-5 h-5" /> },
   ];
 
-  /** Instructor navigation links */
-  const instructorLinks = [
-    { name: 'Overview', path: '/instructor/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
-    { name: 'My Groups', path: '/instructor/groups', icon: <Users className="w-5 h-5" /> },
-    { name: 'Live Sessions', path: '/instructor/sessions', icon: <TestTube2 className="w-5 h-5" /> },
-    { name: 'Monitor Live', path: '/instructor/monitor', icon: <Eye className="w-5 h-5" /> },
-    { name: 'Materials & Resources', path: '/instructor/materials', icon: <FolderOpen className="w-5 h-5" /> },
-    { name: 'My Profile', path: '/profile', icon: <UserCircle className="w-5 h-5" /> },
-  ];
-
-  /** Member navigation links */
-  const memberLinks = [
-    { name: 'Overview', path: '/member/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
-    { name: 'My Workspaces', path: '/member/workspaces', icon: <Monitor className="w-5 h-5" /> },
-    { name: 'My Groups', path: '/member/groups', icon: <Users className="w-5 h-5" /> },
-    { name: 'Live Sessions', path: '/sessions', icon: <TestTube2 className="w-5 h-5" /> },
-    { name: 'Session History', path: '/member/sessions-history', icon: <History className="w-5 h-5" /> },
-    { name: 'Materials & Resources', path: '/member/materials', icon: <FolderOpen className="w-5 h-5" /> },
-    { name: 'My Profile', path: '/profile', icon: <UserCircle className="w-5 h-5" /> },
-  ];
-
-  /**
-   * Returns the appropriate link set for the current user role.
-   * @returns {Array} Navigation links for the active role.
-   */
-  const getLinksForRole = () => {
-    switch (role) {
-      case 'admin': return adminLinks;
-      case 'instructor': return instructorLinks;
-      case 'member':
-      default: return memberLinks;
+  const instructorNav = [
+    {
+      section: 'MAIN',
+      items: [
+        { icon: LayoutDashboard, label: 'Overview', path: '/instructor/dashboard' },
+        { icon: Video, label: 'My Sessions', path: '/instructor/sessions' },
+        { icon: Users, label: 'My Groups', path: '/instructor/groups' },
+      ]
+    },
+    {
+      section: 'CONTENT',
+      items: [
+        { icon: FolderOpen, label: 'Materials', path: '/instructor/materials' },
+        { icon: ClipboardList, label: 'Assignments', path: '/instructor/assignments' },
+      ]
+    },
+    {
+      section: 'INSIGHTS',
+      items: [
+        { icon: BarChart2, label: 'Analytics', path: '/instructor/analytics' },
+      ]
+    },
+    {
+      section: 'ACCOUNT',
+      items: [
+        { icon: UserCircle, label: 'My Profile', path: '/profile' },
+      ]
     }
-  };
+  ];
 
-  const links = getLinksForRole();
+  const memberNav = [
+    { 
+      section: 'MAIN',
+      items: [
+        { icon: LayoutDashboard, label: 'Overview', path: '/member/dashboard' },
+        { icon: Monitor, label: 'My Workspaces', path: '/member/workspaces' },
+        { icon: Globe, label: 'Discover', path: '/sessions' },
+      ]
+    },
+    {
+      section: 'COLLABORATE',
+      items: [
+        { icon: Users, label: 'My Groups', path: '/member/groups' },
+        { icon: Video, label: 'Live Sessions', path: '/member/sessions' },
+        { icon: History, label: 'Session History', path: '/member/sessions-history' },
+      ]
+    },
+    {
+      section: 'ACCOUNT',
+      items: [
+        { icon: FolderOpen, label: 'Materials', path: '/member/materials' },
+        { icon: UserCircle, label: 'My Profile', path: '/profile' },
+      ]
+    }
+  ];
+
+  const renderFlatLinks = (links) => (
+    <nav className="space-y-1 px-3">
+      {links.map((link) => (
+        <NavLink
+          key={link.name}
+          to={link.path}
+          onClick={onClose}
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              isActive
+                ? 'bg-indigo-600 text-white shadow-md'
+                : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+            }`
+          }
+        >
+          {link.icon}
+          {link.name}
+        </NavLink>
+      ))}
+    </nav>
+  );
+
+  const renderSectionedLinks = (sections) => (
+    <nav className="space-y-6 px-3">
+      {sections.map((sectionGroup, idx) => (
+        <div key={idx}>
+          <h4 className="px-3 mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            {sectionGroup.section}
+          </h4>
+          <div className="space-y-1">
+            {sectionGroup.items.map((item) => {
+              const Icon = item.icon;
+              return (
+                <NavLink
+                  key={item.label}
+                  to={item.path}
+                  onClick={onClose}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-indigo-600 text-white shadow-md'
+                        : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                    }`
+                  }
+                >
+                  <Icon className="w-5 h-5" />
+                  {item.label}
+                </NavLink>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </nav>
+  );
 
   return (
-    <aside className="w-64 bg-slate-800 border-r border-slate-700 h-full flex flex-col">
-      {/* Mobile close button */}
-      <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-slate-700">
+    <aside className="w-64 bg-[#0B1120] border-r border-white/5 h-full flex flex-col">
+      <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-white/5">
         <span className="text-white font-semibold text-sm">Navigation</span>
         <button
           onClick={onClose}
-          className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+          className="p-1.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
           aria-label="Close sidebar"
         >
           <X className="w-5 h-5" />
@@ -85,30 +148,9 @@ export default function Sidebar({ onClose }) {
       </div>
 
       <div className="flex-1 py-6 overflow-y-auto">
-        <nav className="space-y-1 px-3">
-          {links.map((link) => (
-            <NavLink
-              key={link.name}
-              to={link.path}
-              onClick={onClose}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-indigo-600 text-white shadow-md'
-                    : 'text-slate-300 hover:bg-slate-700 hover:text-white'
-                }`
-              }
-            >
-              {link.icon}
-              {link.name}
-            </NavLink>
-          ))}
-        </nav>
-      </div>
-      
-      {/* Footer */}
-      <div className="p-4 border-t border-slate-700 text-xs text-slate-500 text-center font-inter">
-        &copy; {new Date().getFullYear()} DIT
+        {role === 'admin' ? renderFlatLinks(adminLinks) :
+         role === 'instructor' ? renderSectionedLinks(instructorNav) :
+         renderSectionedLinks(memberNav)}
       </div>
     </aside>
   );

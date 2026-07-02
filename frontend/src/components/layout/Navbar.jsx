@@ -18,15 +18,15 @@ import { Monitor, Menu } from 'lucide-react';
 /** Color mappings for role badges */
 const ROLE_BADGE_STYLES = {
   admin: 'bg-red-500/20 text-red-400 border-red-500/30',
-  lecturer: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-  student: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
+  instructor: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+  member: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
 };
 
 /** Label mappings for role badges */
 const ROLE_LABELS = {
   admin: 'Admin',
-  lecturer: 'Lecturer',
-  student: 'Student',
+  instructor: 'Instructor',
+  member: 'Member',
 };
 
 export default function Navbar({ onMenuClick }) {
@@ -38,7 +38,7 @@ export default function Navbar({ onMenuClick }) {
   // Avatar fallback gradient
   const getGradient = () => {
     if (user?.role === 'admin') return 'from-red-600 to-red-800';
-    if (user?.role === 'lecturer') return 'from-purple-600 to-purple-800';
+    if (user?.role === 'instructor') return 'from-purple-600 to-purple-800';
     return 'from-blue-600 to-blue-800';
   };
   
@@ -116,7 +116,7 @@ export default function Navbar({ onMenuClick }) {
                 </span>
                 <span className={`text-[10px] font-medium uppercase tracking-wider
                   ${user?.role === 'admin' ? 'text-red-400' : 
-                    user?.role === 'lecturer' ? 'text-purple-400' : 'text-indigo-400'}`}
+                    user?.role === 'instructor' ? 'text-purple-400' : 'text-indigo-400'}`}
                 >
                   {user?.role}
                 </span>

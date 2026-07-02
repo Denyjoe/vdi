@@ -36,25 +36,21 @@ import AdminUsersPage from "./pages/admin/AdminUsersPage";
 import AdminLogsPage from "./pages/admin/AdminLogsPage";
 import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
 
-// Lecturer pages
-import InstructorDashboard from "./pages/instructor/InstructorDashboard";
-import LecturerMonitorPage from "./pages/instructor/LecturerMonitorPage";
-import LecturerClassesPage from "./pages/instructor/LecturerClassesPage";
 import ProfilePage from './pages/shared/ProfilePage';
 import LecturerMaterialsPage from "./pages/instructor/LecturerMaterialsPage";
-import LecturerPracticalPage from "./pages/instructor/LecturerPracticalPage";
+import InstructorDashboard from "./pages/instructor/InstructorDashboard";
+import LecturerMonitorPage from "./pages/instructor/LecturerMonitorPage";
+import InstructorGroupsPage from "./pages/instructor/InstructorGroupsPage";
+import InstructorSessionsPage from "./pages/instructor/InstructorSessionsPage";
 
 // Student pages
 import MemberDashboard from "./pages/member/MemberDashboard";
 import MemberGroupsPage from "./pages/member/MemberGroupsPage";
 import MemberSessionsPage from "./pages/member/MemberSessionsPage";
-import StudentVMsPage from "./pages/member/StudentVMsPage";
-import StudentClassesPage from "./pages/member/StudentClassesPage";
 import SessionHistoryPage from "./pages/member/SessionHistoryPage";
 import DesktopSessionPage from "./pages/member/DesktopSessionPage";
 import StudentMaterialsPage from "./pages/member/StudentMaterialsPage";
 import StudentPracticalPage from "./pages/member/StudentPracticalPage";
-import LabWorkspacePage from "./pages/member/LabWorkspacePage";
 
 // Layout & guards
 import Layout from "./components/layout/Layout";
@@ -222,6 +218,16 @@ export default function App() {
         />
 
         <Route
+          path="/instructor/sessions"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <InstructorSessionsPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/instructor/sessions/:sessionId/monitor"
           element={
             <ProtectedRoute>
@@ -232,21 +238,11 @@ export default function App() {
           }
         />
         <Route
-          path="/instructor/groups/:groupId"
+          path="/instructor/groups"
           element={
             <ProtectedRoute>
               <Layout>
-                <LecturerClassesPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/instructor/practicals"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <LecturerPracticalPage />
+                <InstructorGroupsPage />
               </Layout>
             </ProtectedRoute>
           }
@@ -295,26 +291,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/member/vms"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <StudentVMsPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/member/classes"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <StudentClassesPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
+
         <Route
           path="/member/groups"
           element={
@@ -371,14 +348,6 @@ export default function App() {
           element={
             <ProtectedRoute>
               <DesktopSessionPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/lab/:sessionId"
-          element={
-            <ProtectedRoute>
-              <LabWorkspacePage />
             </ProtectedRoute>
           }
         />

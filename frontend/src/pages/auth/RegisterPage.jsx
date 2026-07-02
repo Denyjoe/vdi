@@ -69,7 +69,9 @@ export default function RegisterPage() {
                 role: formData.role
             });
             
-            if (response.data.success) {
+            if (response.status === 201 || response.data?.success) {
+                navigate('/login', { state: { message: 'Registration successful! Please login.' }});
+            } else {
                 navigate('/login', { state: { message: 'Registration successful! Please login.' }});
             }
         } catch (err) {
