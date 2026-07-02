@@ -31,15 +31,25 @@ class User(AbstractUser):
 
     class Role(models.TextChoices):
         """Enumerated set of user roles within the VDI system."""
-        MEMBER = "member", "Member"
-        INSTRUCTOR = "instructor", "Instructor"
+        USER = "user", "User"
         ADMIN = "admin", "Admin"
 
     role = models.CharField(
         max_length=20,
         choices=Role.choices,
-        default=Role.MEMBER,
+        default=Role.USER,
         help_text="Determines which dashboard and permissions this user has.",
+    )
+    is_host = models.BooleanField(default=False)
+    host_plan = models.CharField(
+        max_length=20,
+        choices=[
+            ('none', 'No Host Plan'),
+            ('personal', 'Personal Host'),
+            ('pro', 'Pro Host'),
+            ('institution', 'Institution'),
+        ],
+        default='none'
     )
     phone = models.CharField(
         max_length=20,
@@ -91,12 +101,8 @@ class User(AbstractUser):
     # ── Role helper properties ────────────────────────────────────────────────
 
     @property
-    def is_member(self):
-        return self.role == 'member'
-
-    @property
-    def is_instructor(self):
-        return self.role == 'instructor'
+    def is_user(self):
+        return self.role == 'user'
 
     @property
     def is_admin(self):
@@ -149,8 +155,8 @@ class SystemSetting(models.Model):
 class SubscriptionPlan(models.Model):
     PLAN_CHOICES = [
         ('free', 'Free'),
-        ('starter', 'Starter'),
-        ('pro', 'Pro'),
+        ('personal_host', 'Personal Host'),
+        ('pro_host', 'Pro Host'),
         ('institution', 'Institution'),
     ]
     name = models.CharField(
@@ -167,15 +173,10 @@ class SubscriptionPlan(models.Model):
     compute_hours_per_month = models.IntegerField(
         default=5)
         # -1 means unlimited
-    max_workspaces = models.IntegerField(default=1)
-    max_concurrent_sessions = models.IntegerField(
-        default=1)
-    can_create_sessions = models.BooleanField(
+    can_host_sessions = models.BooleanField(
         default=False)
-    can_create_groups = models.BooleanField(
-        default=False)
-    can_publish_templates = models.BooleanField(
-        default=False)
+    max_session_participants = models.IntegerField(
+        default=0)
     features = models.JSONField(default=list)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -13,14 +13,14 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
     plan_name = serializers.CharField(source='plan.name', read_only=True)
     display_name = serializers.CharField(source='plan.display_name', read_only=True)
     compute_hours_per_month = serializers.IntegerField(source='plan.compute_hours_per_month', read_only=True)
-    can_create_sessions = serializers.BooleanField(source='plan.can_create_sessions', read_only=True)
-    can_create_groups = serializers.BooleanField(source='plan.can_create_groups', read_only=True)
+    can_host_sessions = serializers.BooleanField(source='plan.can_host_sessions', read_only=True)
+    max_session_participants = serializers.IntegerField(source='plan.max_session_participants', read_only=True)
 
     class Meta:
         model = UserSubscription
         fields = [
             'plan_name', 'display_name', 'hours_remaining', 'compute_hours_used',
-            'compute_hours_per_month', 'can_create_sessions', 'can_create_groups',
+            'compute_hours_per_month', 'can_host_sessions', 'max_session_participants',
             'status', 'expires_at'
         ]
 
@@ -30,7 +30,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'id', 'first_name', 'last_name', 'email', 'role', 'avatar',
+            'id', 'first_name', 'last_name', 'email', 'role', 'is_host', 'host_plan', 'avatar',
             'bio', 'website', 'country', 'timezone_preference', 'is_verified',
             'created_at', 'subscription'
         ]
@@ -38,11 +38,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     confirm_password = serializers.CharField(write_only=True)
-    role = serializers.ChoiceField(choices=[('member', 'Member'), ('instructor', 'Instructor')])
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'email', 'password', 'confirm_password', 'role', 'country']
+        fields = ['first_name', 'last_name', 'email', 'password', 'confirm_password', 'country']
         extra_kwargs = {
             'country': {'required': False, 'default': 'Tanzania'}
         }

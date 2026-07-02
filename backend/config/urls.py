@@ -22,8 +22,7 @@ urlpatterns = [
     path("api/vms/", include("apps.vms.urls")),
     path("api/sessions/", include("apps.sessions.urls")),
     path("api/sessions/live/", include("apps.sessions.live_urls")),
-    path("api/groups/", include("apps.classes.urls")),
-    path("api/assignments/", include("apps.assignments.urls")),
+
     path("api/admin/", include("apps.vms.admin_urls")),
     path("api/admin/", include("apps.users.analytics_urls")),
     path("api/notifications/", include("apps.notifications.urls")),

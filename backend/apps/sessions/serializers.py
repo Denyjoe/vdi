@@ -9,12 +9,13 @@ class LiveSessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = LiveSession
         fields = [
-            'id', 'name', 'description', 'host', 'host_details', 'group',
+            'id', 'name', 'description', 'host', 'host_details',
             'session_type', 'required_vm_template', 'invite_code', 'invite_link',
             'is_public', 'is_exam_mode', 'max_participants', 'start_time',
             'end_time', 'submission_deadline', 'restrict_internet',
             'restrict_copy_paste', 'allow_late_submission', 'submission_type',
-            'instructions', 'status', 'created_at', 'participant_count'
+            'instructions', 'status', 'created_at', 'participant_count',
+            'password', 'allow_participant_chat', 'record_session', 'show_participant_list'
         ]
         read_only_fields = ['host', 'invite_code', 'invite_link', 'status']
 

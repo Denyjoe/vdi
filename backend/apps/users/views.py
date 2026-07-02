@@ -5,7 +5,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from apps.users.serializers import RegisterSerializer, UserProfileSerializer
-from apps.classes.models import Group, GroupMembership
 from apps.sessions.models import LiveSession, SessionParticipant
 from apps.vms.models import Workspace, VirtualMachine
 

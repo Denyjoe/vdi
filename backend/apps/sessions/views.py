@@ -1,12 +1,12 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.exceptions import ValidationError
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from .models import LiveSession, SessionParticipant
 from .serializers import LiveSessionSerializer, SessionParticipantSerializer
-from apps.classes.models import GroupMembership
-from apps.users.permissions import CanCreateSessions
+from apps.users.permissions import CanHostSessions
 
 class LiveSessionListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -55,24 +55,26 @@ class PublicSessionsView(generics.ListAPIView):
         })
 
 class LiveSessionCreateView(APIView):
-    permission_classes = [permissions.IsAuthenticated, CanCreateSessions]
+    permission_classes = [CanHostSessions]
 
     def post(self, request):
         serializer = LiveSessionSerializer(data=request.data)
         if serializer.is_valid():
-            group = serializer.validated_data.get('group')
+            max_allowed = request.user.subscription.plan.max_session_participants
+            if serializer.validated_data.get('max_participants', 50) > max_allowed:
+                raise ValidationError(f"Your plan allows up to {max_allowed} participants. Upgrade to host more.")
             
-            # If group provided, validate user owns/manages it
-            if group and not GroupMembership.objects.filter(group=group, user=request.user, role_in_group__in=['owner', 'moderator']).exists():
-                return Response({"success": False, "message": "You don't have permission to create sessions for this group"}, status=status.HTTP_403_FORBIDDEN)
-                
             session = serializer.save(host=request.user)
-            # Log action: 'SESSION_CREATED'
-            
             session.participant_count = 0
+            
             return Response({
                 "success": True,
-                "data": LiveSessionSerializer(session).data
+                "session_id": session.id,
+                "invite_code": session.invite_code,
+                "invite_link": f"https://clouddesk.io/join/{session.invite_code}",
+                "qr_code_url": None,
+                "host_link": f"https://clouddesk.io/host/{session.invite_code}",
+                "session_details": LiveSessionSerializer(session).data
             }, status=status.HTTP_201_CREATED)
             
         return Response({
@@ -85,6 +87,8 @@ class JoinSessionByCodeView(APIView):
 
     def post(self, request):
         code = request.data.get('invite_code')
+        password = request.data.get('password')
+        
         if not code:
             return Response({"success": False, "message": "Invite code required"}, status=status.HTTP_400_BAD_REQUEST)
             
@@ -95,14 +99,12 @@ class JoinSessionByCodeView(APIView):
         if session.status not in ['scheduled', 'active']:
             return Response({"success": False, "message": "Session is not available to join"}, status=status.HTTP_400_BAD_REQUEST)
             
-        if SessionParticipant.objects.filter(session=session, user=request.user).exists():
-            return Response({"success": False, "message": "Already joined"}, status=status.HTTP_400_BAD_REQUEST)
+        if session.password and session.password != password:
+            if not password:
+                return Response({"success": False, "requires_password": True, "message": "This session requires a password"}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({"success": False, "message": "Incorrect password"}, status=status.HTTP_401_UNAUTHORIZED)
             
-        if session.participants.count() >= session.max_participants:
-            return Response({"success": False, "message": "Session is full"}, status=status.HTTP_400_BAD_REQUEST)
-            
-        participant = SessionParticipant.objects.create(session=session, user=request.user)
-        # Log: 'SESSION_JOINED'
+        participant, created = SessionParticipant.objects.get_or_create(session=session, user=request.user)
         
         session.participant_count = session.participants.count()
         return Response({
@@ -122,9 +124,8 @@ class LiveSessionDetailView(APIView):
         is_host = session.host == request.user
         participant = SessionParticipant.objects.filter(session=session, user=request.user).first()
         
-        if not is_host and not participant and session.group and not GroupMembership.objects.filter(group=session.group, user=request.user).exists():
-             if not session.is_public:
-                return Response({"success": False, "message": "Access denied"}, status=status.HTTP_403_FORBIDDEN)
+        if not is_host and not participant and not session.is_public:
+            return Response({"success": False, "message": "Access denied"}, status=status.HTTP_403_FORBIDDEN)
                 
         session.participant_count = session.participants.count()
         data = LiveSessionSerializer(session).data
@@ -145,7 +146,6 @@ class StartSessionView(APIView):
             
         session.status = 'active'
         session.save()
-        # Log: 'SESSION_STARTED'
         return Response({"success": True})
 
 class EndSessionView(APIView):
@@ -158,7 +158,6 @@ class EndSessionView(APIView):
             
         session.status = 'ended'
         session.save()
-        # Log: 'SESSION_ENDED'
         return Response({"success": True})
 
 class SessionMonitorView(APIView):
@@ -170,7 +169,6 @@ class SessionMonitorView(APIView):
             return Response({"success": False, "message": "Only host can monitor session"}, status=status.HTTP_403_FORBIDDEN)
             
         participants = session.participants.all()
-        # Add live VM status monitoring here (simulated for now)
         return Response({
             "success": True,
             "data": SessionParticipantSerializer(participants, many=True).data
@@ -188,5 +186,4 @@ class RemoveParticipantView(APIView):
         participant.status = 'removed'
         participant.save()
         
-        # Terminate their VM session (simulated for now)
         return Response({"success": True})

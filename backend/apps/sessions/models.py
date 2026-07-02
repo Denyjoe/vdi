@@ -91,100 +91,6 @@ class RemoteSession(models.Model):
         return f"{self.user} on {self.vm} [{self.status}]"
 
 
-class ExamSession(models.Model):
-    """
-    A lecturer-controlled exam mode applied to an entire class.
-
-    During an exam session, the lecturer can restrict what students can
-    do inside their VM sessions (e.g. disable internet, disable copy-paste).
-
-    Attributes:
-        name (str): Descriptive name for the exam (e.g. "CAD Mid-Term Exam").
-        class_room (Class): The class this exam session applies to.
-        lecturer (User): The lecturer who created and controls this exam.
-        status (str): Whether the exam is scheduled, active, or ended.
-        starts_at (datetime): Scheduled start time.
-        ends_at (datetime): Scheduled end time.
-        restrict_internet (bool): Block internet access inside VMs.
-        restrict_copy_paste (bool): Disable clipboard inside VMs.
-        instructions (str): Additional instructions for the exam.
-        allowed_vm_template (VMTemplate): If set, only VMs of this template can be used.
-        grace_period_minutes (int): Allow students to connect slightly before the start time.
-        created_at (datetime): When the exam session record was created.
-    """
-
-    class Status(models.TextChoices):
-        """Lifecycle states for an ExamSession."""
-        SCHEDULED = "scheduled", "Scheduled"
-        ACTIVE = "active", "Active"
-        ENDED = "ended", "Ended"
-
-    name = models.CharField(
-        max_length=200,
-        help_text="Descriptive name for this exam (e.g. 'CAD Mid-Term Exam').",
-    )
-    group = models.ForeignKey(
-        "classes.Group",
-        on_delete=models.CASCADE,
-        related_name="exam_sessions",
-        help_text="The group this exam applies to.",
-    )
-    lecturer = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="exam_sessions_created",
-        limit_choices_to={"role": "lecturer"},
-        help_text="The lecturer who controls this exam.",
-    )
-    status = models.CharField(
-        max_length=20,
-        choices=Status.choices,
-        default=Status.SCHEDULED,
-        help_text="Current state of this exam session.",
-    )
-    starts_at = models.DateTimeField(
-        help_text="Scheduled start time for the exam.",
-    )
-    ends_at = models.DateTimeField(
-        help_text="Scheduled end time for the exam.",
-    )
-    restrict_internet = models.BooleanField(
-        default=True,
-        help_text="Block internet access inside student VMs during this exam.",
-    )
-    restrict_copy_paste = models.BooleanField(
-        default=True,
-        help_text="Disable clipboard (copy-paste) inside student VMs during this exam.",
-    )
-    instructions = models.TextField(
-        blank=True,
-        default="",
-        help_text="Specific instructions for students during this exam.",
-    )
-    allowed_vm_template = models.ForeignKey(
-        "vms.VMTemplate",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="exam_sessions",
-        help_text="Restrict students to using only VMs from this template.",
-    )
-    grace_period_minutes = models.IntegerField(
-        default=0,
-        help_text="Number of minutes before starts_at that students are allowed to connect.",
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = "exam_sessions"
-        verbose_name = "Exam Session"
-        verbose_name_plural = "Exam Sessions"
-        ordering = ["-starts_at"]
-
-    def __str__(self):
-        """Return the exam name and its current status."""
-        return f"{self.name} [{self.status}]"
-
 
 class ActivityLog(models.Model):
     """
@@ -275,11 +181,7 @@ class LiveSession(models.Model):
     host = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
         related_name='hosted_sessions')
-    group = models.ForeignKey(
-        'classes.Group',
-        on_delete=models.SET_NULL,
-        null=True, blank=True,
-        related_name='live_sessions')
+
     session_type = models.CharField(
         max_length=20,
         choices=SESSION_TYPE_CHOICES,
@@ -316,6 +218,14 @@ class LiveSession(models.Model):
         max_length=20,
         choices=STATUS_CHOICES,
         default='scheduled')
+    password = models.CharField(
+        max_length=20, blank=True)
+    allow_participant_chat = models.BooleanField(
+        default=False)
+    record_session = models.BooleanField(
+        default=False)
+    show_participant_list = models.BooleanField(
+        default=True)
     created_at = models.DateTimeField(
         auto_now_add=True)
 
