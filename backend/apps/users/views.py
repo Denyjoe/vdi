@@ -165,3 +165,70 @@ class UserStatsView(APIView):
             "success": True,
             "data": data
         })
+
+
+class GoogleAuthView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        access_token = request.data.get('access_token')
+        user_info = request.data.get('user_info')
+
+        if not access_token or not user_info:
+            return Response({'success': False, 'message': 'Missing token or user info'}, status=400)
+
+        try:
+            import requests as http_requests
+            verify_url = f'https://www.googleapis.com/oauth2/v3/tokeninfo?access_token={access_token}'
+            verify_res = http_requests.get(verify_url)
+
+            if verify_res.status_code != 200:
+                return Response({'success': False, 'message': 'Invalid Google token'}, status=400)
+
+            email = user_info.get('email')
+            first_name = user_info.get('given_name', '')
+            last_name = user_info.get('family_name', '')
+            is_verified = user_info.get('email_verified', False)
+
+            if not email:
+                return Response({'success': False, 'message': 'No email from Google'}, status=400)
+
+            user, created = User.objects.get_or_create(
+                email=email,
+                defaults={
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'username': email,
+                    'role': 'member',
+                    'is_verified': is_verified,
+                }
+            )
+
+            if created:
+                user.set_unusable_password()
+                user.save()
+
+                from apps.users.models import SubscriptionPlan, UserSubscription, ActivityLog
+                free_plan = SubscriptionPlan.objects.get(name='free')
+                UserSubscription.objects.create(user=user, plan=free_plan, status='active')
+
+                ActivityLog.objects.create(user=user, action='USER_REGISTERED_GOOGLE', description=f'Google signup: {email}')
+            else:
+                from apps.users.models import ActivityLog
+                ActivityLog.objects.create(user=user, action='USER_LOGIN_GOOGLE', description=f'Google login: {email}')
+
+            refresh = RefreshToken.for_user(user)
+
+            return Response({
+                'success': True,
+                'data': {
+                    'user': UserProfileSerializer(user, context={'request': request}).data,
+                    'access': str(refresh.access_token),
+                    'refresh': str(refresh),
+                    'is_new_user': created
+                },
+                'message': 'Welcome to CloudDesk!'
+            })
+
+        except Exception as e:
+            return Response({'success': False, 'message': str(e)}, status=500)

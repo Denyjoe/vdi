@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Monitor, Zap, Shield, Users, CheckCircle, Laptop, ArrowLeft, ArrowRight } from 'lucide-react';
 import api from '../../services/api';
+import GoogleSignInButton from '../../components/auth/GoogleSignInButton';
 
 export default function RegisterPage() {
     const [step, setStep] = useState(1);
@@ -62,6 +63,7 @@ export default function RegisterPage() {
             const response = await api.post('/auth/register/', {
                 email: formData.email,
                 password: formData.password,
+                confirm_password: formData.confirm_password,
                 first_name: formData.first_name,
                 last_name: formData.last_name,
                 role: formData.role
@@ -161,6 +163,14 @@ export default function RegisterPage() {
 
                         {step === 1 && (
                             <div className="space-y-4 animate-[fadeIn_0.3s_ease-out]">
+                                <GoogleSignInButton text="Sign up with Google" />
+
+                                <div className="flex items-center gap-3 my-4">
+                                    <div className="flex-1 h-px bg-white/10" />
+                                    <span className="text-slate-500 text-sm">or continue with email</span>
+                                    <div className="flex-1 h-px bg-white/10" />
+                                </div>
+
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-slate-300 mb-1.5">First Name</label>

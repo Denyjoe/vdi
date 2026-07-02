@@ -254,3 +254,5 @@ CELERY_BEAT_SCHEDULE = {
     'schedule': crontab(minute=0),
   },
 }
+
+GOOGLE_CLIENT_ID = config('GOOGLE_CLIENT_ID', default='')

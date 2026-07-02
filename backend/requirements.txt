@@ -11,3 +11,4 @@ redis==5.0.1
 Pillow
 proxmoxer
 requests
+google-auth==2.29.0
