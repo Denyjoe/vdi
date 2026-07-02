@@ -11,4 +11,7 @@ urlpatterns = [
     path('<int:pk>/delete/', views.DeleteGroupView.as_view(), name='group-delete'),
     path('<int:pk>/leave/', views.LeaveGroupView.as_view(), name='group-leave'),
     path('<int:pk>/members/', views.GroupMembersView.as_view(), name='group-members'),
+    path('<int:pk>/resources/', views.GroupResourceListView.as_view(), name='group-resources'),
+    path('<int:pk>/resources/upload/', views.GroupResourceUploadView.as_view(), name='group-resources-upload'),
+    path('<int:pk>/resources/<int:resource_id>/', views.GroupResourceDeleteView.as_view(), name='group-resources-delete'),
 ]

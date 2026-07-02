@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 import api from '../../services/api';
-import { Play, LogOut, CheckCircle2, ChevronRight, FolderOpen, Tv, CreditCard, Laptop, MoreVertical, Plus, Zap } from 'lucide-react';
+import { Play, LogOut, CheckCircle2, ChevronRight, FolderOpen, Tv, CreditCard, Laptop, MoreVertical, Plus, Zap, Users } from 'lucide-react';
 import JoinByCodeModal from '../../components/shared/JoinByCodeModal';
 import UpgradeModal from '../../components/shared/UpgradeModal';
 
@@ -211,7 +211,7 @@ export default function MemberDashboard() {
                                     <p className="font-medium text-white text-sm">{group.name}</p>
                                     <p className="text-xs text-slate-400 mt-1">{group.member_count} members</p>
                                 </div>
-                                <button onClick={() => navigate(`/member/groups/${group.id}`)} className="text-xs font-medium text-indigo-400 hover:text-white transition-colors">
+                                <button onClick={() => navigate(`/groups/${group.id}`)} className="text-xs font-medium text-indigo-400 hover:text-white transition-colors">
                                     Open
                                 </button>
                             </div>
@@ -241,12 +241,12 @@ export default function MemberDashboard() {
                     </div>
                     <span className="text-sm font-medium text-white">Join Session</span>
                 </button>
-                <button onClick={() => setIsJoinGroupOpen(true)} className="glass-card p-4 rounded-xl flex flex-col items-center text-center hover:border-indigo-500/40 transition-all group">
+                <Link to="/member/groups" className="glass-card p-4 rounded-xl flex flex-col items-center text-center hover:border-indigo-500/40 transition-all group">
                     <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                        <FolderOpen className="w-6 h-6 text-purple-400" />
+                        <Users className="w-6 h-6 text-purple-400" />
                     </div>
-                    <span className="text-sm font-medium text-white">Join Group</span>
-                </button>
+                    <span className="text-sm font-medium text-white">Browse Groups</span>
+                </Link>
                 <button onClick={() => setIsUpgradeModalOpen(true)} className="glass-card p-4 rounded-xl flex flex-col items-center text-center hover:border-indigo-500/40 transition-all group">
                     <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                         <CreditCard className="w-6 h-6 text-emerald-400" />

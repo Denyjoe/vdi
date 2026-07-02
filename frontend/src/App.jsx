@@ -63,6 +63,7 @@ import WorkspacesPage from "./pages/member/WorkspacesPage";
 import SessionsPage from "./pages/shared/SessionsPage";
 import JoinSessionPage from "./pages/shared/JoinSessionPage";
 import JoinGroupPage from "./pages/shared/JoinGroupPage";
+import GroupDetailPage from "./pages/member/GroupDetailPage";
 
 export default function App() {
   const initializeAuth = useAuthStore((state) => state.initializeAuth);
@@ -117,6 +118,18 @@ export default function App() {
             <ProtectedRoute>
               <Layout>
                 <ProfilePage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Group Detail */}
+        <Route
+          path="/groups/:groupId"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <GroupDetailPage />
               </Layout>
             </ProtectedRoute>
           }

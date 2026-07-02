@@ -34,8 +34,7 @@ export default function Sidebar({ onClose }) {
     {
       section: 'CONTENT',
       items: [
-        { icon: FolderOpen, label: 'Materials', path: '/instructor/materials' },
-        { icon: ClipboardList, label: 'Assignments', path: '/instructor/assignments' },
+        // Content moved to Groups
       ]
     },
     {
@@ -72,7 +71,6 @@ export default function Sidebar({ onClose }) {
     {
       section: 'ACCOUNT',
       items: [
-        { icon: FolderOpen, label: 'Materials', path: '/member/materials' },
         { icon: UserCircle, label: 'My Profile', path: '/profile' },
       ]
     }

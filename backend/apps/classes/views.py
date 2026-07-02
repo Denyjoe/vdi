@@ -204,3 +204,92 @@ class DeleteGroupView(APIView):
         group.is_active = False
         group.save()
         return Response({"success": True})
+
+# ─── Group Resources ─────────────────────────────────────────────────────────
+
+from .models import GroupResource
+
+class GroupResourceListView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk):
+        group = get_object_or_404(Group, pk=pk)
+        if not GroupMembership.objects.filter(group=group, user=request.user).exists() and group.group_type != 'public':
+            return Response({"success": False, "message": "Not a member"}, status=status.HTTP_403_FORBIDDEN)
+            
+        resources = GroupResource.objects.filter(group=group).order_by('-created_at')
+        
+        data = []
+        for r in resources:
+            file_url = request.build_absolute_uri(r.file.url) if r.file else None
+            size_mb = f"{r.file_size / (1024*1024):.2f} MB" if r.file_size else "0 MB"
+            
+            data.append({
+                "id": r.id,
+                "title": r.title,
+                "description": r.description,
+                "resource_type": r.resource_type,
+                "file_url": file_url,
+                "file_size_display": size_mb,
+                "file_extension": r.file_extension,
+                "uploaded_by": f"{r.uploaded_by.first_name} {r.uploaded_by.last_name}",
+                "created_at": r.created_at,
+                "download_count": r.download_count,
+                "link_url": r.link_url,
+                "note_content": r.note_content
+            })
+            
+        return Response({"success": True, "data": data})
+
+class GroupResourceUploadView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        group = get_object_or_404(Group, pk=pk)
+        membership = GroupMembership.objects.filter(group=group, user=request.user).first()
+        if not membership:
+            return Response({"success": False, "message": "Not a member"}, status=status.HTTP_403_FORBIDDEN)
+
+        title = request.data.get('title')
+        if not title:
+            return Response({"success": False, "message": "Title is required"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        resource_type = request.data.get('resource_type', 'file')
+        file_obj = request.FILES.get('file')
+        
+        if file_obj and file_obj.size > 100 * 1024 * 1024:
+            return Response({"success": False, "message": "File exceeds 100MB"}, status=status.HTTP_400_BAD_REQUEST)
+
+        resource = GroupResource.objects.create(
+            group=group,
+            uploaded_by=request.user,
+            title=title,
+            description=request.data.get('description', ''),
+            resource_type=resource_type,
+            file=file_obj,
+            link_url=request.data.get('link_url', ''),
+            note_content=request.data.get('note_content', '')
+        )
+        
+        # Log: 'RESOURCE_UPLOADED'
+        
+        return Response({"success": True, "message": "Resource uploaded successfully", "data": {"id": resource.id}})
+
+class GroupResourceDeleteView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, pk, resource_id):
+        group = get_object_or_404(Group, pk=pk)
+        resource = get_object_or_404(GroupResource, pk=resource_id, group=group)
+        
+        membership = GroupMembership.objects.filter(group=group, user=request.user).first()
+        is_owner = membership and membership.role_in_group in ['owner', 'moderator']
+        
+        if resource.uploaded_by != request.user and not is_owner:
+            return Response({"success": False, "message": "No permission"}, status=status.HTTP_403_FORBIDDEN)
+            
+        if resource.file:
+            resource.file.delete(save=False)
+        resource.delete()
+        
+        return Response({"success": True})

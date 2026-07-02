@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Users, Search, ChevronRight, Copy, Check } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import JoinByCodeModal from '../../components/shared/JoinByCodeModal';
 
 export default function MemberGroupsPage() {
+    const navigate = useNavigate();
     const [groups, setGroups] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -107,7 +108,7 @@ export default function MemberGroupsPage() {
                                     </div>
                                     
                                     <div className="mt-6 pt-4 border-t border-white/5 flex-1 flex items-end">
-                                        <button className="w-full py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2">
+                                        <button onClick={() => navigate(`/groups/${group.id}`)} className="w-full py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2">
                                             Open Group <ChevronRight className="w-4 h-4" />
                                         </button>
                                     </div>

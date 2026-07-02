@@ -130,12 +130,9 @@ export default function InstructorGroupsPage() {
                                     </div>
                                 </div>
 
-                                <div className="mt-auto pt-4 border-t border-white/5 space-y-2">
-                                    <button onClick={() => navigate(`/instructor/groups/${group.id}`)} className="w-full py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
-                                        <Settings className="w-4 h-4 text-slate-400" /> Manage Members →
-                                    </button>
-                                    <button onClick={() => navigate('/instructor/materials')} className="w-full py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
-                                        <FileText className="w-4 h-4 text-slate-400" /> Post Material →
+                                <div className="mt-auto pt-4 border-t border-white/5 flex">
+                                    <button onClick={() => navigate(`/groups/${group.id}`)} className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                                        Open Group →
                                     </button>
                                 </div>
                             </div>
