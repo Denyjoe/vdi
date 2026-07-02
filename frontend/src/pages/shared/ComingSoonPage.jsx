@@ -15,8 +15,8 @@ import { Construction } from 'lucide-react';
 export default function ComingSoonPage({ title, description }) {
   return (
     <div className="flex flex-col items-center justify-center h-96 text-center">
-      <div className="w-16 h-16 bg-blue-600/20 rounded-2xl flex items-center justify-center mb-4">
-        <Construction className="w-8 h-8 text-blue-400" />
+      <div className="w-16 h-16 bg-indigo-600/20 rounded-2xl flex items-center justify-center mb-4">
+        <Construction className="w-8 h-8 text-indigo-400" />
       </div>
       <h2 className="text-xl font-bold text-white mb-2">
         {title || 'Coming Soon'}

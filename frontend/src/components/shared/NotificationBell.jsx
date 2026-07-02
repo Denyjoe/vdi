@@ -50,7 +50,7 @@ export default function NotificationBell() {
             {unreadCount > 0 && (
               <button 
                 onClick={markAllAsRead}
-                className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
+                className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
               >
                 <Check className="w-3 h-3" /> Mark all read
               </button>
@@ -69,10 +69,10 @@ export default function NotificationBell() {
                   <div 
                     key={notif.id}
                     onClick={() => handleNotificationClick(notif)}
-                    className={`p-4 hover:bg-slate-800/50 cursor-pointer transition-colors ${!notif.is_read ? 'bg-blue-500/5' : ''}`}
+                    className={`p-4 hover:bg-slate-800/50 cursor-pointer transition-colors ${!notif.is_read ? 'bg-indigo-500/5' : ''}`}
                   >
                     <div className="flex gap-3">
-                      <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${!notif.is_read ? 'bg-blue-500' : 'bg-transparent'}`} />
+                      <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${!notif.is_read ? 'bg-indigo-500' : 'bg-transparent'}`} />
                       <div className="flex-1 min-w-0">
                         <p className={`text-sm ${!notif.is_read ? 'text-white font-medium' : 'text-slate-300'}`}>
                           {notif.title}

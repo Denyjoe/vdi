@@ -41,7 +41,7 @@ const ROLE_TABS = [
 const ROLE_BADGE_CLASSES = {
   admin: 'bg-red-500/20 text-red-400 border-red-500/30',
   lecturer: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-  student: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  student: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
 };
 
 /** Page-level toast notification */
@@ -153,7 +153,7 @@ function ClassesTab({ allUsers, showToast }) {
   const filteredClasses = classes.filter(c => c.class_type === classTab || (!c.class_type && classTab === 'working_group')); // Fallback for old ones
 
   if (isLoading) {
-    return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-blue-400 animate-spin" /></div>;
+    return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 text-indigo-400 animate-spin" /></div>;
   }
 
   return (
@@ -163,7 +163,7 @@ function ClassesTab({ allUsers, showToast }) {
           <button
             onClick={() => setClassTab('official')}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-              classTab === 'official' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+              classTab === 'official' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
             }`}>
             Official Classes
           </button>
@@ -179,7 +179,7 @@ function ClassesTab({ allUsers, showToast }) {
         {classTab === 'official' && (
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors">
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors">
             <Plus className="w-4 h-4" /> Create Official Class
           </button>
         )}
@@ -200,7 +200,7 @@ function ClassesTab({ allUsers, showToast }) {
                   {classTab === 'official' && <th className="px-6 py-4">Programme & Year</th>}
                   {classTab === 'working_group' && <th className="px-6 py-4">Created By</th>}
                   <th className="px-6 py-4">Students</th>
-                  <th className="px-6 py-4">Lecturer</th>
+                  <th className="px-6 py-4">Instructor</th>
                   <th className="px-6 py-4 text-center">Status</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
@@ -223,7 +223,7 @@ function ClassesTab({ allUsers, showToast }) {
                       )}
                       
                       <td className="px-6 py-4">
-                        <span className="font-medium text-blue-400">{cls.enrolled_count ?? 0}</span>
+                        <span className="font-medium text-indigo-400">{cls.enrolled_count ?? 0}</span>
                         <span className="text-slate-500"> / {cls.max_students ?? 60}</span>
                       </td>
                       
@@ -245,7 +245,7 @@ function ClassesTab({ allUsers, showToast }) {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => setExpanded(expanded === cls.id ? null : cls.id)}
-                            className="px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg text-xs font-medium transition-colors border border-blue-500/20"
+                            className="px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-lg text-xs font-medium transition-colors border border-indigo-500/20"
                           >
                             View Students
                           </button>
@@ -290,7 +290,7 @@ function ClassesTab({ allUsers, showToast }) {
                               <select
                                 value={enrollStudentId}
                                 onChange={(e) => setEnrollStudentId(e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500">
                                 <option value="">— Choose student —</option>
                                 {students.map(s => (
                                   <option key={s.id} value={s.id}>{s.first_name} {s.last_name} ({s.email})</option>
@@ -300,7 +300,7 @@ function ClassesTab({ allUsers, showToast }) {
                             <button
                               onClick={() => handleEnroll(cls.id)}
                               disabled={enrolling || !enrollStudentId}
-                              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2 h-[38px]">
+                              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2 h-[38px]">
                               {enrolling ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
                               Manual Enroll
                             </button>
@@ -439,7 +439,7 @@ export default function AdminUsersPage() {
   if (isLoading) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center">
-        <Activity className="animate-spin text-blue-500 w-12 h-12" />
+        <Activity className="animate-spin text-indigo-500 w-12 h-12" />
       </div>
     );
   }
@@ -463,7 +463,7 @@ export default function AdminUsersPage() {
         <button
           onClick={() => setPageTab('users')}
           className={`flex items-center gap-2 py-3 px-4 mr-2 text-sm font-medium border-b-2 transition-colors ${
-            pageTab === 'users' ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-400 hover:text-white'
+            pageTab === 'users' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-slate-400 hover:text-white'
           }`}>
           <Users className="w-4 h-4" /> Users
           <span className="bg-slate-700 text-slate-300 text-xs px-2 py-0.5 rounded-full">{users.length}</span>
@@ -488,7 +488,7 @@ export default function AdminUsersPage() {
                 placeholder="Search by name or email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
               />
               {searchQuery && (
                 <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
@@ -503,12 +503,12 @@ export default function AdminUsersPage() {
                   onClick={() => setActiveTab(tab.key)}
                   className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
                     activeTab === tab.key
-                      ? 'bg-blue-600 text-white shadow-md'
+                      ? 'bg-indigo-600 text-white shadow-md'
                       : 'text-slate-400 hover:text-white hover:bg-slate-700'
                   }`}>
                   {tab.label}
                   <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-xs ${
-                    activeTab === tab.key ? 'bg-blue-500/30 text-blue-100' : 'bg-slate-700 text-slate-400'
+                    activeTab === tab.key ? 'bg-indigo-500/30 text-indigo-100' : 'bg-slate-700 text-slate-400'
                   }`}>
                     {roleCounts[tab.key]}
                   </span>
@@ -605,7 +605,7 @@ export default function AdminUsersPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50 text-center">
-                  <p className="text-2xl font-bold text-blue-400">{selectedUser.vm_count ?? 0}</p>
+                  <p className="text-2xl font-bold text-indigo-400">{selectedUser.vm_count ?? 0}</p>
                   <p className="text-xs text-slate-400 mt-1">Total VMs Created</p>
                 </div>
                 <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50 text-center">

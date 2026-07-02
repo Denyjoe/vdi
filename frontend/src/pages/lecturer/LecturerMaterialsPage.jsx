@@ -146,7 +146,7 @@ export default function LecturerMaterialsPage({ defaultTab = 'materials' }) {
         return <FileText className="w-8 h-8 text-red-400" />;
       case 'doc':
       case 'docx':
-        return <FileText className="w-8 h-8 text-blue-400" />;
+        return <FileText className="w-8 h-8 text-indigo-400" />;
       case 'xls':
       case 'xlsx':
       case 'csv':
@@ -201,7 +201,7 @@ export default function LecturerMaterialsPage({ defaultTab = 'materials' }) {
           <select
             value={selectedClassId}
             onChange={(e) => setSelectedClassId(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
+            className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow"
           >
             <option value="">Select a class...</option>
             {classes.map(c => (
@@ -216,7 +216,7 @@ export default function LecturerMaterialsPage({ defaultTab = 'materials' }) {
         <button
           className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'materials'
-              ? 'border-blue-500 text-blue-400'
+              ? 'border-indigo-500 text-indigo-400'
               : 'border-transparent text-slate-400 hover:text-slate-200'
           }`}
           onClick={() => setActiveTab('materials')}
@@ -226,7 +226,7 @@ export default function LecturerMaterialsPage({ defaultTab = 'materials' }) {
         <button
           className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'assignments'
-              ? 'border-blue-500 text-blue-400'
+              ? 'border-indigo-500 text-indigo-400'
               : 'border-transparent text-slate-400 hover:text-slate-200'
           }`}
           onClick={() => setActiveTab('assignments')}
@@ -250,7 +250,7 @@ export default function LecturerMaterialsPage({ defaultTab = 'materials' }) {
                   value={uploadData.title}
                   onChange={(e) => setUploadData({ ...uploadData, title: e.target.value })}
                   placeholder="e.g. Week 1 Slides"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow"
                 />
               </div>
 
@@ -284,7 +284,7 @@ export default function LecturerMaterialsPage({ defaultTab = 'materials' }) {
                 <button
                   type="submit"
                   disabled={isUploading || !uploadData.file || !uploadData.title || !selectedClassId}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20"
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20"
                 >
                   {isUploading ? (
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -336,7 +336,7 @@ export default function LecturerMaterialsPage({ defaultTab = 'materials' }) {
                         href={file.file_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 hover:text-blue-300 rounded-lg text-sm font-medium transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 hover:text-indigo-300 rounded-lg text-sm font-medium transition-colors"
                       >
                         <Download className="w-4 h-4" />
                         Download
@@ -367,7 +367,7 @@ export default function LecturerMaterialsPage({ defaultTab = 'materials' }) {
             <h2 className="text-xl font-semibold text-white">All Assignments</h2>
             <button
               onClick={() => setCreateAssignmentOpen(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-blue-500/20"
+              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-blue-500/20"
             >
               <Plus className="w-5 h-5" />
               Create Assignment
@@ -376,7 +376,7 @@ export default function LecturerMaterialsPage({ defaultTab = 'materials' }) {
 
           {isAssignmentsLoading ? (
             <div className="flex justify-center py-20">
-              <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : assignments.length === 0 ? (
             <div className="bg-navy-800 rounded-2xl p-16 text-center border border-navy-700 border-dashed">
@@ -439,7 +439,7 @@ export default function LecturerMaterialsPage({ defaultTab = 'materials' }) {
                           setSelectedAssignment({...assign, enrolled_student_count: enrolled});
                           setSubmissionsOpen(true);
                         }}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors"
                       >
                         <Eye className="w-4 h-4" />
                         View Submissions

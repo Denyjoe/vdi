@@ -106,9 +106,9 @@ export default function LecturerDashboard() {
     {
       label: 'Active Students',
       value: stats.activeStudents,
-      icon: <Users className="w-6 h-6 text-blue-400" />,
-      bg: stats.activeStudents > 0 ? 'bg-blue-500/20' : 'bg-slate-700/50',
-      valueColor: stats.activeStudents > 0 ? 'text-blue-400' : 'text-slate-400',
+      icon: <Users className="w-6 h-6 text-indigo-400" />,
+      bg: stats.activeStudents > 0 ? 'bg-indigo-500/20' : 'bg-slate-700/50',
+      valueColor: stats.activeStudents > 0 ? 'text-indigo-400' : 'text-slate-400',
     },
     {
       label: 'Pending Enrollments',
@@ -178,7 +178,7 @@ export default function LecturerDashboard() {
         <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
           <Link
             to="/lecturer/monitor"
-            className="flex items-center justify-center py-3 px-4 border border-blue-500 text-blue-400 rounded-lg hover:bg-blue-500 hover:text-white transition-colors"
+            className="flex items-center justify-center py-3 px-4 border border-indigo-500 text-indigo-400 rounded-lg hover:bg-indigo-500 hover:text-white transition-colors"
           >
             Monitor Sessions
           </Link>

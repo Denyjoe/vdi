@@ -1,9 +1,9 @@
 /* ─────────────────────────────────────────────────────────────────────────────
- * DIT VDI System — Global Styles
+ * CloudDesk — Global Styles
  *
  * Tailwind v4 import + custom theme tokens matching the design standards:
- *   - Deep navy backgrounds (#0F172A)
- *   - Electric blue primary (#3B82F6)
+ *   - Deep navy backgrounds (#0F172A -> #050B18)
+ *   - Indigo primary (#6366F1)
  *   - Inter font family from Google Fonts
  * ───────────────────────────────────────────────────────────────────────────── */
 
@@ -13,26 +13,30 @@
 @theme {
   --font-sans: "Inter", sans-serif;
 
-  /* DIT Design System Colors */
-  --color-navy-900: #0F172A;
-  --color-navy-800: #1E293B;
-  --color-navy-700: #334155;
-  --color-navy-600: #475569;
+  /* CloudDesk Design System Colors */
+  --color-clouddesk-bg: #050B18;
+  --color-clouddesk-surface: #0D1526;
+  --color-clouddesk-card: #111827;
+  --color-clouddesk-border: #1E293B;
 
-  --color-electric-blue: #3B82F6;
-  --color-electric-blue-hover: #2563EB;
-  --color-electric-blue-light: #60A5FA;
+  --color-indigo-400: #818CF8;
+  --color-indigo-500: #6366F1;
+  --color-indigo-600: #4F46E5;
+  --color-indigo-900: #312E81;
 
-  --color-success: #22C55E;
+  --color-cyan-400: #22D3EE;
+  --color-cyan-500: #06B6D4;
+  --color-cyan-900: #164E63;
+
+  --color-success: #10B981;
   --color-warning: #F59E0B;
   --color-danger: #EF4444;
-  --color-danger-hover: #DC2626;
 }
 
 /* ── Base Styles ──────────────────────────────────────────────────────────── */
 body {
   font-family: var(--font-sans);
-  background-color: var(--color-navy-900);
+  background-color: var(--color-clouddesk-bg);
   color: #F8FAFC; /* slate-50 */
   margin: 0;
   padding: 0;
@@ -48,14 +52,30 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-navy-800);
+  background: var(--color-clouddesk-surface);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-navy-600);
+  background: var(--color-clouddesk-border);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-navy-700);
+  background: #334155;
+}
+
+/* ── Custom Utilities ─────────────────────────────────────────────────────── */
+@layer utilities {
+  .glass-card {
+    @apply bg-white/5 backdrop-blur-sm border border-white/10;
+  }
+  .glow-primary {
+    @apply shadow-[0_0_40px_rgba(99,102,241,0.3)];
+  }
+  .text-gradient {
+    @apply bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent;
+  }
+  .text-gradient-indigo {
+    @apply bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent;
+  }
 }

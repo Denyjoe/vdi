@@ -109,14 +109,14 @@ export default function StudentPracticalPage() {
 
   const getSessionTypeBadge = (type) => {
     if (type === 'exam' || type === 'Practical Exam') return <span className="px-2.5 py-1 text-xs font-bold uppercase rounded-md bg-red-500/20 text-red-400 border border-red-500/30 flex items-center gap-1.5"><FileText className="w-3.5 h-3.5" /> Practical Exam</span>;
-    if (type === 'assignment' || type === 'VM Assignment') return <span className="px-2.5 py-1 text-xs font-bold uppercase rounded-md bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center gap-1.5"><File className="w-3.5 h-3.5" /> VM Assignment</span>;
+    if (type === 'assignment' || type === 'VM Assignment') return <span className="px-2.5 py-1 text-xs font-bold uppercase rounded-md bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center gap-1.5"><File className="w-3.5 h-3.5" /> VM Assignment</span>;
     return <span className="px-2.5 py-1 text-xs font-bold uppercase rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5"><TestTube2 className="w-3.5 h-3.5" /> Lab Session</span>;
   };
 
   if (loading) return (
     <div className="flex items-center justify-center h-full">
       <div className="text-white flex items-center gap-2">
-        <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
         Loading practicals...
       </div>
     </div>
@@ -126,7 +126,7 @@ export default function StudentPracticalPage() {
     <div className="p-4 sm:p-6 max-w-5xl mx-auto min-h-screen animate-fade-in pb-20">
       <div className="mb-8">
         <h2 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-3 mb-2">
-          <TestTube2 className="w-8 h-8 text-blue-500" />
+          <TestTube2 className="w-8 h-8 text-indigo-500" />
           Practicals & Labs
         </h2>
         <p className="text-slate-400">Access your virtual lab environments and practical exams.</p>
@@ -200,13 +200,13 @@ export default function StudentPracticalPage() {
               </div>
               
               <div className="mb-4">
-                <p className="text-sm font-medium text-blue-400">{session.class_name}</p>
+                <p className="text-sm font-medium text-indigo-400">{session.class_name}</p>
                 <p className="text-xs text-slate-400">Instructor: {session.lecturer_name}</p>
               </div>
 
               <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-700/50 mb-4 flex-1">
                 <div className="flex items-center gap-2 text-sm text-slate-300 mb-2">
-                  <Calendar className="w-4 h-4 text-blue-400" />
+                  <Calendar className="w-4 h-4 text-indigo-400" />
                   {formatDateTime(session.start_time)}
                 </div>
                 <div className="flex items-center gap-2 text-sm text-slate-300 mb-3">
@@ -221,7 +221,7 @@ export default function StudentPracticalPage() {
                 <div className="flex flex-col gap-2 mt-2 pt-3 border-t border-slate-800">
                   {session.vm_template_name ? (
                     <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                      <Monitor className="w-3.5 h-3.5 text-blue-400" />
+                      <Monitor className="w-3.5 h-3.5 text-indigo-400" />
                       Requires: {session.vm_template_name}
                     </div>
                   ) : (
@@ -255,7 +255,7 @@ export default function StudentPracticalPage() {
             {past.length > 3 && (
               <button 
                 onClick={() => setShowAllPast(!showAllPast)}
-                className="text-sm text-blue-400 hover:text-blue-300 font-medium flex items-center gap-1">
+                className="text-sm text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1">
                 {showAllPast ? 'Show Less' : `Show all ${past.length}`}
                 {showAllPast ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </button>
@@ -295,7 +295,7 @@ export default function StudentPracticalPage() {
                     )}
                     
                     {isSubmitted && (
-                      <button className="px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-lg text-xs font-medium transition-colors border border-blue-500/20">
+                      <button className="px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-lg text-xs font-medium transition-colors border border-indigo-500/20">
                         View
                       </button>
                     )}

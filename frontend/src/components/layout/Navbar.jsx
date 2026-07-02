@@ -1,7 +1,7 @@
 /**
  * Navbar — top navigation bar for all dashboard pages.
  *
- * Displays DIT VDI branding on the left, user info + role badge + logout on the right.
+ * Displays CloudDesk branding on the left, user info + role badge + logout on the right.
  * On mobile (<768px), shows a hamburger menu button to toggle the sidebar.
  *
  * @param {Object} props
@@ -19,7 +19,7 @@ import { Monitor, Menu } from 'lucide-react';
 const ROLE_BADGE_STYLES = {
   admin: 'bg-red-500/20 text-red-400 border-red-500/30',
   lecturer: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-  student: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  student: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
 };
 
 /** Label mappings for role badges */
@@ -84,12 +84,12 @@ export default function Navbar({ onMenuClick }) {
           <Menu className="w-5 h-5" />
         </button>
 
-        {/* DIT VDI branding */}
+        {/* CloudDesk branding */}
         <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center shadow-sm">
           <Monitor className="w-4 h-4 text-white" />
         </div>
         <div className="flex flex-col">
-          <h1 className="text-white font-bold text-lg leading-tight">DIT VDI</h1>
+          <h1 className="text-white font-bold text-lg leading-tight">CloudDesk</h1>
           <span className="text-slate-400 text-xs leading-tight hidden sm:block">
             Virtual Desktop Infrastructure
           </span>
@@ -116,7 +116,7 @@ export default function Navbar({ onMenuClick }) {
                 </span>
                 <span className={`text-[10px] font-medium uppercase tracking-wider
                   ${user?.role === 'admin' ? 'text-red-400' : 
-                    user?.role === 'lecturer' ? 'text-purple-400' : 'text-blue-400'}`}
+                    user?.role === 'lecturer' ? 'text-purple-400' : 'text-indigo-400'}`}
                 >
                   {user?.role}
                 </span>

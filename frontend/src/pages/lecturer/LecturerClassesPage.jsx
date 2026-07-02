@@ -71,7 +71,7 @@ function CreateClassModal({ onClose, onCreated }) {
     }
   };
 
-  const inputClass = 'w-full bg-slate-900/50 border border-slate-600 rounded-lg px-3 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
+  const inputClass = 'w-full bg-slate-900/50 border border-slate-600 rounded-lg px-3 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent';
   const labelClass = 'block text-xs font-medium text-slate-400 mb-1.5';
 
   return (
@@ -233,7 +233,7 @@ function ClassDetailModal({ classRoom, onClose, onUpdate, showToast }) {
         <div className="flex border-b border-slate-700 px-6 shrink-0">
           <button onClick={() => setActiveTab('students')}
             className={`py-3 px-1 mr-6 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'students' ? 'border-blue-500 text-blue-400' : 'border-transparent text-slate-400 hover:text-white'
+              activeTab === 'students' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-slate-400 hover:text-white'
             }`}>
             <span className="flex items-center gap-2">
               <Users className="w-4 h-4" /> Enrolled Students
@@ -259,7 +259,7 @@ function ClassDetailModal({ classRoom, onClose, onUpdate, showToast }) {
             <div>
               {loadingStudents ? (
                 <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
+                  <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
                 </div>
               ) : students.length === 0 ? (
                 <div className="text-center py-12 text-slate-400">
@@ -275,7 +275,7 @@ function ClassDetailModal({ classRoom, onClose, onUpdate, showToast }) {
                       <div key={enrollment.id}
                         className="flex items-center justify-between bg-slate-900/50 border border-slate-700/50 rounded-xl px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 bg-blue-500/20 rounded-full flex items-center justify-center text-blue-300 font-bold text-sm shrink-0">
+                          <div className="w-9 h-9 bg-indigo-500/20 rounded-full flex items-center justify-center text-indigo-300 font-bold text-sm shrink-0">
                             {s?.name?.[0] || '?'}
                           </div>
                           <div>
@@ -440,7 +440,7 @@ export default function LecturerClassesPage() {
             placeholder="Search classes..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
       )}
@@ -448,7 +448,7 @@ export default function LecturerClassesPage() {
       {/* Loading */}
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-10 h-10 text-blue-400 animate-spin" />
+          <Loader2 className="w-10 h-10 text-indigo-400 animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-20 bg-slate-800/50 border border-slate-700 rounded-2xl">
@@ -461,7 +461,7 @@ export default function LecturerClassesPage() {
           </p>
           {classes.length === 0 && (
             <button onClick={() => setShowCreateModal(true)}
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors">
+              className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors">
               Create Class
             </button>
           )}
@@ -508,7 +508,7 @@ function ClassCard({ cls, onManage }) {
   const fillPct = Math.min(100, Math.round((enrolled / maxStudents) * 100));
 
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-md hover:border-blue-500/50 transition-all flex flex-col">
+    <div className="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-md hover:border-indigo-500/50 transition-all flex flex-col">
       {/* Top Row */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0">
@@ -558,7 +558,7 @@ function ClassCard({ cls, onManage }) {
       <button
         id={`manage-class-${cls.id}`}
         onClick={onManage}
-        className="mt-auto w-full py-2.5 bg-slate-700 hover:bg-blue-600 text-slate-300 hover:text-white text-sm font-medium rounded-xl transition-colors flex items-center justify-center gap-2">
+        className="mt-auto w-full py-2.5 bg-slate-700 hover:bg-indigo-600 text-slate-300 hover:text-white text-sm font-medium rounded-xl transition-colors flex items-center justify-center gap-2">
         <Users className="w-4 h-4" /> Manage
       </button>
     </div>

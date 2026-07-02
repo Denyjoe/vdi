@@ -61,7 +61,7 @@ const AdminSettingsPage = () => {
     <div className="max-w-6xl mx-auto pb-12">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <SettingsIcon className="w-6 h-6 text-blue-500" />
+          <SettingsIcon className="w-6 h-6 text-indigo-500" />
           System Settings
         </h1>
         <p className="text-slate-400 mt-1">Configure system-wide behaviour and policies</p>
@@ -71,7 +71,7 @@ const AdminSettingsPage = () => {
         {/* CARD 1: Institution Info */}
         <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 flex flex-col">
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-blue-500/20 text-blue-400 rounded-lg">
+            <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-lg">
               <Building2 className="w-5 h-5" />
             </div>
             <h2 className="text-lg font-semibold text-white">Institution Information</h2>
@@ -109,7 +109,7 @@ const AdminSettingsPage = () => {
             <button 
               onClick={() => handleSaveCard('institution', ['institution_name', 'institution_short_name', 'current_academic_year', 'current_semester'])}
               disabled={savingCard === 'institution'}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors"
             >
               <Save className="w-4 h-4" />
               {savingCard === 'institution' ? 'Saving...' : 'Save Changes'}
@@ -157,7 +157,7 @@ const AdminSettingsPage = () => {
             <button 
               onClick={() => handleSaveCard('limits', ['max_vms_per_student', 'max_session_hours', 'vm_provisioning_timeout', 'max_file_upload_mb'])}
               disabled={savingCard === 'limits'}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors"
             >
               <Save className="w-4 h-4" />
               {savingCard === 'limits' ? 'Saving...' : 'Save Changes'}
@@ -184,7 +184,7 @@ const AdminSettingsPage = () => {
                 <input type="checkbox" className="sr-only peer" 
                   checked={settings.allow_student_registration === 'true'}
                   onChange={e => handleChange('allow_student_registration', e.target.checked ? 'true' : 'false')} />
-                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
               </label>
             </div>
             
@@ -197,7 +197,7 @@ const AdminSettingsPage = () => {
                 <input type="checkbox" className="sr-only peer" 
                   checked={settings.require_enrollment_approval === 'true'}
                   onChange={e => handleChange('require_enrollment_approval', e.target.checked ? 'true' : 'false')} />
-                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
               </label>
             </div>
           </div>
@@ -206,7 +206,7 @@ const AdminSettingsPage = () => {
             <button 
               onClick={() => handleSaveCard('access', ['allow_student_registration', 'require_enrollment_approval'])}
               disabled={savingCard === 'access'}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors"
             >
               <Save className="w-4 h-4" />
               {savingCard === 'access' ? 'Saving...' : 'Save Changes'}
@@ -260,7 +260,7 @@ const AdminSettingsPage = () => {
             <button 
               onClick={() => handleSaveCard('status', ['maintenance_mode', 'system_announcement'])}
               disabled={savingCard === 'status'}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors"
             >
               <Save className="w-4 h-4" />
               {savingCard === 'status' ? 'Saving...' : 'Save Changes'}
@@ -276,7 +276,7 @@ const AdminSettingsPage = () => {
           {/* Mock Dashboard Header */}
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
                 <Monitor className="w-6 h-6 text-white" />
               </div>
               <div>

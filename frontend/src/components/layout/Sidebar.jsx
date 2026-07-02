@@ -94,7 +94,7 @@ export default function Sidebar({ onClose }) {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   isActive
-                    ? 'bg-blue-600 text-white shadow-md'
+                    ? 'bg-indigo-600 text-white shadow-md'
                     : 'text-slate-300 hover:bg-slate-700 hover:text-white'
                 }`
               }

@@ -90,7 +90,7 @@ export default function AdminDashboard() {
   if (isLoading) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center">
-        <Activity className="animate-spin text-blue-500 w-12 h-12" />
+        <Activity className="animate-spin text-indigo-500 w-12 h-12" />
       </div>
     );
   }
@@ -105,8 +105,8 @@ export default function AdminDashboard() {
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-slate-800 rounded-xl p-6 shadow-md border border-slate-700 flex items-center gap-4 transition-transform hover:scale-105">
-          <div className="bg-blue-500/20 p-4 rounded-lg">
-            <Users className="w-6 h-6 text-blue-400" />
+          <div className="bg-indigo-500/20 p-4 rounded-lg">
+            <Users className="w-6 h-6 text-indigo-400" />
           </div>
           <div>
             <p className="text-slate-400 text-sm font-medium">Total Users</p>

@@ -251,7 +251,7 @@ export default function ProfilePage() {
             
             <div className="relative mb-4">
               {avatarSrc ? (
-                <img src={avatarSrc} alt="Avatar" className="w-24 h-24 rounded-full object-cover border-4 border-blue-500" />
+                <img src={avatarSrc} alt="Avatar" className="w-24 h-24 rounded-full object-cover border-4 border-indigo-500" />
               ) : (
                 <div className={`w-24 h-24 rounded-full bg-gradient-to-br ${getGradient()} flex items-center justify-center border-4 border-slate-700`}>
                   <span className="text-2xl font-bold text-white tracking-wider">{getInitials()}</span>
@@ -303,13 +303,13 @@ export default function ProfilePage() {
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize
                   ${user?.role === 'admin' ? 'bg-red-500/20 text-red-400' : 
                     user?.role === 'lecturer' ? 'bg-purple-500/20 text-purple-400' : 
-                    'bg-blue-500/20 text-blue-400'}`}
+                    'bg-indigo-500/20 text-indigo-400'}`}
                 >
                   {user?.role}
                 </span>
                 <p className="text-sm text-slate-400">{user?.email}</p>
                 {user?.role === 'student' && user?.stream && (
-                  <span className="px-3 py-1 bg-blue-600/20 text-blue-400 text-xs font-medium rounded-full mt-1 border border-blue-500/30">
+                  <span className="px-3 py-1 bg-indigo-600/20 text-indigo-400 text-xs font-medium rounded-full mt-1 border border-indigo-500/30">
                     {user?.stream?.code}
                   </span>
                 )}
@@ -329,7 +329,7 @@ export default function ProfilePage() {
             <div className="p-0">
               {statsLoading ? (
                 <div className="p-8 flex justify-center">
-                  <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+                  <Loader2 className="w-6 h-6 text-indigo-500 animate-spin" />
                 </div>
               ) : !stats ? (
                 <div className="p-4 text-center text-slate-400 text-sm">Stats unavailable</div>
@@ -337,7 +337,7 @@ export default function ProfilePage() {
                 <div className="divide-y divide-slate-700/50">
                   {user?.role === 'student' && (
                     <>
-                      <StatRow icon={<GraduationCap />} label="Classes Enrolled" value={stats.enrolled_classes} color="text-blue-400" bg="bg-blue-500/10" />
+                      <StatRow icon={<GraduationCap />} label="Classes Enrolled" value={stats.enrolled_classes} color="text-indigo-400" bg="bg-indigo-500/10" />
                       <StatRow icon={<Monitor />} label="VMs Created" value={stats.total_vms} color="text-purple-400" bg="bg-purple-500/10" />
                       <StatRow icon={<Activity />} label="Sessions" value={stats.total_sessions} color="text-green-400" bg="bg-green-500/10" />
                       <StatRow icon={<Clock />} label="Connected" value={`${stats.total_session_hours} hrs`} color="text-amber-400" bg="bg-amber-500/10" />
@@ -348,7 +348,7 @@ export default function ProfilePage() {
                   
                   {user?.role === 'lecturer' && (
                     <>
-                      <StatRow icon={<BookOpen />} label="Classes" value={stats.total_classes} color="text-blue-400" bg="bg-blue-500/10" />
+                      <StatRow icon={<BookOpen />} label="Classes" value={stats.total_classes} color="text-indigo-400" bg="bg-indigo-500/10" />
                       <StatRow icon={<Users />} label="Total Students" value={stats.total_students} color="text-purple-400" bg="bg-purple-500/10" />
                       <StatRow icon={<ClipboardList />} label="Assignments" value={stats.total_assignments} color="text-green-400" bg="bg-green-500/10" />
                       <StatRow icon={<FlaskConical />} label="Practicals" value={stats.practicals_conducted} color="text-amber-400" bg="bg-amber-500/10" />
@@ -358,7 +358,7 @@ export default function ProfilePage() {
                   
                   {user?.role === 'admin' && (
                     <>
-                      <StatRow icon={<Users />} label="Total Users" value={stats.total_users} color="text-blue-400" bg="bg-blue-500/10" />
+                      <StatRow icon={<Users />} label="Total Users" value={stats.total_users} color="text-indigo-400" bg="bg-indigo-500/10" />
                       <StatRow icon={<Monitor />} label="Total VMs" value={stats.total_vms} color="text-purple-400" bg="bg-purple-500/10" />
                       <StatRow icon={<Activity />} label="Sessions" value={stats.total_sessions} color="text-green-400" bg="bg-green-500/10" />
                       <StatRow icon={<Layout />} label="VM Templates" value={stats.total_templates} color="text-amber-400" bg="bg-amber-500/10" />
@@ -388,7 +388,7 @@ export default function ProfilePage() {
                   type="text" 
                   value={formData.first_name}
                   onChange={(e) => setFormData({...formData, first_name: e.target.value})}
-                  className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                  className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
                 />
               </div>
               <div>
@@ -397,7 +397,7 @@ export default function ProfilePage() {
                   type="text" 
                   value={formData.last_name}
                   onChange={(e) => setFormData({...formData, last_name: e.target.value})}
-                  className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                  className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
                 />
               </div>
               <div>
@@ -407,7 +407,7 @@ export default function ProfilePage() {
                   value={formData.phone}
                   onChange={(e) => setFormData({...formData, phone: e.target.value})}
                   placeholder="+255 7XX XXX XXX"
-                  className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                  className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
                 />
               </div>
               <div>
@@ -436,7 +436,7 @@ export default function ProfilePage() {
                   <select 
                     value={formData.department}
                     onChange={(e) => setFormData({...formData, department: e.target.value})}
-                    className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                    className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
                   >
                     <option value="">Select Department</option>
                     {departments.map(d => (
@@ -452,7 +452,7 @@ export default function ProfilePage() {
                       <select 
                         value={formData.year_of_study}
                         onChange={(e) => setFormData({...formData, year_of_study: parseInt(e.target.value)})}
-                        className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                        className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
                       >
                         {[1, 2, 3, 4].map(y => (
                           <option key={y} value={y}>Year {y}</option>
@@ -464,7 +464,7 @@ export default function ProfilePage() {
                       <select 
                         value={formData.programme}
                         onChange={(e) => setFormData({...formData, programme: e.target.value})}
-                        className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                        className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
                       >
                         <option value="">Select Programme</option>
                         {Object.entries(groupedProgrammes).map(([level, progs]) => (
@@ -517,7 +517,7 @@ export default function ProfilePage() {
                     value={passData.old_password}
                     onChange={(e) => setPassData({...passData, old_password: e.target.value})}
                     required
-                    className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                    className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
                   />
                 </div>
                 <div className="hidden md:block"></div>
@@ -530,7 +530,7 @@ export default function ProfilePage() {
                     onChange={(e) => setPassData({...passData, new_password: e.target.value})}
                     required
                     minLength={8}
-                    className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                    className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
                   />
                 </div>
                 <div>
@@ -541,12 +541,12 @@ export default function ProfilePage() {
                     onChange={(e) => setPassData({...passData, confirm_new_password: e.target.value})}
                     required
                     minLength={8}
-                    className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                    className="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
                   />
                 </div>
                 
                 <div className="md:col-span-2 mt-2">
-                  <button type="submit" className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
+                  <button type="submit" className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors">
                     Update Password
                   </button>
                 </div>
@@ -558,7 +558,7 @@ export default function ProfilePage() {
           <button 
             onClick={handleProfileSave}
             disabled={saving}
-            className="w-full flex justify-center items-center gap-2 py-3.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white font-bold rounded-xl transition-colors shadow-lg shadow-blue-600/20"
+            className="w-full flex justify-center items-center gap-2 py-3.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-70 text-white font-bold rounded-xl transition-colors shadow-lg shadow-blue-600/20"
           >
             {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
             Save Changes

@@ -243,7 +243,7 @@ export default function AdminTemplatesPage() {
           </button>
           <button
             onClick={formOpen ? () => { setFormOpen(false); resetForm(); } : openCreateForm}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
             {formOpen ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
             {formOpen ? 'Cancel' : 'Add Template'}
@@ -253,7 +253,7 @@ export default function AdminTemplatesPage() {
 
       {/* ── Collapsible Form ─────────────────────────────────────────── */}
       {formOpen && (
-        <div className="bg-slate-800 rounded-xl border border-blue-500/30 shadow-lg">
+        <div className="bg-slate-800 rounded-xl border border-indigo-500/30 shadow-lg">
           <div className="px-6 py-4 border-b border-slate-700 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-white">
               {editingId ? 'Edit Template' : 'New Template'}
@@ -269,7 +269,7 @@ export default function AdminTemplatesPage() {
                 value={form.name}
                 onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
                 placeholder="e.g. Machine Learning Lab"
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
               />
               {formErrors.name && <p className="text-red-400 text-xs mt-1">{formErrors.name}</p>}
             </div>
@@ -280,7 +280,7 @@ export default function AdminTemplatesPage() {
               <select
                 value={form.os}
                 onChange={e => setForm(p => ({ ...p, os: e.target.value }))}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500"
               >
                 {OS_OPTIONS.map(os => <option key={os} value={os}>{os}</option>)}
               </select>
@@ -290,7 +290,7 @@ export default function AdminTemplatesPage() {
                   value={customOs}
                   onChange={e => setCustomOs(e.target.value)}
                   placeholder="Enter custom OS name"
-                  className="w-full mt-2 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500"
+                  className="w-full mt-2 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500"
                 />
               )}
               {formErrors.os && <p className="text-red-400 text-xs mt-1">{formErrors.os}</p>}
@@ -302,7 +302,7 @@ export default function AdminTemplatesPage() {
               <select
                 value={form.icon}
                 onChange={e => setForm(p => ({ ...p, icon: e.target.value }))}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500"
               >
                 {ICON_OPTIONS.map(ic => <option key={ic} value={ic}>{ic}</option>)}
               </select>
@@ -315,7 +315,7 @@ export default function AdminTemplatesPage() {
                 type="number" min="1" max="32"
                 value={form.cpu_cores}
                 onChange={e => setForm(p => ({ ...p, cpu_cores: parseInt(e.target.value) || 1 }))}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500"
               />
               {formErrors.cpu_cores && <p className="text-red-400 text-xs mt-1">{formErrors.cpu_cores}</p>}
             </div>
@@ -326,7 +326,7 @@ export default function AdminTemplatesPage() {
                 type="number" min="2" max="128"
                 value={form.ram_gb}
                 onChange={e => setForm(p => ({ ...p, ram_gb: parseInt(e.target.value) || 2 }))}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500"
               />
               {formErrors.ram_gb && <p className="text-red-400 text-xs mt-1">{formErrors.ram_gb}</p>}
             </div>
@@ -337,7 +337,7 @@ export default function AdminTemplatesPage() {
                 type="number" min="20" max="2000"
                 value={form.storage_gb}
                 onChange={e => setForm(p => ({ ...p, storage_gb: parseInt(e.target.value) || 20 }))}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500"
               />
               {formErrors.storage_gb && <p className="text-red-400 text-xs mt-1">{formErrors.storage_gb}</p>}
             </div>
@@ -347,7 +347,7 @@ export default function AdminTemplatesPage() {
               <button
                 type="button"
                 onClick={() => setForm(p => ({ ...p, is_available: !p.is_available }))}
-                className={`relative inline-flex h-6 w-11 rounded-full transition-colors duration-200 focus:outline-none ${form.is_available ? 'bg-blue-600' : 'bg-slate-600'}`}
+                className={`relative inline-flex h-6 w-11 rounded-full transition-colors duration-200 focus:outline-none ${form.is_available ? 'bg-indigo-600' : 'bg-slate-600'}`}
               >
                 <span className={`inline-block h-5 w-5 mt-0.5 rounded-full bg-white shadow transform transition-transform duration-200 ${form.is_available ? 'translate-x-5' : 'translate-x-0.5'}`} />
               </button>
@@ -359,10 +359,10 @@ export default function AdminTemplatesPage() {
             {/* Software List */}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-300 mb-1.5">Software List</label>
-              <div className="bg-slate-900 border border-slate-700 rounded-lg p-3 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500">
+              <div className="bg-slate-900 border border-slate-700 rounded-lg p-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500">
                 <div className="flex flex-wrap gap-2 mb-2">
                   {form.software_list.map(sw => (
-                    <span key={sw} className="flex items-center gap-1.5 bg-blue-600/20 text-blue-300 px-3 py-1 rounded-full text-sm border border-blue-500/30">
+                    <span key={sw} className="flex items-center gap-1.5 bg-indigo-600/20 text-indigo-300 px-3 py-1 rounded-full text-sm border border-indigo-500/30">
                       {sw}
                       <button type="button" onClick={() => removeSoftwareTag(sw)} className="hover:text-white transition-colors">
                         <X className="w-3 h-3" />
@@ -390,7 +390,7 @@ export default function AdminTemplatesPage() {
                 onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
                 rows={3}
                 placeholder="Brief description of what this template is used for..."
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
               />
             </div>
 
@@ -406,7 +406,7 @@ export default function AdminTemplatesPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
               >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 {saving ? 'Saving...' : editingId ? 'Update Template' : 'Create Template'}
@@ -437,7 +437,7 @@ export default function AdminTemplatesPage() {
               {loading && (
                 <tr>
                   <td colSpan="9" className="px-6 py-10 text-center">
-                    <Loader2 className="w-6 h-6 animate-spin text-blue-400 mx-auto" />
+                    <Loader2 className="w-6 h-6 animate-spin text-indigo-400 mx-auto" />
                   </td>
                 </tr>
               )}
@@ -473,7 +473,7 @@ export default function AdminTemplatesPage() {
                       <button
                         onClick={() => openEditForm(template)}
                         title="Edit"
-                        className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                        className="p-1.5 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>

@@ -138,7 +138,7 @@ export default function DesktopSessionPage() {
       {/* ── Top Bar ── */}
       <div className="h-12 bg-slate-900 border-b border-slate-700 flex items-center justify-between px-4 shrink-0 shadow-md relative z-50">
         <div className="flex items-center gap-4">
-          <Monitor className="w-5 h-5 text-blue-400" />
+          <Monitor className="w-5 h-5 text-indigo-400" />
           <span className="text-white font-medium text-sm sm:text-base hidden sm:block">
             {sessionData.vm_name}
           </span>
@@ -248,7 +248,7 @@ export default function DesktopSessionPage() {
 
             {/* Watermark */}
             <div className="absolute bottom-6 right-8 opacity-10 pointer-events-none text-right">
-              <p className="text-4xl font-bold text-white tracking-widest uppercase">DIT VDI System</p>
+              <p className="text-4xl font-bold text-white tracking-widest uppercase">CloudDesk</p>
               <p className="text-xl text-white mt-1 tracking-wide">{sessionData.os}</p>
             </div>
           </div>
@@ -258,7 +258,7 @@ export default function DesktopSessionPage() {
             <div className="w-full flex justify-center pb-4">
               <div className="bg-white/10 backdrop-blur-lg border border-white/5 rounded-2xl px-4 py-2 flex gap-4 shadow-xl">
                 <div className="w-10 h-10 bg-orange-500/80 rounded-xl flex items-center justify-center cursor-pointer hover:bg-orange-500 hover:-translate-y-1 transition-all"><Box className="w-6 h-6 text-white"/></div>
-                <div className="w-10 h-10 bg-blue-500/80 rounded-xl flex items-center justify-center cursor-pointer hover:bg-blue-500 hover:-translate-y-1 transition-all"><LayoutGrid className="w-6 h-6 text-white"/></div>
+                <div className="w-10 h-10 bg-indigo-500/80 rounded-xl flex items-center justify-center cursor-pointer hover:bg-indigo-500 hover:-translate-y-1 transition-all"><LayoutGrid className="w-6 h-6 text-white"/></div>
                 <div className="w-10 h-10 bg-emerald-500/80 rounded-xl flex items-center justify-center cursor-pointer hover:bg-emerald-500 hover:-translate-y-1 transition-all"><Monitor className="w-6 h-6 text-white"/></div>
                 <div className="w-10 h-10 bg-purple-500/80 rounded-xl flex items-center justify-center cursor-pointer hover:bg-purple-500 hover:-translate-y-1 transition-all"><Code2 className="w-6 h-6 text-white"/></div>
               </div>
@@ -270,7 +270,7 @@ export default function DesktopSessionPage() {
             <div className="h-11 bg-[#111111]/95 backdrop-blur-md flex items-center justify-between px-2 text-white border-t border-white/10 shrink-0 relative z-20 shadow-2xl">
               <div className="flex items-center h-full gap-2">
                 <div className="h-full px-3 flex items-center justify-center hover:bg-white/10 cursor-pointer transition-colors">
-                  <LayoutGrid className="w-5 h-5 text-blue-400" />
+                  <LayoutGrid className="w-5 h-5 text-indigo-400" />
                 </div>
                 <div className="h-7 w-48 bg-white/10 border border-white/5 rounded-full flex items-center px-3 text-xs text-slate-400 ml-2">
                   Type here to search
@@ -278,7 +278,7 @@ export default function DesktopSessionPage() {
               </div>
               
               <div className="absolute left-1/2 -translate-x-1/2 flex items-center h-full gap-1">
-                <div className="h-full w-10 flex items-center justify-center hover:bg-white/10 cursor-pointer border-b-2 border-blue-400"><Compass className="w-5 h-5 text-slate-200" /></div>
+                <div className="h-full w-10 flex items-center justify-center hover:bg-white/10 cursor-pointer border-b-2 border-indigo-400"><Compass className="w-5 h-5 text-slate-200" /></div>
                 <div className="h-full w-10 flex items-center justify-center hover:bg-white/10 cursor-pointer"><Box className="w-5 h-5 text-slate-200" /></div>
               </div>
 
@@ -354,7 +354,7 @@ export default function DesktopSessionPage() {
                 <h4 className="text-xs uppercase text-slate-500 font-bold mb-3 tracking-wider">Software</h4>
                 <div className="flex flex-wrap gap-2">
                   {softwareList.map((sw, i) => (
-                    <span key={i} className="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-1 rounded text-xs font-medium">
+                    <span key={i} className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-1 rounded text-xs font-medium">
                       {sw}
                     </span>
                   ))}

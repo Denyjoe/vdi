@@ -134,14 +134,14 @@ function LecturerPracticalPageContent() {
 
   const getSessionTypeBadge = (type) => {
     if (type === 'exam' || type === 'Practical Exam') return <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded-md bg-red-500/20 text-red-400 border border-red-500/30">Exam</span>;
-    if (type === 'assignment' || type === 'VM Assignment') return <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded-md bg-blue-500/20 text-blue-400 border border-blue-500/30">Assignment</span>;
+    if (type === 'assignment' || type === 'VM Assignment') return <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded-md bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">Assignment</span>;
     return <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Lab Session</span>;
   };
 
   if (loading) return (
     <div className="flex items-center justify-center h-96">
       <div className="text-white flex items-center gap-2">
-        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
         Loading practicals...
       </div>
     </div>
@@ -163,14 +163,14 @@ function LecturerPracticalPageContent() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 mb-6">
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-3">
-            <FlaskConical className="w-8 h-8 text-blue-500" />
+            <FlaskConical className="w-8 h-8 text-indigo-500" />
             Practical Sessions & Labs
           </h2>
           <p className="text-slate-400 mt-1">Manage timed lab sessions for your classes</p>
         </div>
         <button 
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors shadow-lg shadow-blue-500/20">
+          className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors shadow-lg shadow-blue-500/20">
           <Plus className="w-4 h-4" /> Create Practical Session
         </button>
       </div>
@@ -199,14 +199,14 @@ function LecturerPracticalPageContent() {
                   const totalCount = session.total_students || 0;
                   
                   return (
-                    <div key={session.id} className={`bg-slate-800 border rounded-2xl p-5 shadow-lg transition-all ${isSelected ? 'border-blue-500 ring-1 ring-blue-500/50 bg-slate-800/80' : 'border-slate-700 hover:border-slate-600'}`}>
+                    <div key={session.id} className={`bg-slate-800 border rounded-2xl p-5 shadow-lg transition-all ${isSelected ? 'border-indigo-500 ring-1 ring-indigo-500/50 bg-slate-800/80' : 'border-slate-700 hover:border-slate-600'}`}>
                       <div className="flex items-start justify-between mb-4">
                         <div>
                           <div className="flex items-center gap-2 mb-1.5">
                             <h4 className="text-white font-bold text-lg">{session.name}</h4>
                             {getSessionTypeBadge(session.session_type)}
                           </div>
-                          <span className="inline-block px-2.5 py-1 text-xs font-medium rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                          <span className="inline-block px-2.5 py-1 text-xs font-medium rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
                             {session.class_name}
                           </span>
                         </div>
@@ -245,7 +245,7 @@ function LecturerPracticalPageContent() {
                           onClick={() => setSelectedSessionId(isSelected ? null : session.id)}
                           className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
                             isSelected 
-                              ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' 
+                              ? 'bg-indigo-600 text-white shadow-lg shadow-blue-500/20' 
                               : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30'
                           }`}>
                           <Eye className="w-4 h-4" />
@@ -267,7 +267,7 @@ function LecturerPracticalPageContent() {
           {/* GROUP 2: Scheduled */}
           <section>
             <div className="flex items-center gap-2 mb-4">
-              <h3 className="text-lg font-bold text-blue-400">Scheduled</h3>
+              <h3 className="text-lg font-bold text-indigo-400">Scheduled</h3>
               <span className="bg-slate-800 text-slate-400 text-xs px-2 py-0.5 rounded-full">{scheduled.length}</span>
             </div>
             {scheduled.length === 0 ? (
@@ -289,7 +289,7 @@ function LecturerPracticalPageContent() {
                     </div>
                     
                     <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50 mb-4 flex-1">
-                      <div className="flex items-center gap-2 text-sm text-blue-400 font-medium mb-1">
+                      <div className="flex items-center gap-2 text-sm text-indigo-400 font-medium mb-1">
                         <Clock className="w-4 h-4" />
                         Starts in {getTimeRemaining(session.start_time, true)}
                       </div>
@@ -345,7 +345,7 @@ function LecturerPracticalPageContent() {
                           <p className="text-slate-300">{session.attendance_count || 0} / {session.total_students || 0}</p>
                           <p className="text-slate-500">Submitted</p>
                         </div>
-                        <button className="p-2 bg-slate-800 hover:bg-slate-700 text-blue-400 rounded-lg transition-colors" title="View Report">
+                        <button className="p-2 bg-slate-800 hover:bg-slate-700 text-indigo-400 rounded-lg transition-colors" title="View Report">
                           <FileText className="w-4 h-4" />
                         </button>
                       </div>
@@ -394,7 +394,7 @@ function LecturerPracticalPageContent() {
               <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-slate-900/50">
                 {monitorLoading && !monitorData && (
                   <div className="flex items-center justify-center h-full text-slate-500">
-                    <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                    <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
                   </div>
                 )}
                 
@@ -405,14 +405,14 @@ function LecturerPracticalPageContent() {
                     const isMissed = student.status === 'missed';
                     
                     return (
-                      <div key={student.id} className={`bg-slate-800 border rounded-xl p-4 transition-colors ${isWorking ? 'border-blue-500/30' : 'border-slate-700'}`}>
+                      <div key={student.id} className={`bg-slate-800 border rounded-xl p-4 transition-colors ${isWorking ? 'border-indigo-500/30' : 'border-slate-700'}`}>
                         <div className="flex items-start justify-between mb-3">
                           <div>
                             <h4 className="text-sm font-bold text-white">{student.name}</h4>
                             <p className="text-[11px] text-slate-400">{student.student_id} • {student.year}</p>
                           </div>
                           
-                          {isWorking && <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 animate-pulse">Working</span>}
+                          {isWorking && <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 animate-pulse">Working</span>}
                           {isSubmitted && <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Submitted ✓</span>}
                           {isMissed && <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-red-500/20 text-red-400 border border-red-500/30">Missed</span>}
                           {student.status === 'not_started' && <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-slate-700 text-slate-400 border border-slate-600">Not Started</span>}
@@ -422,12 +422,12 @@ function LecturerPracticalPageContent() {
                           <div className="space-y-3 mt-2 pt-3 border-t border-slate-700/50">
                             <div className="flex justify-between items-center text-xs">
                               <span className="text-slate-400">VM: <span className="text-slate-200">{student.vm_name || 'Allocating...'}</span></span>
-                              <span className="text-slate-400">Time: <span className="text-blue-400 font-mono">{student.duration || '0m 0s'}</span></span>
+                              <span className="text-slate-400">Time: <span className="text-indigo-400 font-mono">{student.duration || '0m 0s'}</span></span>
                             </div>
                             <div className="flex gap-4">
                               <div className="flex-1">
                                 <div className="flex justify-between text-[10px] text-slate-500 mb-1"><span>CPU</span><span>{student.cpu_usage}%</span></div>
-                                <div className="w-full bg-slate-900 h-1 rounded-full overflow-hidden"><div className="bg-blue-500 h-full" style={{ width: `${student.cpu_usage}%` }} /></div>
+                                <div className="w-full bg-slate-900 h-1 rounded-full overflow-hidden"><div className="bg-indigo-500 h-full" style={{ width: `${student.cpu_usage}%` }} /></div>
                               </div>
                               <div className="flex-1">
                                 <div className="flex justify-between text-[10px] text-slate-500 mb-1"><span>RAM</span><span>{student.ram_usage}%</span></div>

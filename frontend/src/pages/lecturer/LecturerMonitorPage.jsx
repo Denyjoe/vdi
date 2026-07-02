@@ -207,7 +207,7 @@ export default function LecturerMonitorPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" />
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500" />
       </div>
     );
   }
@@ -225,7 +225,7 @@ export default function LecturerMonitorPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard title="Total Active"  count={summary.total_active}  Icon={Activity}    colorText="text-green-400"  colorBg="bg-green-500/10" />
         <StatCard title="In Exam"       count={summary.in_exam}       Icon={ShieldAlert} colorText="text-yellow-400" colorBg="bg-yellow-500/10" />
-        <StatCard title="Free Sessions" count={summary.free_sessions} Icon={Monitor}     colorText="text-blue-400"   colorBg="bg-blue-500/10" />
+        <StatCard title="Free Sessions" count={summary.free_sessions} Icon={Monitor}     colorText="text-indigo-400"   colorBg="bg-indigo-500/10" />
       </div>
 
       {/* ── Main grid ─────────────────────────────────────────────────────── */}
@@ -238,7 +238,7 @@ export default function LecturerMonitorPage() {
             {/* Table header */}
             <div className="px-6 py-4 border-b border-slate-700 flex items-center justify-between">
               <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Monitor className="w-5 h-5 text-blue-400" />
+                <Monitor className="w-5 h-5 text-indigo-400" />
                 Live Student Sessions
               </h2>
               <LiveBadge />
@@ -248,7 +248,7 @@ export default function LecturerMonitorPage() {
               <table className="w-full text-left">
                 <thead className="bg-slate-900/50 text-slate-400 text-xs uppercase tracking-wider">
                   <tr>
-                    <th className="px-6 py-3 font-medium">Student</th>
+                    <th className="px-6 py-3 font-medium">Member</th>
                     <th className="px-6 py-3 font-medium">VM</th>
                     <th className="px-6 py-3 font-medium">Duration</th>
                     <th className="px-6 py-3 font-medium">Exam Mode</th>
@@ -287,7 +287,7 @@ export default function LecturerMonitorPage() {
                         </td>
                         <td className="px-6 py-4 text-right space-x-1">
                           <button
-                            className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
+                            className="p-2 text-slate-400 hover:text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-colors"
                             title="View Session"
                           >
                             <Eye className="w-4 h-4" />
@@ -321,7 +321,7 @@ export default function LecturerMonitorPage() {
               </h2>
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
               >
                 + New Exam
               </button>
@@ -398,7 +398,7 @@ export default function LecturerMonitorPage() {
                         </button>
                       )}
                       {exam.status === 'ended' && (
-                        <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-600/10 text-blue-400 hover:bg-blue-600/20 text-xs font-medium rounded-lg transition-colors border border-blue-600/20">
+                        <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-indigo-600/10 text-indigo-400 hover:bg-indigo-600/20 text-xs font-medium rounded-lg transition-colors border border-indigo-600/20">
                           <BarChart2 className="w-3.5 h-3.5" /> View Report
                         </button>
                       )}

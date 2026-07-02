@@ -39,7 +39,7 @@ const DATE_RANGES = [
 const getActionBadgeClass = (action) => {
   const lowered = (action || '').toLowerCase();
   if (lowered.includes('vm') || lowered.includes('virtual'))
-    return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+    return 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30';
   if (lowered.includes('session') || lowered.includes('connect') || lowered.includes('disconnect'))
     return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
   if (lowered.includes('login') || lowered.includes('register') || lowered.includes('auth') || lowered.includes('logout'))
@@ -176,7 +176,7 @@ export default function AdminLogsPage() {
   if (isLoading) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center">
-        <Activity className="animate-spin text-blue-500 w-12 h-12" />
+        <Activity className="animate-spin text-indigo-500 w-12 h-12" />
       </div>
     );
   }
@@ -190,7 +190,7 @@ export default function AdminLogsPage() {
           <p className="text-slate-400 mt-1">
             {filteredLogs.length} log entries
             {isRefreshing && (
-              <span className="ml-2 text-blue-400 text-xs">
+              <span className="ml-2 text-indigo-400 text-xs">
                 <RefreshCw className="w-3 h-3 inline animate-spin mr-1" />
                 Refreshing...
               </span>
@@ -208,7 +208,7 @@ export default function AdminLogsPage() {
           <button
             onClick={handleExportCSV}
             disabled={filteredLogs.length === 0}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Download className="w-4 h-4" />
             Export CSV
@@ -232,7 +232,7 @@ export default function AdminLogsPage() {
             placeholder="Search by user, action, or description..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
           />
           {searchQuery && (
             <button
@@ -252,7 +252,7 @@ export default function AdminLogsPage() {
               onClick={() => setDateRange(range.key)}
               className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
                 dateRange === range.key
-                  ? 'bg-blue-600 text-white shadow-md'
+                  ? 'bg-indigo-600 text-white shadow-md'
                   : 'text-slate-400 hover:text-white hover:bg-slate-700'
               }`}
             >

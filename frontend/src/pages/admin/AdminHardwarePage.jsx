@@ -193,7 +193,7 @@ export default function AdminHardwarePage() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4">
-        <RefreshCw className="w-8 h-8 text-blue-400 animate-spin" />
+        <RefreshCw className="w-8 h-8 text-indigo-400 animate-spin" />
         <p className="text-slate-400">Loading hardware stats...</p>
       </div>
     );
@@ -291,7 +291,7 @@ export default function AdminHardwarePage() {
           <h3 className="text-slate-400 text-sm font-medium text-center">Network I/O</h3>
           <div className="space-y-5">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-blue-400">
+              <div className="flex items-center gap-2 text-indigo-400">
                 <ArrowDown className="w-5 h-5" />
                 <span className="text-slate-300 text-sm">IN</span>
               </div>

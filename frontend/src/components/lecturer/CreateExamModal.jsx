@@ -124,7 +124,7 @@ export default function CreateExamModal({ isOpen, onClose, onSuccess }) {
         <div className="p-6 overflow-y-auto">
           {isLoading ? (
             <div className="flex justify-center p-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
             </div>
           ) : (
             <form id="createExamForm" onSubmit={handleSubmit} className="space-y-6">
@@ -141,7 +141,7 @@ export default function CreateExamModal({ isOpen, onClose, onSuccess }) {
                     onChange={handleChange}
                     required
                     placeholder="e.g. CAD Practical Exam 1"
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
 
@@ -154,7 +154,7 @@ export default function CreateExamModal({ isOpen, onClose, onSuccess }) {
                     value={formData.class_room}
                     onChange={handleChange}
                     required
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="">Select a class...</option>
                     {classes.map(c => (
@@ -174,7 +174,7 @@ export default function CreateExamModal({ isOpen, onClose, onSuccess }) {
                       value={formData.starts_at}
                       onChange={handleChange}
                       required
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
                     />
                   </div>
                   <div>
@@ -187,7 +187,7 @@ export default function CreateExamModal({ isOpen, onClose, onSuccess }) {
                       value={formData.ends_at}
                       onChange={handleChange}
                       required
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
                     />
                   </div>
                 </div>
@@ -200,7 +200,7 @@ export default function CreateExamModal({ isOpen, onClose, onSuccess }) {
                     name="allowed_vm_template"
                     value={formData.allowed_vm_template}
                     onChange={handleChange}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="">Any template</option>
                     {templates.map(t => (
@@ -224,7 +224,7 @@ export default function CreateExamModal({ isOpen, onClose, onSuccess }) {
                       name="restrict_internet"
                       checked={formData.restrict_internet}
                       onChange={handleChange}
-                      className="w-5 h-5 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900"
+                      className="w-5 h-5 rounded border-slate-600 bg-slate-900 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900"
                     />
                     <div>
                       <div className="text-white">Restrict Internet Access</div>
@@ -238,7 +238,7 @@ export default function CreateExamModal({ isOpen, onClose, onSuccess }) {
                       name="restrict_copy_paste"
                       checked={formData.restrict_copy_paste}
                       onChange={handleChange}
-                      className="w-5 h-5 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900"
+                      className="w-5 h-5 rounded border-slate-600 bg-slate-900 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900"
                     />
                     <div>
                       <div className="text-white">Restrict Copy & Paste</div>
@@ -258,7 +258,7 @@ export default function CreateExamModal({ isOpen, onClose, onSuccess }) {
                   onChange={handleChange}
                   rows={3}
                   placeholder="Instructions shown to students when they join the exam..."
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                 />
               </div>
 
@@ -272,7 +272,7 @@ export default function CreateExamModal({ isOpen, onClose, onSuccess }) {
                   value={formData.grace_period_minutes}
                   onChange={handleChange}
                   min="0"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
                 <p className="text-xs text-slate-400 mt-1">Minutes after end before force-termination.</p>
               </div>
@@ -293,7 +293,7 @@ export default function CreateExamModal({ isOpen, onClose, onSuccess }) {
             type="submit"
             form="createExamForm"
             disabled={isSubmitting || isLoading}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {isSubmitting ? (
               <>

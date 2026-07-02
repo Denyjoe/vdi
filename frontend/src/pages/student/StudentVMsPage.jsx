@@ -13,20 +13,20 @@ import ExamBanner from '../../components/student/ExamBanner';
 
 /** Map icon name strings (stored in DB) to Lucide components. */
 const ICON_MAP = {
-  Compass: <Compass className="w-12 h-12 text-blue-400" />,
-  BarChart2: <BarChart2 className="w-12 h-12 text-blue-400" />,
-  Code2: <Code2 className="w-12 h-12 text-blue-400" />,
-  Palette: <Palette className="w-12 h-12 text-blue-400" />,
-  Network: <Network className="w-12 h-12 text-blue-400" />,
-  Shield: <Shield className="w-12 h-12 text-blue-400" />,
-  Building2: <Building2 className="w-12 h-12 text-blue-400" />,
-  BrainCircuit: <BrainCircuit className="w-12 h-12 text-blue-400" />,
-  Smartphone: <Smartphone className="w-12 h-12 text-blue-400" />,
-  Database: <Database className="w-12 h-12 text-blue-400" />,
-  Film: <Film className="w-12 h-12 text-blue-400" />,
-  Globe: <Globe className="w-12 h-12 text-blue-400" />,
-  Server: <Server className="w-12 h-12 text-blue-400" />,
-  Monitor: <Monitor className="w-12 h-12 text-blue-400" />,
+  Compass: <Compass className="w-12 h-12 text-indigo-400" />,
+  BarChart2: <BarChart2 className="w-12 h-12 text-indigo-400" />,
+  Code2: <Code2 className="w-12 h-12 text-indigo-400" />,
+  Palette: <Palette className="w-12 h-12 text-indigo-400" />,
+  Network: <Network className="w-12 h-12 text-indigo-400" />,
+  Shield: <Shield className="w-12 h-12 text-indigo-400" />,
+  Building2: <Building2 className="w-12 h-12 text-indigo-400" />,
+  BrainCircuit: <BrainCircuit className="w-12 h-12 text-indigo-400" />,
+  Smartphone: <Smartphone className="w-12 h-12 text-indigo-400" />,
+  Database: <Database className="w-12 h-12 text-indigo-400" />,
+  Film: <Film className="w-12 h-12 text-indigo-400" />,
+  Globe: <Globe className="w-12 h-12 text-indigo-400" />,
+  Server: <Server className="w-12 h-12 text-indigo-400" />,
+  Monitor: <Monitor className="w-12 h-12 text-indigo-400" />,
 };
 
 export default function StudentVMsPage() {
@@ -189,7 +189,7 @@ export default function StudentVMsPage() {
   const hasActiveVM = vms.some(vm => ['provisioning', 'running'].includes(vm.status));
 
   if (loading) {
-    return <div className="flex justify-center items-center h-64"><RefreshCw className="w-8 h-8 animate-spin text-blue-500" /></div>;
+    return <div className="flex justify-center items-center h-64"><RefreshCw className="w-8 h-8 animate-spin text-indigo-500" /></div>;
   }
 
   return (
@@ -207,19 +207,19 @@ export default function StudentVMsPage() {
 
       {/* Active Session Banner */}
       {activeSession && (
-        <div className="bg-blue-600/20 border border-blue-500/50 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg">
+        <div className="bg-indigo-600/20 border border-indigo-500/50 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg">
           <div className="flex items-center gap-3">
-            <div className="bg-blue-500 p-2 rounded-full">
+            <div className="bg-indigo-500 p-2 rounded-full">
               <Monitor className="w-5 h-5 text-white" />
             </div>
             <div>
               <p className="text-white font-medium">You have an active session — {activeSession.vm.name}</p>
-              <p className="text-blue-300 text-sm">Duration: {activeSession.duration_display}</p>
+              <p className="text-indigo-300 text-sm">Duration: {activeSession.duration_display}</p>
             </div>
           </div>
           <button 
             onClick={() => navigate(`/session/${activeSession.id}`)}
-            className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shadow-md"
+            className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shadow-md"
           >
             Resume Session
           </button>
@@ -319,7 +319,7 @@ export default function StudentVMsPage() {
                       <button 
                         onClick={() => handleConnect(vm)}
                         disabled={connectingVmId === vm.id}
-                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {connectingVmId === vm.id ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Monitor className="w-4 h-4" />}
                         {connectingVmId === vm.id ? 'Connecting...' : 'Connect'}
@@ -409,7 +409,7 @@ export default function StudentVMsPage() {
                   className={`w-full py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     hasActiveVM 
                       ? 'bg-slate-700 text-slate-500 cursor-not-allowed' 
-                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                      : 'bg-indigo-600 hover:bg-indigo-700 text-white'
                   }`}
                 >
                   Request This VM
@@ -436,7 +436,7 @@ export default function StudentVMsPage() {
               <textarea 
                 value={requestNotes}
                 onChange={(e) => setRequestNotes(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                 rows="3"
                 placeholder="e.g. Need this for my final project..."
               ></textarea>
@@ -453,7 +453,7 @@ export default function StudentVMsPage() {
               <button 
                 onClick={handleConfirmRequest}
                 disabled={requesting}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
               >
                 {requesting && <RefreshCw className="w-4 h-4 animate-spin" />}
                 {requesting ? 'Requesting...' : 'Request VM'}

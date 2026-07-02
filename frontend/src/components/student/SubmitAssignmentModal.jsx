@@ -93,9 +93,9 @@ export default function SubmitAssignmentModal({ isOpen, onClose, assignment, onS
               />
               <label
                 htmlFor="submission-file-upload"
-                className="w-full bg-slate-900 border-2 border-dashed border-slate-600 rounded-xl px-4 py-8 text-center cursor-pointer flex flex-col items-center justify-center hover:border-blue-500 hover:bg-slate-800 transition-all group"
+                className="w-full bg-slate-900 border-2 border-dashed border-slate-600 rounded-xl px-4 py-8 text-center cursor-pointer flex flex-col items-center justify-center hover:border-indigo-500 hover:bg-slate-800 transition-all group"
               >
-                <FolderOpen className={`w-8 h-8 mb-3 ${file ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400'} transition-colors`} />
+                <FolderOpen className={`w-8 h-8 mb-3 ${file ? 'text-indigo-400' : 'text-slate-500 group-hover:text-indigo-400'} transition-colors`} />
                 <span className="text-white font-medium mb-1">
                   {file ? file.name : 'Click to select a file'}
                 </span>
@@ -113,7 +113,7 @@ export default function SubmitAssignmentModal({ isOpen, onClose, assignment, onS
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               placeholder="Any additional information..."
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
             />
           </div>
 
@@ -128,7 +128,7 @@ export default function SubmitAssignmentModal({ isOpen, onClose, assignment, onS
             <button
               type="submit"
               disabled={isSubmitting || !file}
-              className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20"
+              className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20"
             >
               {isSubmitting ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />

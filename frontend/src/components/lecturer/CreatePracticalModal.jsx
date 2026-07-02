@@ -10,7 +10,7 @@ import api from '../../services/api';
 const SESSION_TYPES = [
   { id: 'lab', label: 'Lab Session', icon: <FlaskConical className="w-5 h-5 text-emerald-500" /> },
   { id: 'exam', label: 'Practical Exam', icon: <FileText className="w-5 h-5 text-red-500" /> },
-  { id: 'assignment', label: 'VM Assignment', icon: <File className="w-5 h-5 text-blue-500" /> }
+  { id: 'assignment', label: 'VM Assignment', icon: <File className="w-5 h-5 text-indigo-500" /> }
 ];
 
 const SUBMISSION_TYPES = [
@@ -168,7 +168,7 @@ export default function CreatePracticalModal({ onClose, onCreated }) {
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 shrink-0">
           <div>
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <FlaskConical className="w-5 h-5 text-blue-500" /> Create Practical Session
+              <FlaskConical className="w-5 h-5 text-indigo-500" /> Create Practical Session
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">Step {step} of 5</p>
           </div>
@@ -179,7 +179,7 @@ export default function CreatePracticalModal({ onClose, onCreated }) {
 
         {/* Progress Bar */}
         <div className="w-full bg-slate-800 h-1 shrink-0">
-          <div className="bg-blue-500 h-full transition-all duration-300" style={{ width: `${(step/5)*100}%` }} />
+          <div className="bg-indigo-500 h-full transition-all duration-300" style={{ width: `${(step/5)*100}%` }} />
         </div>
 
         {/* Body Content */}
@@ -198,13 +198,13 @@ export default function CreatePracticalModal({ onClose, onCreated }) {
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">Session Name <span className="text-red-400">*</span></label>
                 <input type="text" name="name" value={formData.name} onChange={handleChange}
                   placeholder="e.g. AutoCAD Lab 1 — Floor Plan"
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">Select Class <span className="text-red-400">*</span></label>
                 <select name="class_room" value={formData.class_room} onChange={handleChange}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500">
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500">
                   <option value="">— Select a class —</option>
                   {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
@@ -213,10 +213,10 @@ export default function CreatePracticalModal({ onClose, onCreated }) {
                 <label className="block text-sm font-medium text-slate-300 mb-3">Session Type</label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {SESSION_TYPES.map(type => (
-                    <label key={type.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${formData.session_type === type.id ? 'bg-blue-500/10 border-blue-500' : 'bg-slate-800 border-slate-700 hover:border-slate-600'}`}>
+                    <label key={type.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${formData.session_type === type.id ? 'bg-indigo-500/10 border-indigo-500' : 'bg-slate-800 border-slate-700 hover:border-slate-600'}`}>
                       <input type="radio" name="session_type" value={type.id} checked={formData.session_type === type.id} onChange={handleChange} className="hidden" />
                       {type.icon}
-                      <span className={`text-sm font-medium ${formData.session_type === type.id ? 'text-blue-400' : 'text-slate-300'}`}>{type.label}</span>
+                      <span className={`text-sm font-medium ${formData.session_type === type.id ? 'text-indigo-400' : 'text-slate-300'}`}>{type.label}</span>
                     </label>
                   ))}
                 </div>
@@ -231,13 +231,13 @@ export default function CreatePracticalModal({ onClose, onCreated }) {
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1.5">Start Date & Time</label>
                   <input type="datetime-local" name="start_time" value={formData.start_time} onChange={handleChange}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 [color-scheme:dark]"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 [color-scheme:dark]"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1.5">End Date & Time</label>
                   <input type="datetime-local" name="end_time" value={formData.end_time} onChange={handleChange}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 [color-scheme:dark]"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 [color-scheme:dark]"
                   />
                 </div>
               </div>
@@ -246,13 +246,13 @@ export default function CreatePracticalModal({ onClose, onCreated }) {
                 <div className="flex items-center justify-between mb-3">
                   <label className="text-sm font-medium text-slate-300">Submission Deadline</label>
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" name="same_as_end_time" checked={formData.same_as_end_time} onChange={handleChange} className="w-4 h-4 rounded text-blue-500 focus:ring-0 bg-slate-800 border-slate-700" />
+                    <input type="checkbox" name="same_as_end_time" checked={formData.same_as_end_time} onChange={handleChange} className="w-4 h-4 rounded text-indigo-500 focus:ring-0 bg-slate-800 border-slate-700" />
                     <span className="text-sm text-slate-400">Same as end time</span>
                   </label>
                 </div>
                 {!formData.same_as_end_time && (
                   <input type="datetime-local" name="submission_deadline" value={formData.submission_deadline} onChange={handleChange}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 [color-scheme:dark]"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 [color-scheme:dark]"
                   />
                 )}
               </div>
@@ -279,7 +279,7 @@ export default function CreatePracticalModal({ onClose, onCreated }) {
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">Required VM Template (Optional)</label>
                 <select name="required_vm_template" value={formData.required_vm_template} onChange={handleChange}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500">
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500">
                   <option value="">— Any template (Student chooses) —</option>
                   {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
@@ -336,10 +336,10 @@ export default function CreatePracticalModal({ onClose, onCreated }) {
                 <label className="block text-sm font-medium text-slate-300 mb-3">Submission Type</label>
                 <div className="space-y-3">
                   {SUBMISSION_TYPES.map(type => (
-                    <label key={type.id} className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${formData.submission_type === type.id ? 'bg-blue-500/10 border-blue-500' : 'bg-slate-800 border-slate-700 hover:border-slate-600'}`}>
+                    <label key={type.id} className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${formData.submission_type === type.id ? 'bg-indigo-500/10 border-indigo-500' : 'bg-slate-800 border-slate-700 hover:border-slate-600'}`}>
                       <input type="radio" name="submission_type" value={type.id} checked={formData.submission_type === type.id} onChange={handleChange} className="mt-1" />
                       <div>
-                        <p className={`text-sm font-medium ${formData.submission_type === type.id ? 'text-blue-400' : 'text-slate-200'}`}>{type.label}</p>
+                        <p className={`text-sm font-medium ${formData.submission_type === type.id ? 'text-indigo-400' : 'text-slate-200'}`}>{type.label}</p>
                         <p className="text-xs text-slate-400 mt-0.5">{type.desc}</p>
                       </div>
                     </label>
@@ -352,13 +352,13 @@ export default function CreatePracticalModal({ onClose, onCreated }) {
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-1.5">Max File Size (MB)</label>
                     <input type="number" name="max_file_size" value={formData.max_file_size} onChange={handleChange} min="1" max="500"
-                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500"
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-1.5">Allowed Types (Exts)</label>
                     <input type="text" placeholder=".pdf, .docx, .dwg"
-                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white placeholder-slate-600 focus:outline-none focus:border-blue-500"
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500"
                     />
                   </div>
                 </div>
@@ -368,7 +368,7 @@ export default function CreatePracticalModal({ onClose, onCreated }) {
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">Instructions for Students</label>
                 <textarea name="instructions" value={formData.instructions} onChange={handleChange} rows="4"
                   placeholder="Detailed instructions shown to students when they join the session..."
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 resize-none"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 resize-none"
                 />
               </div>
             </div>
@@ -382,7 +382,7 @@ export default function CreatePracticalModal({ onClose, onCreated }) {
                 <div className="pb-4 border-b border-slate-700/50">
                   <h4 className="text-xl font-bold text-white mb-1">{formData.name}</h4>
                   <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-500/20 text-blue-400">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-indigo-500/20 text-indigo-400">
                       {SESSION_TYPES.find(t => t.id === formData.session_type)?.label}
                     </span>
                     <span className="text-sm text-slate-400">for {selectedClassObj?.name}</span>
@@ -431,7 +431,7 @@ export default function CreatePracticalModal({ onClose, onCreated }) {
           {step < 5 ? (
             <button 
               onClick={handleNext}
-              className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-1.5">
+              className="px-5 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors flex items-center gap-1.5">
               Next <ChevronRight className="w-4 h-4" />
             </button>
           ) : (

@@ -67,7 +67,7 @@ export default function StudentDashboard() {
   if (isLoading) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
       </div>
     );
   }
@@ -102,8 +102,8 @@ export default function StudentDashboard() {
       {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-slate-800 rounded-xl p-6 shadow-md border border-slate-700 flex items-center gap-4 transition-transform hover:scale-105">
-          <div className="bg-blue-500/20 p-4 rounded-lg">
-            <Monitor className="w-6 h-6 text-blue-400" />
+          <div className="bg-indigo-500/20 p-4 rounded-lg">
+            <Monitor className="w-6 h-6 text-indigo-400" />
           </div>
           <div>
             <p className="text-slate-400 text-sm font-medium">My VMs</p>
@@ -160,14 +160,14 @@ export default function StudentDashboard() {
       </div>
 
       {/* Announcement Card */}
-      <div className="bg-blue-900/40 border border-blue-500/30 rounded-xl p-6 shadow-sm">
+      <div className="bg-indigo-900/40 border border-indigo-500/30 rounded-xl p-6 shadow-sm">
         <div className="flex gap-4">
           <div className="mt-1">
-            <Info className="w-6 h-6 text-blue-400" />
+            <Info className="w-6 h-6 text-indigo-400" />
           </div>
           <div>
-            <p className="text-blue-100 leading-relaxed">
-              New to DIT VDI? Start by requesting a Virtual Machine from the VM catalog. 
+            <p className="text-indigo-100 leading-relaxed">
+              New to CloudDesk? Start by requesting a Virtual Machine from the VM catalog. 
               Choose a template that matches your coursework needs.
             </p>
           </div>
@@ -189,7 +189,7 @@ export default function StudentDashboard() {
           </Link>
           <Link 
             to="/student/vms" 
-            className="flex items-center justify-center py-3 px-4 border border-blue-500 text-blue-400 rounded-lg hover:bg-blue-500 hover:text-white transition-colors"
+            className="flex items-center justify-center py-3 px-4 border border-indigo-500 text-indigo-400 rounded-lg hover:bg-indigo-500 hover:text-white transition-colors"
           >
             Request a VM
           </Link>

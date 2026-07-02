@@ -20,7 +20,7 @@ export default function NotificationsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
-            <Bell className="w-8 h-8 text-blue-500" />
+            <Bell className="w-8 h-8 text-indigo-500" />
             Notifications
           </h1>
           <p className="text-slate-400 mt-2 text-lg">Stay updated with your latest alerts and activities</p>
@@ -33,7 +33,7 @@ export default function NotificationsPage() {
           >
             <Check className="w-5 h-5" />
             <span>Mark all read</span>
-            <span className="bg-blue-500 text-white text-xs font-bold px-2 py-0.5 rounded-full ml-1">
+            <span className="bg-indigo-500 text-white text-xs font-bold px-2 py-0.5 rounded-full ml-1">
               {unreadCount}
             </span>
           </button>
@@ -54,11 +54,11 @@ export default function NotificationsPage() {
             {notifications.map((notif) => (
               <div 
                 key={notif.id}
-                className={`p-6 transition-all sm:flex sm:items-start gap-4 ${!notif.is_read ? 'bg-blue-500/5' : 'hover:bg-slate-800/30'}`}
+                className={`p-6 transition-all sm:flex sm:items-start gap-4 ${!notif.is_read ? 'bg-indigo-500/5' : 'hover:bg-slate-800/30'}`}
               >
                 <div className="hidden sm:block mt-1">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center border ${
-                    !notif.is_read ? 'bg-blue-500/20 border-blue-500/30 text-blue-400' : 'bg-slate-800 border-slate-700 text-slate-400'
+                    !notif.is_read ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-400' : 'bg-slate-800 border-slate-700 text-slate-400'
                   }`}>
                     <Bell className="w-5 h-5" />
                   </div>
@@ -82,7 +82,7 @@ export default function NotificationsPage() {
                     {notif.action_url && (
                       <button
                         onClick={() => handleNotificationClick(notif)}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 hover:text-blue-300 text-sm font-medium rounded-lg transition-colors border border-blue-500/20"
+                        className="flex items-center gap-2 px-4 py-2 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 hover:text-indigo-300 text-sm font-medium rounded-lg transition-colors border border-indigo-500/20"
                       >
                         View Details
                         <ExternalLink className="w-4 h-4" />

@@ -84,7 +84,7 @@ function RequestModal({ cls, onClose, onRequested }) {
               onChange={(e) => setMessage(e.target.value)}
               placeholder="e.g. I am in COE-2 stream and would like to join this class..."
               rows={4}
-              className="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-3 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-3 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
             />
           </div>
           {error && (
@@ -99,7 +99,7 @@ function RequestModal({ cls, onClose, onRequested }) {
               Cancel
             </button>
             <button type="submit" disabled={loading}
-              className="flex-1 py-2.5 px-4 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+              className="flex-1 py-2.5 px-4 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               <Send className="w-4 h-4" />
               {loading ? 'Sending...' : 'Send Request'}
@@ -189,7 +189,7 @@ export default function StudentClassesPage() {
   if (isLoading) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center">
-        <Loader2 className="w-12 h-12 text-blue-400 animate-spin" />
+        <Loader2 className="w-12 h-12 text-indigo-400 animate-spin" />
       </div>
     );
   }
@@ -205,7 +205,7 @@ export default function StudentClassesPage() {
       {/* Enrolled Classes */}
       <section>
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          <GraduationCap className="w-5 h-5 text-blue-400" />
+          <GraduationCap className="w-5 h-5 text-indigo-400" />
           Enrolled Classes
           <span className="text-sm font-normal text-slate-400 ml-1">({enrolledClasses.length})</span>
         </h3>
@@ -258,7 +258,7 @@ export default function StudentClassesPage() {
               placeholder="Search by name, dept, lecturer..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
         </div>
@@ -266,7 +266,7 @@ export default function StudentClassesPage() {
         {/* Recommended Classes */}
         <div className="mb-8">
           <h4 className="text-md font-medium text-slate-300 mb-4 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+            <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
             Recommended Official Classes
             <span className="text-xs font-normal text-slate-500 ml-1">({filteredRecommended.length})</span>
           </h4>
@@ -342,7 +342,7 @@ function AvailableClassCard({ cls, onRequest, onCancel, cancelling }) {
 
   return (
     <div className={`bg-slate-800 border rounded-2xl p-5 shadow-md transition-all ${
-      isPending ? 'border-amber-500/40' : isRejected ? 'border-red-500/30' : 'border-slate-700 hover:border-blue-500/40'
+      isPending ? 'border-amber-500/40' : isRejected ? 'border-red-500/30' : 'border-slate-700 hover:border-indigo-500/40'
     }`}>
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0">
@@ -388,7 +388,7 @@ function AvailableClassCard({ cls, onRequest, onCancel, cancelling }) {
         <button
           id={`request-join-${cls.id}`}
           onClick={onRequest}
-          className="w-full py-2 text-xs font-medium bg-blue-500/20 hover:bg-blue-600 text-blue-400 hover:text-white border border-blue-500/30 hover:border-transparent rounded-xl transition-colors flex items-center justify-center gap-2">
+          className="w-full py-2 text-xs font-medium bg-indigo-500/20 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-500/30 hover:border-transparent rounded-xl transition-colors flex items-center justify-center gap-2">
           <Plus className="w-3.5 h-3.5" />
           {isRejected ? 'Request Again' : 'Request to Join'}
         </button>

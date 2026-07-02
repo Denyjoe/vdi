@@ -1,5 +1,5 @@
 /**
- * App — root component for the DIT VDI System frontend.
+ * App — root component for the CloudDesk frontend.
  *
  * Sets up react-router-dom routes for all pages:
  *   - /         → redirects to /login
@@ -16,6 +16,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect } from "react";
 import useAuthStore from "./store/authStore";
+
+// Public pages
+import LandingPage from "./pages/public/LandingPage";
+import PricingPage from "./pages/public/PricingPage";
+import TemplatesPage from "./pages/public/TemplatesPage";
 
 // Auth pages (no layout wrapper)
 import LoginPage from "./pages/auth/LoginPage";
@@ -59,18 +64,32 @@ import NotFoundPage from "./pages/shared/NotFoundPage";
 
 export default function App() {
   const initializeAuth = useAuthStore((state) => state.initializeAuth);
+  const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
     initializeAuth();
   }, [initializeAuth]);
 
+  const getDashboardRoute = () => {
+    if (!user) return "/";
+    if (user.role === 'admin') return "/admin/dashboard";
+    if (user.role === 'instructor') return "/lecturer/dashboard";
+    return "/student/dashboard";
+  };
+
   return (
     <BrowserRouter>
       <Routes>
         {/* ── Public routes (no layout) ─────────────────────────── */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/templates" element={<TemplatesPage />} />
+        
+        <Route path="/login" element={user ? <Navigate to={getDashboardRoute()} replace /> : <LoginPage />} />
+        <Route path="/register" element={user ? <Navigate to={getDashboardRoute()} replace /> : <RegisterPage />} />
+        
+        {/* Fallback dashboard redirect if navigating to /dashboard explicitly */}
+        <Route path="/dashboard" element={<Navigate to={getDashboardRoute()} replace />} />
 
         {/* Notifications */}
         <Route

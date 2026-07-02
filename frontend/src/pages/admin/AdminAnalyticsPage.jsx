@@ -56,7 +56,7 @@ export default function AdminAnalyticsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[80vh]">
-        <Activity className="w-12 h-12 text-blue-500 animate-spin" />
+        <Activity className="w-12 h-12 text-indigo-500 animate-spin" />
       </div>
     );
   }
@@ -116,8 +116,8 @@ export default function AdminAnalyticsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Row 1 */}
         <div className="bg-slate-800 rounded-xl p-6 shadow-md border border-slate-700 flex items-center gap-4">
-          <div className="bg-blue-500/20 p-4 rounded-lg">
-            <Users className="w-6 h-6 text-blue-400" />
+          <div className="bg-indigo-500/20 p-4 rounded-lg">
+            <Users className="w-6 h-6 text-indigo-400" />
           </div>
           <div>
             <p className="text-slate-400 text-sm font-medium">Total Users</p>
@@ -167,8 +167,8 @@ export default function AdminAnalyticsPage() {
         </div>
 
         <div className="bg-slate-800 rounded-xl p-6 shadow-md border border-slate-700 flex items-center gap-4">
-          <div className="bg-blue-500/20 p-4 rounded-lg">
-            <Calendar className="w-6 h-6 text-blue-400" />
+          <div className="bg-indigo-500/20 p-4 rounded-lg">
+            <Calendar className="w-6 h-6 text-indigo-400" />
           </div>
           <div>
             <p className="text-slate-400 text-sm font-medium">Sessions Today</p>
@@ -187,8 +187,8 @@ export default function AdminAnalyticsPage() {
         </div>
 
         <div className="bg-slate-800 rounded-xl p-6 shadow-md border border-slate-700 flex items-center gap-4">
-          <div className="bg-blue-500/20 p-4 rounded-lg">
-            <Clock className="w-6 h-6 text-blue-400" />
+          <div className="bg-indigo-500/20 p-4 rounded-lg">
+            <Clock className="w-6 h-6 text-indigo-400" />
           </div>
           <div>
             <p className="text-slate-400 text-sm font-medium">Avg Session</p>
@@ -411,7 +411,7 @@ export default function AdminAnalyticsPage() {
             <thead className="bg-slate-900/50 text-slate-300">
               <tr>
                 <th className="px-6 py-4 font-medium w-24 text-center">Rank</th>
-                <th className="px-6 py-4 font-medium">Student</th>
+                <th className="px-6 py-4 font-medium">Member</th>
                 <th className="px-6 py-4 font-medium text-center">VMs Created</th>
                 <th className="px-6 py-4 font-medium text-right">Total Session Hours</th>
               </tr>
@@ -432,7 +432,7 @@ export default function AdminAnalyticsPage() {
                       <p className="text-xs text-slate-500">{user.email}</p>
                     </td>
                     <td className="px-6 py-4 text-center text-white font-medium">{user.vm_count}</td>
-                    <td className="px-6 py-4 text-right text-blue-400 font-medium">{user.total_session_hours} hrs</td>
+                    <td className="px-6 py-4 text-right text-indigo-400 font-medium">{user.total_session_hours} hrs</td>
                   </tr>
                 ))
               )}

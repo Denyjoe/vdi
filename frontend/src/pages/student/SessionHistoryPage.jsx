@@ -74,7 +74,7 @@ export default function SessionHistoryPage() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Activity className="w-8 h-8 animate-spin text-blue-500" />
+        <Activity className="w-8 h-8 animate-spin text-indigo-500" />
       </div>
     );
   }
@@ -88,8 +88,8 @@ export default function SessionHistoryPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-slate-800 rounded-xl p-6 shadow-md border border-slate-700 flex items-center gap-4">
-          <div className="bg-blue-500/20 p-4 rounded-lg">
-            <Monitor className="w-6 h-6 text-blue-400" />
+          <div className="bg-indigo-500/20 p-4 rounded-lg">
+            <Monitor className="w-6 h-6 text-indigo-400" />
           </div>
           <div>
             <p className="text-slate-400 text-sm font-medium">Total Sessions</p>
@@ -153,12 +153,12 @@ export default function SessionHistoryPage() {
                       {session.status === 'active' ? (
                         <button 
                           onClick={() => navigate(`/session/${session.id}`)}
-                          className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors"
+                          className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors"
                         >
                           Resume
                         </button>
                       ) : (
-                        <button className="text-blue-400 hover:text-blue-300 text-xs font-medium transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
+                        <button className="text-indigo-400 hover:text-indigo-300 text-xs font-medium transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
                           View Details
                         </button>
                       )}

@@ -188,7 +188,7 @@ export default function LabWorkspacePage() {
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  if (loading) return <div className="h-screen bg-slate-950 flex items-center justify-center text-blue-400"><Loader2 className="w-8 h-8 animate-spin" /></div>;
+  if (loading) return <div className="h-screen bg-slate-950 flex items-center justify-center text-indigo-400"><Loader2 className="w-8 h-8 animate-spin" /></div>;
   if (error) return <div className="h-screen bg-slate-950 flex items-center justify-center text-red-400">{error}</div>;
   if (!session) return <div className="h-screen bg-slate-950 flex items-center justify-center text-slate-400">Session not found</div>;
 
@@ -236,7 +236,7 @@ export default function LabWorkspacePage() {
               </div>
               <div className="w-px h-3 bg-slate-600" />
               <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
-                <span className="flex items-center gap-1"><Cpu className="w-3 h-3 text-blue-400" /> {vmStats.cpu}%</span>
+                <span className="flex items-center gap-1"><Cpu className="w-3 h-3 text-indigo-400" /> {vmStats.cpu}%</span>
                 <span className="flex items-center gap-1"><Server className="w-3 h-3 text-purple-400" /> {vmStats.ram}%</span>
               </div>
             </div>
@@ -244,7 +244,7 @@ export default function LabWorkspacePage() {
           
           <button 
             onClick={() => submitPanelRef.current?.scrollIntoView({ behavior: 'smooth' })}
-            className="flex items-center gap-2 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-lg shadow-blue-500/20 whitespace-nowrap">
+            className="flex items-center gap-2 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors shadow-lg shadow-blue-500/20 whitespace-nowrap">
             <Upload className="w-4 h-4" /> Submit Work
           </button>
           
@@ -284,7 +284,7 @@ export default function LabWorkspacePage() {
                 <svg className="w-full h-full text-slate-700" viewBox="0 0 100 100">
                   <circle cx="50" cy="50" r="45" fill="none" strokeWidth="8" stroke="currentColor"/>
                 </svg>
-                <svg className="w-full h-full absolute inset-0 text-blue-500 transform -rotate-90 transition-all duration-1000 ease-out" viewBox="0 0 100 100">
+                <svg className="w-full h-full absolute inset-0 text-indigo-500 transform -rotate-90 transition-all duration-1000 ease-out" viewBox="0 0 100 100">
                   <circle cx="50" cy="50" r="45" fill="none" strokeWidth="8" stroke="currentColor" strokeDasharray="283" strokeDashoffset={283 - (283 * provisionProgress / 100)}/>
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center font-bold text-white text-xl">
@@ -292,7 +292,7 @@ export default function LabWorkspacePage() {
                 </div>
               </div>
               <h2 className="text-2xl font-bold text-white mb-2 animate-pulse">Provisioning your VM...</h2>
-              <p className="text-blue-400 font-medium flex items-center gap-2 mb-1">
+              <p className="text-indigo-400 font-medium flex items-center gap-2 mb-1">
                 <Monitor className="w-4 h-4" /> {session.vm_template_name || 'Lab Environment'}
               </p>
               <p className="text-slate-500 text-sm">This takes about 8 seconds</p>
@@ -303,7 +303,7 @@ export default function LabWorkspacePage() {
               <p className="text-lg">No Virtual Machine Connected</p>
               <button 
                 onClick={() => startAutoProvision(session)}
-                className="mt-4 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+                className="mt-4 px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors">
                 Request VM
               </button>
             </div>
@@ -332,12 +332,12 @@ export default function LabWorkspacePage() {
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 hover:bg-white/10 rounded flex items-center justify-center cursor-pointer transition-colors">
                     <div className="grid grid-cols-2 gap-0.5">
-                      {[1,2,3,4].map(i => <div key={i} className="w-2 h-2 bg-blue-400 rounded-sm"/>)}
+                      {[1,2,3,4].map(i => <div key={i} className="w-2 h-2 bg-indigo-400 rounded-sm"/>)}
                     </div>
                   </div>
                   <div className="h-8 w-px bg-white/10 mx-1" />
                   <div className="w-8 h-8 bg-white/10 rounded flex items-center justify-center cursor-pointer">
-                    <File className="w-4 h-4 text-blue-200" />
+                    <File className="w-4 h-4 text-indigo-200" />
                   </div>
                 </div>
                 <div className="flex items-center text-xs text-white/90 gap-4 hover:bg-white/10 px-2 py-1 rounded cursor-default">
@@ -389,8 +389,8 @@ export default function LabWorkspacePage() {
           </div>
 
           {/* Card 3: Submit Your Work */}
-          <div ref={submitPanelRef} className={`bg-slate-800 rounded-xl border-2 transition-colors ${isSubmitted ? 'border-emerald-500/50' : 'border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.15)]'} overflow-hidden`}>
-            <div className={`px-4 py-3 border-b flex justify-between items-center ${isSubmitted ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-blue-500/10 border-blue-500/20'}`}>
+          <div ref={submitPanelRef} className={`bg-slate-800 rounded-xl border-2 transition-colors ${isSubmitted ? 'border-emerald-500/50' : 'border-indigo-500/50 shadow-[0_0_20px_rgba(59,130,246,0.15)]'} overflow-hidden`}>
+            <div className={`px-4 py-3 border-b flex justify-between items-center ${isSubmitted ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-indigo-500/10 border-indigo-500/20'}`}>
               <h3 className="text-white font-bold text-sm">Submit Your Work</h3>
               {isSubmitted ? (
                 <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase rounded border border-emerald-500/30 flex items-center gap-1">
@@ -418,7 +418,7 @@ export default function LabWorkspacePage() {
                   {timeLeft > 0 && (
                     <button 
                       onClick={() => setAccessRecord({...accessRecord, status: 'resubmitting'})}
-                      className="text-blue-400 text-sm hover:underline">
+                      className="text-indigo-400 text-sm hover:underline">
                       Resubmit work
                     </button>
                   )}
@@ -430,8 +430,8 @@ export default function LabWorkspacePage() {
                       <h4 className="text-sm font-bold text-slate-300 mb-2">1. Upload File</h4>
                       
                       {!file ? (
-                        <div className="relative border-2 border-dashed border-slate-600 hover:border-blue-500 rounded-xl p-6 text-center cursor-pointer transition-colors group bg-slate-900/50">
-                          <Upload className="w-8 h-8 text-slate-500 group-hover:text-blue-400 mx-auto mb-2 transition-colors" />
+                        <div className="relative border-2 border-dashed border-slate-600 hover:border-indigo-500 rounded-xl p-6 text-center cursor-pointer transition-colors group bg-slate-900/50">
+                          <Upload className="w-8 h-8 text-slate-500 group-hover:text-indigo-400 mx-auto mb-2 transition-colors" />
                           <p className="text-sm text-slate-300 font-medium mb-1 group-hover:text-white">Click to browse or drag file here</p>
                           <p className="text-[11px] text-slate-500">Max size: {session.max_file_size_mb || 10}MB</p>
                           {/* Hidden file input for simulation */}
@@ -439,10 +439,10 @@ export default function LabWorkspacePage() {
                           <label htmlFor="fileUpload" className="absolute inset-0 cursor-pointer" />
                         </div>
                       ) : (
-                        <div className="bg-slate-900 border border-blue-500/30 rounded-xl p-4 flex items-center justify-between">
+                        <div className="bg-slate-900 border border-indigo-500/30 rounded-xl p-4 flex items-center justify-between">
                           <div className="flex items-center gap-3 overflow-hidden">
-                            <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center shrink-0">
-                              <File className="w-5 h-5 text-blue-400" />
+                            <div className="w-10 h-10 bg-indigo-500/20 rounded-lg flex items-center justify-center shrink-0">
+                              <File className="w-5 h-5 text-indigo-400" />
                             </div>
                             <div className="min-w-0">
                               <p className="text-sm font-bold text-white truncate">{file.name}</p>
@@ -459,7 +459,7 @@ export default function LabWorkspacePage() {
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
                         placeholder="Optional notes for your instructor..."
-                        className="w-full mt-3 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 resize-none h-16"
+                        className="w-full mt-3 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 resize-none h-16"
                       />
                     </div>
                   )}

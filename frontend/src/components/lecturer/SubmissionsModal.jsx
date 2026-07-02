@@ -71,7 +71,7 @@ export default function SubmissionsModal({ isOpen, onClose, assignment }) {
         <div className="p-6 overflow-y-auto">
           {isLoading ? (
             <div className="flex justify-center py-12">
-              <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : submissions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-slate-500">
@@ -85,7 +85,7 @@ export default function SubmissionsModal({ isOpen, onClose, assignment }) {
                 <table className="w-full text-left">
                   <thead className="bg-slate-800 text-slate-400 text-xs uppercase tracking-wider">
                     <tr>
-                      <th className="px-6 py-4 font-medium">Student</th>
+                      <th className="px-6 py-4 font-medium">Member</th>
                       <th className="px-6 py-4 font-medium">ID</th>
                       <th className="px-6 py-4 font-medium">Submitted At</th>
                       <th className="px-6 py-4 font-medium">Status</th>
@@ -124,7 +124,7 @@ export default function SubmissionsModal({ isOpen, onClose, assignment }) {
                         <td className="px-6 py-4 text-right">
                           <button
                             onClick={() => handleDownload(sub.id, sub.file_name)}
-                            className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors inline-flex items-center gap-1.5"
+                            className="p-2 text-slate-400 hover:text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-colors inline-flex items-center gap-1.5"
                             title="Download File"
                           >
                             <Download className="w-4 h-4" />
