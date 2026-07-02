@@ -46,6 +46,8 @@ import LecturerPracticalPage from "./pages/instructor/LecturerPracticalPage";
 
 // Student pages
 import MemberDashboard from "./pages/member/MemberDashboard";
+import MemberGroupsPage from "./pages/member/MemberGroupsPage";
+import MemberSessionsPage from "./pages/member/MemberSessionsPage";
 import StudentVMsPage from "./pages/member/StudentVMsPage";
 import StudentClassesPage from "./pages/member/StudentClassesPage";
 import SessionHistoryPage from "./pages/member/SessionHistoryPage";
@@ -220,7 +222,7 @@ export default function App() {
         />
 
         <Route
-          path="/instructor/monitor"
+          path="/instructor/sessions/:sessionId/monitor"
           element={
             <ProtectedRoute>
               <Layout>
@@ -230,7 +232,7 @@ export default function App() {
           }
         />
         <Route
-          path="/instructor/classes"
+          path="/instructor/groups/:groupId"
           element={
             <ProtectedRoute>
               <Layout>
@@ -314,7 +316,17 @@ export default function App() {
           }
         />
         <Route
-          path="/member/sessions"
+          path="/member/groups"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <MemberGroupsPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/member/sessions-history"
           element={
             <ProtectedRoute>
               <Layout>
@@ -324,11 +336,11 @@ export default function App() {
           }
         />
         <Route
-          path="/member/practicals"
+          path="/member/sessions"
           element={
             <ProtectedRoute>
               <Layout>
-                <StudentPracticalPage />
+                <MemberSessionsPage />
               </Layout>
             </ProtectedRoute>
           }

@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 import api from '../../services/api';
-import { Play, Copy, FolderOpen, Users, Video, ShieldAlert, ChevronRight, Activity } from 'lucide-react';
+import { Play, Copy, FolderOpen, Users, Video, ShieldAlert, ChevronRight, Activity, Plus } from 'lucide-react';
+import CreateLiveSessionModal from '../../components/instructor/CreateLiveSessionModal';
+import CreateGroupModal from '../../components/instructor/CreateGroupModal';
 
 export default function InstructorDashboard() {
     const { user } = useAuthStore();
@@ -10,6 +12,8 @@ export default function InstructorDashboard() {
     const [sessions, setSessions] = useState({ active: [], upcoming: [] });
     const [groups, setGroups] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isCreateSessionOpen, setIsCreateSessionOpen] = useState(false);
+    const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
 
     useEffect(() => {
         fetchDashboardData();
@@ -117,7 +121,7 @@ export default function InstructorDashboard() {
                             My Live Sessions
                         </h2>
                         {isPro && (
-                            <button className="text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
+                            <button onClick={() => setIsCreateSessionOpen(true)} className="text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
                                 <Plus className="w-4 h-4" /> Create
                             </button>
                         )}
@@ -166,7 +170,7 @@ export default function InstructorDashboard() {
                             My Groups
                         </h2>
                         {isPro && (
-                            <button className="text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
+                            <button onClick={() => setIsCreateGroupOpen(true)} className="text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
                                 <Plus className="w-4 h-4" /> Create Group
                             </button>
                         )}
@@ -207,7 +211,7 @@ export default function InstructorDashboard() {
                                 <h3 className="text-lg font-medium text-white mb-2">No Groups Created</h3>
                                 <p className="text-sm text-slate-400 max-w-sm mx-auto mb-6">Groups help you organize members and manage access to sessions and resources.</p>
                                 {isPro && (
-                                    <button className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-all">
+                                    <button onClick={() => setIsCreateGroupOpen(true)} className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-all">
                                         Create Your First Group
                                     </button>
                                 )}
@@ -216,6 +220,8 @@ export default function InstructorDashboard() {
                     </div>
                 </div>
             </div>
+            {isCreateSessionOpen && <CreateLiveSessionModal onClose={() => setIsCreateSessionOpen(false)} onCreated={fetchDashboardData} />}
+            {isCreateGroupOpen && <CreateGroupModal onClose={() => setIsCreateGroupOpen(false)} onCreated={fetchDashboardData} />}
         </div>
     );
 }

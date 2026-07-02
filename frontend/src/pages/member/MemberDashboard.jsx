@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 import api from '../../services/api';
-import { Play, LogOut, CheckCircle2, ChevronRight, FolderOpen, Tv, CreditCard, Laptop, MoreVertical, Plus } from 'lucide-react';
+import { Play, LogOut, CheckCircle2, ChevronRight, FolderOpen, Tv, CreditCard, Laptop, MoreVertical, Plus, Zap } from 'lucide-react';
 import JoinByCodeModal from '../../components/shared/JoinByCodeModal';
+import UpgradeModal from '../../components/shared/UpgradeModal';
 
 export default function MemberDashboard() {
     const { user } = useAuthStore();
+    const navigate = useNavigate();
     const [stats, setStats] = useState(null);
     const [workspaces, setWorkspaces] = useState([]);
     const [sessions, setSessions] = useState([]);
@@ -15,6 +17,7 @@ export default function MemberDashboard() {
     
     const [isJoinSessionOpen, setIsJoinSessionOpen] = useState(false);
     const [isJoinGroupOpen, setIsJoinGroupOpen] = useState(false);
+    const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
     useEffect(() => {
         fetchDashboardData();
@@ -76,10 +79,10 @@ export default function MemberDashboard() {
                         </div>
                         <p className="text-slate-400 text-lg mb-6">Welcome back to your cloud workspace.</p>
                         
-                        <div className="inline-flex items-center px-3 py-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-sm font-medium">
+                        <button onClick={() => navigate('/pricing')} className="inline-flex items-center px-3 py-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-sm font-medium hover:bg-indigo-500/20 transition-colors">
                             <Zap className="w-4 h-4 mr-1.5" />
                             {planDisplayName}
-                        </div>
+                        </button>
                     </div>
                 </div>
 
@@ -108,9 +111,9 @@ export default function MemberDashboard() {
                         )}
                     </div>
                     {hoursPercentage > 80 && planName !== 'institution' && (
-                        <Link to="/pricing" className="mt-4 w-full py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-lg text-sm font-medium transition-all text-center border border-indigo-500/20">
+                        <button onClick={() => setIsUpgradeModalOpen(true)} className="mt-4 w-full py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-lg text-sm font-medium transition-all text-center border border-indigo-500/20">
                             Upgrade Plan
-                        </Link>
+                        </button>
                     )}
                 </div>
             </div>
@@ -147,7 +150,7 @@ export default function MemberDashboard() {
                         )) : (
                             <div className="flex-1 flex flex-col items-center justify-center text-center py-6">
                                 <p className="text-sm text-slate-400 mb-4">No workspaces yet.</p>
-                                <button className="text-sm text-indigo-400 font-medium bg-indigo-500/10 px-4 py-2 rounded-lg border border-indigo-500/20">
+                                <button onClick={() => navigate('/member/workspaces')} className="text-sm text-indigo-400 font-medium bg-indigo-500/10 px-4 py-2 rounded-lg border border-indigo-500/20">
                                     Create Workspace
                                 </button>
                             </div>
@@ -208,7 +211,7 @@ export default function MemberDashboard() {
                                     <p className="font-medium text-white text-sm">{group.name}</p>
                                     <p className="text-xs text-slate-400 mt-1">{group.member_count} members</p>
                                 </div>
-                                <button className="text-xs font-medium text-indigo-400 hover:text-white transition-colors">
+                                <button onClick={() => navigate(`/member/groups/${group.id}`)} className="text-xs font-medium text-indigo-400 hover:text-white transition-colors">
                                     Open
                                 </button>
                             </div>
@@ -244,16 +247,17 @@ export default function MemberDashboard() {
                     </div>
                     <span className="text-sm font-medium text-white">Join Group</span>
                 </button>
-                <Link to="/pricing" className="glass-card p-4 rounded-xl flex flex-col items-center text-center hover:border-indigo-500/40 transition-all group">
+                <button onClick={() => setIsUpgradeModalOpen(true)} className="glass-card p-4 rounded-xl flex flex-col items-center text-center hover:border-indigo-500/40 transition-all group">
                     <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                         <CreditCard className="w-6 h-6 text-emerald-400" />
                     </div>
                     <span className="text-sm font-medium text-white">Upgrade Plan</span>
-                </Link>
+                </button>
             </div>
 
             {isJoinSessionOpen && <JoinByCodeModal type="session" onClose={() => setIsJoinSessionOpen(false)} onJoined={fetchDashboardData} />}
             {isJoinGroupOpen && <JoinByCodeModal type="group" onClose={() => setIsJoinGroupOpen(false)} onJoined={fetchDashboardData} />}
+            {isUpgradeModalOpen && <UpgradeModal onClose={() => setIsUpgradeModalOpen(false)} />}
         </div>
     );
 }

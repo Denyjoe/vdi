@@ -1,17 +1,23 @@
 import { useState, useEffect } from 'react';
-import { Plus, Laptop, Play, Square, Settings, Trash2, Search } from 'lucide-react';
+import { Plus, Laptop, Play, Square, Settings, Trash2, Search, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import CreateWorkspaceModal from '../../components/member/CreateWorkspaceModal';
 
 export default function WorkspacesPage() {
+    const navigate = useNavigate();
     const [workspaces, setWorkspaces] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [launchingId, setLaunchingId] = useState(null);
 
     useEffect(() => {
         fetchWorkspaces();
     }, []);
 
-    const fetchWorkspaces = async () => {
+    const fetchWorkspaces = async (showLoading = true) => {
+        if (showLoading) setIsLoading(true);
         try {
             const res = await api.get('/workspaces/');
             if (res.data?.success) {
@@ -20,16 +26,35 @@ export default function WorkspacesPage() {
         } catch (err) {
             console.error('Failed to fetch workspaces', err);
         } finally {
-            setIsLoading(false);
+            if (showLoading) setIsLoading(false);
         }
     };
 
     const handleLaunch = async (id) => {
+        setLaunchingId(id);
         try {
             await api.post(`/workspaces/${id}/launch/`);
-            fetchWorkspaces();
+            fetchWorkspaces(false);
+            
+            // Poll for status
+            const interval = setInterval(async () => {
+                const res = await api.get('/workspaces/');
+                if (res.data?.success) {
+                    const ws = res.data.data.find(w => w.id === id);
+                    if (ws && ws.status === 'active') {
+                        clearInterval(interval);
+                        setLaunchingId(null);
+                        fetchWorkspaces(false);
+                    }
+                }
+            }, 3000);
+            
+            // Cleanup interval after 30 seconds just in case
+            setTimeout(() => clearInterval(interval), 30000);
+            
         } catch (err) {
             alert(err.response?.data?.message || 'Failed to launch workspace');
+            setLaunchingId(null);
         }
     };
 
@@ -76,7 +101,7 @@ export default function WorkspacesPage() {
                             className="pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 text-sm w-full md:w-64"
                         />
                     </div>
-                    <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-colors whitespace-nowrap">
+                    <button onClick={() => setIsCreateModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-colors whitespace-nowrap">
                         <Plus className="w-4 h-4" /> New Workspace
                     </button>
                 </div>
@@ -119,16 +144,24 @@ export default function WorkspacesPage() {
                             <div className="bg-[#0D1526] p-3 flex gap-2 border-t border-white/5">
                                 {ws.status === 'active' ? (
                                     <>
-                                        <button className="flex-1 py-2 bg-green-500/10 hover:bg-green-500/20 text-green-500 rounded-lg text-sm font-medium transition-colors border border-green-500/20">
-                                            Open Desktop
+                                        <button onClick={() => navigate(`/session/${ws.id}`)} className="flex-1 py-2 bg-green-500/10 hover:bg-green-500/20 text-green-500 rounded-lg text-sm font-medium transition-colors border border-green-500/20">
+                                            Connect
                                         </button>
                                         <button onClick={() => handleStop(ws.id)} className="p-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 rounded-lg transition-colors border border-amber-500/20" title="Stop">
                                             <Square className="w-5 h-5 fill-current" />
                                         </button>
                                     </>
                                 ) : (
-                                    <button onClick={() => handleLaunch(ws.id)} className="flex-1 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-lg text-sm font-medium transition-colors border border-indigo-500/20 flex items-center justify-center gap-1">
-                                        <Play className="w-4 h-4 fill-current" /> Launch
+                                    <button 
+                                        onClick={() => handleLaunch(ws.id)} 
+                                        disabled={launchingId === ws.id}
+                                        className="flex-1 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-lg text-sm font-medium transition-colors border border-indigo-500/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {launchingId === ws.id ? (
+                                            <><Loader2 className="w-4 h-4 animate-spin" /> Starting...</>
+                                        ) : (
+                                            <><Play className="w-4 h-4 fill-current" /> Launch</>
+                                        )}
                                     </button>
                                 )}
                                 
@@ -154,6 +187,7 @@ export default function WorkspacesPage() {
                     </button>
                 </div>
             )}
+            {isCreateModalOpen && <CreateWorkspaceModal onClose={() => setIsCreateModalOpen(false)} onCreated={fetchWorkspaces} />}
         </div>
     );
 }

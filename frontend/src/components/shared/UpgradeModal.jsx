@@ -26,17 +26,19 @@ export default function UpgradeModal({ onClose }) {
         fetchPlans();
     }, []);
 
-    const handleUpgrade = async (planName) => {
+    const handleUpgrade = async (planId) => {
         setIsUpgrading(true);
         setError('');
         try {
-            const res = await api.post('/subscriptions/upgrade/', { plan_name: planName });
+            const res = await api.post('/subscriptions/change/', { plan_id: planId });
             if (res.data?.success) {
-                // Update user subscription in store
-                const updatedUser = { ...user, subscription: res.data.data.plan };
-                setUser(updatedUser);
+                // Update user subscription in store if possible
+                if (res.data.data?.subscription) {
+                    const updatedUser = { ...user, subscription: res.data.data.subscription };
+                    setUser(updatedUser);
+                }
+                alert('Successfully upgraded plan!');
                 onClose();
-                alert(`Successfully upgraded to ${res.data.data.plan.display_name}!`);
             }
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to upgrade plan');
@@ -114,17 +116,15 @@ export default function UpgradeModal({ onClose }) {
                                         </div>
 
                                         <button 
-                                            onClick={() => handleUpgrade(plan.name)}
+                                            onClick={() => handleUpgrade(plan.id)}
                                             disabled={isCurrent || isUpgrading}
                                             className={`w-full py-3 rounded-xl font-medium transition-all ${
-                                                isCurrent 
-                                                    ? 'bg-slate-800 text-slate-400 cursor-not-allowed'
-                                                    : plan.name === 'pro'
-                                                        ? 'bg-indigo-600 hover:bg-indigo-500 text-white glow-primary'
-                                                        : 'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20'
+                                                isCurrent ? 'bg-white/5 text-slate-500 cursor-not-allowed' :
+                                                plan.name === 'pro' ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/25' :
+                                                'bg-white/10 hover:bg-white/20 text-white'
                                             }`}
                                         >
-                                            {isCurrent ? 'Current Plan' : isUpgrading ? 'Upgrading...' : 'Upgrade Now'}
+                                            {isCurrent ? 'Current Plan' : isUpgrading ? 'Upgrading...' : 'Select Plan'}
                                         </button>
                                     </div>
                                 );

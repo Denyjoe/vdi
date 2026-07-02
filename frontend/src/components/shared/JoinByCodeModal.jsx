@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { X, CheckCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 
 export default function JoinByCodeModal({ type = 'session', onClose, onJoined }) {
+    const navigate = useNavigate();
     const [code, setCode] = useState('');
     const [link, setLink] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -51,7 +53,12 @@ export default function JoinByCodeModal({ type = 'session', onClose, onJoined })
                 if (onJoined) onJoined();
             }
         } catch (err) {
-            setError(err.response?.data?.message || 'Code not found. Check and try again.');
+            const errorMsg = err.response?.data?.message || '';
+            if (errorMsg.includes('already a member')) {
+                setError('You are already in this group');
+            } else {
+                setError('Invalid code. Check and try again.');
+            }
         } finally {
             setIsLoading(false);
         }
@@ -80,9 +87,21 @@ export default function JoinByCodeModal({ type = 'session', onClose, onJoined })
                             <h4 className="text-2xl font-bold text-white mb-2">{successData.name}</h4>
                             <p className="text-slate-400 mb-8">You've successfully joined this {isSession ? 'session' : 'group'}!</p>
                             
-                            <button onClick={onClose} className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-all glow-primary">
-                                Open Now
-                            </button>
+                            {isSession ? (
+                                successData.status === 'active' ? (
+                                    <button onClick={() => { onClose(); navigate(`/session/${successData.id}`); }} className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-all glow-primary">
+                                        Enter Session &rarr;
+                                    </button>
+                                ) : (
+                                    <button onClick={() => { onClose(); navigate('/member/sessions'); }} className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-medium transition-all">
+                                        View My Sessions &rarr;
+                                    </button>
+                                )
+                            ) : (
+                                <button onClick={() => { onClose(); navigate('/member/groups'); }} className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-all glow-primary">
+                                    Open Group
+                                </button>
+                            )}
                         </div>
                     ) : (
                         <form onSubmit={handleSubmit} className="flex flex-col items-center">
