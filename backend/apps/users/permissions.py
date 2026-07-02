@@ -1,46 +1,67 @@
-from rest_framework import permissions
-from django.contrib.auth import get_user_model
+from rest_framework.permissions import (
+  BasePermission)
 
-User = get_user_model()
+class IsMember(BasePermission):
+  message = "Only members can access this."
+  def has_permission(self, request, view):
+    return (request.user.is_authenticated
+      and request.user.role == 'member')
 
-class IsStudent(permissions.BasePermission):
-    message = "Only students can access this."
+class IsInstructor(BasePermission):
+  message = "Only instructors can access this."
+  def has_permission(self, request, view):
+    return (request.user.is_authenticated
+      and request.user.role == 'instructor')
 
-    def has_permission(self, request, view):
-        return bool(request.user and request.user.is_authenticated and request.user.role == User.Role.STUDENT)
+class IsAdmin(BasePermission):
+  message = "Only admins can access this."
+  def has_permission(self, request, view):
+    return (request.user.is_authenticated
+      and request.user.role == 'admin')
 
+class IsInstructorOrAdmin(BasePermission):
+  message = "Only instructors or admins."
+  def has_permission(self, request, view):
+    return (request.user.is_authenticated
+      and request.user.role in
+      ['instructor', 'admin'])
 
-class IsLecturer(permissions.BasePermission):
-    message = "Only lecturers can access this."
+class CanCreateSessions(BasePermission):
+  message = "Upgrade to Pro to create sessions."
+  def has_permission(self, request, view):
+    if not request.user.is_authenticated:
+      return False
+    if request.user.role == 'admin':
+      return True
+    try:
+      plan = request.user.subscription.plan
+      return plan.can_create_sessions
+    except:
+      return False
 
-    def has_permission(self, request, view):
-        return bool(request.user and request.user.is_authenticated and request.user.role == User.Role.LECTURER)
+class CanCreateGroups(BasePermission):
+  message = "Upgrade to Starter to create groups."
+  def has_permission(self, request, view):
+    if not request.user.is_authenticated:
+      return False
+    if request.user.role in [
+        'instructor', 'admin']:
+      return True
+    try:
+      plan = request.user.subscription.plan
+      return plan.can_create_groups
+    except:
+      return False
 
-
-class IsAdmin(permissions.BasePermission):
-    message = "Only admins can access this."
-
-    def has_permission(self, request, view):
-        return bool(request.user and request.user.is_authenticated and request.user.role == User.Role.ADMIN)
-
-
-class IsLecturerOrAdmin(permissions.BasePermission):
-    message = "Only lecturers or admins can access this."
-
-    def has_permission(self, request, view):
-        return bool(
-            request.user and 
-            request.user.is_authenticated and 
-            request.user.role in [User.Role.LECTURER, User.Role.ADMIN]
-        )
-
-
-class IsOwnerOrAdmin(permissions.BasePermission):
-    message = "You do not have permission to perform this action."
-
-    def has_object_permission(self, request, view, obj):
-        # Admin can access any object
-        if request.user.role == User.Role.ADMIN:
-            return True
-        # Owner can access their own object
-        return obj == request.user
+class IsOwnerOrAdmin(BasePermission):
+  def has_object_permission(self,
+      request, view, obj):
+    if request.user.role == 'admin':
+      return True
+    if hasattr(obj, 'owner'):
+      return obj.owner == request.user
+    if hasattr(obj, 'created_by'):
+      return obj.created_by == request.user
+    if hasattr(obj, 'user'):
+      return obj.user == request.user
+    return False

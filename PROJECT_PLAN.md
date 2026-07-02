@@ -1,11 +1,22 @@
-# DIT Virtual Desktop Infrastructure (VDI) System
-### Project Plan — Web Application Build
+# CloudDesk — Cloud Virtual Desktop Platform
+### Commercial Platform Build
 
-**Student:** Denis John Wilson
-**Registration Number:** 230242498947
-**Class:** BENG22 COE - 2
-**Supervisor:** Mr. Shija
-**Institution:** Dar es Salaam Institute of Technology (DIT)
+Developer: Denis John Wilson
+Type: Startup SaaS Product
+Vision: Browser-based virtual desktop 
+platform for individuals, educators, 
+and institutions worldwide.
+
+Core Value: Access powerful software 
+(AutoCAD, MATLAB, VS Code, Photoshop) 
+from any browser without expensive 
+local hardware.
+
+Business Model:
+- Free: 5 hours/month
+- Starter: $9/month, 20 hours
+- Pro: $19/month, 80 hours
+- Institution: $99/month, unlimited
 
 ---
 

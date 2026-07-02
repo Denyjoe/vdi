@@ -31,22 +31,15 @@ class User(AbstractUser):
 
     class Role(models.TextChoices):
         """Enumerated set of user roles within the VDI system."""
-        STUDENT = "student", "Student"
-        LECTURER = "lecturer", "Lecturer"
+        MEMBER = "member", "Member"
+        INSTRUCTOR = "instructor", "Instructor"
         ADMIN = "admin", "Admin"
 
     role = models.CharField(
         max_length=20,
         choices=Role.choices,
-        default=Role.STUDENT,
+        default=Role.MEMBER,
         help_text="Determines which dashboard and permissions this user has.",
-    )
-    student_id = models.CharField(
-        max_length=50,
-        blank=True,
-        null=True,
-        unique=True,
-        help_text="DIT registration number (e.g. 230242498947). Students only.",
     )
     phone = models.CharField(
         max_length=20,
@@ -60,34 +53,21 @@ class User(AbstractUser):
         null=True,
         help_text="Profile photo. Stored in MEDIA_ROOT/avatars/.",
     )
-    department = models.ForeignKey(
-        'classes.Department',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='members',
-        help_text="Department the user belongs to.",
+    bio = models.TextField(blank=True)
+    website = models.URLField(blank=True)
+    country = models.CharField(
+        max_length=100, blank=True,
+        default='Tanzania'
     )
-    programme = models.ForeignKey(
-        'classes.Programme',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='students',
-        help_text="The academic programme the user is enrolled in (e.g. Bachelor of Computer Engineering).",
+    timezone_preference = models.CharField(
+        max_length=50,
+        default='Africa/Dar_es_Salaam'
     )
-    year_of_study = models.IntegerField(
-        blank=True,
-        null=True,
-        help_text="Current year of study (e.g. 2, 3, 4). Students only.",
-    )
-    stream = models.ForeignKey(
-        'classes.CourseStream',
+    is_verified = models.BooleanField(default=False)
+    referred_by = models.ForeignKey(
+        'self', null=True, blank=True,
         on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='students',
-        help_text="The DIT programme stream the student belongs to (e.g. BENG22 COE-2).",
+        related_name='referrals'
     )
     is_approved = models.BooleanField(
         default=True,
@@ -111,19 +91,23 @@ class User(AbstractUser):
     # ── Role helper properties ────────────────────────────────────────────────
 
     @property
-    def is_student(self):
-        """Return True if this user has the student role."""
-        return self.role == self.Role.STUDENT
+    def is_member(self):
+        return self.role == 'member'
 
     @property
-    def is_lecturer(self):
-        """Return True if this user has the lecturer role."""
-        return self.role == self.Role.LECTURER
+    def is_instructor(self):
+        return self.role == 'instructor'
 
     @property
-    def is_admin_user(self):
-        """Return True if this user has the admin role."""
-        return self.role == self.Role.ADMIN
+    def is_admin(self):
+        return self.role == 'admin'
+
+    @property
+    def subscription_plan(self):
+        try:
+            return self.subscription.plan.name
+        except:
+            return 'free'
 
 
 class SystemSetting(models.Model):
@@ -161,3 +145,92 @@ class SystemSetting(models.Model):
             }
         )
         return obj
+
+class SubscriptionPlan(models.Model):
+    PLAN_CHOICES = [
+        ('free', 'Free'),
+        ('starter', 'Starter'),
+        ('pro', 'Pro'),
+        ('institution', 'Institution'),
+    ]
+    name = models.CharField(
+        max_length=50,
+        choices=PLAN_CHOICES,
+        unique=True)
+    display_name = models.CharField(max_length=100)
+    price_usd = models.DecimalField(
+        max_digits=8, decimal_places=2,
+        default=0)
+    price_tzs = models.DecimalField(
+        max_digits=12, decimal_places=0,
+        default=0)
+    compute_hours_per_month = models.IntegerField(
+        default=5)
+        # -1 means unlimited
+    max_workspaces = models.IntegerField(default=1)
+    max_concurrent_sessions = models.IntegerField(
+        default=1)
+    can_create_sessions = models.BooleanField(
+        default=False)
+    can_create_groups = models.BooleanField(
+        default=False)
+    can_publish_templates = models.BooleanField(
+        default=False)
+    features = models.JSONField(default=list)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class UserSubscription(models.Model):
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('expired', 'Expired'),
+        ('cancelled', 'Cancelled'),
+        ('trial', 'Trial'),
+    ]
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE,
+        related_name='subscription')
+    plan = models.ForeignKey(
+        SubscriptionPlan, on_delete=models.PROTECT)
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='active')
+    started_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(
+        null=True, blank=True)
+    compute_hours_used = models.FloatField(default=0)
+    last_reset_at = models.DateTimeField(
+        auto_now_add=True)
+
+    @property
+    def hours_remaining(self):
+        plan_hours = self.plan.compute_hours_per_month
+        if plan_hours == -1:
+            return float('inf')
+        return max(0,
+            plan_hours - self.compute_hours_used)
+
+    @property
+    def is_valid(self):
+        if self.status != 'active':
+            return False
+        if self.expires_at:
+            from django.utils import timezone
+            return timezone.now() < self.expires_at
+        return True
+
+class ComputeUsageLog(models.Model):
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE,
+        related_name='usage_logs')
+    vm = models.ForeignKey(
+        'vms.VirtualMachine',
+        on_delete=models.SET_NULL, null=True)
+    session_type = models.CharField(max_length=50)
+    hours_used = models.FloatField(default=0)
+    started_at = models.DateTimeField(auto_now_add=True)
+    ended_at = models.DateTimeField(null=True, blank=True)
+    cost_usd = models.DecimalField(
+        max_digits=8, decimal_places=4,
+        default=0)

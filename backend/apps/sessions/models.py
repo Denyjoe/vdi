@@ -123,11 +123,11 @@ class ExamSession(models.Model):
         max_length=200,
         help_text="Descriptive name for this exam (e.g. 'CAD Mid-Term Exam').",
     )
-    class_room = models.ForeignKey(
-        "classes.Class",
+    group = models.ForeignKey(
+        "classes.Group",
         on_delete=models.CASCADE,
         related_name="exam_sessions",
-        help_text="The class this exam applies to.",
+        help_text="The group this exam applies to.",
     )
     lecturer = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -247,95 +247,128 @@ class ActivityLog(models.Model):
         return f"[{self.timestamp:%Y-%m-%d %H:%M}] {actor} — {self.action}"
 
 
-class PracticalSession(models.Model):
-    """
-    A scheduled practical lab session for a class.
-    """
-    class Status(models.TextChoices):
-        SCHEDULED = "scheduled", "Scheduled"
-        ACTIVE = "active", "Active"
-        COMPLETED = "completed", "Completed"
-        CANCELLED = "cancelled", "Cancelled"
+class LiveSession(models.Model):
+    SESSION_TYPE_CHOICES = [
+        ('workshop', 'Workshop'),
+        ('lab', 'Laboratory'),
+        ('exam', 'Exam / Assessment'),
+        ('lecture', 'Lecture'),
+        ('study_group', 'Study Group'),
+        ('training', 'Training'),
+        ('other', 'Other'),
+    ]
+    STATUS_CHOICES = [
+        ('scheduled', 'Scheduled'),
+        ('active', 'Active'),
+        ('ended', 'Ended'),
+        ('cancelled', 'Cancelled'),
+    ]
+    SUBMISSION_CHOICES = [
+        ('none', 'No Submission'),
+        ('file', 'File Upload'),
+        ('snapshot', 'VM Snapshot'),
+        ('both', 'File + Snapshot'),
+    ]
 
     name = models.CharField(max_length=200)
-    session_type = models.CharField(max_length=50, default="practical")
-    class_room = models.ForeignKey(
-        "classes.Class",
-        on_delete=models.CASCADE,
-        related_name="practical_sessions",
-    )
-    lecturer = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="practical_sessions_created",
-        limit_choices_to={"role": "lecturer"},
-    )
-    required_vm_template = models.ForeignKey(
-        "vms.VMTemplate",
+    description = models.TextField(blank=True)
+    host = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='hosted_sessions')
+    group = models.ForeignKey(
+        'classes.Group',
         on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="practical_sessions",
-    )
-    submission_type = models.CharField(max_length=50, default="both")
+        null=True, blank=True,
+        related_name='live_sessions')
+    session_type = models.CharField(
+        max_length=20,
+        choices=SESSION_TYPE_CHOICES,
+        default='workshop')
+    required_vm_template = models.ForeignKey(
+        'vms.VMTemplate',
+        on_delete=models.SET_NULL,
+        null=True, blank=True)
+    invite_code = models.CharField(
+        max_length=10, unique=True,
+        blank=True)
+    invite_link = models.CharField(
+        max_length=200, blank=True)
+    is_public = models.BooleanField(default=False)
+    is_exam_mode = models.BooleanField(default=False)
+    max_participants = models.IntegerField(
+        default=50)
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
-    submission_deadline = models.DateTimeField(null=True, blank=True)
+    submission_deadline = models.DateTimeField(
+        null=True, blank=True)
+    restrict_internet = models.BooleanField(
+        default=False)
+    restrict_copy_paste = models.BooleanField(
+        default=False)
+    allow_late_submission = models.BooleanField(
+        default=True)
+    submission_type = models.CharField(
+        max_length=20,
+        choices=SUBMISSION_CHOICES,
+        default='none')
+    instructions = models.TextField(blank=True)
     status = models.CharField(
         max_length=20,
-        choices=Status.choices,
-        default=Status.SCHEDULED,
-    )
-    instructions = models.TextField(blank=True, default="")
-    max_concurrent_vms = models.IntegerField(default=30)
-    auto_terminate = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+        choices=STATUS_CHOICES,
+        default='scheduled')
+    created_at = models.DateTimeField(
+        auto_now_add=True)
 
-    class Meta:
-        db_table = "practical_sessions"
-        verbose_name = "Practical Session"
-        verbose_name_plural = "Practical Sessions"
-        ordering = ["-start_time"]
+    def save(self, *args, **kwargs):
+        if not self.invite_code:
+            self.invite_code = self._generate_code()
+        if not self.invite_link:
+            self.invite_link = f'/join/session/{self.invite_code}'
+        super().save(*args, **kwargs)
+
+    def _generate_code(self):
+        import secrets, string
+        chars = string.ascii_uppercase + string.digits
+        while True:
+            code = ''.join(secrets.choice(chars) for _ in range(8))
+            if not LiveSession.objects.filter(invite_code=code).exists():
+                return code
 
     def __str__(self):
-        return f"{self.name} [{self.status}]"
+        return self.name
 
-
-class StudentPracticalAccess(models.Model):
-    """
-    Tracks individual student access to a PracticalSession.
-    """
-    practical_session = models.ForeignKey(
-        PracticalSession,
-        on_delete=models.CASCADE,
-        related_name="student_access",
-    )
-    student = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="practical_access",
-        limit_choices_to={"role": "student"},
-    )
-    has_attended = models.BooleanField(default=False)
-    joined_at = models.DateTimeField(null=True, blank=True)
-    left_at = models.DateTimeField(null=True, blank=True)
+class SessionParticipant(models.Model):
+    STATUS_CHOICES = [
+        ('joined', 'Joined'),
+        ('active', 'Active'),
+        ('disconnected', 'Disconnected'),
+        ('submitted', 'Submitted'),
+        ('removed', 'Removed'),
+    ]
+    session = models.ForeignKey(
+        LiveSession, on_delete=models.CASCADE,
+        related_name='participants')
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='session_participations')
+    vm = models.ForeignKey(
+        'vms.VirtualMachine',
+        on_delete=models.SET_NULL,
+        null=True, blank=True)
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='joined')
+    joined_at = models.DateTimeField(
+        auto_now_add=True)
+    submitted_at = models.DateTimeField(
+        null=True, blank=True)
     submission_file = models.FileField(
-        upload_to="practical_submissions/",
-        blank=True,
-        null=True,
-    )
-    submitted_at = models.DateTimeField(null=True, blank=True)
-    grade = models.CharField(max_length=10, blank=True, default="")
-    lecturer_notes = models.TextField(blank=True, default="")
+        upload_to='session_submissions/',
+        null=True, blank=True)
+    vm_snapshot_id = models.CharField(
+        max_length=100, blank=True)
 
     class Meta:
-        db_table = "student_practical_access"
-        verbose_name = "Student Practical Access"
-        verbose_name_plural = "Student Practical Access"
-        unique_together = ["practical_session", "student"]
-        ordering = ["-practical_session__start_time"]
-
-    def __str__(self):
-        status = "attended" if self.has_attended else "not attended"
-        return f"{self.student} — {self.practical_session.name} ({status})"
+        unique_together = ['session', 'user']
 

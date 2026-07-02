@@ -28,11 +28,11 @@ class File(models.Model):
         file_size (int): File size in bytes, stored on upload.
     """
 
-    class_room = models.ForeignKey(
-        "classes.Class",
+    group = models.ForeignKey(
+        "classes.Group",
         on_delete=models.CASCADE,
         related_name="files",
-        help_text="The class this file is shared with.",
+        help_text="The group this file is shared with.",
     )
     uploader = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -66,8 +66,7 @@ class File(models.Model):
         ordering = ["-uploaded_at"]
 
     def __str__(self):
-        """Return the file title and its class."""
-        return f"{self.title} ({self.class_room})"
+        return f"{self.title} ({self.group})"
 
 
 class Assignment(models.Model):
@@ -90,11 +89,11 @@ class Assignment(models.Model):
             (PDF, Word, etc.) that students can view/download.
     """
 
-    class_room = models.ForeignKey(
-        "classes.Class",
+    group = models.ForeignKey(
+        "classes.Group",
         on_delete=models.CASCADE,
         related_name="assignments",
-        help_text="The class this assignment belongs to.",
+        help_text="The group this assignment belongs to.",
     )
     lecturer = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -136,7 +135,7 @@ class Assignment(models.Model):
 
     def __str__(self):
         """Return the assignment title and its class."""
-        return f"{self.title} ({self.class_room})"
+        return f"{self.title} ({self.group})"
 
 
 class Submission(models.Model):

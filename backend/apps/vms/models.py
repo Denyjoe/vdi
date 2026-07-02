@@ -170,5 +170,35 @@ class VirtualMachine(models.Model):
         ordering = ["-allocated_at"]
 
     def __str__(self):
-        """Return the VM name and its current status."""
         return f"{self.name} [{self.status}]"
+
+class Workspace(models.Model):
+  STATUS_CHOICES = [
+    ('active', 'Active'),
+    ('stopped', 'Stopped'),
+    ('suspended', 'Suspended'),
+    ('deleted', 'Deleted'),
+  ]
+  owner = models.ForeignKey(
+    settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+    related_name='workspaces')
+  name = models.CharField(max_length=100)
+  vm_template = models.ForeignKey(
+    VMTemplate, on_delete=models.PROTECT)
+  vm = models.ForeignKey(
+    VirtualMachine,
+    on_delete=models.SET_NULL,
+    null=True, blank=True)
+  status = models.CharField(
+    max_length=20,
+    choices=STATUS_CHOICES,
+    default='stopped')
+  compute_hours_used = models.FloatField(
+    default=0)
+  last_accessed_at = models.DateTimeField(
+    null=True, blank=True)
+  created_at = models.DateTimeField(
+    auto_now_add=True)
+
+  class Meta:
+    unique_together = ['owner', 'name']

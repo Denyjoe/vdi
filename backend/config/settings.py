@@ -20,8 +20,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SECURITY
+# SECURITY & SITE INFO
 # ─────────────────────────────────────────────────────────────────────────────
+
+SITE_NAME = 'CloudDesk'
+SITE_TAGLINE = 'Your workspace, anywhere'
 
 SECRET_KEY = config("SECRET_KEY")
 DEBUG = config("DEBUG", default=False, cast=bool)
