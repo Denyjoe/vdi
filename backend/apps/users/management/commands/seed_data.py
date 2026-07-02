@@ -17,17 +17,136 @@ class Command(BaseCommand):
         LiveSession.objects.all().delete()
         Group.objects.all().delete()
         User.objects.exclude(is_superuser=True).delete()
-        # VMTemplate keep or create one
-        if not VMTemplate.objects.filter(name="AutoCAD Workstation").exists():
-            VMTemplate.objects.create(
-                name="AutoCAD Workstation",
-                description="High performance VM for AutoCAD",
-                cpu_cores=4,
-                ram_gb=8,
-                storage_gb=50,
-                os="Windows 10",
-                is_available=True
+        templates_data = [
+          {
+            "name": "AutoCAD Workstation",
+            "description": "Professional CAD design environment",
+            "cpu_cores": 4, "ram_gb": 8,
+            "storage_gb": 60,
+            "os": "Windows 10 Pro",
+            "software_list": ["AutoCAD 2024", "AutoCAD LT"],
+            "icon": "Compass",
+            "is_available": True
+          },
+          {
+            "name": "MATLAB Lab",
+            "description": "Mathematical computing environment",
+            "cpu_cores": 4, "ram_gb": 16,
+            "storage_gb": 80,
+            "os": "Windows 10 Pro",
+            "software_list": ["MATLAB R2023", "Simulink", "Signal Processing Toolbox"],
+            "icon": "BarChart2",
+            "is_available": True
+          },
+          {
+            "name": "Programming Environment",
+            "description": "Full-stack development workspace",
+            "cpu_cores": 2, "ram_gb": 4,
+            "storage_gb": 40,
+            "os": "Ubuntu 22.04 LTS",
+            "software_list": ["VS Code", "Python 3.11", "Node.js", "Git", "PostgreSQL"],
+            "icon": "Code2",
+            "is_available": True
+          },
+          {
+            "name": "Graphic Design Studio",
+            "description": "Creative design environment",
+            "cpu_cores": 4, "ram_gb": 8,
+            "storage_gb": 80,
+            "os": "Windows 10 Pro",
+            "software_list": ["Photoshop 2024", "Illustrator 2024", "Premiere Pro"],
+            "icon": "Palette",
+            "is_available": True
+          },
+          {
+            "name": "Network Lab",
+            "description": "Network engineering environment",
+            "cpu_cores": 2, "ram_gb": 4,
+            "storage_gb": 40,
+            "os": "Ubuntu 22.04 LTS",
+            "software_list": ["Cisco Packet Tracer", "Wireshark", "GNS3", "PuTTY"],
+            "icon": "Network",
+            "is_available": True
+          },
+          {
+            "name": "Cybersecurity Lab",
+            "description": "Penetration testing and security",
+            "cpu_cores": 4, "ram_gb": 8,
+            "storage_gb": 60,
+            "os": "Kali Linux 2024",
+            "software_list": ["Metasploit", "Wireshark", "Burp Suite", "Nmap", "John the Ripper", "Aircrack-ng"],
+            "icon": "Shield",
+            "is_available": True
+          },
+          {
+            "name": "Civil Engineering Suite",
+            "description": "Structural and civil engineering tools",
+            "cpu_cores": 4, "ram_gb": 16,
+            "storage_gb": 100,
+            "os": "Windows 10 Pro",
+            "software_list": ["AutoCAD Civil 3D", "Revit 2024", "SAP2000", "ETABS"],
+            "icon": "Building",
+            "is_available": True
+          },
+          {
+            "name": "Data Science Lab",
+            "description": "Machine learning and data analysis",
+            "cpu_cores": 4, "ram_gb": 16,
+            "storage_gb": 80,
+            "os": "Ubuntu 22.04 LTS",
+            "software_list": ["Python 3.11", "Jupyter Lab", "TensorFlow", "PyTorch", "Pandas", "Scikit-learn", "R Studio"],
+            "icon": "BrainCircuit",
+            "is_available": True
+          },
+          {
+            "name": "Mobile Development Studio",
+            "description": "Android and Flutter development",
+            "cpu_cores": 4, "ram_gb": 8,
+            "storage_gb": 60,
+            "os": "Ubuntu 22.04 LTS",
+            "software_list": ["Android Studio", "Flutter SDK", "VS Code", "Firebase CLI", "Dart"],
+            "icon": "Smartphone",
+            "is_available": True
+          },
+          {
+            "name": "Database Administration Lab",
+            "description": "Database management environment",
+            "cpu_cores": 2, "ram_gb": 4,
+            "storage_gb": 60,
+            "os": "Ubuntu 22.04 LTS",
+            "software_list": ["MySQL Workbench", "pgAdmin 4", "MongoDB Compass", "Redis", "DBeaver"],
+            "icon": "Database",
+            "is_available": True
+          },
+          {
+            "name": "Video Production Suite",
+            "description": "Professional video editing",
+            "cpu_cores": 8, "ram_gb": 32,
+            "storage_gb": 200,
+            "os": "Windows 10 Pro",
+            "software_list": ["DaVinci Resolve", "Adobe Premiere Pro", "After Effects", "Audacity"],
+            "icon": "Video",
+            "is_available": True
+          },
+          {
+            "name": "Web Development Studio",
+            "description": "Full-stack web development",
+            "cpu_cores": 2, "ram_gb": 4,
+            "storage_gb": 40,
+            "os": "Ubuntu 22.04 LTS",
+            "software_list": ["VS Code", "Node.js LTS", "React", "Docker", "Nginx", "Postman", "Git"],
+            "icon": "Globe",
+            "is_available": True
+          },
+        ]
+
+        for t in templates_data:
+            VMTemplate.objects.get_or_create(
+                name=t['name'],
+                defaults=t
             )
+
+        self.stdout.write(f'VM Templates: {VMTemplate.objects.count()}')
 
         self.stdout.write(self.style.SUCCESS("Adding Subscription Plans..."))
         free_plan = SubscriptionPlan.objects.create(
