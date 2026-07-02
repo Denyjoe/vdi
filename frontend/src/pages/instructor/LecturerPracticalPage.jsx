@@ -4,7 +4,7 @@ import {
   Eye, StopCircle, CheckCircle, Monitor, X, Bell, ChevronDown, ChevronRight, FileText
 } from 'lucide-react';
 import { practicalService } from '../../services/practicalService';
-import CreatePracticalModal from '../../components/lecturer/CreatePracticalModal';
+import CreatePracticalModal from '../../components/instructor/CreatePracticalModal';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {

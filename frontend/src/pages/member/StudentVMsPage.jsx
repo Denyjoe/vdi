@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import EmptyState from '../../components/shared/EmptyState';
 import Toast from '../../components/shared/Toast';
-import ExamBanner from '../../components/student/ExamBanner';
+import ExamBanner from '../../components/member/ExamBanner';
 
 /** Map icon name strings (stored in DB) to Lucide components. */
 const ICON_MAP = {

@@ -34,24 +34,24 @@ export default function Sidebar({ onClose }) {
     { name: 'My Profile', path: '/profile', icon: <UserCircle className="w-5 h-5" /> },
   ];
 
-  /** Lecturer navigation links */
-  const lecturerLinks = [
-    { name: 'Overview', path: '/lecturer/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
-    { name: 'My Classes', path: '/lecturer/classes', icon: <GraduationCap className="w-5 h-5" /> },
-    { name: 'Practicals & Labs', path: '/lecturer/practicals', icon: <FlaskConical className="w-5 h-5" /> },
-    { name: 'Monitor Sessions', path: '/lecturer/monitor', icon: <Eye className="w-5 h-5" /> },
-    { name: 'Materials & Assignments', path: '/lecturer/materials', icon: <FolderOpen className="w-5 h-5" /> },
+  /** Instructor navigation links */
+  const instructorLinks = [
+    { name: 'Overview', path: '/instructor/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
+    { name: 'My Groups', path: '/instructor/groups', icon: <Users className="w-5 h-5" /> },
+    { name: 'Live Sessions', path: '/instructor/sessions', icon: <TestTube2 className="w-5 h-5" /> },
+    { name: 'Monitor Live', path: '/instructor/monitor', icon: <Eye className="w-5 h-5" /> },
+    { name: 'Materials & Resources', path: '/instructor/materials', icon: <FolderOpen className="w-5 h-5" /> },
     { name: 'My Profile', path: '/profile', icon: <UserCircle className="w-5 h-5" /> },
   ];
 
-  /** Student navigation links */
-  const studentLinks = [
-    { name: 'Overview', path: '/student/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
-    { name: 'My Classes', path: '/student/classes', icon: <GraduationCap className="w-5 h-5" /> },
-    { name: 'My VMs', path: '/student/vms', icon: <Monitor className="w-5 h-5" /> },
-    { name: 'Session History', path: '/student/sessions', icon: <History className="w-5 h-5" /> },
-    { name: 'Practicals & Labs', path: '/student/practicals', icon: <TestTube2 className="w-5 h-5" /> },
-    { name: 'Materials & Assignments', path: '/student/materials', icon: <FolderOpen className="w-5 h-5" /> },
+  /** Member navigation links */
+  const memberLinks = [
+    { name: 'Overview', path: '/member/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
+    { name: 'My Workspaces', path: '/member/workspaces', icon: <Monitor className="w-5 h-5" /> },
+    { name: 'My Groups', path: '/member/groups', icon: <Users className="w-5 h-5" /> },
+    { name: 'Live Sessions', path: '/sessions', icon: <TestTube2 className="w-5 h-5" /> },
+    { name: 'Session History', path: '/member/sessions-history', icon: <History className="w-5 h-5" /> },
+    { name: 'Materials & Resources', path: '/member/materials', icon: <FolderOpen className="w-5 h-5" /> },
     { name: 'My Profile', path: '/profile', icon: <UserCircle className="w-5 h-5" /> },
   ];
 
@@ -62,9 +62,9 @@ export default function Sidebar({ onClose }) {
   const getLinksForRole = () => {
     switch (role) {
       case 'admin': return adminLinks;
-      case 'lecturer': return lecturerLinks;
-      case 'student':
-      default: return studentLinks;
+      case 'instructor': return instructorLinks;
+      case 'member':
+      default: return memberLinks;
     }
   };
 

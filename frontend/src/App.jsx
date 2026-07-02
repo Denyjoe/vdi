@@ -6,8 +6,8 @@
  *   - /login    → LoginPage (no layout)
  *   - /register → RegisterPage (no layout)
  *   - /admin/*  → Admin pages (wrapped in Layout + ProtectedRoute)
- *   - /lecturer/* → Lecturer pages (wrapped in Layout + ProtectedRoute)
- *   - /student/* → Student pages (wrapped in Layout + ProtectedRoute)
+ *   - /instructor/* → Lecturer pages (wrapped in Layout + ProtectedRoute)
+ *   - /member/* → Student pages (wrapped in Layout + ProtectedRoute)
  *   - *         → NotFoundPage (catch-all)
  *
  * @returns {JSX.Element} The routed application.
@@ -37,22 +37,22 @@ import AdminLogsPage from "./pages/admin/AdminLogsPage";
 import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
 
 // Lecturer pages
-import LecturerDashboard from "./pages/lecturer/LecturerDashboard";
-import LecturerMonitorPage from "./pages/lecturer/LecturerMonitorPage";
-import LecturerClassesPage from "./pages/lecturer/LecturerClassesPage";
+import InstructorDashboard from "./pages/instructor/InstructorDashboard";
+import LecturerMonitorPage from "./pages/instructor/LecturerMonitorPage";
+import LecturerClassesPage from "./pages/instructor/LecturerClassesPage";
 import ProfilePage from './pages/shared/ProfilePage';
-import LecturerMaterialsPage from "./pages/lecturer/LecturerMaterialsPage";
-import LecturerPracticalPage from "./pages/lecturer/LecturerPracticalPage";
+import LecturerMaterialsPage from "./pages/instructor/LecturerMaterialsPage";
+import LecturerPracticalPage from "./pages/instructor/LecturerPracticalPage";
 
 // Student pages
-import StudentDashboard from "./pages/student/StudentDashboard";
-import StudentVMsPage from "./pages/student/StudentVMsPage";
-import StudentClassesPage from "./pages/student/StudentClassesPage";
-import SessionHistoryPage from "./pages/student/SessionHistoryPage";
-import DesktopSessionPage from "./pages/student/DesktopSessionPage";
-import StudentMaterialsPage from "./pages/student/StudentMaterialsPage";
-import StudentPracticalPage from "./pages/student/StudentPracticalPage";
-import LabWorkspacePage from "./pages/student/LabWorkspacePage";
+import MemberDashboard from "./pages/member/MemberDashboard";
+import StudentVMsPage from "./pages/member/StudentVMsPage";
+import StudentClassesPage from "./pages/member/StudentClassesPage";
+import SessionHistoryPage from "./pages/member/SessionHistoryPage";
+import DesktopSessionPage from "./pages/member/DesktopSessionPage";
+import StudentMaterialsPage from "./pages/member/StudentMaterialsPage";
+import StudentPracticalPage from "./pages/member/StudentPracticalPage";
+import LabWorkspacePage from "./pages/member/LabWorkspacePage";
 
 // Layout & guards
 import Layout from "./components/layout/Layout";
@@ -61,6 +61,10 @@ import NotificationsPage from './pages/shared/NotificationsPage';
 
 // Shared pages
 import NotFoundPage from "./pages/shared/NotFoundPage";
+import WorkspacesPage from "./pages/member/WorkspacesPage";
+import SessionsPage from "./pages/shared/SessionsPage";
+import JoinSessionPage from "./pages/shared/JoinSessionPage";
+import JoinGroupPage from "./pages/shared/JoinGroupPage";
 
 export default function App() {
   const initializeAuth = useAuthStore((state) => state.initializeAuth);
@@ -73,8 +77,8 @@ export default function App() {
   const getDashboardRoute = () => {
     if (!user) return "/";
     if (user.role === 'admin') return "/admin/dashboard";
-    if (user.role === 'instructor') return "/lecturer/dashboard";
-    return "/student/dashboard";
+    if (user.role === 'instructor') return "/instructor/dashboard";
+    return "/member/dashboard";
   };
 
   return (
@@ -87,6 +91,11 @@ export default function App() {
         
         <Route path="/login" element={user ? <Navigate to={getDashboardRoute()} replace /> : <LoginPage />} />
         <Route path="/register" element={user ? <Navigate to={getDashboardRoute()} replace /> : <RegisterPage />} />
+        
+        {/* ── Public / Shared ──────────────────────────────────── */}
+        <Route path="/sessions" element={<SessionsPage />} />
+        <Route path="/join/session/:code" element={<JoinSessionPage />} />
+        <Route path="/join/group/:code" element={<JoinGroupPage />} />
         
         {/* Fallback dashboard redirect if navigating to /dashboard explicitly */}
         <Route path="/dashboard" element={<Navigate to={getDashboardRoute()} replace />} />
@@ -198,20 +207,20 @@ export default function App() {
           }
         />
 
-        {/* ── Lecturer routes ───────────────────────────────────── */}
+        {/* ── Instructor routes ───────────────────────────────────── */}
         <Route
-          path="/lecturer/dashboard"
+          path="/instructor/dashboard"
           element={
             <ProtectedRoute>
               <Layout>
-                <LecturerDashboard />
+                <InstructorDashboard />
               </Layout>
             </ProtectedRoute>
           }
         />
 
         <Route
-          path="/lecturer/monitor"
+          path="/instructor/monitor"
           element={
             <ProtectedRoute>
               <Layout>
@@ -221,7 +230,7 @@ export default function App() {
           }
         />
         <Route
-          path="/lecturer/classes"
+          path="/instructor/classes"
           element={
             <ProtectedRoute>
               <Layout>
@@ -231,7 +240,7 @@ export default function App() {
           }
         />
         <Route
-          path="/lecturer/practicals"
+          path="/instructor/practicals"
           element={
             <ProtectedRoute>
               <Layout>
@@ -242,7 +251,7 @@ export default function App() {
         />
 
         <Route
-          path="/lecturer/materials"
+          path="/instructor/materials"
           element={
             <ProtectedRoute>
               <Layout>
@@ -251,9 +260,9 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        {/* Alias: /lecturer/assignments → LecturerMaterialsPage Tab 2 */}
+        {/* Alias: /instructor/assignments → LecturerMaterialsPage Tab 2 */}
         <Route
-          path="/lecturer/assignments"
+          path="/instructor/assignments"
           element={
             <ProtectedRoute>
               <Layout>
@@ -263,19 +272,29 @@ export default function App() {
           }
         />
 
-        {/* ── Student routes ────────────────────────────────────── */}
+        {/* ── Member routes ────────────────────────────────────── */}
         <Route
-          path="/student/dashboard"
+          path="/member/dashboard"
           element={
             <ProtectedRoute>
               <Layout>
-                <StudentDashboard />
+                <MemberDashboard />
               </Layout>
             </ProtectedRoute>
           }
         />
         <Route
-          path="/student/vms"
+          path="/member/workspaces"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <WorkspacesPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/member/vms"
           element={
             <ProtectedRoute>
               <Layout>
@@ -285,7 +304,7 @@ export default function App() {
           }
         />
         <Route
-          path="/student/classes"
+          path="/member/classes"
           element={
             <ProtectedRoute>
               <Layout>
@@ -295,7 +314,7 @@ export default function App() {
           }
         />
         <Route
-          path="/student/sessions"
+          path="/member/sessions"
           element={
             <ProtectedRoute>
               <Layout>
@@ -305,7 +324,7 @@ export default function App() {
           }
         />
         <Route
-          path="/student/practicals"
+          path="/member/practicals"
           element={
             <ProtectedRoute>
               <Layout>
@@ -315,7 +334,7 @@ export default function App() {
           }
         />
         <Route
-          path="/student/materials"
+          path="/member/materials"
           element={
             <ProtectedRoute>
               <Layout>
@@ -324,9 +343,9 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        {/* Alias: /student/assignments → StudentMaterialsPage Tab 2 */}
+        {/* Alias: /member/assignments → StudentMaterialsPage Tab 2 */}
         <Route
-          path="/student/assignments"
+          path="/member/assignments"
           element={
             <ProtectedRoute>
               <Layout>

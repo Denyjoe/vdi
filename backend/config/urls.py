@@ -18,9 +18,11 @@ urlpatterns = [
     path("admin/", admin.site.urls),
 
     # API Routes
+    path("api/workspaces/", include("apps.vms.workspace_urls")),
     path("api/vms/", include("apps.vms.urls")),
     path("api/sessions/", include("apps.sessions.urls")),
-    path("api/classes/", include("apps.classes.urls")),
+    path("api/sessions/live/", include("apps.sessions.live_urls")),
+    path("api/groups/", include("apps.classes.urls")),
     path("api/assignments/", include("apps.assignments.urls")),
     path("api/admin/", include("apps.vms.admin_urls")),
     path("api/admin/", include("apps.users.analytics_urls")),
@@ -31,8 +33,9 @@ urlpatterns = [
     path("api/health/", HealthCheckView.as_view(), name="health-check"),
 
     # ── Authentication & User Endpoints ──────────────────────────────────────
-    path("api/", include("apps.users.urls")),
-    path("api/", include("apps.users.public_urls")),
+    path("api/auth/", include("apps.users.urls")),
+    path("api/settings/", include("apps.users.public_urls")),
+    path("api/subscriptions/", include("apps.users.subscription_urls")),
 ]
 
 # Serve uploaded media files during development.

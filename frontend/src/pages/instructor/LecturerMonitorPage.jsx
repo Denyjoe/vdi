@@ -6,7 +6,7 @@ import {
 import toast from 'react-hot-toast';
 import { sessionService } from '../../services/sessionService';
 import ConfirmModal from '../../components/shared/ConfirmModal';
-import CreateExamModal from '../../components/lecturer/CreateExamModal';
+import CreateExamModal from '../../components/instructor/CreateExamModal';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 

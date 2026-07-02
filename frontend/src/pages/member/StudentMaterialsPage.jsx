@@ -7,7 +7,7 @@ import {
 import toast from 'react-hot-toast';
 import { classService } from '../../services/classService';
 import { assignmentService } from '../../services/assignmentService';
-import SubmitAssignmentModal from '../../components/student/SubmitAssignmentModal';
+import SubmitAssignmentModal from '../../components/member/SubmitAssignmentModal';
 
 export default function StudentMaterialsPage({ defaultTab = 'materials' }) {
   const [activeTab, setActiveTab] = useState(defaultTab);

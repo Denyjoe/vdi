@@ -8,8 +8,8 @@ import toast from 'react-hot-toast';
 import { classService } from '../../services/classService';
 import { assignmentService } from '../../services/assignmentService';
 import ConfirmModal from '../../components/shared/ConfirmModal';
-import CreateAssignmentModal from '../../components/lecturer/CreateAssignmentModal';
-import SubmissionsModal from '../../components/lecturer/SubmissionsModal';
+import CreateAssignmentModal from '../../components/instructor/CreateAssignmentModal';
+import SubmissionsModal from '../../components/instructor/SubmissionsModal';
 
 export default function LecturerMaterialsPage({ defaultTab = 'materials' }) {
   const [activeTab, setActiveTab] = useState(defaultTab);
