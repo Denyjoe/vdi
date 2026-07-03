@@ -35,6 +35,7 @@ urlpatterns = [
     path("api/auth/", include("apps.users.urls")),
     path("api/settings/", include("apps.users.public_urls")),
     path("api/subscriptions/", include("apps.users.subscription_urls")),
+    path("api/payments/", include("apps.users.payment_urls")),
 ]
 
 # Serve uploaded media files during development.

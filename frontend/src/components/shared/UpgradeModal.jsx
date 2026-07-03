@@ -1,65 +1,167 @@
-import React, { useState, useEffect } from 'react';
-import { X, CheckCircle, ShieldAlert } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, ShieldAlert, Smartphone, CheckCircle, XCircle, Loader, Zap } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 
 export default function UpgradeModal({ onClose }) {
     const { user, setUser } = useAuthStore();
+    const [step, setStep] = useState('plans'); // 'plans', 'payment', 'waiting', 'success', 'failed'
     const [plans, setPlans] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [isUpgrading, setIsUpgrading] = useState(false);
-    const [error, setError] = useState('');
+    const [selectedPlan, setSelectedPlan] = useState(null);
+    
+    // Payment state
+    const [phone, setPhone] = useState('');
+    const [provider, setProvider] = useState('Mpesa');
+    const [txnId, setTxnId] = useState('');
+    const [paymentError, setPaymentError] = useState('');
+    
+    const pollInterval = useRef(null);
+    const pollCount = useRef(0);
 
     useEffect(() => {
         const fetchPlans = async () => {
             try {
                 const res = await api.get('/subscriptions/plans/');
                 if (res.data?.success) {
-                    setPlans(res.data.data.filter(p => p.name !== 'institution')); // Hide institution plan
+                    setPlans(res.data.data.filter(p => p.name !== 'free'));
                 }
             } catch (err) {
-                setError('Failed to load plans');
+                console.error('Failed to load plans');
             } finally {
                 setIsLoading(false);
             }
         };
         fetchPlans();
+        
+        return () => {
+            if (pollInterval.current) clearInterval(pollInterval.current);
+        };
     }, []);
 
-    const handleUpgrade = async (planId) => {
-        setIsUpgrading(true);
-        setError('');
+    const formatPhone = (val) => {
+        const cleaned = ('' + val).replace(/\D/g, '');
+        let formatted = cleaned;
+        if (cleaned.length > 4) {
+            formatted = cleaned.slice(0, 4) + ' ' + cleaned.slice(4);
+        }
+        if (cleaned.length > 7) {
+            formatted = formatted.slice(0, 8) + ' ' + formatted.slice(8, 11);
+        }
+        return formatted.slice(0, 13);
+    };
+
+    const handlePhoneChange = (e) => {
+        setPhone(formatPhone(e.target.value));
+    };
+
+    const cleanPhoneForApi = (val) => {
+        let p = val.replace(/\s/g, '');
+        if (p.startsWith('0')) {
+            p = '255' + p.substring(1);
+        }
+        return p;
+    };
+
+    const handlePayNow = async () => {
+        if (!phone.replace(/\s/g, '')) return;
+        setStep('waiting');
+        setPaymentError('');
+        pollCount.current = 0;
+        
         try {
-            const res = await api.post('/subscriptions/change/', { plan_id: planId });
+            const res = await api.post('/payments/initiate/', {
+                plan_name: selectedPlan.name,
+                phone_number: cleanPhoneForApi(phone),
+                provider: provider
+            });
+            
             if (res.data?.success) {
-                // Update user subscription in store if possible
-                if (res.data.data?.subscription) {
-                    const updatedUser = { ...user, subscription: res.data.data.subscription };
-                    setUser(updatedUser);
-                }
-                alert('Successfully upgraded plan!');
-                onClose();
+                const newTxnId = res.data.data.transaction_id;
+                setTxnId(newTxnId);
+                startPolling(newTxnId);
+            } else {
+                setPaymentError(res.data?.message || 'Payment initiation failed');
+                setStep('failed');
             }
         } catch (err) {
-            setError(err.response?.data?.message || 'Failed to upgrade plan');
-        } finally {
-            setIsUpgrading(false);
+            setPaymentError(err.response?.data?.message || 'Payment initiation failed');
+            setStep('failed');
+        }
+    };
+
+    const startPolling = (id) => {
+        if (pollInterval.current) clearInterval(pollInterval.current);
+        pollInterval.current = setInterval(async () => {
+            if (pollCount.current >= 100) {
+                clearInterval(pollInterval.current);
+                setPaymentError('Payment confirmation timed out.');
+                setStep('failed');
+                return;
+            }
+            pollCount.current++;
+            
+            try {
+                const res = await api.get(`/payments/status/${id}/`);
+                if (res.data?.success) {
+                    const status = res.data.data.status;
+                    if (status === 'completed') {
+                        clearInterval(pollInterval.current);
+                        setStep('success');
+                        
+                        // Optimistically update user store
+                        const hostPlans = ['personal_host', 'pro_host', 'institution'];
+                        const isHost = hostPlans.includes(selectedPlan.name);
+                        setUser({
+                            ...user, 
+                            is_host: isHost,
+                            host_plan: isHost ? selectedPlan.name : 'none',
+                            subscription: {
+                                ...user.subscription,
+                                plan_name: selectedPlan.name
+                            }
+                        });
+                    } else if (status === 'failed' || status === 'cancelled') {
+                        clearInterval(pollInterval.current);
+                        setPaymentError('Payment was not successful. Please try again.');
+                        setStep('failed');
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }, 3000);
+    };
+
+    const getInstruction = () => {
+        switch(provider) {
+            case 'Mpesa': return 'Enter your M-Pesa PIN when prompted';
+            case 'Airtel': return 'Approve the Airtel Money request';
+            case 'Tigo': return 'Confirm on your Tigo Pesa app';
+            case 'Halopesa': return 'Confirm on your Halopesa menu';
+            default: return 'Confirm on your phone';
         }
     };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose}></div>
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose}></div>
             
-            <div className="relative bg-[#0D1526] border border-white/10 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl animate-[fadeIn_0.2s_ease-out]">
+            <div className="relative bg-[#0D1526] border border-[#1e293b] rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl animate-[fadeIn_0.2s_ease-out]">
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-white/5 sticky top-0 bg-[#0D1526]/90 backdrop-blur-md z-10">
                     <div>
                         <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                            <ShieldAlert className="w-6 h-6 text-indigo-400" />
-                            Upgrade Your Plan
+                            {step === 'plans' ? (
+                                <><ShieldAlert className="w-6 h-6 text-indigo-400" /> Upgrade Your Plan</>
+                            ) : (
+                                <><Zap className="w-6 h-6 text-indigo-400" /> Complete Your Upgrade</>
+                            )}
                         </h3>
-                        <p className="text-slate-400 text-sm mt-1">Unlock more compute hours and premium features.</p>
+                        <p className="text-slate-400 text-sm mt-1">
+                            {step === 'plans' ? 'Unlock more compute hours and premium features.' : 
+                             selectedPlan ? `${selectedPlan.display_name} — TZS ${Number(selectedPlan.price_tzs).toLocaleString()}/month` : ''}
+                        </p>
                     </div>
                     <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
                         <X className="w-5 h-5" />
@@ -68,21 +170,16 @@ export default function UpgradeModal({ onClose }) {
 
                 {/* Body */}
                 <div className="p-8">
-                    {error && (
-                        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl text-center">
-                            {error}
-                        </div>
-                    )}
-
-                    {isLoading ? (
-                        <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div></div>
-                    ) : (
+                    {isLoading && step === 'plans' ? (
+                        <div className="flex justify-center py-12"><Loader className="w-8 h-8 text-indigo-500 animate-spin" /></div>
+                    ) : step === 'plans' ? (
+                        /* STEP 1: PLANS */
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             {plans.map(plan => {
                                 const isCurrent = user?.subscription?.plan_name === plan.name;
                                 return (
                                     <div key={plan.id} className={`glass-card p-6 rounded-2xl flex flex-col relative ${isCurrent ? 'border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.1)]' : 'border-white/5'}`}>
-                                        {plan.name === 'pro' && (
+                                        {plan.name === 'pro_host' && (
                                             <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                                                 Most Popular
                                             </div>
@@ -90,7 +187,7 @@ export default function UpgradeModal({ onClose }) {
                                         
                                         <h4 className="text-xl font-bold text-white mb-2">{plan.display_name}</h4>
                                         <div className="flex items-baseline gap-1 mb-6">
-                                            <span className="text-3xl font-bold text-white">${plan.price_usd}</span>
+                                            <span className="text-3xl font-bold text-white">TZS {Number(plan.price_tzs).toLocaleString()}</span>
                                             <span className="text-slate-400">/mo</span>
                                         </div>
 
@@ -104,31 +201,169 @@ export default function UpgradeModal({ onClose }) {
                                             <div className="flex items-start gap-3">
                                                 <CheckCircle className="w-5 h-5 text-indigo-400 shrink-0" />
                                                 <span className="text-sm text-slate-300">
-                                                    {plan.max_workspaces === -1 ? 'Unlimited' : plan.max_workspaces} Workspaces
+                                                    Create Live Sessions
                                                 </span>
                                             </div>
-                                            {plan.name !== 'free' && (
-                                                <div className="flex items-start gap-3">
-                                                    <CheckCircle className="w-5 h-5 text-indigo-400 shrink-0" />
-                                                    <span className="text-sm text-slate-300">Create Live Sessions</span>
-                                                </div>
-                                            )}
+                                            <div className="flex items-start gap-3">
+                                                <CheckCircle className="w-5 h-5 text-indigo-400 shrink-0" />
+                                                <span className="text-sm text-slate-300">
+                                                    Up to {plan.max_session_participants === -1 ? 'Unlimited' : plan.max_session_participants} participants
+                                                </span>
+                                            </div>
                                         </div>
 
                                         <button 
-                                            onClick={() => handleUpgrade(plan.id)}
-                                            disabled={isCurrent || isUpgrading}
+                                            onClick={() => {
+                                                setSelectedPlan(plan);
+                                                setStep('payment');
+                                            }}
+                                            disabled={isCurrent}
                                             className={`w-full py-3 rounded-xl font-medium transition-all ${
                                                 isCurrent ? 'bg-white/5 text-slate-500 cursor-not-allowed' :
-                                                plan.name === 'pro' ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/25' :
+                                                plan.name === 'pro_host' ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/25' :
                                                 'bg-white/10 hover:bg-white/20 text-white'
                                             }`}
                                         >
-                                            {isCurrent ? 'Current Plan' : isUpgrading ? 'Upgrading...' : 'Select Plan'}
+                                            {isCurrent ? 'Current Plan' : 'Select Plan'}
                                         </button>
                                     </div>
                                 );
                             })}
+                        </div>
+                    ) : step === 'payment' ? (
+                        /* STEP 2: PAYMENT DETAILS */
+                        <div className="max-w-md mx-auto animate-[fadeIn_0.3s_ease-out]">
+                            <div className="bg-[#111827] p-6 rounded-2xl border border-[#1e293b] mb-6">
+                                <label className="block text-sm font-medium text-slate-300 mb-2">Mobile Money Number</label>
+                                <input 
+                                    type="text" 
+                                    value={phone}
+                                    onChange={handlePhoneChange}
+                                    placeholder="0712 345 678"
+                                    className="w-full bg-[#0d1526] border border-[#1e293b] rounded-xl px-4 py-3 text-white text-lg focus:outline-none focus:border-indigo-500 transition-colors mb-2"
+                                />
+                                <p className="text-xs text-slate-500 mb-6">Enter your M-Pesa, Airtel, Tigo or Halopesa number</p>
+
+                                <label className="block text-sm font-medium text-slate-300 mb-2">Provider</label>
+                                <div className="grid grid-cols-2 gap-3 mb-6">
+                                    {['Mpesa', 'Airtel', 'Tigo', 'Halopesa'].map(prov => (
+                                        <button 
+                                            key={prov}
+                                            onClick={() => setProvider(prov)}
+                                            className={`py-2 px-3 rounded-xl border text-sm font-medium transition-colors ${
+                                                provider === prov 
+                                                ? 'bg-indigo-600/20 border-indigo-500 text-indigo-400' 
+                                                : 'bg-[#0d1526] border-[#1e293b] text-slate-400 hover:border-slate-700'
+                                            }`}
+                                        >
+                                            {prov}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            <div className="text-center mb-6">
+                                <p className="text-3xl font-bold text-white mb-1">TZS {Number(selectedPlan?.price_tzs || 0).toLocaleString()}</p>
+                                <p className="text-sm text-slate-500">≈ ${selectedPlan?.price_usd}/month</p>
+                            </div>
+
+                            <button 
+                                onClick={handlePayNow}
+                                disabled={!phone.replace(/\s/g, '')}
+                                className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-600/50 disabled:cursor-not-allowed text-white rounded-xl font-bold text-lg transition-all shadow-[0_4px_15px_rgba(99,102,241,0.3)] disabled:shadow-none mb-4"
+                            >
+                                Pay Now
+                            </button>
+                            
+                            <p className="text-xs text-slate-500 text-center px-4">
+                                By paying you agree to our Terms of Service. Subscription renews monthly. Cancel anytime.
+                            </p>
+                        </div>
+                    ) : step === 'waiting' ? (
+                        /* STEP 3: WAITING FOR CONFIRMATION */
+                        <div className="max-w-md mx-auto text-center py-8 animate-[fadeIn_0.3s_ease-out]">
+                            <div className="relative inline-flex mb-6">
+                                <div className="absolute inset-0 bg-indigo-500/20 rounded-full animate-ping"></div>
+                                <div className="w-20 h-20 bg-indigo-500/10 border border-indigo-500/30 rounded-full flex items-center justify-center relative z-10">
+                                    <Smartphone className="w-10 h-10 text-indigo-400" />
+                                </div>
+                            </div>
+                            
+                            <h2 className="text-2xl font-bold text-white mb-3">Check your phone</h2>
+                            <p className="text-slate-400 mb-6">
+                                A payment request has been sent to <span className="text-white font-medium">{phone}</span>. Confirm it on your phone to complete the upgrade.
+                            </p>
+                            
+                            <div className="bg-[#111827] border border-[#1e293b] rounded-xl p-4 mb-8">
+                                <p className="text-indigo-400 font-medium">{getInstruction()}</p>
+                            </div>
+                            
+                            <div className="flex items-center justify-center gap-2 text-slate-400">
+                                <Loader className="w-4 h-4 animate-spin" />
+                                <span>Waiting for confirmation<span className="tracking-widest">...</span></span>
+                            </div>
+                        </div>
+                    ) : step === 'success' ? (
+                        /* STEP 4a: SUCCESS */
+                        <div className="max-w-md mx-auto text-center py-8 animate-[fadeIn_0.3s_ease-out]">
+                            <div className="w-20 h-20 bg-emerald-500/10 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <CheckCircle className="w-10 h-10 text-emerald-400" />
+                            </div>
+                            
+                            <h2 className="text-2xl font-bold text-white mb-2">Payment Successful! 🎉</h2>
+                            <p className="text-emerald-400 mb-8 font-medium">You are now on {selectedPlan?.display_name}</p>
+                            
+                            <div className="bg-[#111827] border border-[#1e293b] rounded-2xl p-6 text-left mb-8">
+                                <h4 className="text-white font-medium mb-4">New features unlocked:</h4>
+                                <ul className="space-y-3">
+                                    <li className="flex gap-3 text-slate-300">
+                                        <CheckCircle className="w-5 h-5 text-indigo-400 shrink-0" /> Host live sessions
+                                    </li>
+                                    <li className="flex gap-3 text-slate-300">
+                                        <CheckCircle className="w-5 h-5 text-indigo-400 shrink-0" /> Up to {selectedPlan?.max_session_participants === -1 ? 'Unlimited' : selectedPlan?.max_session_participants} participants
+                                    </li>
+                                    <li className="flex gap-3 text-slate-300">
+                                        <CheckCircle className="w-5 h-5 text-indigo-400 shrink-0" /> {selectedPlan?.compute_hours_per_month === -1 ? 'Unlimited' : selectedPlan?.compute_hours_per_month} hours/month
+                                    </li>
+                                </ul>
+                            </div>
+                            
+                            <button 
+                                onClick={() => {
+                                    onClose();
+                                    window.location.reload();
+                                }}
+                                className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-lg transition-all shadow-lg shadow-emerald-500/20"
+                            >
+                                Start Hosting Now &rarr;
+                            </button>
+                        </div>
+                    ) : (
+                        /* STEP 4b: FAILED */
+                        <div className="max-w-md mx-auto text-center py-8 animate-[fadeIn_0.3s_ease-out]">
+                            <div className="w-20 h-20 bg-rose-500/10 border border-rose-500/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <XCircle className="w-10 h-10 text-rose-400" />
+                            </div>
+                            
+                            <h2 className="text-2xl font-bold text-white mb-3">Payment Failed</h2>
+                            <p className="text-slate-400 mb-8">
+                                {paymentError || "The payment was not confirmed. Please try again."}
+                            </p>
+                            
+                            <div className="flex gap-3">
+                                <button 
+                                    onClick={() => setStep('payment')}
+                                    className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-colors"
+                                >
+                                    Try Again
+                                </button>
+                                <button 
+                                    onClick={onClose}
+                                    className="flex-1 py-3 bg-[#111827] border border-[#1e293b] hover:bg-[#1e293b] text-white rounded-xl font-medium transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>

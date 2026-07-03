@@ -791,16 +791,9 @@ export default function WorkspacesPage() {
                   justifyContent: 'space-between',
                   alignItems: 'center'
                 }}
-                onClick={async () => {
-                  try {
-                    await api.post(
-                      '/subscriptions/upgrade/',
-                      { plan_name: p.plan })
-                    setShowLimitModal(false)
-                    window.location.reload()
-                  } catch(e) {
-                    console.error(e)
-                  }
+                onClick={() => {
+                  openUpgradeModal()
+                  setShowLimitModal(false)
                 }}>
                   <div>
                     <p style={{

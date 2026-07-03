@@ -235,3 +235,53 @@ class ComputeUsageLog(models.Model):
     cost_usd = models.DecimalField(
         max_digits=8, decimal_places=4,
         default=0)
+
+class Payment(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+        ('cancelled', 'Cancelled'),
+    ]
+
+    PROVIDER_CHOICES = [
+        ('Mpesa', 'M-Pesa'),
+        ('Airtel', 'Airtel Money'),
+        ('Tigo', 'Tigo Pesa'),
+        ('Halopesa', 'Halopesa'),
+    ]
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE,
+        related_name='payments')
+    plan = models.ForeignKey(
+        SubscriptionPlan,
+        on_delete=models.PROTECT)
+    amount_tzs = models.DecimalField(
+        max_digits=12, decimal_places=2)
+    amount_usd = models.DecimalField(
+        max_digits=8, decimal_places=2,
+        default=0)
+    currency = models.CharField(
+        max_length=3, default='TZS')
+    provider = models.CharField(
+        max_length=20,
+        choices=PROVIDER_CHOICES,
+        default='Mpesa')
+    phone_number = models.CharField(max_length=15)
+    transaction_id = models.CharField(
+        max_length=100, unique=True)
+    azampay_reference = models.CharField(
+        max_length=200, blank=True)
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending')
+    created_at = models.DateTimeField(
+        auto_now_add=True)
+    completed_at = models.DateTimeField(
+        null=True, blank=True)
+    metadata = models.JSONField(default=dict)
+
+    class Meta:
+        ordering = ['-created_at']
