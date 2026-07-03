@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { Monitor, Users, Clock, Copy, X, CheckCircle, Play, Square, Wifi, WifiOff, AlertTriangle, LogOut, Video } from 'lucide-react'
+import { Monitor, Users, Clock, Copy, X, CheckCircle, Play, Square, Wifi, WifiOff, AlertTriangle, LogOut, Video, Lock } from 'lucide-react'
 import api from '../services/api'
 
 export default function HostSessionPage() {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Tv, Clock, Calendar, ChevronRight, Play } from 'lucide-react';
+import { Tv, Clock, Calendar, ChevronRight, Play, Users } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import JoinByCodeModal from '../../components/shared/JoinByCodeModal';
