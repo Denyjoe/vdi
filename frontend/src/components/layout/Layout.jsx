@@ -21,10 +21,18 @@ import Sidebar from "./Sidebar";
 import { NotificationProvider } from "../../context/NotificationContext";
 import useUIStore from "../../store/uiStore";
 import UpgradeModal from "../shared/UpgradeModal";
+import CreateSessionModal from "../shared/CreateSessionModal";
+import { useNavigate } from "react-router-dom";
 
 export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { showUpgradeModal, closeUpgradeModal } = useUIStore();
+  const navigate = useNavigate();
+  const { 
+    showUpgradeModal, 
+    closeUpgradeModal,
+    showCreateSessionModal,
+    closeCreateSessionModal
+  } = useUIStore();
 
   return (
     <NotificationProvider>
@@ -61,6 +69,15 @@ export default function Layout({ children }) {
           onUpgraded={() => {
             closeUpgradeModal()
             window.location.reload()
+          }}
+        />
+      )}
+      {showCreateSessionModal && (
+        <CreateSessionModal
+          onClose={closeCreateSessionModal}
+          onCreated={(session) => {
+            closeCreateSessionModal()
+            navigate(`/host/session/${session.id}`)
           }}
         />
       )}

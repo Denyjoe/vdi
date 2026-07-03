@@ -24,12 +24,7 @@ export default function Sidebar() {
     toast.success('Logged out successfully');
   };
 
-  const { openUpgradeModal } = useUIStore();
-  
-  const openCreateSessionModal = () => {
-    // Open create session modal
-    window.dispatchEvent(new CustomEvent('openCreateSessionModal'));
-  };
+  const { openUpgradeModal, openCreateSessionModal } = useUIStore();
 
   const NavItem = ({ to, icon: Icon, children }) => (
     <NavLink
@@ -76,12 +71,34 @@ export default function Sidebar() {
               Host
             </p>
             <div className="space-y-1">
-              <button 
+              <button
                 onClick={openCreateSessionModal}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
-              >
-                <Plus size={20} className="shrink-0" />
-                <span>Create Session</span>
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '10px 12px',
+                  width: '100%',
+                  borderRadius: '10px',
+                  background: 'none',
+                  border: 'none',
+                  color: '#64748b',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.color = '#e2e8f0'
+                  e.currentTarget.style.background = 
+                    'rgba(255,255,255,0.05)'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.color = '#64748b'
+                  e.currentTarget.style.background = 'none'
+                }}>
+                <Plus size={16} />
+                Create Session
               </button>
               <NavItem to="/host/analytics" icon={BarChart2}>Analytics</NavItem>
             </div>

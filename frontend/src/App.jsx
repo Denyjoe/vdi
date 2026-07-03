@@ -84,6 +84,8 @@ import MemberSessionsPage from "./pages/member/MemberSessionsPage";
 import SessionHistoryPage from "./pages/member/SessionHistoryPage";
 import DesktopSessionPage from "./pages/member/DesktopSessionPage";
 import SettingsPage from "./pages/SettingsPage";
+import HostSessionPage from "./pages/HostSessionPage";
+import HostAnalyticsPage from "./pages/HostAnalyticsPage";
 
 // Layout & guards
 import Layout from "./components/layout/Layout";
@@ -120,6 +122,9 @@ export default function App() {
         <Route path="/member/dashboard" element={<Navigate to={getDashboardRoute()} replace />} />
         <Route path="/instructor/dashboard" element={<Navigate to={getDashboardRoute()} replace />} />
 
+        {/* ── Protected routes (without layout) ───────────────────── */}
+        <Route path="/host/session/:sessionId" element={<ProtectedRoute><HostSessionPage /></ProtectedRoute>} />
+
         {/* ── Protected routes (with layout) ──────────────────────── */}
         <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           
@@ -128,7 +133,7 @@ export default function App() {
           <Route path="/sessions/my" element={<MemberSessionsPage />} />
           <Route path="/sessions/history" element={<SessionHistoryPage />} />
           <Route path="/session/:id" element={<DesktopSessionPage />} />
-          <Route path="/host/analytics" element={<div className="p-8 text-white">Analytics coming soon</div>} />
+          <Route path="/host/analytics" element={<HostAnalyticsPage />} />
           
           <Route path="/sessions" element={<SessionsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
