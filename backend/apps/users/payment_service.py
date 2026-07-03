@@ -19,6 +19,10 @@ class AzamPayService:
   
   def get_token(self):
     """Get AzamPay auth token"""
+    if config('AZAMPAY_ENV', default='') == 'sandbox' and self.client_secret == 'your-new-secret-here':
+      self.token = 'mock_sandbox_token'
+      return self.token
+      
     try:
       res = requests.post(
         f'{self.BASE_URL}/authenticator'
@@ -69,6 +73,14 @@ class AzamPayService:
       str(uuid.uuid4())[:8].upper()
     
     try:
+      if config('AZAMPAY_ENV', default='') == 'sandbox' and self.token == 'mock_sandbox_token':
+        return {
+          'success': True,
+          'transaction_id': transaction_id,
+          'data': {'status': 'pending', 'message': 'Mock checkout success'},
+          'message': 'Mock checkout success'
+        }
+
       res = requests.post(
         f'{self.BASE_URL}/azampay'
         '/mno/checkout',

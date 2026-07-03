@@ -4,7 +4,7 @@ import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 
 export default function UpgradeModal({ onClose }) {
-    const { user, setUser } = useAuthStore();
+    const { user, setUser, login } = useAuthStore();
     const [step, setStep] = useState('plans'); // 'plans', 'payment', 'waiting', 'success', 'failed'
     const [plans, setPlans] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -101,26 +101,30 @@ export default function UpgradeModal({ onClose }) {
             }
             pollCount.current++;
             
+            const onPaymentSuccess = async () => {
+                try {
+                    const meRes = await api.get('/auth/me/');
+                    const updatedUser = meRes.data.data;
+                    const accessToken = localStorage.getItem('dit_access_token');
+                    const refreshToken = localStorage.getItem('dit_refresh_token');
+                    if (login && accessToken && refreshToken) {
+                        login(updatedUser, accessToken, refreshToken);
+                    } else {
+                        setUser(updatedUser);
+                    }
+                } catch (err) {
+                    console.error('Failed to refresh user profile', err);
+                }
+                setStep('success');
+            };
+
             try {
                 const res = await api.get(`/payments/status/${id}/`);
                 if (res.data?.success) {
                     const status = res.data.data.status;
                     if (status === 'completed') {
                         clearInterval(pollInterval.current);
-                        setStep('success');
-                        
-                        // Optimistically update user store
-                        const hostPlans = ['personal_host', 'pro_host', 'institution'];
-                        const isHost = hostPlans.includes(selectedPlan.name);
-                        setUser({
-                            ...user, 
-                            is_host: isHost,
-                            host_plan: isHost ? selectedPlan.name : 'none',
-                            subscription: {
-                                ...user.subscription,
-                                plan_name: selectedPlan.name
-                            }
-                        });
+                        onPaymentSuccess();
                     } else if (status === 'failed' || status === 'cancelled') {
                         clearInterval(pollInterval.current);
                         setPaymentError('Payment was not successful. Please try again.');
@@ -302,6 +306,69 @@ export default function UpgradeModal({ onClose }) {
                                 <Loader className="w-4 h-4 animate-spin" />
                                 <span>Waiting for confirmation<span className="tracking-widest">...</span></span>
                             </div>
+                            
+                            {/* Sandbox test button - remove in production */}
+                            {import.meta.env.DEV && (
+                                <div style={{
+                                    marginTop: '24px',
+                                    padding: '16px',
+                                    borderRadius: '12px',
+                                    background: 'rgba(245,158,11,0.08)',
+                                    border: '1px solid rgba(245,158,11,0.2)'
+                                }}>
+                                    <p style={{
+                                        color: '#fcd34d',
+                                        fontSize: '12px',
+                                        margin: '0 0 10px',
+                                        textAlign: 'center'
+                                    }}>
+                                        🧪 Sandbox Mode — Simulate payment confirmation
+                                    </p>
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                await api.post('/payments/callback/', {
+                                                    externalId: txnId,
+                                                    transactionStatus: 'success',
+                                                    responseCode: '000'
+                                                });
+                                                
+                                                if (pollInterval.current) clearInterval(pollInterval.current);
+                                                
+                                                try {
+                                                    const meRes = await api.get('/auth/me/');
+                                                    const updatedUser = meRes.data.data;
+                                                    const accessToken = localStorage.getItem('dit_access_token');
+                                                    const refreshToken = localStorage.getItem('dit_refresh_token');
+                                                    if (login && accessToken && refreshToken) {
+                                                        login(updatedUser, accessToken, refreshToken);
+                                                    } else {
+                                                        setUser(updatedUser);
+                                                    }
+                                                } catch (err) {
+                                                    console.error(err);
+                                                }
+                                                
+                                                setStep('success');
+                                            } catch(e) {
+                                                console.error(e);
+                                            }
+                                        }}
+                                        style={{
+                                            width: '100%',
+                                            padding: '10px',
+                                            borderRadius: '8px',
+                                            background: 'rgba(245,158,11,0.2)',
+                                            border: '1px solid rgba(245,158,11,0.3)',
+                                            color: '#fcd34d',
+                                            fontSize: '13px',
+                                            fontWeight: 600,
+                                            cursor: 'pointer'
+                                        }}>
+                                        ✓ Simulate Payment Confirmed
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     ) : step === 'success' ? (
                         /* STEP 4a: SUCCESS */
