@@ -140,14 +140,11 @@ export default function MemberSessionsPage() {
                                 <div className="w-16 h-16 rounded-full bg-indigo-500/10 flex items-center justify-center mb-4">
                                     <Tv className="w-8 h-8 text-indigo-400" />
                                 </div>
-                                <h3 className="text-xl font-bold text-white mb-2">No upcoming sessions</h3>
-                                <p className="text-slate-400 max-w-md mb-6">Discover public sessions or join a private session with an invite code.</p>
+                                <h3 className="text-xl font-bold text-white mb-2">No sessions yet</h3>
+                                <p className="text-slate-400 max-w-md mb-6">Join a session using an invite code shared by the host.</p>
                                 <div className="flex gap-4">
-                                    <Link to="/sessions" className="px-6 py-2.5 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-xl font-medium transition-colors">
-                                        Browse Sessions
-                                    </Link>
                                     <button onClick={() => setIsJoinModalOpen(true)} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-colors shadow-lg shadow-indigo-500/20">
-                                        Join with Code
+                                        Enter Invite Code
                                     </button>
                                 </div>
                             </div>

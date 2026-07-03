@@ -19,9 +19,12 @@ import { Outlet } from "react-router-dom";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 import { NotificationProvider } from "../../context/NotificationContext";
+import useUIStore from "../../store/uiStore";
+import UpgradeModal from "../shared/UpgradeModal";
 
 export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { showUpgradeModal, closeUpgradeModal } = useUIStore();
 
   return (
     <NotificationProvider>
@@ -52,6 +55,15 @@ export default function Layout({ children }) {
           <main className="flex-1 overflow-auto p-4 sm:p-6">{children ? children : <Outlet />}</main>
         </div>
       </div>
+      {showUpgradeModal && (
+        <UpgradeModal
+          onClose={closeUpgradeModal}
+          onUpgraded={() => {
+            closeUpgradeModal()
+            window.location.reload()
+          }}
+        />
+      )}
     </NotificationProvider>
   );
 }

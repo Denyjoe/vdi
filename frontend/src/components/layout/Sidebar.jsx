@@ -11,6 +11,7 @@ import {
   LogOut
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
+import useUIStore from '../../store/uiStore';
 import { toast } from 'react-hot-toast';
 
 export default function Sidebar() {
@@ -23,10 +24,7 @@ export default function Sidebar() {
     toast.success('Logged out successfully');
   };
 
-  const openUpgradeModal = () => {
-    // Open upgrade modal
-    window.dispatchEvent(new CustomEvent('openUpgradeModal'));
-  };
+  const { openUpgradeModal } = useUIStore();
   
   const openCreateSessionModal = () => {
     // Open create session modal

@@ -83,6 +83,7 @@ import WorkspacesPage from "./pages/member/WorkspacesPage";
 import MemberSessionsPage from "./pages/member/MemberSessionsPage";
 import SessionHistoryPage from "./pages/member/SessionHistoryPage";
 import DesktopSessionPage from "./pages/member/DesktopSessionPage";
+import SettingsPage from "./pages/SettingsPage";
 
 // Layout & guards
 import Layout from "./components/layout/Layout";
@@ -132,7 +133,7 @@ export default function App() {
           <Route path="/sessions" element={<SessionsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
-          <Route path="/settings" element={<div className="p-8 text-white">Settings coming soon</div>} />
+          <Route path="/settings" element={<SettingsPage />} />
 
           {/* ── Admin Area ────────────────────────────────────────── */}
           <Route path="/admin">
