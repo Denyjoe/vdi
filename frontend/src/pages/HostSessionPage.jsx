@@ -70,8 +70,12 @@ export default function HostSessionPage() {
   const handleEndSession = async () => {
     try {
       await api.post(`/sessions/live/${sessionId}/end/`)
+      setShowEndConfirm(false)
       navigate('/sessions/my')
-    } catch(e) { console.error(e) }
+    } catch(e) { 
+      console.error('End session error:', e)
+      navigate('/sessions/my')
+    }
   }
 
   const handleRemoveParticipant = async (userId) => {
@@ -174,6 +178,24 @@ export default function HostSessionPage() {
         background: 'rgba(3,7,18,0.95)',
         flexShrink: 0
       }}>
+        <button
+          onClick={() => navigate('/sessions/my')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '6px 12px',
+            borderRadius: '8px',
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid #1e293b',
+            color: '#64748b',
+            fontSize: '13px',
+            cursor: 'pointer',
+            marginRight: '8px'
+          }}>
+          ← Back to Sessions
+        </button>
+
         {/* Live indicator */}
         <div style={{
           display: 'flex',

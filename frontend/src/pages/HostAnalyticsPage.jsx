@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart2, Users, Clock, Video } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import useUIStore from '../store/uiStore';
 
@@ -13,6 +14,7 @@ export default function HostAnalyticsPage() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const { openCreateSessionModal } = useUIStore();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchData();
@@ -20,16 +22,26 @@ export default function HostAnalyticsPage() {
 
   const fetchData = async () => {
     try {
-      // Assuming these endpoints return the data structure we need
-      // You may need to adjust based on the actual backend response
-      const statsRes = await api.get('/auth/profile/stats/');
-      if (statsRes.data?.success) {
-        setStats(statsRes.data.data);
-      }
-
       const sessionsRes = await api.get('/sessions/live/');
       if (sessionsRes.data?.success) {
-        setSessions(sessionsRes.data.data);
+        const sessionsData = sessionsRes.data.data.my_hosted || [];
+        setSessions(sessionsData);
+        
+        const total = sessionsData.length;
+        const totalHours = sessionsData.reduce((sum, s) => {
+          if (s.start_time && s.end_time) {
+            const diff = new Date(s.end_time) - new Date(s.start_time);
+            return sum + (diff / 3600000);
+          }
+          return sum;
+        }, 0);
+
+        setStats({
+          total_sessions_hosted: total,
+          total_participants: 0,
+          total_session_hours: totalHours.toFixed(1),
+          avg_participants_per_session: 0
+        });
       }
     } catch (err) {
       console.error(err);
@@ -131,29 +143,45 @@ export default function HostAnalyticsPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-300">
-                      {formatDate(s.start_time || s.created_at)}
+                      {s.start_time ? new Date(s.start_time).toLocaleDateString() : '---'}
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-300">
-                      {s.participants_count || 0}
+                      {s.participants_count || s.max_participants || 0}
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-300">
-                      {calculateDuration(s.start_time, s.end_time)}
+                      {s.start_time && s.end_time
+                        ? `${((new Date(s.end_time) - new Date(s.start_time)) / 3600000).toFixed(1)}h`
+                        : 'Ongoing'}
                     </td>
                     <td className="px-6 py-4">
-                      {s.status === 'active' ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                          Active
-                        </span>
-                      ) : s.status === 'scheduled' ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                          Scheduled
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-500/10 text-slate-400 border border-slate-500/20">
-                          Ended
-                        </span>
-                      )}
+                      <span style={{
+                        padding: '3px 10px',
+                        borderRadius: '20px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        background: s.status === 'active'
+                          ? 'rgba(16,185,129,0.15)'
+                          : 'rgba(99,102,241,0.15)',
+                        color: s.status === 'active'
+                          ? '#34d399' : '#a5b4fc'
+                      }}>
+                        {s.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => navigate(`/host/session/${s.id}`)}
+                        style={{
+                          padding: '4px 12px',
+                          borderRadius: '6px',
+                          background: 'rgba(99,102,241,0.15)',
+                          border: '1px solid rgba(99,102,241,0.2)',
+                          color: '#a5b4fc',
+                          fontSize: '12px',
+                          cursor: 'pointer'
+                        }}>
+                        {s.status === 'active' ? 'Monitor' : 'View'}
+                      </button>
                     </td>
                   </tr>
                 ))}
