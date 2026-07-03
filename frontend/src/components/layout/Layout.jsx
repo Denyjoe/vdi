@@ -15,6 +15,7 @@
  */
 
 import { useState } from "react";
+import { Outlet } from "react-router-dom";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 import { NotificationProvider } from "../../context/NotificationContext";
@@ -48,7 +49,7 @@ export default function Layout({ children }) {
         {/* Main content area */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <Navbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-          <main className="flex-1 overflow-auto p-4 sm:p-6">{children}</main>
+          <main className="flex-1 overflow-auto p-4 sm:p-6">{children ? children : <Outlet />}</main>
         </div>
       </div>
     </NotificationProvider>

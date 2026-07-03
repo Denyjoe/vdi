@@ -11,8 +11,45 @@
  */
 
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import useAuthStore from "./store/authStore";
+
+// Error Boundary for Dashboard
+class ErrorBoundary extends React.Component {
+  state = { error: null }
+  
+  componentDidCatch(error) {
+    this.setState({ error })
+    console.error('Page error:', error)
+  }
+  
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{
+          color: 'white', 
+          padding: '40px',
+          background: '#0d1526',
+          minHeight: '100vh'
+        }}>
+          <h2 style={{color: '#ef4444'}}>
+            Page Error
+          </h2>
+          <pre style={{
+            color: '#94a3b8',
+            fontSize: '12px',
+            whiteSpace: 'pre-wrap'
+          }}>
+            {this.state.error.toString()}
+            {'\n'}
+            {this.state.error.stack}
+          </pre>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 // Public pages
 import LandingPage from "./pages/public/LandingPage";
@@ -85,7 +122,7 @@ export default function App() {
         {/* ── Protected routes (with layout) ──────────────────────── */}
         <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           
-          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/dashboard" element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
           <Route path="/workspaces" element={<WorkspacesPage />} />
           <Route path="/sessions/my" element={<MemberSessionsPage />} />
           <Route path="/sessions/history" element={<SessionHistoryPage />} />
