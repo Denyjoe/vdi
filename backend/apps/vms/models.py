@@ -65,6 +65,15 @@ class VMTemplate(models.Model):
         null=True,
         help_text="Emoji or icon identifier for the catalogue card (e.g. '🖥️').",
     )
+    proxmox_template_id = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Proxmox VM ID of the template to clone. Null = simulated.",
+    )
+    is_real = models.BooleanField(
+        default=False,
+        help_text="If True, launches real Proxmox VM. If False, simulated.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -161,6 +170,18 @@ class VirtualMachine(models.Model):
         blank=True,
         null=True,
         help_text="Optional internal notes or error messages from the orchestrator.",
+    )
+    ip_address = models.CharField(
+        max_length=50,
+        blank=True,
+        default='',
+        help_text="IP address of the running VM (populated by Proxmox guest agent).",
+    )
+    guacamole_connection_id = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        help_text="Guacamole connection identifier for remote desktop access.",
     )
 
     class Meta:
