@@ -70,7 +70,8 @@ export default function CreateSessionModal({ onClose, onCreated }) {
         onCreated(session);
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Error creating session. Check your plan limits.');
+      console.error('Session creation error:', err, err.response?.data);
+      alert(err.response?.data?.message || err.response?.data?.errors?.non_field_errors?.[0] || 'Error creating session. Check your plan limits.');
     } finally {
       setCreating(false);
     }

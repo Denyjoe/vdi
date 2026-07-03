@@ -69,12 +69,12 @@ class LiveSessionCreateView(APIView):
             
             return Response({
                 "success": True,
+                "data": LiveSessionSerializer(session).data,
                 "session_id": session.id,
                 "invite_code": session.invite_code,
                 "invite_link": f"https://clouddesk.io/join/{session.invite_code}",
                 "qr_code_url": None,
-                "host_link": f"https://clouddesk.io/host/{session.invite_code}",
-                "session_details": LiveSessionSerializer(session).data
+                "host_link": f"https://clouddesk.io/host/{session.invite_code}"
             }, status=status.HTTP_201_CREATED)
             
         return Response({
@@ -171,7 +171,14 @@ class SessionMonitorView(APIView):
         participants = session.participants.all()
         return Response({
             "success": True,
-            "data": SessionParticipantSerializer(participants, many=True).data
+            "data": {
+                "participants": SessionParticipantSerializer(participants, many=True).data,
+                "summary": {
+                    "total_joined": participants.count(),
+                    "active_vms": participants.filter(vm_status='running').count() if hasattr(SessionParticipant, 'vm_status') else 0,
+                    "waiting": participants.filter(vm_status='waiting').count() if hasattr(SessionParticipant, 'vm_status') else 0
+                }
+            }
         })
 
 class RemoveParticipantView(APIView):

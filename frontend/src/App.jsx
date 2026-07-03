@@ -123,7 +123,7 @@ export default function App() {
         <Route path="/instructor/dashboard" element={<Navigate to={getDashboardRoute()} replace />} />
 
         {/* ── Protected routes (without layout) ───────────────────── */}
-        <Route path="/host/session/:sessionId" element={<ProtectedRoute><HostSessionPage /></ProtectedRoute>} />
+        <Route path="/host/session/:sessionId" element={<ProtectedRoute><ErrorBoundary><HostSessionPage /></ErrorBoundary></ProtectedRoute>} />
 
         {/* ── Protected routes (with layout) ──────────────────────── */}
         <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
