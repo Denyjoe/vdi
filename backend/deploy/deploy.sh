@@ -5,7 +5,7 @@ echo "========================================="
 echo "DIT VDI System — Production Deployment"
 echo "========================================="
 
-SERVER_IP="192.168.1.11"
+SERVER_IP="192.168.1.14"
 APP_DIR="/home/ditadmin/dit-vdi-system"
 REPO_URL="https://github.com/YOUR_USERNAME/YOUR_REPO.git"
 # Replace with your actual GitHub repo URL
@@ -75,8 +75,8 @@ pip install gunicorn
 cat > .env << 'EOF'
 SECRET_KEY=DIT-VDI-Production-Secret-Key-Change-This-2026-Secure
 DEBUG=False
-ALLOWED_HOSTS=192.168.1.11,localhost,127.0.0.1
-CORS_ALLOWED_ORIGINS=http://192.168.1.11
+ALLOWED_HOSTS=192.168.1.14,localhost,127.0.0.1
+CORS_ALLOWED_ORIGINS=http://192.168.1.14
 DB_NAME=dit_vdi_db
 DB_USER=dit_vdi_user
 DB_PASSWORD=DIT_VDI_SecurePass2026!
@@ -106,8 +106,8 @@ cd $APP_DIR/frontend
 
 # Since we use environment variables now, we don't strictly need sed for API URLs.
 # But keeping it just in case as requested by user.
-sed -i 's|http://localhost:8000|http://192.168.1.11/api|g' src/services/api.js || true
-sed -i 's|http://localhost:8000/api|http://192.168.1.11/api|g' src/services/api.js || true
+sed -i 's|http://localhost:8000|http://192.168.1.14/api|g' src/services/api.js || true
+sed -i 's|http://localhost:8000/api|http://192.168.1.14/api|g' src/services/api.js || true
 
 npm install
 npm run build
@@ -184,7 +184,7 @@ echo "[10/12] Configuring Nginx..."
 sudo tee /etc/nginx/sites-available/dit-vdi << EOF
 server {
     listen 80;
-    server_name 192.168.1.11;
+    server_name 192.168.1.14;
 
     client_max_body_size 100M;
 
@@ -286,7 +286,7 @@ echo ""
 echo "========================================="
 echo "Deployment Complete!"
 echo "Access your system at:"
-echo "http://192.168.1.11"
+echo "http://192.168.1.14"
 echo ""
 echo "Admin login:"
 echo "Email: admin@dit.ac.tz"
