@@ -432,144 +432,248 @@ export default function HostSessionPage() {
                 'repeat(auto-fill, minmax(240px, 1fr))',
               gap: '16px'
             }}>
-              {participants.map(p => (
-                <div key={p.id} style={{
-                  borderRadius: '14px',
-                  border: '1px solid #1e293b',
-                  background: '#111827',
-                  overflow: 'hidden'
-                }}>
-                  {/* Mini VM preview */}
-                  <div style={{
-                    height: '90px',
-                    background: 'linear-gradient(135deg, #1e3a5f, #1a3a8f)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    position: 'relative'
+              {participants.map(p => {
+                const initials = (p.user_name || p.user_email || 'U')
+                  .split(' ')
+                  .map(w => w[0])
+                  .join('')
+                  .slice(0, 2)
+                  .toUpperCase()
+                
+                const headerBg = 
+                  p.status === 'active'
+                    ? 'linear-gradient(135deg, #064e3b, #065f46)'
+                  : p.status === 'provisioning' || p.vm_status === 'provisioning'
+                    ? 'linear-gradient(135deg, #78350f, #92400e)'
+                  : 'linear-gradient(135deg, #0f172a, #1e293b)'
+                
+                const connectedTime = p.joined_at
+                  ? (() => {
+                      const diff = new Date() - new Date(p.joined_at)
+                      const m = Math.floor(diff/60000)
+                      const s = Math.floor((diff%60000)/1000)
+                      return m > 0 ? `${m}m ${s}s` : `${s}s`
+                    })()
+                  : 'Unknown'
+
+                return (
+                  <div key={p.id} style={{
+                    borderRadius: '16px',
+                    border: '1px solid #1e293b',
+                    background: '#111827',
+                    overflow: 'hidden',
+                    transition: 'all 0.2s ease'
                   }}>
-                    <Monitor size={28}
-                      color="rgba(255,255,255,0.4)" />
-                    
+                    {/* Header */}
                     <div style={{
-                      position: 'absolute',
-                      bottom: '8px',
-                      left: '8px',
-                      right: '8px',
+                      height: '80px',
+                      background: headerBg,
                       display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      position: 'relative'
                     }}>
+                      <div style={{
+                        width: '48px', height: '48px',
+                        borderRadius: '50%',
+                        background: 'rgba(255,255,255,0.15)',
+                        border: '2px solid rgba(255,255,255,0.3)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '18px',
+                        fontWeight: 700,
+                        color: 'white'
+                      }}>
+                        {initials}
+                      </div>
+                      
+                      {/* Status dot */}
+                      <div style={{
+                        position: 'absolute',
+                        top: '10px', right: '10px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        padding: '3px 8px',
+                        borderRadius: '20px',
+                        background: 'rgba(0,0,0,0.4)'
+                      }}>
+                        <div style={{
+                          width: '5px', height: '5px',
+                          borderRadius: '50%',
+                          background: 
+                            p.status === 'active' 
+                              ? '#10b981'
+                            : p.status === 'submitted'
+                              ? '#6366f1'
+                            : '#f59e0b'
+                        }} />
+                        <span style={{
+                          color: 'white',
+                          fontSize: '10px',
+                          fontWeight: 600,
+                          textTransform: 'capitalize'
+                        }}>
+                          {p.status === 'active' 
+                            ? 'Active'
+                          : p.status === 'submitted'
+                            ? 'Submitted'
+                          : 'Waiting'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Body */}
+                    <div style={{padding: '14px'}}>
+                      
+                      {/* Name */}
+                      <p style={{
+                        color: 'white',
+                        fontWeight: 600,
+                        fontSize: '14px',
+                        margin: '0 0 2px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {p.user_name || p.user_email}
+                      </p>
+                      <p style={{
+                        color: '#475569',
+                        fontSize: '11px',
+                        margin: '0 0 12px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {p.user_email}
+                      </p>
+
+                      {/* Connected time */}
                       <div style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '4px'
+                        gap: '6px',
+                        marginBottom: '8px'
                       }}>
-                        <div style={{
-                          width: '5px',
-                          height: '5px',
-                          borderRadius: '50%',
-                          background: 
-                            p.vm_status === 'running'
-                              ? '#10b981'
-                              : '#f59e0b'
-                        }} />
+                        <Clock size={12} color="#475569" />
                         <span style={{
-                          color: 'rgba(255,255,255,0.7)',
-                          fontSize: '10px'
+                          color: '#64748b',
+                          fontSize: '12px'
                         }}>
-                          {p.vm_status === 'running'
-                            ? 'VM Active'
-                            : 'Loading...'}
+                          {connectedTime}
                         </span>
                       </div>
-                      {p.vm_status === 'running' && (
-                        <div style={{
-                          display: 'flex',
-                          gap: '4px'
-                        }}>
-                          <span style={{
-                            background: 'rgba(0,0,0,0.5)',
-                            color: 'rgba(255,255,255,0.7)',
-                            fontSize: '9px',
-                            padding: '1px 5px',
-                            borderRadius: '4px'
-                          }}>
-                            CPU {p.cpu_usage||0}%
-                          </span>
-                          <span style={{
-                            background: 'rgba(0,0,0,0.5)',
-                            color: 'rgba(255,255,255,0.7)',
-                            fontSize: '9px',
-                            padding: '1px 5px',
-                            borderRadius: '4px'
-                          }}>
-                            RAM {p.ram_usage||0}%
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
 
-                  {/* Participant info */}
-                  <div style={{padding: '12px'}}>
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      marginBottom: '8px'
-                    }}>
-                      <div>
-                        <p style={{
-                          color: 'white',
-                          fontWeight: 600,
-                          fontSize: '13px',
-                          margin: '0 0 2px'
+                      {/* VM Status */}
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        marginBottom: '12px'
+                      }}>
+                        <Monitor size={12}
+                          color={p.vm_status === 'running'
+                            ? '#10b981' : '#475569'} />
+                        <span style={{
+                          color: p.vm_status === 'running'
+                            ? '#34d399' : '#475569',
+                          fontSize: '12px'
                         }}>
-                          {p.user_name || p.user_email}
-                        </p>
+                          {p.vm_status === 'running'
+                            ? `VM Running`
+                          : p.vm_status === 'provisioning'
+                            ? 'VM Starting...'
+                          : 'No VM yet'}
+                        </span>
+                      </div>
+                      
+                      {/* VM template name */}
+                      {p.vm_status === 'running' && 
+                        p.vm_name && (
                         <p style={{
+                          color: '#334155',
+                          fontSize: '11px',
+                          margin: '0 0 12px',
+                          paddingLeft: '18px'
+                        }}>
+                          {p.vm_name}
+                        </p>
+                      )}
+
+                      {/* Guacamole placeholder */}
+                      <div style={{
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        background: 'rgba(99,102,241,0.06)',
+                        border: '1px solid rgba(99,102,241,0.12)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        marginBottom: '12px'
+                      }}>
+                        <Monitor size={12} color="#4f46e5" />
+                        <span style={{
                           color: '#475569',
                           fontSize: '11px',
-                          margin: 0
+                          lineHeight: 1.3
                         }}>
-                          {formatDuration(p.joined_at)} ago
-                        </p>
+                          Live screen view coming 
+                          with Guacamole
+                        </span>
                       </div>
-                      <button
-                        onClick={() => handleRemoveParticipant(p.user_id)}
-                        title="Remove"
-                        style={{
-                          width: '26px',
-                          height: '26px',
-                          borderRadius: '6px',
-                          background: 'rgba(239,68,68,0.1)',
-                          border: '1px solid rgba(239,68,68,0.2)',
-                          color: '#f87171',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}>
-                        <X size={12} />
-                      </button>
+
+                      {/* Actions */}
+                      <div style={{
+                        display: 'flex', gap: '8px'
+                      }}>
+                        <button
+                          disabled
+                          title="Requires Guacamole integration"
+                          style={{
+                            flex: 1,
+                            padding: '8px',
+                            borderRadius: '8px',
+                            background: 'rgba(99,102,241,0.08)',
+                            border: '1px solid rgba(99,102,241,0.15)',
+                            color: '#4f46e5',
+                            fontSize: '12px',
+                            fontWeight: 500,
+                            cursor: 'not-allowed',
+                            opacity: 0.5,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '5px'
+                          }}>
+                          <Monitor size={12} />
+                          View Screen
+                        </button>
+                        
+                        <button
+                          onClick={() => handleRemoveParticipant(p.user_id)}
+                          title="Remove participant"
+                          style={{
+                            padding: '8px 12px',
+                            borderRadius: '8px',
+                            background: 'rgba(239,68,68,0.08)',
+                            border: '1px solid rgba(239,68,68,0.15)',
+                            color: '#f87171',
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px'
+                          }}>
+                          <X size={12} />
+                          Remove
+                        </button>
+                      </div>
                     </div>
-                    <span style={{
-                      fontSize: '10px',
-                      padding: '2px 8px',
-                      borderRadius: '6px',
-                      background: p.status === 'active'
-                          ? 'rgba(16,185,129,0.15)'
-                          : 'rgba(245,158,11,0.15)',
-                      color: p.status === 'active'
-                        ? '#34d399' : '#fcd34d',
-                      fontWeight: 600
-                    }}>
-                      {p.status}
-                    </span>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
@@ -582,166 +686,221 @@ export default function HostSessionPage() {
           overflow: 'auto',
           flexShrink: 0
         }}>
-          <h3 style={{
-            color: 'white',
-            fontSize: '14px',
-            fontWeight: 600,
-            margin: '0 0 16px'
-          }}>
-            Session Info
-          </h3>
-
-          {/* Stats */}
-          {[
-            { label: 'Joined', value: summary.total_joined||0, color: '#6366f1' },
-            { label: 'Active VMs', value: summary.active_vms||0, color: '#10b981' },
-            { label: 'Waiting', value: summary.waiting||0, color: '#f59e0b' },
-          ].map(s => (
-            <div key={s.label} style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '10px 12px',
-              borderRadius: '10px',
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid #1e293b',
-              marginBottom: '8px'
-            }}>
-              <span style={{
-                color: '#64748b',
-                fontSize: '13px'
-              }}>
-                {s.label}
-              </span>
-              <span style={{
-                color: s.color,
-                fontSize: '18px',
-                fontWeight: 700
-              }}>
-                {s.value}
-              </span>
-            </div>
-          ))}
-
+          {/* 1. INVITE CODE */}
           <div style={{
-            height: '1px',
-            background: '#1e293b',
-            margin: '20px 0'
-          }} />
-
-          {/* Session details */}
-          <h3 style={{
-            color: 'white',
-            fontSize: '14px',
-            fontWeight: 600,
-            margin: '0 0 12px'
-          }}>
-            Details
-          </h3>
-
-          {[
-            { label: 'VM Template', value: session?.required_vm_template?.name || 'Any' },
-            { label: 'Max Participants', value: session?.max_participants || 50 },
-            { label: 'Internet', value: session?.restrict_internet ? '🚫 Restricted' : '✓ Open' },
-            { label: 'Exam Mode', value: session?.is_exam_mode ? '🔒 Active' : 'Off' },
-          ].map(d => (
-            <div key={d.label} style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              marginBottom: '10px'
-            }}>
-              <span style={{
-                color: '#475569',
-                fontSize: '12px'
-              }}>
-                {d.label}
-              </span>
-              <span style={{
-                color: '#94a3b8',
-                fontSize: '12px',
-                fontWeight: 500
-              }}>
-                {d.value}
-              </span>
-            </div>
-          ))}
-
-          <div style={{
-            height: '1px',
-            background: '#1e293b',
-            margin: '20px 0'
-          }} />
-
-          {/* Invite link */}
-          <h3 style={{
-            color: 'white',
-            fontSize: '14px',
-            fontWeight: 600,
-            margin: '0 0 12px'
-          }}>
-            Share
-          </h3>
-
-          <div style={{
-            padding: '12px',
-            borderRadius: '10px',
-            background: 'rgba(99,102,241,0.08)',
+            padding: '20px 16px',
+            borderRadius: '16px',
+            background: 'linear-gradient(135deg, rgba(99,102,241,0.1), rgba(99,102,241,0.05))',
             border: '1px solid rgba(99,102,241,0.2)',
-            marginBottom: '10px',
+            marginBottom: '24px',
             textAlign: 'center'
           }}>
             <p style={{
-              color: '#64748b',
-              fontSize: '10px',
+              color: '#a5b4fc',
+              fontSize: '11px',
               textTransform: 'uppercase',
               letterSpacing: '0.1em',
-              margin: '0 0 6px'
+              margin: '0 0 8px',
+              fontWeight: 600
             }}>
               Invite Code
             </p>
             <p style={{
               color: 'white',
-              fontSize: '22px',
+              fontSize: '28px',
               fontWeight: 800,
               fontFamily: 'monospace',
               letterSpacing: '0.2em',
-              margin: '0 0 10px'
+              margin: '0 0 16px'
             }}>
               {session?.invite_code || '---'}
             </p>
-            <button onClick={copyCode}
-              style={{
-                width: '100%',
-                padding: '8px',
-                borderRadius: '8px',
-                background: '#6366f1',
-                color: 'white',
-                fontSize: '12px',
-                fontWeight: 600,
-                border: 'none',
-                cursor: 'pointer'
-              }}>
-              {copied ? '✓ Copied!' : 'Copy Code'}
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={copyCode}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  borderRadius: '10px',
+                  background: '#6366f1',
+                  color: 'white',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s'
+                }}>
+                {copied ? '✓ Copied' : 'Copy Code'}
+              </button>
+              <button
+                onClick={() => {
+                  const link = `${window.location.origin}/join/${session?.invite_code}`
+                  navigator.clipboard.writeText(link)
+                }}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  borderRadius: '10px',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid #1e293b',
+                  color: '#e2e8f0',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  cursor: 'pointer'
+                }}>
+                Copy Link
+              </button>
+            </div>
           </div>
 
-          <button
-            onClick={() => {
-              const link = `${window.location.origin}/join/${session?.invite_code}`
-              navigator.clipboard.writeText(link)
-            }}
-            style={{
-              width: '100%',
-              padding: '9px',
-              borderRadius: '8px',
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid #1e293b',
-              color: '#94a3b8',
-              fontSize: '12px',
-              cursor: 'pointer'
+          {/* 2. RESTRICTIONS */}
+          <div style={{ marginBottom: '24px' }}>
+            <h3 style={{
+              color: 'white',
+              fontSize: '14px',
+              fontWeight: 600,
+              margin: '0 0 12px'
             }}>
-            Copy Invite Link
-          </button>
+              Restrictions
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {!session?.is_exam_mode && !session?.restrict_internet && !session?.restrict_copy_paste ? (
+                <div style={{
+                  padding: '10px 12px',
+                  borderRadius: '10px',
+                  background: 'rgba(16,185,129,0.1)',
+                  border: '1px solid rgba(16,185,129,0.2)',
+                  color: '#34d399',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <CheckCircle size={14} /> No restrictions
+                </div>
+              ) : (
+                <>
+                  {session?.is_exam_mode && (
+                    <div style={{
+                      padding: '10px 12px',
+                      borderRadius: '10px',
+                      background: 'rgba(239,68,68,0.1)',
+                      border: '1px solid rgba(239,68,68,0.2)',
+                      color: '#f87171',
+                      fontSize: '13px',
+                      fontWeight: 500,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <Lock size={14} /> Exam Mode Active
+                    </div>
+                  )}
+                  {session?.restrict_internet && (
+                    <div style={{
+                      padding: '10px 12px',
+                      borderRadius: '10px',
+                      background: 'rgba(245,158,11,0.1)',
+                      border: '1px solid rgba(245,158,11,0.2)',
+                      color: '#fbbf24',
+                      fontSize: '13px',
+                      fontWeight: 500,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <WifiOff size={14} /> No Internet
+                    </div>
+                  )}
+                  {session?.restrict_copy_paste && (
+                    <div style={{
+                      padding: '10px 12px',
+                      borderRadius: '10px',
+                      background: 'rgba(245,158,11,0.1)',
+                      border: '1px solid rgba(245,158,11,0.2)',
+                      color: '#fbbf24',
+                      fontSize: '13px',
+                      fontWeight: 500,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <Copy size={14} /> No Copy/Paste
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          <div style={{
+            height: '1px',
+            background: '#1e293b',
+            margin: '20px 0'
+          }} />
+
+          {/* 3. SESSION STATS */}
+          <div style={{ marginBottom: '24px' }}>
+            <h3 style={{
+              color: 'white',
+              fontSize: '14px',
+              fontWeight: 600,
+              margin: '0 0 12px'
+            }}>
+              Session Stats
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {[
+                { label: 'Joined', value: `${summary.total_joined||0} / ${session?.max_participants||50}`, color: '#6366f1' },
+                { label: 'Active VMs', value: summary.active_vms||0, color: '#10b981' },
+                { label: 'Waiting', value: summary.waiting||0, color: '#f59e0b' },
+              ].map(s => (
+                <div key={s.label} style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '10px 12px',
+                  borderRadius: '10px',
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid #1e293b'
+                }}>
+                  <span style={{ color: '#64748b', fontSize: '13px' }}>{s.label}</span>
+                  <span style={{ color: s.color, fontSize: '16px', fontWeight: 600 }}>{s.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 4. GUACAMOLE */}
+          <div style={{
+            padding: '14px',
+            borderRadius: '12px',
+            background: 'rgba(99,102,241,0.06)',
+            border: '1px solid rgba(99,102,241,0.15)'
+          }}>
+            <p style={{
+              color: '#a5b4fc',
+              fontSize: '13px',
+              fontWeight: 600,
+              margin: '0 0 6px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              🖥️ Screen Monitoring
+            </p>
+            <p style={{
+              color: '#475569',
+              fontSize: '12px',
+              lineHeight: 1.5,
+              margin: 0
+            }}>
+              Live screen viewing and 
+              recording will be available 
+              once Guacamole is connected 
+              to your Proxmox server.
+            </p>
+          </div>
         </div>
       </div>
 

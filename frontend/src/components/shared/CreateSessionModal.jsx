@@ -3,9 +3,8 @@ import { X, CheckCircle, Monitor, ShieldAlert, Lock, Clock, Calendar } from 'luc
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 
-export default function CreateSessionModal() {
+export default function CreateSessionModal({ onClose, onCreated }) {
   const { user } = useAuthStore();
-  const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState(1);
   const [templates, setTemplates] = useState([]);
   
@@ -25,38 +24,30 @@ export default function CreateSessionModal() {
   const [successData, setSuccessData] = useState(null);
 
   useEffect(() => {
-    const handleOpen = () => {
-      setIsOpen(true);
-      setStep(1);
-      setSuccessData(null);
-      // set default times (start in 1 hr, end in 3 hrs)
-      const start = new Date();
-      start.setHours(start.getHours() + 1);
-      const end = new Date(start);
-      end.setHours(end.getHours() + 2);
-      
-      const maxP = user?.subscription?.max_session_participants || 10;
-      
-      setFormData(prev => ({
-        ...prev,
-        start_time: start.toISOString().slice(0, 16),
-        end_time: end.toISOString().slice(0, 16),
-        max_participants: maxP
-      }));
-      
-      api.get('/vms/templates/').then(res => {
-        setTemplates(res.data?.data || []);
-      }).catch(console.error);
-    };
+    setStep(1);
+    setSuccessData(null);
+    // set default times (start in 1 hr, end in 3 hrs)
+    const start = new Date();
+    start.setHours(start.getHours() + 1);
+    const end = new Date(start);
+    end.setHours(end.getHours() + 2);
     
-    window.addEventListener('openCreateSessionModal', handleOpen);
-    return () => window.removeEventListener('openCreateSessionModal', handleOpen);
+    const maxP = user?.subscription?.max_session_participants || 10;
+    
+    setFormData(prev => ({
+      ...prev,
+      start_time: start.toISOString().slice(0, 16),
+      end_time: end.toISOString().slice(0, 16),
+      max_participants: maxP
+    }));
+    
+    api.get('/vms/templates/').then(res => {
+      setTemplates(res.data?.data || []);
+    }).catch(console.error);
   }, [user]);
 
-  if (!isOpen) return null;
-
   const handleClose = () => {
-    setIsOpen(false);
+    if (onClose) onClose();
   };
 
   const handleNext = () => setStep(s => s + 1);
@@ -86,8 +77,9 @@ export default function CreateSessionModal() {
   };
 
   const startNow = () => {
-    handleClose();
-    window.location.href = `/host/session/${successData.session_id}`;
+    if (onCreated) {
+      onCreated({ id: successData.session_id });
+    }
   };
 
   const sessionTypes = [
