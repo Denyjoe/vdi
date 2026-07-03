@@ -8,6 +8,7 @@ export default function HostSessionPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const [session, setSession] = useState(location.state?.session || null)
+  const [loading, setLoading] = useState(!location.state?.session)
   const [participants, setParticipants] = useState([])
   const [summary, setSummary] = useState({})
   const [timeLeft, setTimeLeft] = useState(0)
@@ -39,7 +40,11 @@ export default function HostSessionPage() {
     try {
       const res = await api.get(`/sessions/live/${sessionId}/`)
       setSession(res.data.data)
-    } catch(e) { console.error(e) }
+    } catch(e) { 
+      console.error(e) 
+    } finally {
+      setLoading(false)
+    }
   }
 
   const fetchMonitor = async () => {
@@ -93,6 +98,61 @@ export default function HostSessionPage() {
   }
 
   const isEnding = timeLeft > 0 && timeLeft < 600000
+
+  if (!session && loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        background: '#030712',
+        flexDirection: 'column',
+        gap: '16px'
+      }}>
+        <div style={{
+          width: '40px', height: '40px',
+          border: '3px solid rgba(99,102,241,0.2)',
+          borderTopColor: '#6366f1',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }} />
+        <p style={{color: '#475569'}}>
+          Loading session...
+        </p>
+      </div>
+    )
+  }
+  
+  if (!session && !loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        background: '#030712',
+        flexDirection: 'column',
+        gap: '16px'
+      }}>
+        <p style={{color: '#ef4444', fontSize: '18px'}}>
+          Session not found
+        </p>
+        <button 
+          onClick={() => navigate('/sessions/my')}
+          style={{
+            padding: '10px 20px',
+            borderRadius: '10px',
+            background: '#6366f1',
+            color: 'white',
+            border: 'none',
+            cursor: 'pointer'
+          }}>
+          Back to Sessions
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div style={{

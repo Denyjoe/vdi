@@ -77,7 +77,7 @@ export default function Layout({ children }) {
           onClose={closeCreateSessionModal}
           onCreated={(session) => {
             closeCreateSessionModal()
-            navigate(`/host/session/${session.id}`)
+            navigate(`/host/session/${session.id}`, { state: { session } })
           }}
         />
       )}

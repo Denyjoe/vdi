@@ -59,7 +59,7 @@ export default function CreateSessionModal({ onClose, onCreated }) {
         ...formData,
         required_vm_template: formData.required_vm_template_id
       });
-      setSuccessData(res.data);
+      setSuccessData(res.data.data || res.data);
       setStep(6); // Success step
     } catch (err) {
       alert(err.response?.data?.message || 'Error creating session. Check your plan limits.');
@@ -76,9 +76,17 @@ export default function CreateSessionModal({ onClose, onCreated }) {
     alert('Link copied!');
   };
 
-  const startNow = () => {
-    if (onCreated) {
-      onCreated({ id: successData.session_id });
+  const startNow = async () => {
+    try {
+      if (successData?.status === 'scheduled') {
+        await api.post(`/sessions/live/${successData.id}/start/`);
+      }
+    } catch (e) {
+      console.error('Start error:', e);
+    } finally {
+      if (onCreated) {
+        onCreated(successData);
+      }
     }
   };
 
