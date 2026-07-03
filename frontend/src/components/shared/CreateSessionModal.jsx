@@ -59,7 +59,8 @@ export default function CreateSessionModal({ onClose, onCreated }) {
         ...formData,
         required_vm_template: formData.required_vm_template_id
       });
-      setSuccessData(res.data.data || res.data);
+      const sessionData = res.data.data;
+      setSuccessData(sessionData);
       setStep(6); // Success step
     } catch (err) {
       alert(err.response?.data?.message || 'Error creating session. Check your plan limits.');
@@ -85,6 +86,7 @@ export default function CreateSessionModal({ onClose, onCreated }) {
       console.error('Start error:', e);
     } finally {
       if (onCreated) {
+        console.log('Session data:', successData);
         onCreated(successData);
       }
     }

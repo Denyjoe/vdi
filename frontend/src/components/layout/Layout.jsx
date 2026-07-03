@@ -77,7 +77,12 @@ export default function Layout({ children }) {
           onClose={closeCreateSessionModal}
           onCreated={(session) => {
             closeCreateSessionModal()
-            navigate(`/host/session/${session.id}`, { state: { session } })
+            console.log('Navigating to session:', session?.id)
+            if (session?.id) {
+              navigate(`/host/session/${session.id}`, { state: { session } })
+            } else {
+              console.error('No session ID!')
+            }
           }}
         />
       )}
