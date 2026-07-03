@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { Monitor, Users, Clock, Copy, X, CheckCircle, Play, Square, Wifi, WifiOff, AlertTriangle, LogOut } from 'lucide-react'
+import { Monitor, Users, Clock, Copy, X, CheckCircle, Play, Square, Wifi, WifiOff, AlertTriangle, LogOut, Video } from 'lucide-react'
 import api from '../services/api'
 
 export default function HostSessionPage() {
@@ -14,6 +14,7 @@ export default function HostSessionPage() {
   const [timeLeft, setTimeLeft] = useState(0)
   const [copied, setCopied] = useState(false)
   const [showEndConfirm, setShowEndConfirm] = useState(false)
+  const [ending, setEnding] = useState(false)
   const pollRef = useRef(null)
   const timerRef = useRef(null)
 
@@ -68,12 +69,14 @@ export default function HostSessionPage() {
   }
 
   const handleEndSession = async () => {
+    setEnding(true)
     try {
       await api.post(`/sessions/live/${sessionId}/end/`)
-      setShowEndConfirm(false)
-      navigate('/sessions/my')
     } catch(e) { 
       console.error('End session error:', e)
+    } finally {
+      setEnding(false)
+      setShowEndConfirm(false)
       navigate('/sessions/my')
     }
   }
@@ -684,54 +687,89 @@ export default function HostSessionPage() {
                         </p>
                       )}
 
-                      {/* Guacamole placeholder */}
+                      {/* Screen Preview */}
                       <div style={{
-                        padding: '8px 10px',
-                        borderRadius: '8px',
-                        background: 'rgba(99,102,241,0.06)',
-                        border: '1px solid rgba(99,102,241,0.12)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        marginBottom: '12px'
+                        marginTop: '10px',
+                        borderRadius: '10px',
+                        overflow: 'hidden',
+                        border: '1px solid #1e293b',
+                        background: '#0a0f1e'
                       }}>
-                        <Monitor size={12} color="#4f46e5" />
-                        <span style={{
-                          color: '#475569',
-                          fontSize: '11px',
-                          lineHeight: 1.3
+                        {/* Preview area */}
+                        <div style={{
+                          height: '80px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          background: 'rgba(99,102,241,0.04)'
                         }}>
-                          Live screen view coming 
-                          with Guacamole
-                        </span>
+                          <Monitor size={20} 
+                            color="rgba(99,102,241,0.4)" />
+                          <span style={{
+                            color: '#334155',
+                            fontSize: '10px',
+                            textAlign: 'center',
+                            lineHeight: 1.4,
+                            padding: '0 8px'
+                          }}>
+                            Screen preview will appear here
+                            after Guacamole is connected
+                          </span>
+                        </div>
+                        
+                        {/* Action bar below preview */}
+                        <div style={{
+                          display: 'flex',
+                          borderTop: '1px solid #0f172a'
+                        }}>
+                          <button
+                            disabled
+                            title="Connect Guacamole to enable screen viewing"
+                            style={{
+                              flex: 1,
+                              padding: '7px',
+                              background: 'none',
+                              border: 'none',
+                              borderRight: '1px solid #0f172a',
+                              color: '#1e293b',
+                              fontSize: '11px',
+                              cursor: 'not-allowed',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px'
+                            }}>
+                            <Monitor size={11} />
+                            View Screen
+                          </button>
+                          <button
+                            disabled
+                            title="Available with Guacamole"
+                            style={{
+                              flex: 1,
+                              padding: '7px',
+                              background: 'none',
+                              border: 'none',
+                              color: '#1e293b',
+                              fontSize: '11px',
+                              cursor: 'not-allowed',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px'
+                            }}>
+                            <Video size={11} />
+                            Take Control
+                          </button>
+                        </div>
                       </div>
 
                       {/* Actions */}
                       <div style={{
-                        display: 'flex', gap: '8px'
+                        display: 'flex', gap: '8px', marginTop: '12px'
                       }}>
-                        <button
-                          disabled
-                          title="Requires Guacamole integration"
-                          style={{
-                            flex: 1,
-                            padding: '8px',
-                            borderRadius: '8px',
-                            background: 'rgba(99,102,241,0.08)',
-                            border: '1px solid rgba(99,102,241,0.15)',
-                            color: '#4f46e5',
-                            fontSize: '12px',
-                            fontWeight: 500,
-                            cursor: 'not-allowed',
-                            opacity: 0.5,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '5px'
-                          }}>
-                          <Monitor size={12} />
-                          View Screen
-                        </button>
                         
                         <button
                           onClick={() => handleRemoveParticipant(p.user_id)}
@@ -1036,6 +1074,7 @@ export default function HostSessionPage() {
               </button>
               <button
                 onClick={handleEndSession}
+                disabled={ending}
                 style={{
                   flex: 1, padding: '12px',
                   borderRadius: '10px',
@@ -1043,9 +1082,27 @@ export default function HostSessionPage() {
                   border: '1px solid rgba(239,68,68,0.3)',
                   color: '#f87171',
                   fontWeight: 600,
-                  cursor: 'pointer'
+                  cursor: ending ? 'not-allowed' : 'pointer',
+                  opacity: ending ? 0.7 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
                 }}>
-                End Session
+                {ending ? (
+                  <>
+                    <div style={{
+                      width: '14px', height: '14px',
+                      border: '2px solid rgba(248,113,113,0.3)',
+                      borderTopColor: '#f87171',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }} />
+                    Ending...
+                  </>
+                ) : (
+                  'End Session'
+                )}
               </button>
             </div>
           </div>

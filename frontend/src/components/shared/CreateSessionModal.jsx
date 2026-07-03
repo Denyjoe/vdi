@@ -21,11 +21,10 @@ export default function CreateSessionModal({ onClose, onCreated }) {
     auto_end: true
   });
   
-  const [successData, setSuccessData] = useState(null);
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     setStep(1);
-    setSuccessData(null);
     // set default times (start in 1 hr, end in 3 hrs)
     const start = new Date();
     start.setHours(start.getHours() + 1);
@@ -54,41 +53,26 @@ export default function CreateSessionModal({ onClose, onCreated }) {
   const handlePrev = () => setStep(s => s - 1);
 
   const handleSubmit = async () => {
+    setCreating(true);
     try {
       const res = await api.post('/sessions/live/create/', {
         ...formData,
         required_vm_template: formData.required_vm_template_id
       });
-      const sessionData = res.data.data;
-      setSuccessData(sessionData);
-      setStep(6); // Success step
+      
+      const session = res.data.data;
+      
+      // Auto-start session immediately
+      await api.post(`/sessions/live/${session.id}/start/`);
+      
+      // Go directly to monitor
+      if (onCreated) {
+        onCreated(session);
+      }
     } catch (err) {
       alert(err.response?.data?.message || 'Error creating session. Check your plan limits.');
-    }
-  };
-
-  const copyCode = () => {
-    navigator.clipboard.writeText(successData.invite_code);
-    alert('Code copied!');
-  };
-
-  const copyLink = () => {
-    navigator.clipboard.writeText(successData.invite_link);
-    alert('Link copied!');
-  };
-
-  const startNow = async () => {
-    try {
-      if (successData?.status === 'scheduled') {
-        await api.post(`/sessions/live/${successData.id}/start/`);
-      }
-    } catch (e) {
-      console.error('Start error:', e);
     } finally {
-      if (onCreated) {
-        console.log('Session data:', successData);
-        onCreated(successData);
-      }
+      setCreating(false);
     }
   };
 
@@ -107,7 +91,7 @@ export default function CreateSessionModal({ onClose, onCreated }) {
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b border-slate-800">
           <h2 className="text-xl font-bold text-white">
-            {step === 6 ? 'Success' : 'Create Live Session'}
+            Create Live Session
           </h2>
           <button onClick={handleClose} className="text-slate-400 hover:text-white">
             <X size={24} />
@@ -327,45 +311,6 @@ export default function CreateSessionModal({ onClose, onCreated }) {
             </div>
           )}
 
-          {step === 6 && successData && (
-            <div className="text-center py-8 animate-fade-in">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center mx-auto mb-6 shadow-[0_0_40px_rgba(16,185,129,0.4)]">
-                <CheckCircle size={40} color="white" />
-              </div>
-              
-              <h2 className="text-2xl font-bold text-white mb-2">Session Created! 🎉</h2>
-              <p className="text-slate-400 mb-8">Share the code or link with your participants</p>
-              
-              <div className="bg-indigo-500/10 border-2 border-indigo-500/30 rounded-2xl p-6 mb-4 max-w-sm mx-auto">
-                <p className="text-xs text-slate-400 uppercase tracking-widest mb-2 font-bold">Invite Code</p>
-                <p className="text-4xl font-black text-white font-mono tracking-[0.3em] mb-4">
-                  {successData.invite_code}
-                </p>
-                <button onClick={copyCode} className="px-4 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 rounded-lg text-sm font-medium transition-colors">
-                  📋 Copy Code
-                </button>
-              </div>
-              
-              <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 flex items-center justify-between gap-4 max-w-sm mx-auto mb-8">
-                <span className="text-sm text-slate-400 truncate flex-1 text-left">
-                  {successData.invite_link}
-                </span>
-                <button onClick={copyLink} className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-medium transition-colors shrink-0">
-                  Copy Link
-                </button>
-              </div>
-
-              <div className="flex justify-center gap-4">
-                <button onClick={startNow} className="px-6 py-3 bg-gradient-to-r from-indigo-500 to-blue-600 text-white rounded-xl font-bold hover:shadow-lg hover:shadow-indigo-500/25 transition-all">
-                  Start Session Now →
-                </button>
-                <button onClick={handleClose} className="px-6 py-3 bg-slate-800 text-slate-300 rounded-xl font-medium hover:bg-slate-700 transition-colors">
-                  Later
-                </button>
-              </div>
-            </div>
-          )}
-
         </div>
 
         {/* Footer */}
@@ -388,9 +333,15 @@ export default function CreateSessionModal({ onClose, onCreated }) {
             ) : (
               <button 
                 onClick={handleSubmit} 
-                className="px-6 py-2.5 bg-gradient-to-r from-indigo-500 to-blue-600 text-white rounded-xl font-bold hover:shadow-lg hover:shadow-indigo-500/25 transition-all"
+                disabled={creating}
+                className="px-6 py-2.5 bg-gradient-to-r from-indigo-500 to-blue-600 text-white rounded-xl font-bold hover:shadow-lg hover:shadow-indigo-500/25 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                Create Session
+                {creating ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Creating...
+                  </>
+                ) : 'Create Session'}
               </button>
             )}
           </div>

@@ -6,7 +6,7 @@ import JoinByCodeModal from '../../components/shared/JoinByCodeModal';
 
 export default function MemberSessionsPage() {
     const navigate = useNavigate();
-    const [sessions, setSessions] = useState({ joined: [], active: null });
+    const [sessions, setSessions] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('upcoming');
     const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
@@ -19,7 +19,12 @@ export default function MemberSessionsPage() {
         try {
             const res = await api.get('/sessions/live/');
             if (res.data?.success) {
-                setSessions(res.data.data);
+                const data = res.data.data;
+                const hosted = (data.my_hosted || []).map(s => ({ ...s, isHost: true }));
+                const joined = (data.joined || []).map(s => ({ ...s, isHost: false }));
+                const all = [...hosted, ...joined];
+                const unique = Array.from(new Map(all.map(s => [s.id, s])).values());
+                setSessions(unique);
             }
         } catch (err) {
             console.error('Failed to fetch sessions', err);
@@ -28,9 +33,9 @@ export default function MemberSessionsPage() {
         }
     };
 
-    const upcomingSessions = sessions.joined.filter(s => s.status === 'scheduled');
-    const pastSessions = sessions.joined.filter(s => s.status === 'ended');
-    const activeSession = sessions.joined.find(s => s.status === 'active') || sessions.active;
+    const upcomingSessions = sessions.filter(s => s.status === 'scheduled');
+    const pastSessions = sessions.filter(s => s.status === 'ended');
+    const activeSessions = sessions.filter(s => s.status === 'active');
 
     return (
         <div className="max-w-7xl mx-auto space-y-6 animate-[fadeIn_0.3s_ease-out]">
@@ -63,9 +68,9 @@ export default function MemberSessionsPage() {
                 <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div></div>
             ) : activeTab === 'upcoming' ? (
                 <div className="space-y-6">
-                    {activeSession && (
-                        <div className="glass-card p-6 rounded-2xl border border-green-500/30 relative overflow-hidden animate-[pulse_3s_ease-in-out_infinite]">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
+                    {activeSessions.length > 0 && activeSessions.map(activeSession => (
+                        <div key={activeSession.id} className="glass-card p-6 rounded-2xl border border-white/10 relative overflow-hidden mb-4">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
                             <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                                 <div>
                                     <div className="flex items-center gap-2 mb-2">
@@ -83,13 +88,19 @@ export default function MemberSessionsPage() {
                                         <div className="text-xs text-slate-400 uppercase tracking-wider mb-1">Time Remaining</div>
                                         <div className="text-xl font-mono text-white">--:--:--</div>
                                     </div>
-                                    <button className="px-6 py-3 bg-green-500 hover:bg-green-400 text-slate-900 rounded-xl font-bold transition-all shadow-lg shadow-green-500/20 flex items-center gap-2">
-                                        <Play className="w-5 h-5 fill-current" /> Rejoin Session
-                                    </button>
+                                    {activeSession.isHost ? (
+                                        <button onClick={() => navigate(`/host/session/${activeSession.id}`)} className="px-6 py-3 bg-green-500 hover:bg-green-400 text-slate-900 rounded-xl font-bold transition-all shadow-lg shadow-green-500/20 flex items-center gap-2">
+                                            Monitor &rarr;
+                                        </button>
+                                    ) : (
+                                        <button onClick={() => navigate(`/session/${activeSession.id}`)} className="px-6 py-3 bg-blue-500 hover:bg-blue-400 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2">
+                                            Rejoin &rarr;
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>
-                    )}
+                    ))}
                     
                     {upcomingSessions.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -129,7 +140,7 @@ export default function MemberSessionsPage() {
                             ))}
                         </div>
                     ) : (
-                        !activeSession && (
+                        activeSessions.length === 0 && (
                             <div className="glass-card rounded-2xl p-12 flex flex-col items-center justify-center text-center border-dashed border-2 border-white/10">
                                 <div className="w-16 h-16 rounded-full bg-indigo-500/10 flex items-center justify-center mb-4">
                                     <Tv className="w-8 h-8 text-indigo-400" />
