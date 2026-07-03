@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Monitor, Plus, Play, Square,
   Cpu, HardDrive, Search, X,
-  CheckCircle, Loader } from 'lucide-react'
+  CheckCircle, Loader, Zap, Clock } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
+import useAuthStore from '../../store/authStore'
+import useUIStore from '../../store/uiStore'
 
 export default function WorkspacesPage() {
   const [workspaces, setWorkspaces] = useState([])
@@ -14,7 +16,16 @@ export default function WorkspacesPage() {
   const [selectedTemplate, setSelectedTemplate] = useState(null)
   const [wsName, setWsName] = useState('')
   const [search, setSearch] = useState('')
+  const [showLimitModal, setShowLimitModal] = useState(false)
   const navigate = useNavigate()
+  const { user } = useAuthStore()
+  const { openUpgradeModal } = useUIStore()
+
+  const subscription = user?.subscription || {}
+  const hoursUsed = subscription?.compute_hours_used || 0
+  const hoursTotal = subscription?.compute_hours_per_month || 5
+  const hoursRemaining = Math.max(0, hoursTotal - hoursUsed).toFixed(1)
+  const usagePct = Math.min(100, (hoursUsed / hoursTotal) * 100)
 
   useEffect(() => { fetchWorkspaces() }, [])
 
@@ -38,7 +49,19 @@ export default function WorkspacesPage() {
     }
   }
 
-  const openCreate = () => {
+  const openCreate = async () => {
+    // Check subscription limits
+    const plan = user?.subscription?.plan_name || 'free'
+    const maxWorkspaces = 
+      plan === 'free' ? 1 :
+      plan === 'personal_host' ? 3 :
+      plan === 'pro_host' ? 10 : -1
+    
+    if (maxWorkspaces !== -1 && workspaces.length >= maxWorkspaces) {
+      setShowLimitModal(true)
+      return
+    }
+    
     fetchTemplates()
     setShowCreate(true)
     setSelectedTemplate(null)
@@ -125,6 +148,85 @@ export default function WorkspacesPage() {
         </button>
       </div>
 
+      {hoursTotal !== -1 && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px',
+          padding: '12px 16px',
+          borderRadius: '12px',
+          background: usagePct > 80
+            ? 'rgba(239,68,68,0.08)'
+            : 'rgba(99,102,241,0.06)',
+          border: `1px solid ${usagePct > 80
+            ? 'rgba(239,68,68,0.2)'
+            : 'rgba(99,102,241,0.15)'}`,
+          marginBottom: '24px'
+        }}>
+          <Clock size={16} color={
+            usagePct > 80 ? '#ef4444' : '#6366f1'
+          } />
+          
+          <div style={{flex: 1}}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              marginBottom: '4px'
+            }}>
+              <span style={{
+                color: '#94a3b8', fontSize: '13px'
+              }}>
+                Free plan: {hoursRemaining}h 
+                remaining this month
+              </span>
+              <span style={{
+                color: usagePct > 80 
+                  ? '#ef4444' : '#6366f1',
+                fontSize: '13px',
+                fontWeight: 600
+              }}>
+                {hoursUsed.toFixed(1)} / 
+                {hoursTotal}h used
+              </span>
+            </div>
+            <div style={{
+              height: '4px',
+              background: 'rgba(255,255,255,0.06)',
+              borderRadius: '2px',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                height: '100%',
+                width: `${usagePct}%`,
+                borderRadius: '2px',
+                background: usagePct > 80
+                  ? 'linear-gradient(to right, #ef4444, #dc2626)'
+                  : 'linear-gradient(to right, #6366f1, #06b6d4)',
+                transition: 'width 0.5s ease'
+              }} />
+            </div>
+          </div>
+          
+          {usagePct > 60 && (
+            <button
+              onClick={() => openUpgradeModal()}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '8px',
+                background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                color: 'white',
+                fontSize: '12px',
+                fontWeight: 600,
+                border: 'none',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap'
+              }}>
+              Get More Hours
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Search (only if has workspaces) */}
       {workspaces.length > 0 && (
         <div style={{
@@ -200,29 +302,15 @@ export default function WorkspacesPage() {
           </h2>
           <p style={{
             color: '#475569', fontSize: '14px',
-            maxWidth: '360px', margin: '0 auto 28px',
+            maxWidth: '380px', 
+            margin: '0 auto',
             lineHeight: 1.6
           }}>
-            Create your first workspace to access AutoCAD, MATLAB, VS Code and 12+ professional tools instantly in your browser.
+            Click "+ New Workspace" above to 
+            launch AutoCAD, MATLAB, VS Code 
+            and 12+ professional tools instantly 
+            in your browser. No installation needed.
           </p>
-          <button onClick={openCreate}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '13px 28px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-              color: 'white',
-              fontWeight: 600,
-              fontSize: '15px',
-              border: 'none',
-              cursor: 'pointer',
-              boxShadow: '0 4px 20px rgba(99,102,241,0.35)'
-            }}>
-            <Plus size={18} />
-            Create Your First Workspace
-          </button>
         </div>
       ) : (
         /* Workspace Grid */
@@ -606,6 +694,170 @@ export default function WorkspacesPage() {
                   {selectedTemplate && wsName ? ` — ${selectedTemplate.name}` : ''}
                 </>
               )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showLimitModal && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(0,0,0,0.85)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000, padding: '20px'
+        }}>
+          <div style={{
+            background: '#0d1526',
+            border: '1px solid #1e293b',
+            borderRadius: '24px',
+            padding: '40px 32px',
+            maxWidth: '440px',
+            width: '100%',
+            textAlign: 'center'
+          }}>
+            {/* Icon */}
+            <div style={{
+              width: '64px', height: '64px',
+              borderRadius: '16px',
+              background: 'rgba(99,102,241,0.15)',
+              border: '1px solid rgba(99,102,241,0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 20px'
+            }}>
+              <Zap size={28} color="#6366f1" />
+            </div>
+            
+            <h2 style={{
+              color: 'white', fontSize: '22px',
+              fontWeight: 700, margin: '0 0 8px'
+            }}>
+              Workspace Limit Reached
+            </h2>
+            
+            <p style={{
+              color: '#64748b', fontSize: '14px',
+              lineHeight: 1.6, margin: '0 0 8px'
+            }}>
+              Free plan includes 1 workspace 
+              and 5 compute hours per month.
+            </p>
+            
+            <p style={{
+              color: '#94a3b8', fontSize: '14px',
+              margin: '0 0 28px'
+            }}>
+              Upgrade to get more workspaces, 
+              more hours, and the ability to 
+              host live sessions.
+            </p>
+            
+            {/* Plan comparison */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              marginBottom: '24px',
+              textAlign: 'left'
+            }}>
+              {[
+                { name: 'Personal Host',
+                  price: '$9/mo · TZS 23,000',
+                  workspaces: 3,
+                  hours: 20,
+                  plan: 'personal_host' },
+                { name: 'Pro Host',
+                  price: '$19/mo · TZS 49,000',
+                  workspaces: 10,
+                  hours: 80,
+                  plan: 'pro_host',
+                  recommended: true },
+              ].map(p => (
+                <div key={p.plan} style={{
+                  padding: '14px 16px',
+                  borderRadius: '12px',
+                  border: `1px solid ${p.recommended 
+                    ? 'rgba(99,102,241,0.4)' 
+                    : '#1e293b'}`,
+                  background: p.recommended
+                    ? 'rgba(99,102,241,0.08)'
+                    : 'rgba(255,255,255,0.02)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+                onClick={async () => {
+                  try {
+                    await api.post(
+                      '/subscriptions/upgrade/',
+                      { plan_name: p.plan })
+                    setShowLimitModal(false)
+                    window.location.reload()
+                  } catch(e) {
+                    console.error(e)
+                  }
+                }}>
+                  <div>
+                    <p style={{
+                      color: 'white',
+                      fontWeight: 600,
+                      fontSize: '14px',
+                      margin: '0 0 2px'
+                    }}>
+                      {p.name}
+                      {p.recommended && (
+                        <span style={{
+                          marginLeft: '8px',
+                          fontSize: '10px',
+                          background: '#6366f1',
+                          color: 'white',
+                          padding: '2px 7px',
+                          borderRadius: '10px'
+                        }}>
+                          POPULAR
+                        </span>
+                      )}
+                    </p>
+                    <p style={{
+                      color: '#64748b',
+                      fontSize: '12px',
+                      margin: 0
+                    }}>
+                      {p.workspaces} workspaces · 
+                      {p.hours}h/month
+                    </p>
+                  </div>
+                  <p style={{
+                    color: '#6366f1',
+                    fontWeight: 700,
+                    fontSize: '14px',
+                    margin: 0
+                  }}>
+                    {p.price.split('·')[0]}
+                  </p>
+                </div>
+              ))}
+            </div>
+            
+            <button
+              onClick={() => 
+                setShowLimitModal(false)}
+              style={{
+                width: '100%',
+                padding: '12px',
+                borderRadius: '10px',
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid #1e293b',
+                color: '#94a3b8',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}>
+              Stay on Free Plan
             </button>
           </div>
         </div>

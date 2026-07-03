@@ -38,15 +38,9 @@ export default function MemberSessionsPage() {
                 <div>
                     <h1 className="text-2xl font-bold text-white flex items-center gap-2">
                         <Tv className="w-6 h-6 text-indigo-400" />
-                        Live Sessions
+                        My Sessions
                     </h1>
-                    <p className="text-slate-400 mt-1">Join interactive classrooms and labs.</p>
-                </div>
-                
-                <div className="flex items-center gap-4">
-                    <button onClick={() => setIsJoinModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-colors whitespace-nowrap shadow-lg shadow-indigo-500/20">
-                        Join with Code
-                    </button>
+                    <p className="text-slate-400 mt-1">Live VM sessions you have joined or are hosting</p>
                 </div>
             </div>
 
