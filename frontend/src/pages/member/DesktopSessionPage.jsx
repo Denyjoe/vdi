@@ -46,9 +46,9 @@ export default function DesktopSessionPage() {
           });
         } else {
           // Missing or not active
-          navigate('/student/vms');
+          navigate('/workspaces');
         }
-      }).catch(() => navigate('/student/vms'));
+      }).catch(() => navigate('/workspaces'));
     }
   }, [sessionData, sessionId, navigate]);
 
@@ -97,7 +97,7 @@ export default function DesktopSessionPage() {
     setIsDisconnecting(true);
     try {
       await sessionService.disconnect(sessionId);
-      navigate('/student/vms', { state: { disconnected: true } });
+      navigate('/workspaces', { state: { disconnected: true } });
     } catch (err) {
       setToast({ show: true, message: 'Failed to disconnect', type: 'error' });
       setIsDisconnecting(false);

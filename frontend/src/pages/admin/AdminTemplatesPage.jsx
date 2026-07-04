@@ -220,7 +220,7 @@ export default function AdminTemplatesPage() {
       {deleteTarget && (
         <ConfirmModal
           title="Deactivate Template"
-          message={`Are you sure you want to deactivate "${deleteTarget.name}"? It will be hidden from the student catalog. Existing VMs using this template are unaffected.`}
+          message={`Are you sure you want to deactivate "${deleteTarget.name}"? It will be hidden from the user catalog. Existing VMs using this template are unaffected.`}
           confirmLabel="Deactivate"
           onConfirm={handleDelete}
           onCancel={() => setDeleteTarget(null)}

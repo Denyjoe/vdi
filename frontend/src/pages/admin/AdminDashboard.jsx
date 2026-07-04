@@ -52,7 +52,9 @@ export default function AdminDashboard() {
     activeVms: 0,
     totalVms: 0,
     liveSessions: 0,
-    systemStatus: 'Unknown'
+    systemStatus: 'Unknown',
+    totalSessions: 0,
+    revenue: 0
   });
   const [systemStats, setSystemStats] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -115,7 +117,9 @@ export default function AdminDashboard() {
           activeVms: sysData?.vms?.running || 0,
           totalVms: sysData?.vms?.total || 0,
           liveSessions: liveSessionCount,
-          systemStatus: pveStatus
+          systemStatus: pveStatus,
+          totalSessions: 1245, // Mock data
+          revenue: 12450 // Mock data
         }));
         setSystemStats(sysData);
 
@@ -220,6 +224,40 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
+        <div className="bg-[#1e2d3d]/80 backdrop-blur-md rounded-2xl p-6 shadow-lg border border-white/5 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <Activity size={64} />
+          </div>
+          <div className="flex items-center gap-4 mb-4 relative z-10">
+            <div className="bg-orange-500/20 p-3 rounded-xl">
+              <Activity className="w-5 h-5 text-orange-400" />
+            </div>
+            <p className="text-slate-400 font-medium text-sm">Total Sessions</p>
+          </div>
+          <p className="text-3xl font-bold text-white relative z-10">{stats.totalSessions}</p>
+          <p className="text-sm text-orange-400 mt-2 relative z-10 flex items-center gap-1">
+            <span>All time sessions</span>
+          </p>
+        </div>
+
+        <div className="bg-[#1e2d3d]/80 backdrop-blur-md rounded-2xl p-6 shadow-lg border border-white/5 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <Database size={64} />
+          </div>
+          <div className="flex items-center gap-4 mb-4 relative z-10">
+            <div className="bg-green-500/20 p-3 rounded-xl">
+              <Database className="w-5 h-5 text-green-400" />
+            </div>
+            <p className="text-slate-400 font-medium text-sm">Revenue</p>
+          </div>
+          <p className="text-3xl font-bold text-white relative z-10">${stats.revenue.toLocaleString()}</p>
+          <p className="text-sm text-green-400 mt-2 relative z-10 flex items-center gap-1">
+            <span>Total payments received</span>
+          </p>
+        </div>
+      </div>
+
       {/* SECTION B: System Infrastructure */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-[#1e2d3d]/80 backdrop-blur-md rounded-2xl shadow-lg border border-white/5 p-6">
@@ -307,7 +345,7 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-[#1e2d3d]/80 backdrop-blur-md rounded-2xl shadow-lg border border-white/5 p-6 h-96 flex flex-col">
           <div className="mb-6">
-            <h3 className="text-lg font-semibold text-white">Sessions This Week</h3>
+            <h3 className="text-lg font-semibold text-white">Platform usage over the last 14 days</h3>
           </div>
           <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">

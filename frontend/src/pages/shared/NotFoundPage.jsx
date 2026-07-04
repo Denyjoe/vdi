@@ -15,8 +15,8 @@ import useAuthStore from '../../store/authStore';
 /** Maps user roles to their respective dashboard paths */
 const DASHBOARD_PATHS = {
   admin: '/admin/dashboard',
-  lecturer: '/lecturer/dashboard',
-  student: '/student/dashboard',
+  user: '/dashboard',
+  host: '/dashboard'
 };
 
 export default function NotFoundPage() {
@@ -29,7 +29,7 @@ export default function NotFoundPage() {
    */
   const getBackPath = () => {
     if (!isAuthenticated || !user) return '/login';
-    return DASHBOARD_PATHS[user.role] || '/student/dashboard';
+    return DASHBOARD_PATHS[user.role] || '/dashboard';
   };
 
   return (

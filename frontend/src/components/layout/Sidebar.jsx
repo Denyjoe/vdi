@@ -6,6 +6,7 @@ import {
   Video, 
   Plus,
   BarChart2,
+  BarChart3,
   UserCircle,
   Settings,
   LogOut,
@@ -13,7 +14,8 @@ import {
   Users,
   Database,
   Cpu,
-  FileText
+  FileText,
+  LayoutTemplate
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import useUIStore from '../../store/uiStore';
@@ -58,19 +60,21 @@ export default function Sidebar() {
       <div className="flex-1 overflow-y-auto py-6 px-4 space-y-8 no-scrollbar">
         
         {/* MAIN SECTION */}
-        <div>
-          <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">
-            Main
-          </p>
-          <div className="space-y-1">
-            <NavItem to="/dashboard" icon={LayoutDashboard}>Overview</NavItem>
-            <NavItem to="/workspaces" icon={Monitor}>My Workspaces</NavItem>
-            <NavItem to="/sessions/my" icon={Video}>My Sessions</NavItem>
+        {user?.role !== 'admin' && (
+          <div>
+            <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">
+              Main
+            </p>
+            <div className="space-y-1">
+              <NavItem to="/dashboard" icon={LayoutDashboard}>Overview</NavItem>
+              <NavItem to="/workspaces" icon={Monitor}>My Workspaces</NavItem>
+              <NavItem to="/sessions/my" icon={Video}>My Sessions</NavItem>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* HOST SECTION */}
-        {user?.is_host && (
+        {user?.is_host && user?.role !== 'admin' && (
           <div>
             <p className="px-4 text-xs font-semibold text-indigo-400/80 uppercase tracking-wider mb-4">
               Host
@@ -120,8 +124,8 @@ export default function Sidebar() {
               <NavItem to="/admin/dashboard" icon={LayoutDashboard}>Dashboard</NavItem>
               <NavItem to="/admin/vm-pool" icon={Server}>VM Pool</NavItem>
               <NavItem to="/admin/users" icon={Users}>Users</NavItem>
-              <NavItem to="/admin/templates" icon={Database}>Templates</NavItem>
-              <NavItem to="/admin/analytics" icon={BarChart2}>Analytics</NavItem>
+              <NavItem to="/admin/templates" icon={LayoutTemplate}>Templates</NavItem>
+              <NavItem to="/admin/analytics" icon={BarChart3}>Analytics</NavItem>
               <NavItem to="/admin/settings" icon={Settings}>Settings</NavItem>
             </div>
           </div>
@@ -191,11 +195,11 @@ export default function Sidebar() {
               {user?.first_name} {user?.last_name}
             </p>
             {user?.role === 'admin' ? (
-              <p className="text-xs text-purple-400 font-semibold tracking-wider truncate">ADMIN</p>
+              <span className="text-xs text-purple-400 font-semibold tracking-wider truncate px-2 py-0.5 bg-purple-500/20 rounded-md border border-purple-500/30">ADMIN</span>
+            ) : user?.is_host ? (
+              <span className="text-xs text-blue-400 font-semibold tracking-wider truncate px-2 py-0.5 bg-blue-500/20 rounded-md border border-blue-500/30">HOST</span>
             ) : (
-              <p className="text-xs text-slate-400 truncate">
-                {user?.is_host ? 'Host' : 'User'}
-              </p>
+              <span className="text-xs text-slate-400 font-semibold tracking-wider truncate px-2 py-0.5 bg-slate-700/50 rounded-md border border-slate-600/50">FREE</span>
             )}
           </div>
           <button 

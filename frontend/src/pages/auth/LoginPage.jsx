@@ -45,8 +45,7 @@ export default function LoginPage() {
                 
                 // Redirect based on role
                 if (user.role === 'admin') navigate('/admin/dashboard');
-                else if (user.role === 'instructor' || user.role === 'lecturer') navigate('/lecturer/dashboard');
-                else navigate('/student/dashboard');
+                else navigate('/dashboard');
             }
         } catch (err) {
             setError(err.response?.data?.message || err.response?.data?.error?.detail || 'Failed to login. Please try again.');
