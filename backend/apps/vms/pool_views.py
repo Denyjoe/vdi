@@ -288,3 +288,51 @@ class TemplateLinkView(APIView):
             ),
             'is_real': template.is_real,
         })
+
+class SystemStatsView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+    
+    def get(self, request):
+        from apps.vms.services.proxmox_service import ProxmoxService
+        try:
+            ps = ProxmoxService()
+            nodes = ps.proxmox.nodes.get()
+            node = nodes[0] if nodes else {}
+            
+            # Get VM count
+            vms = ps.proxmox.nodes(ps.node).qemu.get()
+            running_vms = [v for v in vms if v.get('status') == 'running']
+            
+            return Response({
+                'proxmox': {
+                    'status': 'online',
+                    'node': node.get('node', 'pve'),
+                    'cpu_usage': round(node.get('cpu', 0) * 100, 1),
+                    'ram_used': round(node.get('mem', 0) / (1024**3), 1),
+                    'ram_total': round(node.get('maxmem', 0) / (1024**3), 1),
+                    'storage_used': None,
+                    'storage_total': None,
+                    'uptime_seconds': node.get('uptime', 0),
+                },
+                'vms': {
+                    'total': len(vms),
+                    'running': len(running_vms),
+                },
+                'guacamole': {
+                    'status': 'online'
+                }
+            })
+        except Exception as e:
+            return Response({
+                'proxmox': {
+                    'status': 'offline',
+                    'error': str(e)
+                },
+                'vms': {
+                    'total': 0, 
+                    'running': 0
+                },
+                'guacamole': {
+                    'status': 'unknown'
+                }
+            })

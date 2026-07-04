@@ -117,12 +117,12 @@ export default function Sidebar() {
               Admin
             </p>
             <div className="space-y-1">
-              <NavItem to="/admin/dashboard" icon={LayoutDashboard}>Admin Dashboard</NavItem>
+              <NavItem to="/admin/dashboard" icon={LayoutDashboard}>Dashboard</NavItem>
               <NavItem to="/admin/vm-pool" icon={Server}>VM Pool</NavItem>
-              <NavItem to="/admin/users" icon={Users}>Users & Classes</NavItem>
+              <NavItem to="/admin/users" icon={Users}>Users</NavItem>
               <NavItem to="/admin/templates" icon={Database}>Templates</NavItem>
-              <NavItem to="/admin/hardware" icon={Cpu}>Hardware Nodes</NavItem>
-              <NavItem to="/admin/logs" icon={FileText}>System Logs</NavItem>
+              <NavItem to="/admin/analytics" icon={BarChart2}>Analytics</NavItem>
+              <NavItem to="/admin/settings" icon={Settings}>Settings</NavItem>
             </div>
           </div>
         )}
@@ -140,7 +140,7 @@ export default function Sidebar() {
       </div>
 
       {/* UPGRADE BANNER */}
-      {!user?.is_host && (
+      {!user?.is_host && user?.role !== 'admin' && (
         <div style={{
           margin: '12px',
           padding: '16px',
@@ -190,9 +190,13 @@ export default function Sidebar() {
             <p className="text-sm font-medium text-white truncate">
               {user?.first_name} {user?.last_name}
             </p>
-            <p className="text-xs text-slate-400 truncate">
-              {user?.is_host ? 'Host' : 'User'}
-            </p>
+            {user?.role === 'admin' ? (
+              <p className="text-xs text-purple-400 font-semibold tracking-wider truncate">ADMIN</p>
+            ) : (
+              <p className="text-xs text-slate-400 truncate">
+                {user?.is_host ? 'Host' : 'User'}
+              </p>
+            )}
           </div>
           <button 
             onClick={handleLogout}

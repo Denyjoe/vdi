@@ -12,6 +12,7 @@ from apps.vms.pool_views import (
     PoolDeleteEntryView,
     PoolTemplateListView,
     TemplateLinkView,
+    SystemStatsView,
 )
 
 urlpatterns = [
@@ -21,4 +22,5 @@ urlpatterns = [
     path('pool/<int:entry_id>/', PoolDeleteEntryView.as_view(), name='pool-delete'),
     path('templates/', PoolTemplateListView.as_view(), name='pool-templates'),
     path('templates/<int:template_id>/link/', TemplateLinkView.as_view(), name='template-link'),
+    path('system-stats/', SystemStatsView.as_view(), name='system-stats'),
 ]

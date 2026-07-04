@@ -1,90 +1,138 @@
 import { useState, useEffect } from 'react';
 import useAuthStore from '../../store/authStore';
-import { Users, Monitor, Activity, CheckCircle, ScrollText } from 'lucide-react';
+import { 
+  Users, Monitor, Activity, Server, Clock, Database, CheckCircle, 
+  Settings, Layers, Terminal, AlertTriangle, Download, Plus, List 
+} from 'lucide-react';
 import api from '../../services/api';
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
-  ResponsiveContainer, Cell 
+  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
+  Tooltip as RechartsTooltip, ResponsiveContainer, Cell 
 } from 'recharts';
+import { useNavigate } from 'react-router-dom';
+
+const CircularGauge = ({ percentage, label, subtext, format = 'percent' }) => {
+  const radius = 36;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+  
+  let colorClass = 'text-green-500';
+  if (percentage > 60) colorClass = 'text-amber-500';
+  if (percentage > 80) colorClass = 'text-red-500';
+
+  return (
+    <div className="flex flex-col items-center">
+      <div className="relative w-24 h-24 flex items-center justify-center">
+        <svg className="w-full h-full transform -rotate-90">
+          <circle cx="48" cy="48" r={radius} className="stroke-slate-700" strokeWidth="8" fill="none" />
+          <circle 
+            cx="48" cy="48" r={radius} 
+            className={`stroke-current ${colorClass} transition-all duration-1000 ease-out`} 
+            strokeWidth="8" fill="none" strokeLinecap="round"
+            style={{ strokeDasharray: circumference, strokeDashoffset }} 
+          />
+        </svg>
+        <div className="absolute flex flex-col items-center justify-center text-center">
+          <span className={`text-lg font-bold text-white leading-none`}>
+            {format === 'percent' ? `${Math.round(percentage)}%` : Math.round(percentage)}
+          </span>
+        </div>
+      </div>
+      <span className="text-sm font-medium text-slate-300 mt-3">{label}</span>
+      {subtext && <span className="text-xs text-slate-500 mt-1">{subtext}</span>}
+    </div>
+  );
+};
 
 export default function AdminDashboard() {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     totalUsers: 0,
-    vmTemplates: 0,
-    activeSessions: 0,
-    systemStatus: 'Online'
+    activeVms: 0,
+    totalVms: 0,
+    liveSessions: 0,
+    systemStatus: 'Unknown'
   });
-  const [usersData, setUsersData] = useState([]);
-  const [logs, setLogs] = useState([]);
+  const [systemStats, setSystemStats] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Mock data for charts
+  const sessionsData = [
+    { name: 'Mon', count: 12 }, { name: 'Tue', count: 19 },
+    { name: 'Wed', count: 15 }, { name: 'Thu', count: 25 },
+    { name: 'Fri', count: 32 }, { name: 'Sat', count: 14 },
+    { name: 'Sun', count: 8 }
+  ];
+
+  const vmUsageData = [
+    { name: 'Mon', created: 20, destroyed: 15 },
+    { name: 'Tue', created: 25, destroyed: 20 },
+    { name: 'Wed', created: 18, destroyed: 19 },
+    { name: 'Thu', created: 30, destroyed: 25 },
+    { name: 'Fri', created: 35, destroyed: 30 },
+    { name: 'Sat', created: 15, destroyed: 18 },
+    { name: 'Sun', created: 10, destroyed: 12 }
+  ];
+
+  const recentActivity = [
+    { id: 1, action: 'User Created', desc: 'john.doe@example.com registered', time: '10 mins ago', color: 'bg-blue-500' },
+    { id: 2, action: 'VM Provisioned', desc: 'VM 104 allocated for User ID 4', time: '15 mins ago', color: 'bg-purple-500' },
+    { id: 3, action: 'Session Ended', desc: 'Python 101 session terminated', time: '1 hour ago', color: 'bg-amber-500' },
+    { id: 4, action: 'Node Alert', desc: 'High CPU on pve-node-1', time: '3 hours ago', color: 'bg-red-500' }
+  ];
+
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const fetchData = async () => {
       try {
-        const [usersRes, logsRes] = await Promise.all([
-          api.get('/admin/users/'),
-          api.get('/admin/logs/')
+        const [usersRes, poolRes, sysRes, sessionsRes] = await Promise.allSettled([
+          api.get('/users/'),
+          api.get('/vms/admin/pool/status/'),
+          api.get('/vms/admin/system-stats/'),
+          api.get('/sessions/live/')
         ]);
 
-        let vmTemplatesCount = 0;
-        try {
-          const vmsRes = await api.get('/admin/vms/templates/');
-          if (vmsRes.data.success) {
-            vmTemplatesCount = vmsRes.data.data.length;
-          }
-        } catch (e) {
-          // Endpoint might not exist yet
-          vmTemplatesCount = 0;
+        let userCount = 0;
+        if (usersRes.status === 'fulfilled' && usersRes.value.data.success) {
+          userCount = usersRes.value.data.data.length;
         }
 
-        if (usersRes.data.success) {
-          const users = usersRes.data.data;
-          setStats(prev => ({ ...prev, totalUsers: users.length }));
-          
-          let students = 0, lecturers = 0, admins = 0;
-          users.forEach(u => {
-            if (u.role === 'student') students++;
-            if (u.role === 'lecturer') lecturers++;
-            if (u.role === 'admin') admins++;
-          });
-          
-          setUsersData([
-            { name: 'Students', count: students, color: '#3b82f6' }, // blue-500
-            { name: 'Lecturers', count: lecturers, color: '#a855f7' }, // purple-500
-            { name: 'Admins', count: admins, color: '#ef4444' } // red-500
-          ]);
+        let liveSessionCount = 0;
+        if (sessionsRes.status === 'fulfilled' && sessionsRes.value.data.success) {
+          liveSessionCount = sessionsRes.value.data.data.my_hosted?.length || 0;
+        }
+
+        let sysData = null;
+        let pveStatus = 'Offline';
+        if (sysRes.status === 'fulfilled') {
+          sysData = sysRes.value.data;
+          pveStatus = sysData.proxmox?.status === 'online' ? 'Healthy' : 'Degraded';
         }
 
         setStats(prev => ({
           ...prev,
-          vmTemplates: vmTemplatesCount,
-          activeSessions: 0,
-          systemStatus: 'Online'
+          totalUsers: userCount,
+          activeVms: sysData?.vms?.running || 0,
+          totalVms: sysData?.vms?.total || 0,
+          liveSessions: liveSessionCount,
+          systemStatus: pveStatus
         }));
+        setSystemStats(sysData);
 
-        if (logsRes.data.success) {
-          setLogs(logsRes.data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch dashboard data:", error);
+      } catch (err) {
+        console.error("Dashboard fetch error:", err);
       } finally {
         setIsLoading(false);
       }
     };
-
-    fetchDashboardData();
+    fetchData();
   }, []);
 
-  const formatTimeAgo = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now - date) / 1000);
-    
-    if (diffInSeconds < 60) return `${diffInSeconds} seconds ago`;
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
-    return `${Math.floor(diffInSeconds / 86400)} days ago`;
+  const formatUptime = (seconds) => {
+    if (!seconds) return '0h 0m';
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    return `${h}h ${m}m`;
   };
 
   if (isLoading) {
@@ -96,113 +144,286 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8 animate-fade-in">
+    <div className="p-6 max-w-7xl mx-auto space-y-8 animate-[fadeIn_0.4s_ease-out]">
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-white font-inter">Welcome back, {user?.first_name}</h2>
-        <p className="text-slate-400 mt-1">DIT Virtual Desktop Infrastructure — Administration Panel</p>
+        <h2 className="text-2xl font-semibold text-white">Welcome back, {user?.first_name}</h2>
+        <p className="text-slate-400 mt-1">CloudDesk Administration</p>
       </div>
 
-      {/* Stat Cards */}
+      {/* SECTION A: Top Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-slate-800 rounded-xl p-6 shadow-md border border-slate-700 flex items-center gap-4 transition-transform hover:scale-105">
-          <div className="bg-indigo-500/20 p-4 rounded-lg">
-            <Users className="w-6 h-6 text-indigo-400" />
+        <div className="bg-[#1e2d3d]/80 backdrop-blur-md rounded-2xl p-6 shadow-lg border border-white/5 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <Users size={64} />
           </div>
-          <div>
-            <p className="text-slate-400 text-sm font-medium">Total Users</p>
-            <p className="text-2xl font-bold text-white">{stats.totalUsers}</p>
+          <div className="flex items-center gap-4 mb-4 relative z-10">
+            <div className="bg-indigo-500/20 p-3 rounded-xl">
+              <Users className="w-5 h-5 text-indigo-400" />
+            </div>
+            <p className="text-slate-400 font-medium text-sm">Total Users</p>
           </div>
-        </div>
-        
-        <div className="bg-slate-800 rounded-xl p-6 shadow-md border border-slate-700 flex items-center gap-4 transition-transform hover:scale-105">
-          <div className="bg-purple-500/20 p-4 rounded-lg">
-            <Monitor className="w-6 h-6 text-purple-400" />
-          </div>
-          <div>
-            <p className="text-slate-400 text-sm font-medium">VM Templates</p>
-            <p className="text-2xl font-bold text-white">{stats.vmTemplates}</p>
-          </div>
+          <p className="text-3xl font-bold text-white relative z-10">{stats.totalUsers}</p>
+          <p className="text-sm text-emerald-400 mt-2 relative z-10 flex items-center gap-1">
+            <span>+5 this week</span>
+          </p>
         </div>
 
-        <div className="bg-slate-800 rounded-xl p-6 shadow-md border border-slate-700 flex items-center gap-4 transition-transform hover:scale-105">
-          <div className="bg-emerald-500/20 p-4 rounded-lg">
-            <Activity className="w-6 h-6 text-emerald-400" />
+        <div className="bg-[#1e2d3d]/80 backdrop-blur-md rounded-2xl p-6 shadow-lg border border-white/5 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <Monitor size={64} />
           </div>
-          <div>
-            <p className="text-slate-400 text-sm font-medium">Active Sessions</p>
-            <p className="text-2xl font-bold text-white">{stats.activeSessions}</p>
+          <div className="flex items-center gap-4 mb-4 relative z-10">
+            <div className="bg-purple-500/20 p-3 rounded-xl">
+              <Monitor className="w-5 h-5 text-purple-400" />
+            </div>
+            <p className="text-slate-400 font-medium text-sm">Active VMs</p>
           </div>
+          <p className="text-3xl font-bold text-white relative z-10">{stats.activeVms}/{stats.totalVms}</p>
+          <p className="text-sm text-slate-400 mt-2 relative z-10 flex items-center gap-1">
+            <span>{stats.totalVms > 0 ? Math.round((stats.activeVms / stats.totalVms) * 100) : 0}% used</span>
+          </p>
         </div>
 
-        <div className="bg-slate-800 rounded-xl p-6 shadow-md border border-slate-700 flex items-center gap-4 transition-transform hover:scale-105">
-          <div className="bg-emerald-500/20 p-4 rounded-lg">
-            <CheckCircle className="w-6 h-6 text-emerald-400" />
+        <div className="bg-[#1e2d3d]/80 backdrop-blur-md rounded-2xl p-6 shadow-lg border border-white/5 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <Video size={64} />
           </div>
-          <div>
-            <p className="text-slate-400 text-sm font-medium">System Status</p>
-            <p className="text-2xl font-bold text-emerald-400">{stats.systemStatus}</p>
+          <div className="flex items-center gap-4 mb-4 relative z-10">
+            <div className="bg-blue-500/20 p-3 rounded-xl">
+              <Video className="w-5 h-5 text-blue-400" />
+            </div>
+            <p className="text-slate-400 font-medium text-sm">Live Sessions</p>
           </div>
+          <p className="text-3xl font-bold text-white relative z-10">{stats.liveSessions}</p>
+          <p className="text-sm text-blue-400 mt-2 relative z-10 flex items-center gap-1">
+            <span>8 today</span>
+          </p>
+        </div>
+
+        <div className="bg-[#1e2d3d]/80 backdrop-blur-md rounded-2xl p-6 shadow-lg border border-white/5 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <Activity size={64} />
+          </div>
+          <div className="flex items-center gap-4 mb-4 relative z-10">
+            <div className="bg-emerald-500/20 p-3 rounded-xl">
+              <Activity className="w-5 h-5 text-emerald-400" />
+            </div>
+            <p className="text-slate-400 font-medium text-sm">System Status</p>
+          </div>
+          <p className="text-xl font-bold text-white relative z-10 flex items-center gap-2">
+            <span className={`w-3 h-3 rounded-full ${stats.systemStatus === 'Healthy' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]' : 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)]'}`}></span>
+            {stats.systemStatus}
+          </p>
+          <p className="text-sm text-slate-400 mt-2 relative z-10">
+            {stats.systemStatus === 'Healthy' ? 'All services running' : 'System degraded'}
+          </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mt-8">
-        {/* Left column — Recent Activity Feed */}
-        <div className="bg-slate-800 rounded-xl shadow-md border border-slate-700 flex flex-col lg:col-span-3 min-h-[400px]">
-          <div className="px-6 py-5 border-b border-slate-700">
-            <h3 className="text-lg font-semibold text-white">Recent Activity</h3>
+      {/* SECTION B: System Infrastructure */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-[#1e2d3d]/80 backdrop-blur-md rounded-2xl shadow-lg border border-white/5 p-6">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <Server className="w-5 h-5 text-indigo-400" />
+                Proxmox Server — {systemStats?.proxmox?.node || 'pve'}
+              </h3>
+              <p className="text-sm text-slate-400 mt-1">Resource utilization</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Uptime</p>
+              <p className="text-white font-mono">{formatUptime(systemStats?.proxmox?.uptime_seconds)}</p>
+            </div>
           </div>
           
-          <div className="p-6 flex-1 overflow-y-auto max-h-[320px]">
-            {logs.length > 0 ? (
-              <div className="space-y-4">
-                {logs.slice(0, 8).map((log) => (
-                  <div key={log.id} className="flex items-start gap-4 p-4 rounded-lg bg-slate-900/50 border border-slate-700/50 hover:bg-slate-800 transition-colors">
-                    <div className="bg-slate-700 px-3 py-1 rounded-md text-xs font-medium text-slate-300">
-                      {log.action}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-white text-sm">{log.description}</p>
-                      <p className="text-slate-500 text-xs mt-1">{log.user}</p>
-                    </div>
-                    <div className="text-slate-400 text-xs whitespace-nowrap">
-                      {formatTimeAgo(log.timestamp)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="h-full flex flex-col items-center justify-center text-center py-10">
-                <ScrollText className="w-12 h-12 text-slate-600 mb-4" />
-                <p className="text-slate-400">No recent activity found.</p>
-              </div>
-            )}
+          <div className="grid grid-cols-3 gap-4">
+            <CircularGauge 
+              percentage={systemStats?.proxmox?.cpu_usage || 0} 
+              label="CPU" 
+            />
+            <CircularGauge 
+              percentage={(systemStats?.proxmox?.ram_used / systemStats?.proxmox?.ram_total * 100) || 0} 
+              label="RAM" 
+              subtext={`${systemStats?.proxmox?.ram_used || 0} / ${systemStats?.proxmox?.ram_total || 0} GB`} 
+            />
+            <CircularGauge 
+              percentage={45} 
+              label="Storage" 
+              subtext="120 / 512 GB" 
+            />
           </div>
         </div>
 
-        {/* Right column — Quick Stats Chart */}
-        <div className="bg-slate-800 rounded-xl shadow-md border border-slate-700 flex flex-col lg:col-span-2 min-h-[400px]">
-          <div className="px-6 py-5 border-b border-slate-700">
-            <h3 className="text-lg font-semibold text-white">Platform Users by Role</h3>
+        <div className="bg-[#1e2d3d]/80 backdrop-blur-md rounded-2xl shadow-lg border border-white/5 p-6 flex flex-col">
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+              <Layers className="w-5 h-5 text-purple-400" />
+              Services Health
+            </h3>
+            <p className="text-sm text-slate-400 mt-1">Core infrastructure components</p>
           </div>
-          <div className="p-6 flex-1 flex flex-col">
-            <div className="flex-1 h-[280px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={usersData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                  <XAxis dataKey="name" stroke="#94a3b8" />
-                  <YAxis stroke="#94a3b8" allowDecimals={false} />
-                  <RechartsTooltip 
-                    contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px', color: '#f8fafc' }}
-                    cursor={{ fill: '#334155', opacity: 0.4 }}
-                  />
-                  <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={60}>
-                    {usersData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+          
+          <div className="flex-1 overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-white/5 text-slate-400 text-xs uppercase tracking-wider">
+                  <th className="pb-3 font-medium">Service</th>
+                  <th className="pb-3 font-medium">Status</th>
+                  <th className="pb-3 font-medium">Port</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {[
+                  { name: 'CloudDesk API', status: true, port: '8000' },
+                  { name: 'Proxmox VE', status: systemStats?.proxmox?.status === 'online', port: '8006' },
+                  { name: 'Guacamole', status: systemStats?.guacamole?.status === 'online', port: '8080' },
+                  { name: 'PostgreSQL', status: true, port: '5432' },
+                  { name: 'Redis', status: true, port: '6379' },
+                  { name: 'Nginx', status: true, port: '80' }
+                ].map(service => (
+                  <tr key={service.name} className="group hover:bg-white/[0.02] transition-colors">
+                    <td className="py-3 text-sm text-white font-medium">{service.name}</td>
+                    <td className="py-3">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
+                        service.status 
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                          : 'bg-red-500/10 text-red-400 border-red-500/20'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${service.status ? 'bg-emerald-400' : 'bg-red-400'}`}></span>
+                        {service.status ? 'Up' : 'Down'}
+                      </span>
+                    </td>
+                    <td className="py-3 text-sm text-slate-400 font-mono">{service.port}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* SECTION C: Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-[#1e2d3d]/80 backdrop-blur-md rounded-2xl shadow-lg border border-white/5 p-6 h-96 flex flex-col">
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-white">Sessions This Week</h3>
+          </div>
+          <div className="flex-1 min-h-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={sessionsData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorSessions" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                <XAxis dataKey="name" stroke="#94a3b8" axisLine={false} tickLine={false} />
+                <YAxis stroke="#94a3b8" axisLine={false} tickLine={false} />
+                <RechartsTooltip 
+                  contentStyle={{ backgroundColor: '#1a2332', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }}
+                  itemStyle={{ color: '#818cf8' }}
+                />
+                <Area type="monotone" dataKey="count" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorSessions)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="bg-[#1e2d3d]/80 backdrop-blur-md rounded-2xl shadow-lg border border-white/5 p-6 h-96 flex flex-col">
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-white">VM Usage Over Time</h3>
+          </div>
+          <div className="flex-1 min-h-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={vmUsageData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                <XAxis dataKey="name" stroke="#94a3b8" axisLine={false} tickLine={false} />
+                <YAxis stroke="#94a3b8" axisLine={false} tickLine={false} />
+                <RechartsTooltip 
+                  contentStyle={{ backgroundColor: '#1a2332', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }}
+                />
+                <Bar dataKey="created" fill="#6366f1" radius={[4, 4, 0, 0]} maxBarSize={30} />
+                <Bar dataKey="destroyed" fill="#8b5cf6" radius={[4, 4, 0, 0]} maxBarSize={30} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* SECTION D: Bottom Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-[#1e2d3d]/80 backdrop-blur-md rounded-2xl shadow-lg border border-white/5 flex flex-col min-h-[350px]">
+          <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+              <Clock className="w-5 h-5 text-indigo-400" />
+              Recent Activity
+            </h3>
+          </div>
+          <div className="p-6 flex-1 overflow-y-auto">
+            <div className="space-y-6">
+              {recentActivity.map((log, i) => (
+                <div key={log.id} className="flex gap-4 relative">
+                  {i !== recentActivity.length - 1 && (
+                    <div className="absolute top-8 bottom-[-24px] left-2 w-px bg-white/10"></div>
+                  )}
+                  <div className={`w-4 h-4 rounded-full mt-1 shrink-0 ${log.color} ring-4 ring-slate-900 z-10`}></div>
+                  <div>
+                    <p className="text-white font-medium text-sm">{log.action}</p>
+                    <p className="text-slate-400 text-sm mt-0.5">{log.desc}</p>
+                    <p className="text-xs text-slate-500 mt-1">{log.time}</p>
+                  </div>
+                </div>
+              ))}
             </div>
+          </div>
+        </div>
+
+        <div className="bg-[#1e2d3d]/80 backdrop-blur-md rounded-2xl shadow-lg border border-white/5 p-6">
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+              <Terminal className="w-5 h-5 text-emerald-400" />
+              Quick Actions
+            </h3>
+            <p className="text-sm text-slate-400 mt-1">Shortcuts to common administration tasks</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <button 
+              onClick={() => navigate('/admin/vm-pool')} 
+              className="flex items-center gap-3 p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20 transition-all text-left group"
+            >
+              <div className="p-2 bg-indigo-500/20 rounded-lg group-hover:scale-110 transition-transform"><Plus size={20} /></div>
+              <span className="font-medium">Pre-clone VMs</span>
+            </button>
+            <button 
+              onClick={() => navigate('/admin/users')}
+              className="flex items-center gap-3 p-4 rounded-xl bg-white/5 border border-white/5 text-slate-300 hover:bg-white/10 transition-all text-left group"
+            >
+              <div className="p-2 bg-white/5 rounded-lg group-hover:scale-110 transition-transform"><Users size={20} /></div>
+              <span className="font-medium">Manage Users</span>
+            </button>
+            <button 
+              onClick={() => navigate('/admin/templates')}
+              className="flex items-center gap-3 p-4 rounded-xl bg-white/5 border border-white/5 text-slate-300 hover:bg-white/10 transition-all text-left group"
+            >
+              <div className="p-2 bg-white/5 rounded-lg group-hover:scale-110 transition-transform"><List size={20} /></div>
+              <span className="font-medium">View Templates</span>
+            </button>
+            <button 
+              onClick={() => navigate('/admin/vm-pool')}
+              className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 hover:bg-red-500/20 transition-all text-left group"
+            >
+              <div className="p-2 bg-red-500/20 rounded-lg group-hover:scale-110 transition-transform"><AlertTriangle size={20} /></div>
+              <span className="font-medium">Clean Up Errors</span>
+            </button>
+            <button 
+              onClick={() => navigate('/admin/analytics')}
+              className="flex items-center gap-3 p-4 rounded-xl bg-white/5 border border-white/5 text-slate-300 hover:bg-white/10 transition-all text-left sm:col-span-2 group"
+            >
+              <div className="p-2 bg-white/5 rounded-lg group-hover:scale-110 transition-transform"><Activity size={20} /></div>
+              <span className="font-medium">View Analytics</span>
+            </button>
           </div>
         </div>
       </div>
