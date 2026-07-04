@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import useAuthStore from '../../store/authStore';
 import { 
   Users, Monitor, Activity, Server, Clock, Database, CheckCircle, 
-  Settings, Layers, Terminal, AlertTriangle, Download, Plus, List 
+  Settings, Layers, Terminal, AlertTriangle, Download, Plus, List, Video
 } from 'lucide-react';
 import api from '../../services/api';
 import { 
