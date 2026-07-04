@@ -87,8 +87,7 @@ export default function AdminUsersPage() {
   const handleToggleAdmin = async (userId, currentRole) => {
     try {
       const newRole = currentRole === 'admin' ? 'user' : 'admin';
-      // Assume endpoint for updating user exists, or we mock it
-      // const res = await api.patch(`/admin/users/${userId}/`, { role: newRole });
+      const res = await api.patch(`/users/admin/${userId}/`, { role: newRole });
       
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
       if (selectedUser?.id === userId) {

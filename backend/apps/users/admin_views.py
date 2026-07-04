@@ -31,3 +31,20 @@ class AdminUserStatsView(APIView):
                 "active_users": active_users
             }
         })
+
+class AdminUserDetailView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+    
+    def patch(self, request, pk):
+        try:
+            user = User.objects.get(id=pk)
+        except User.DoesNotExist:
+            return Response({"success": False, "message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+            
+        role = request.data.get('role')
+        if role in ['admin', 'user']:
+            user.role = role
+            user.save()
+            return Response({"success": True, "data": UserProfileSerializer(user).data})
+            
+        return Response({"success": False, "message": "Invalid role"}, status=status.HTTP_400_BAD_REQUEST)
