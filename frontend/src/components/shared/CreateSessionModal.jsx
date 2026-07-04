@@ -169,7 +169,7 @@ export default function CreateSessionModal({ onClose, onCreated }) {
                     }`}
                   >
                     {formData.required_vm_template_id === t.id && (
-                      <div className="absolute top-0 right-0 bg-indigo-500 text-[var(--text-primary)] p-1 rounded-bl-lg">
+                      <div className="absolute top-0 right-0 bg-indigo-500 text-white p-1 rounded-bl-lg">
                         <CheckCircle size={14} />
                       </div>
                     )}
@@ -327,7 +327,7 @@ export default function CreateSessionModal({ onClose, onCreated }) {
               <button 
                 onClick={handleNext} 
                 disabled={step === 1 && !formData.name}
-                className="px-6 py-2.5 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-[var(--text-primary)] rounded-xl font-medium transition-colors"
+                className="px-6 py-2.5 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors"
               >
                 Next Step
               </button>

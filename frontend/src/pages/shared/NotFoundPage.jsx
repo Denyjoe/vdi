@@ -47,7 +47,7 @@ export default function NotFoundPage() {
 
       <button
         onClick={() => navigate(getBackPath())}
-        className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-[var(--text-primary)] rounded-lg hover:bg-indigo-700 transition-colors font-medium shadow-lg shadow-blue-900/50"
+        className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium shadow-lg shadow-blue-900/50"
       >
         <ArrowLeft className="w-4 h-4" />
         Back to Dashboard

@@ -184,7 +184,7 @@ export default function UpgradeModal({ onClose }) {
                                 return (
                                     <div key={plan.id} className={`glass-card p-6 rounded-2xl flex flex-col relative ${isCurrent ? 'border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.1)]' : 'border-[var(--border-color)]'}`}>
                                         {plan.name === 'pro_host' && (
-                                            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-500 text-[var(--text-primary)] text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                                            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                                                 Most Popular
                                             </div>
                                         )}
@@ -224,7 +224,7 @@ export default function UpgradeModal({ onClose }) {
                                             disabled={isCurrent}
                                             className={`w-full py-3 rounded-xl font-medium transition-all ${
                                                 isCurrent ? 'bg-white/5 text-slate-500 cursor-not-allowed' :
-                                                plan.name === 'pro_host' ? 'bg-indigo-600 hover:bg-indigo-500 text-[var(--text-primary)] shadow-lg shadow-indigo-500/25' :
+                                                plan.name === 'pro_host' ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/25' :
                                                 'bg-white/10 hover:bg-white/20 text-[var(--text-primary)]'
                                             }`}
                                         >
@@ -274,7 +274,7 @@ export default function UpgradeModal({ onClose }) {
                             <button 
                                 onClick={handlePayNow}
                                 disabled={!phone.replace(/\s/g, '')}
-                                className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-600/50 disabled:cursor-not-allowed text-[var(--text-primary)] rounded-xl font-bold text-lg transition-all shadow-[0_4px_15px_rgba(99,102,241,0.3)] disabled:shadow-none mb-4"
+                                className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-600/50 disabled:cursor-not-allowed text-white rounded-xl font-bold text-lg transition-all shadow-[0_4px_15px_rgba(99,102,241,0.3)] disabled:shadow-none mb-4"
                             >
                                 Pay Now
                             </button>
@@ -420,7 +420,7 @@ export default function UpgradeModal({ onClose }) {
                             <div className="flex gap-3">
                                 <button 
                                     onClick={() => setStep('payment')}
-                                    className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 text-[var(--text-primary)] rounded-xl font-medium transition-colors"
+                                    className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-colors"
                                 >
                                     Try Again
                                 </button>

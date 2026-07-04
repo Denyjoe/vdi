@@ -207,7 +207,7 @@ export default function AdminSettingsPage() {
             </div>
           </div>
           <div className="px-6 py-4 border-t border-[var(--border-color)] bg-[var(--bg-primary)]/30 flex justify-end">
-            <button onClick={savePlatformConfig} disabled={savingSection === 'platform'} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <button onClick={savePlatformConfig} disabled={savingSection === 'platform'} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
               <Save size={16} />
               {savingSection === 'platform' ? 'Saving...' : 'Save Changes'}
             </button>
@@ -236,7 +236,7 @@ export default function AdminSettingsPage() {
                       {p.can_host_sessions || p.can_host ? `${p.max_participants || p.max_session_participants || 0} participants` : 'No hosting'}
                     </p>
                   </div>
-                  <button onClick={() => openPlanEdit(p)} className="w-full py-2 bg-[var(--bg-card)] group-hover:bg-indigo-600 text-[var(--text-primary)] group-hover:text-[var(--text-primary)] rounded-md text-sm font-medium transition-colors border border-[var(--border-color)] group-hover:border-indigo-500">
+                  <button onClick={() => openPlanEdit(p)} className="w-full py-2 bg-[var(--bg-card)] group-hover:bg-indigo-600 text-white group-hover:text-white rounded-md text-sm font-medium transition-colors border border-[var(--border-color)] group-hover:border-indigo-500">
                     Edit Plan
                   </button>
                 </div>
@@ -286,7 +286,7 @@ export default function AdminSettingsPage() {
             </div>
           </div>
           <div className="px-6 py-4 border-t border-[var(--border-color)] bg-[var(--bg-primary)]/30 flex justify-end">
-            <button onClick={saveResourceLimits} disabled={savingSection === 'limits'} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <button onClick={saveResourceLimits} disabled={savingSection === 'limits'} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
               <Save size={16} />
               {savingSection === 'limits' ? 'Saving...' : 'Save Changes'}
             </button>
@@ -455,7 +455,7 @@ export default function AdminSettingsPage() {
               <button onClick={() => setEditingPlan(null)} className="px-4 py-2 text-[var(--text-primary)] hover:text-[var(--text-primary)] transition-colors text-sm font-medium">
                 Cancel
               </button>
-              <button onClick={savePlan} className="bg-indigo-600 hover:bg-indigo-700 text-[var(--text-primary)] px-6 py-2 rounded-lg text-sm font-medium transition-colors">
+              <button onClick={savePlan} className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors">
                 Save Changes
               </button>
             </div>

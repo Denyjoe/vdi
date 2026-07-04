@@ -15,6 +15,7 @@ export default function HostSessionPage() {
   const [copied, setCopied] = useState(false)
   const [showEndConfirm, setShowEndConfirm] = useState(false)
   const [ending, setEnding] = useState(false)
+  const [selectedScreen, setSelectedScreen] = useState(null)
   const pollRef = useRef(null)
   const timerRef = useRef(null)
 
@@ -191,7 +192,7 @@ export default function HostSessionPage() {
             borderRadius: '8px',
             background: 'rgba(255,255,255,0.05)',
             border: '1px solid #1e293b',
-            color: '#64748b',
+            color: 'var(--text-muted)',
             fontSize: '13px',
             cursor: 'pointer',
             marginRight: '8px'
@@ -418,7 +419,7 @@ export default function HostSessionPage() {
                 animation: 'pulse 2s infinite'
               }} />
               <span style={{
-                color: '#64748b',
+                color: 'var(--text-muted)',
                 fontSize: '12px'
               }}>
                 Live · updates every 5s
@@ -474,7 +475,7 @@ export default function HostSessionPage() {
               }}>
                 <div>
                   <p style={{
-                    color: '#64748b',
+                    color: 'var(--text-muted)',
                     fontSize: '11px',
                     textTransform: 'uppercase',
                     letterSpacing: '0.1em',
@@ -644,7 +645,7 @@ export default function HostSessionPage() {
                       }}>
                         <Clock size={12} color="#475569" />
                         <span style={{
-                          color: '#64748b',
+                          color: 'var(--text-muted)',
                           fontSize: '12px'
                         }}>
                           {connectedTime}
@@ -688,6 +689,7 @@ export default function HostSessionPage() {
                       )}
 
                       {/* Screen Preview */}
+                      {/* Screen Preview */}
                       <div style={{
                         marginTop: '10px',
                         borderRadius: '10px',
@@ -695,10 +697,10 @@ export default function HostSessionPage() {
                         border: '1px solid #1e293b',
                         background: '#0a0f1e'
                       }}>
-                        {p.vm?.guacamole_url ? (
+                        {p.guacamole_url ? (
                           <div className="w-full h-full relative overflow-hidden bg-black" style={{height: '110px'}}>
                             <iframe
-                              src={p.vm.guacamole_url}
+                              src={p.guacamole_url}
                               title="Monitor"
                               className="absolute top-0 left-0 w-full h-full border-0 pointer-events-none"
                               style={{
@@ -708,78 +710,77 @@ export default function HostSessionPage() {
                             />
                           </div>
                         ) : (
-                          <>
-                            {/* Preview area */}
-                            <div style={{
-                              height: '80px',
+                          <div style={{
+                            height: '80px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            background: 'rgba(99,102,241,0.04)'
+                          }}>
+                            <Monitor size={20} color="rgba(99,102,241,0.4)" />
+                            <span style={{
+                              color: '#334155',
+                              fontSize: '10px',
+                              textAlign: 'center',
+                              lineHeight: 1.4,
+                              padding: '0 8px'
+                            }}>
+                              Screen preview will appear here
+                              after Guacamole is connected
+                            </span>
+                          </div>
+                        )}
+                        
+                        {/* Action bar below preview */}
+                        <div style={{
+                          display: 'flex',
+                          borderTop: '1px solid #0f172a',
+                          background: '#111827'
+                        }}>
+                          <button
+                            disabled={!p.guacamole_url}
+                            onClick={() => p.guacamole_url && setSelectedScreen(p)}
+                            title={p.guacamole_url ? "View Screen" : "Connect Guacamole to enable screen viewing"}
+                            style={{
+                              flex: 1,
+                              padding: '7px',
+                              background: 'none',
+                              border: 'none',
+                              borderRight: '1px solid #0f172a',
+                              color: p.guacamole_url ? '#6366f1' : '#1e293b',
+                              fontSize: '11px',
+                              cursor: p.guacamole_url ? 'pointer' : 'not-allowed',
                               display: 'flex',
-                              flexDirection: 'column',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: '6px',
-                              background: 'rgba(99,102,241,0.04)'
+                              gap: '4px',
+                              transition: 'all 0.2s'
                             }}>
-                              <Monitor size={20} 
-                                color="rgba(99,102,241,0.4)" />
-                              <span style={{
-                                color: '#334155',
-                                fontSize: '10px',
-                                textAlign: 'center',
-                                lineHeight: 1.4,
-                                padding: '0 8px'
-                              }}>
-                                Screen preview will appear here
-                                after Guacamole is connected
-                              </span>
-                            </div>
-                            
-                            {/* Action bar below preview */}
-                            <div style={{
+                            <Monitor size={11} />
+                            View Screen
+                          </button>
+                          <button
+                            disabled
+                            title="Available with Guacamole (Coming soon)"
+                            style={{
+                              flex: 1,
+                              padding: '7px',
+                              background: 'none',
+                              border: 'none',
+                              color: '#1e293b',
+                              fontSize: '11px',
+                              cursor: 'not-allowed',
                               display: 'flex',
-                              borderTop: '1px solid #0f172a'
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px'
                             }}>
-                              <button
-                                disabled
-                                title="Connect Guacamole to enable screen viewing"
-                                style={{
-                                  flex: 1,
-                                  padding: '7px',
-                                  background: 'none',
-                                  border: 'none',
-                                  borderRight: '1px solid #0f172a',
-                                  color: '#1e293b',
-                                  fontSize: '11px',
-                                  cursor: 'not-allowed',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  gap: '4px'
-                                }}>
-                                <Monitor size={11} />
-                                View Screen
-                              </button>
-                              <button
-                                disabled
-                                title="Available with Guacamole"
-                                style={{
-                                  flex: 1,
-                                  padding: '7px',
-                                  background: 'none',
-                                  border: 'none',
-                                  color: '#1e293b',
-                                  fontSize: '11px',
-                                  cursor: 'not-allowed',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  gap: '4px'
-                                }}>
-                                <Video size={11} />
-                                Take Control
-                              </button>
-                            </div>
-                          </>
-                        )}
+                            <Video size={11} />
+                            Take Control
+                          </button>
+                        </div>
                       </div>
 
                       {/* Actions */}
@@ -878,7 +879,7 @@ export default function HostSessionPage() {
                   borderRadius: '10px',
                   background: 'rgba(255,255,255,0.05)',
                   border: '1px solid #1e293b',
-                  color: '#e2e8f0',
+                  color: 'var(--text-primary)',
                   fontSize: '13px',
                   fontWeight: 500,
                   cursor: 'pointer'
@@ -1000,7 +1001,7 @@ export default function HostSessionPage() {
                   background: 'rgba(255,255,255,0.03)',
                   border: '1px solid #1e293b'
                 }}>
-                  <span style={{ color: '#64748b', fontSize: '13px' }}>{s.label}</span>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>{s.label}</span>
                   <span style={{ color: s.color, fontSize: '16px', fontWeight: 600 }}>{s.value}</span>
                 </div>
               ))}
@@ -1068,7 +1069,7 @@ export default function HostSessionPage() {
               End Session?
             </h2>
             <p style={{
-              color: '#64748b',
+              color: 'var(--text-muted)',
               fontSize: '14px',
               margin: '0 0 24px',
               lineHeight: 1.6
@@ -1083,7 +1084,7 @@ export default function HostSessionPage() {
                   borderRadius: '10px',
                   background: 'rgba(255,255,255,0.05)',
                   border: '1px solid #1e293b',
-                  color: '#94a3b8',
+                  color: 'var(--text-secondary)',
                   cursor: 'pointer'
                 }}>
                 Cancel
@@ -1124,6 +1125,73 @@ export default function HostSessionPage() {
           </div>
         </div>
       )}
+      {/* View Screen Modal */}
+      {selectedScreen && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(0,0,0,0.85)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2000,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: '#0d1526',
+            border: '1px solid #1e293b',
+            borderRadius: '16px',
+            width: '80vw',
+            height: '80vh',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '12px 20px',
+              borderBottom: '1px solid #1e293b',
+              background: '#0f172a'
+            }}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                <Monitor size={18} color="#6366f1" />
+                <h3 style={{color: 'white', fontSize: '16px', fontWeight: 600, margin: 0}}>
+                  Viewing Screen: {selectedScreen.user_name || selectedScreen.user_email}
+                </h3>
+              </div>
+              <button 
+                onClick={() => setSelectedScreen(null)}
+                style={{
+                  width: '32px', height: '32px',
+                  borderRadius: '8px',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid #1e293b',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+            {/* iframe */}
+            <div style={{flex: 1, background: 'black'}}>
+              <iframe
+                src={selectedScreen.guacamole_url}
+                title="Participant Screen"
+                style={{width: '100%', height: '100%', border: 'none'}}
+                allow="clipboard-read; clipboard-write"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

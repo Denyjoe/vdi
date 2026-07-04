@@ -157,7 +157,7 @@ export default function AdminUsersPage() {
               onClick={() => setActiveTab(tab.key)}
               className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
                 activeTab === tab.key
-                  ? 'bg-indigo-600 text-[var(--text-primary)] shadow-md'
+                  ? 'bg-indigo-600 text-white shadow-md'
                   : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)]'
               }`}>
               {tab.label}

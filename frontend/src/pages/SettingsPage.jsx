@@ -61,7 +61,7 @@ export default function SettingsPage() {
         <h1 style={{color: 'white', fontSize: '28px', fontWeight: 700, margin: '0 0 8px 0'}}>
           Settings
         </h1>
-        <p style={{color: '#94a3b8', fontSize: '15px', margin: 0}}>
+        <p style={{color: 'var(--text-secondary)', fontSize: '15px', margin: 0}}>
           Manage your account preferences and subscription
         </p>
       </div>
@@ -94,7 +94,7 @@ export default function SettingsPage() {
               <h2 style={{color: 'white', fontSize: '18px', fontWeight: 600, margin: 0}}>
                 Account Settings
               </h2>
-              <p style={{color: '#64748b', fontSize: '13px', margin: '2px 0 0'}}>
+              <p style={{color: 'var(--text-muted)', fontSize: '13px', margin: '2px 0 0'}}>
                 Update your personal information
               </p>
             </div>
@@ -103,7 +103,7 @@ export default function SettingsPage() {
           <div style={{padding: '24px'}}>
             <form onSubmit={handleProfileUpdate} style={{display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '500px'}}>
               <div>
-                <label style={{color: '#94a3b8', fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '8px'}}>Email Address (Read Only)</label>
+                <label style={{color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '8px'}}>Email Address (Read Only)</label>
                 <input 
                   type="email" 
                   value={user?.email || ''} 
@@ -111,13 +111,13 @@ export default function SettingsPage() {
                   style={{
                     width: '100%', padding: '12px 16px', borderRadius: '12px',
                     background: 'rgba(255,255,255,0.02)', border: '1px solid #1e293b',
-                    color: '#64748b', fontSize: '14px', cursor: 'not-allowed'
+                    color: 'var(--text-muted)', fontSize: '14px', cursor: 'not-allowed'
                   }}
                 />
               </div>
               <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
                 <div>
-                  <label style={{color: '#94a3b8', fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '8px'}}>First Name</label>
+                  <label style={{color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '8px'}}>First Name</label>
                   <input 
                     type="text" 
                     value={formData.firstName}
@@ -130,7 +130,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div>
-                  <label style={{color: '#94a3b8', fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '8px'}}>Last Name</label>
+                  <label style={{color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '8px'}}>Last Name</label>
                   <input 
                     type="text" 
                     value={formData.lastName}
@@ -178,14 +178,14 @@ export default function SettingsPage() {
             </div>
             <div>
               <h2 style={{color: 'white', fontSize: '18px', fontWeight: 600, margin: 0}}>Security</h2>
-              <p style={{color: '#64748b', fontSize: '13px', margin: '2px 0 0'}}>Update your password and secure your account</p>
+              <p style={{color: 'var(--text-muted)', fontSize: '13px', margin: '2px 0 0'}}>Update your password and secure your account</p>
             </div>
           </div>
           
           <div style={{padding: '24px'}}>
             <form onSubmit={handlePasswordUpdate} style={{display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '500px'}}>
               <div>
-                <label style={{color: '#94a3b8', fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '8px'}}>Current Password</label>
+                <label style={{color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '8px'}}>Current Password</label>
                 <input 
                   type="password" 
                   value={formData.currentPassword}
@@ -198,7 +198,7 @@ export default function SettingsPage() {
                 />
               </div>
               <div>
-                <label style={{color: '#94a3b8', fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '8px'}}>New Password</label>
+                <label style={{color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '8px'}}>New Password</label>
                 <input 
                   type="password" 
                   value={formData.newPassword}
@@ -241,13 +241,13 @@ export default function SettingsPage() {
             </div>
             <div>
               <h2 style={{color: 'white', fontSize: '18px', fontWeight: 600, margin: 0}}>Subscription</h2>
-              <p style={{color: '#64748b', fontSize: '13px', margin: '2px 0 0'}}>Manage your billing and plan</p>
+              <p style={{color: 'var(--text-muted)', fontSize: '13px', margin: '2px 0 0'}}>Manage your billing and plan</p>
             </div>
           </div>
           
           <div style={{padding: '24px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '24px'}}>
             <div>
-              <p style={{color: '#94a3b8', fontSize: '14px', marginBottom: '8px'}}>Current Plan</p>
+              <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '8px'}}>Current Plan</p>
               <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
                 <span style={{
                   color: 'white', fontSize: '24px', fontWeight: 700, textTransform: 'capitalize'
@@ -263,7 +263,7 @@ export default function SettingsPage() {
                   </span>
                 )}
               </div>
-              <p style={{color: '#64748b', fontSize: '13px', marginTop: '12px'}}>
+              <p style={{color: 'var(--text-muted)', fontSize: '13px', marginTop: '12px'}}>
                 {user?.is_host 
                   ? `You can host sessions with up to ${user.subscription?.max_participants || 50} participants.` 
                   : 'You are on the free tier. Upgrade to host your own sessions.'}
@@ -320,14 +320,14 @@ export default function SettingsPage() {
             </div>
             <div>
               <h2 style={{color: 'white', fontSize: '18px', fontWeight: 600, margin: 0}}>Preferences</h2>
-              <p style={{color: '#64748b', fontSize: '13px', margin: '2px 0 0'}}>Region and language settings</p>
+              <p style={{color: 'var(--text-muted)', fontSize: '13px', margin: '2px 0 0'}}>Region and language settings</p>
             </div>
           </div>
           
           <div style={{padding: '24px'}}>
             <div style={{display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '500px'}}>
               <div>
-                <label style={{color: '#94a3b8', fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '8px'}}>Language</label>
+                <label style={{color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '8px'}}>Language</label>
                 <select 
                   style={{
                     width: '100%', padding: '12px 16px', borderRadius: '12px',
@@ -338,7 +338,7 @@ export default function SettingsPage() {
                 </select>
               </div>
               <div>
-                <label style={{color: '#94a3b8', fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '8px'}}>Timezone</label>
+                <label style={{color: 'var(--text-secondary)', fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '8px'}}>Timezone</label>
                 <select 
                   style={{
                     width: '100%', padding: '12px 16px', borderRadius: '12px',

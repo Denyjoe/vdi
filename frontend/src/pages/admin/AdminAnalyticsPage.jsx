@@ -5,6 +5,8 @@ import api from '../../services/api';
 import toast from 'react-hot-toast';
 
 export default function AdminAnalyticsPage() {
+  const getVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -169,15 +171,15 @@ export default function AdminAnalyticsPage() {
               <AreaChart data={sessionTrends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorSessions" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                    <stop offset="5%" stopColor={getVar('--chart-line')} stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor={getVar('--chart-line')} stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                <XAxis dataKey="day" stroke="#94a3b8" />
-                <YAxis stroke="#94a3b8" allowDecimals={false} />
-                <RechartsTooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px', color: '#f8fafc' }} />
-                <Area type="monotone" dataKey="sessions" name="Total Sessions" stroke="#3B82F6" strokeWidth={3} fillOpacity={1} fill="url(#colorSessions)" />
+                <CartesianGrid strokeDasharray="3 3" stroke={getVar('--chart-grid')} vertical={false} />
+                <XAxis dataKey="day" stroke={getVar('--chart-text')} />
+                <YAxis stroke={getVar('--chart-text')} allowDecimals={false} />
+                <RechartsTooltip contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }} />
+                <Area type="monotone" dataKey="sessions" name="Total Sessions" stroke={getVar('--chart-line')} strokeWidth={3} fillOpacity={1} fill="url(#colorSessions)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -188,14 +190,14 @@ export default function AdminAnalyticsPage() {
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={revenueData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                <XAxis dataKey="month" stroke="#94a3b8" />
-                <YAxis stroke="#94a3b8" allowDecimals={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke={getVar('--chart-grid')} vertical={false} />
+                <XAxis dataKey="month" stroke={getVar('--chart-text')} />
+                <YAxis stroke={getVar('--chart-text')} allowDecimals={false} />
                 <RechartsTooltip 
-                  contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px', color: '#f8fafc' }}
+                  contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
                   formatter={(value) => [`TZS ${value}`, "Revenue"]}
                 />
-                <Bar dataKey="revenue" fill="#10B981" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                <Bar dataKey="revenue" fill={getVar('--chart-bar')} radius={[4, 4, 0, 0]} maxBarSize={40} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -209,11 +211,11 @@ export default function AdminAnalyticsPage() {
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={userGrowth} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                <XAxis dataKey="month" stroke="#94a3b8" />
-                <YAxis stroke="#94a3b8" allowDecimals={false} />
-                <RechartsTooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px', color: '#f8fafc' }} />
-                <Line type="monotone" dataKey="users" name="Total Users" stroke="#8B5CF6" strokeWidth={3} dot={{ r: 4, fill: '#8B5CF6', strokeWidth: 2 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke={getVar('--chart-grid')} vertical={false} />
+                <XAxis dataKey="month" stroke={getVar('--chart-text')} />
+                <YAxis stroke={getVar('--chart-text')} allowDecimals={false} />
+                <RechartsTooltip contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }} />
+                <Line type="monotone" dataKey="users" name="Total Users" stroke={getVar('--accent')} strokeWidth={3} dot={{ r: 4, fill: getVar('--accent'), strokeWidth: 2 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -225,13 +227,13 @@ export default function AdminAnalyticsPage() {
             {vmTemplates.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart layout="vertical" data={vmTemplates} margin={{ top: 10, right: 10, left: 40, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
-                  <XAxis type="number" stroke="#94a3b8" allowDecimals={false} />
-                  <YAxis dataKey="name" type="category" stroke="#94a3b8" width={100} tick={{ fontSize: 11 }} />
-                  <RechartsTooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px', color: '#f8fafc' }} />
-                  <Bar dataKey="count" name="Pool Count" fill="#3B82F6" radius={[0, 4, 4, 0]} maxBarSize={30}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={getVar('--chart-grid')} horizontal={false} />
+                  <XAxis type="number" stroke={getVar('--chart-text')} allowDecimals={false} />
+                  <YAxis dataKey="name" type="category" stroke={getVar('--chart-text')} width={100} tick={{ fontSize: 11 }} />
+                  <RechartsTooltip contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }} />
+                  <Bar dataKey="count" name="Pool Count" fill={getVar('--info')} radius={[0, 4, 4, 0]} maxBarSize={30}>
                     {vmTemplates.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={index === 0 ? '#8B5CF6' : '#3B82F6'} />
+                      <Cell key={`cell-${index}`} fill={index === 0 ? getVar('--accent') : getVar('--info')} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -258,13 +260,13 @@ export default function AdminAnalyticsPage() {
           <div className="h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={peakHours} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                <XAxis dataKey="hour" stroke="#94a3b8" tick={{ fontSize: 11 }} interval={0} />
-                <YAxis stroke="#94a3b8" allowDecimals={false} />
-                <RechartsTooltip cursor={{ fill: '#334155', opacity: 0.4 }} contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', borderRadius: '8px', color: '#f8fafc' }} />
+                <CartesianGrid strokeDasharray="3 3" stroke={getVar('--chart-grid')} vertical={false} />
+                <XAxis dataKey="hour" stroke={getVar('--chart-text')} tick={{ fontSize: 11 }} interval={0} />
+                <YAxis stroke={getVar('--chart-text')} allowDecimals={false} />
+                <RechartsTooltip cursor={{ fill: 'var(--border-color)' }} contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }} />
                 <Bar dataKey="sessions" name="Active Sessions" radius={[4, 4, 0, 0]} maxBarSize={40}>
                   {peakHours.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.sessions === maxSessionsHour && maxSessionsHour > 0 ? '#F59E0B' : '#6366F1'} />
+                    <Cell key={`cell-${index}`} fill={entry.sessions === maxSessionsHour && maxSessionsHour > 0 ? getVar('--warning') : getVar('--accent')} />
                   ))}
                 </Bar>
               </BarChart>

@@ -113,7 +113,7 @@ export default function HostAnalyticsPage() {
             <p className="text-[var(--text-secondary)] mb-6">Create a live session to see your analytics here.</p>
             <button 
               onClick={openCreateSessionModal}
-              className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-[var(--text-primary)] rounded-lg font-medium transition-colors"
+              className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-colors"
             >
               Create your first session &rarr;
             </button>

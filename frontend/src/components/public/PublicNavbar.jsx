@@ -43,7 +43,7 @@ export default function PublicNavbar() {
             {user ? (
               <Link 
                 to="/dashboard"
-                className="text-sm font-medium text-[var(--text-primary)] bg-indigo-600 hover:bg-indigo-500 px-5 py-2.5 rounded-full transition-all duration-300 glow-primary"
+                className="text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 px-5 py-2.5 rounded-full transition-all duration-300 glow-primary"
               >
                 Go to Dashboard
               </Link>
@@ -57,7 +57,7 @@ export default function PublicNavbar() {
                 </Link>
                 <Link 
                   to="/register"
-                  className="text-sm font-medium text-[var(--text-primary)] bg-indigo-600 hover:bg-indigo-500 px-5 py-2.5 rounded-full transition-all duration-300 glow-primary"
+                  className="text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 px-5 py-2.5 rounded-full transition-all duration-300 glow-primary"
                 >
                   Get Started Free
                 </Link>
@@ -95,7 +95,7 @@ export default function PublicNavbar() {
               {user ? (
                 <Link 
                   to="/dashboard"
-                  className="block text-center w-full text-base font-medium text-[var(--text-primary)] bg-indigo-600 hover:bg-indigo-500 px-5 py-3 rounded-xl transition-all duration-300"
+                  className="block text-center w-full text-base font-medium text-white bg-indigo-600 hover:bg-indigo-500 px-5 py-3 rounded-xl transition-all duration-300"
                 >
                   Go to Dashboard
                 </Link>
@@ -109,7 +109,7 @@ export default function PublicNavbar() {
                   </Link>
                   <Link 
                     to="/register"
-                    className="block text-center w-full text-base font-medium text-[var(--text-primary)] bg-indigo-600 hover:bg-indigo-500 px-5 py-3 rounded-xl transition-all duration-300"
+                    className="block text-center w-full text-base font-medium text-white bg-indigo-600 hover:bg-indigo-500 px-5 py-3 rounded-xl transition-all duration-300"
                   >
                     Get Started Free
                   </Link>

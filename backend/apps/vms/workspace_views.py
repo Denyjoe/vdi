@@ -72,20 +72,39 @@ class WorkspaceLaunchView(APIView):
         orchestrator = VMOrchestrator()
         
         if not workspace.vm:
-            # Request new VM
-            result = orchestrator.request_vm(workspace.vm_template, request.user)
-            if not result['success']:
-                return Response({"success": False, "message": result.get('error', 'Failed to provision VM')}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-                
-            workspace.vm = result['vm']
+            # Create a VirtualMachine record
+            vm = VirtualMachine.objects.create(
+                name=f"workspace-{workspace.id}-{request.user.username}",
+                owner=request.user,
+                template=workspace.vm_template,
+                status='provisioning'
+            )
+            workspace.vm = vm
             workspace.status = 'active'
             workspace.last_accessed_at = timezone.now()
             workspace.save()
+            
+            # Start provisioning asynchronously
+            if workspace.vm_template.is_real:
+                import threading
+                thread = threading.Thread(target=orchestrator.provision_real_vm, args=(vm,))
+                thread.daemon = True
+                thread.start()
+            else:
+                orchestrator.provision_vm(vm)
+                
         else:
-            if workspace.vm.status != 'running':
-                result = orchestrator.start_vm(workspace.vm)
-                if not result['success']:
-                    return Response({"success": False, "message": result.get('error', 'Failed to start VM')}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            if workspace.vm.status != 'running' and workspace.vm.status != 'provisioning':
+                workspace.vm.status = 'provisioning'
+                workspace.vm.save()
+                
+                if workspace.vm_template.is_real:
+                    import threading
+                    thread = threading.Thread(target=orchestrator.provision_real_vm, args=(workspace.vm,))
+                    thread.daemon = True
+                    thread.start()
+                else:
+                    orchestrator.start_vm(workspace.vm)
             
             workspace.status = 'active'
             workspace.last_accessed_at = timezone.now()
@@ -115,9 +134,10 @@ class WorkspaceStopView(APIView):
         orchestrator = VMOrchestrator()
         result = orchestrator.stop_vm(workspace.vm)
         
-        if not result['success']:
-            return Response({"success": False, "message": result.get('error', 'Failed to stop VM')}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            
+        from apps.vms.services.pool_service import VMPoolService
+        pool = VMPoolService()
+        pool.release_vm(workspace.vm)
+        
         workspace.status = 'stopped'
         workspace.save()
         
@@ -152,7 +172,11 @@ class WorkspaceDeleteView(APIView):
             orchestrator = VMOrchestrator()
             if workspace.vm.status == 'running':
                 orchestrator.stop_vm(workspace.vm)
-            orchestrator.release_vm(workspace.vm)
+            orchestrator.delete_vm(workspace.vm)
+            
+            from apps.vms.services.pool_service import VMPoolService
+            pool = VMPoolService()
+            pool.release_vm(workspace.vm)
             
         workspace.status = 'deleted'
         workspace.save()

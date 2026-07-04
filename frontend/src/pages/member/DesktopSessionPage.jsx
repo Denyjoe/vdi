@@ -6,13 +6,19 @@ import {
   Menu, X, Check, PanelRightOpen, PanelRightClose, Power
 } from 'lucide-react';
 import { sessionService } from '../../services/sessionService';
+import api from '../../services/api';
 import ConfirmModal from '../../components/shared/ConfirmModal';
 import Toast from '../../components/shared/Toast';
 
 export default function DesktopSessionPage() {
-  const { sessionId } = useParams();
+  const { id: sessionId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const searchParams = new URLSearchParams(location.search);
+  const type = searchParams.get('type');
+
+  const [workspace, setWorkspace] = useState(null);
+  const [wsLoading, setWsLoading] = useState(type === 'workspace');
 
   const [sessionData, setSessionData] = useState(location.state?.sessionData || null);
   const [vmData, setVmData] = useState(location.state?.vmData || null);
@@ -28,6 +34,8 @@ export default function DesktopSessionPage() {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
+    if (type === 'workspace') return;
+    
     // If we don't have session data in state (e.g., page refresh), fetch it
     if (!sessionData) {
       sessionService.getActiveSession().then(res => {
@@ -50,7 +58,55 @@ export default function DesktopSessionPage() {
         }
       }).catch(() => navigate('/workspaces'));
     }
-  }, [sessionData, sessionId, navigate]);
+  }, [sessionData, sessionId, navigate, type]);
+
+  // Workspace Polling
+  useEffect(() => {
+    if (type !== 'workspace') return;
+    
+    let intervalId;
+    const fetchWs = async () => {
+      try {
+        const res = await api.get(`/workspaces/${sessionId}/`);
+        const wsData = res.data;
+        setWorkspace(wsData);
+        
+        const vmStatus = wsData.vm_details?.status;
+        if (vmStatus === 'error') {
+           setWsLoading(false);
+        } else if (vmStatus === 'running' || wsData.status === 'active') {
+           if (!wsData.vm_template_details?.is_real || wsData.vm_details?.guacamole_url) {
+              setWsLoading(false);
+           }
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    
+    fetchWs();
+    intervalId = setInterval(fetchWs, 3000);
+    return () => clearInterval(intervalId);
+  }, [type, sessionId]);
+
+  // Sync workspace data to sessionData for simulated fallback
+  useEffect(() => {
+    if (type === 'workspace' && workspace && !wsLoading && !workspace.vm_details?.guacamole_url && workspace.vm_details?.status !== 'error') {
+      setSessionData({
+        session_id: workspace.id,
+        session_token: "workspace-token",
+        vm_name: workspace.name,
+        template_name: workspace.vm_template_details?.name,
+        os: workspace.vm_template_details?.os,
+        resolution: "1920x1080",
+        connected_at: workspace.last_accessed_at || new Date().toISOString(),
+        restrictions: { internet: true, copy_paste: true }
+      });
+      setVmData({
+        template: workspace.vm_template_details
+      });
+    }
+  }, [type, workspace, wsLoading]);
 
   // Session timer
   useEffect(() => {
@@ -96,8 +152,13 @@ export default function DesktopSessionPage() {
   const handleDisconnect = async () => {
     setIsDisconnecting(true);
     try {
-      await sessionService.disconnect(sessionId);
-      navigate('/workspaces', { state: { disconnected: true } });
+      if (type === 'workspace') {
+        await api.post(`/workspaces/${sessionId}/stop/`);
+        navigate('/workspaces');
+      } else {
+        await sessionService.disconnect(sessionId);
+        navigate('/workspaces', { state: { disconnected: true } });
+      }
     } catch (err) {
       setToast({ show: true, message: 'Failed to disconnect', type: 'error' });
       setIsDisconnecting(false);
@@ -116,6 +177,68 @@ export default function DesktopSessionPage() {
       }
     }
   };
+
+  // Keyboard shortcut: Ctrl+Shift+F for fullscreen
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'F') {
+        e.preventDefault();
+        toggleFullscreen();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  if (type === 'workspace') {
+    if (wsLoading || workspace?.vm_details?.status === 'provisioning') {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: '24px', backgroundColor: '#0f172a' }}>
+          <div style={{ width: '40px', height: '40px', border: '3px solid rgba(99,102,241,0.2)', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <h2 style={{ color: '#f1f5f9', fontSize: '20px', fontWeight: 600 }}>Preparing your workspace...</h2>
+          <p style={{ color: '#94a3b8' }}>Starting virtual machine. This usually takes 30-60 seconds.</p>
+        </div>
+      );
+    }
+    
+    if (workspace?.vm_details?.status === 'error') {
+       return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: '24px', backgroundColor: '#0f172a' }}>
+          <h2 style={{ color: '#ef4444', fontSize: '20px', fontWeight: 600 }}>Error Provisioning Workspace</h2>
+          <p style={{ color: '#94a3b8' }}>{workspace.vm_details?.notes || 'Unknown error occurred during provisioning.'}</p>
+          <button onClick={() => navigate('/workspaces')} className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors">Back to Workspaces</button>
+        </div>
+       );
+    }
+    
+    if (workspace?.vm_details?.guacamole_url) {
+      return (
+        <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
+          <div style={{ height: '48px', backgroundColor: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ color: '#f1f5f9', fontWeight: 600 }}>{workspace.name}</span>
+              <span style={{ backgroundColor: '#10b981', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> Connected
+              </span>
+            </div>
+            <button 
+              onClick={handleDisconnect} 
+              style={{ backgroundColor: '#ef4444', color: 'white', border: 'none', padding: '6px 16px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 500 }}
+              disabled={isDisconnecting}
+            >
+              {isDisconnecting ? 'Disconnecting...' : 'Disconnect'}
+            </button>
+          </div>
+          <iframe 
+            src={workspace.vm_details.guacamole_url} 
+            style={{ width: '100%', height: 'calc(100% - 48px)', border: 'none', backgroundColor: '#000' }} 
+            allow="clipboard-read; clipboard-write" 
+            title="Virtual Desktop" 
+          />
+        </div>
+      );
+    }
+  }
 
   if (!sessionData) return null;
 
@@ -266,8 +389,8 @@ export default function DesktopSessionPage() {
             <div className="w-full flex justify-center pb-4">
               <div className="bg-white/10 backdrop-blur-lg border border-[var(--border-color)] rounded-2xl px-4 py-2 flex gap-4 shadow-xl">
                 <div className="w-10 h-10 bg-orange-500/80 rounded-xl flex items-center justify-center cursor-pointer hover:bg-orange-500 hover:-translate-y-1 transition-all"><Box className="w-6 h-6 text-[var(--text-primary)]"/></div>
-                <div className="w-10 h-10 bg-indigo-500/80 rounded-xl flex items-center justify-center cursor-pointer hover:bg-indigo-500 hover:-translate-y-1 transition-all"><LayoutGrid className="w-6 h-6 text-[var(--text-primary)]"/></div>
-                <div className="w-10 h-10 bg-emerald-500/80 rounded-xl flex items-center justify-center cursor-pointer hover:bg-emerald-500 hover:-translate-y-1 transition-all"><Monitor className="w-6 h-6 text-[var(--text-primary)]"/></div>
+                <div className="w-10 h-10 bg-indigo-500/80 rounded-xl flex items-center justify-center cursor-pointer hover:bg-indigo-500 hover:-translate-y-1 transition-all"><LayoutGrid className="w-6 h-6 text-white"/></div>
+                <div className="w-10 h-10 bg-emerald-500/80 rounded-xl flex items-center justify-center cursor-pointer hover:bg-emerald-500 hover:-translate-y-1 transition-all"><Monitor className="w-6 h-6 text-white"/></div>
                 <div className="w-10 h-10 bg-purple-500/80 rounded-xl flex items-center justify-center cursor-pointer hover:bg-purple-500 hover:-translate-y-1 transition-all"><Code2 className="w-6 h-6 text-[var(--text-primary)]"/></div>
               </div>
             </div>

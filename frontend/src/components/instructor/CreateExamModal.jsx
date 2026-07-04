@@ -293,7 +293,7 @@ export default function CreateExamModal({ isOpen, onClose, onSuccess }) {
             type="submit"
             form="createExamForm"
             disabled={isSubmitting || isLoading}
-            className="px-4 py-2 text-sm font-medium text-[var(--text-primary)] bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {isSubmitting ? (
               <>

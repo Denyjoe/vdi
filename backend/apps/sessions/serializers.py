@@ -21,10 +21,22 @@ class LiveSessionSerializer(serializers.ModelSerializer):
 
 class SessionParticipantSerializer(serializers.ModelSerializer):
     user = UserProfileSerializer(read_only=True)
+    vm_status = serializers.CharField(source='vm.status', read_only=True)
+    guacamole_url = serializers.SerializerMethodField()
     
     class Meta:
         model = SessionParticipant
         fields = [
-            'id', 'user', 'vm', 'status', 'joined_at',
+            'id', 'user', 'vm', 'vm_status', 'guacamole_url', 'status', 'joined_at',
             'submitted_at', 'submission_file', 'vm_snapshot_id'
         ]
+
+    def get_guacamole_url(self, obj):
+        if not obj.vm or not obj.vm.guacamole_connection_id:
+            return None
+        import base64
+        from decouple import config
+        guac_public = config('GUACAMOLE_PUBLIC_URL', default='http://192.168.1.4:8080/guacamole')
+        identifier = f"{obj.vm.guacamole_connection_id}\x00c\x00postgresql"
+        encoded = base64.b64encode(identifier.encode()).decode()
+        return f"{guac_public}/#/client/{encoded}"

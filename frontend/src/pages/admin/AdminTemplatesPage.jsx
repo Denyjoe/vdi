@@ -243,7 +243,7 @@ export default function AdminTemplatesPage() {
           </button>
           <button
             onClick={formOpen ? () => { setFormOpen(false); resetForm(); } : openCreateForm}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
             {formOpen ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
             {formOpen ? 'Cancel' : 'Add Template'}
@@ -406,7 +406,7 @@ export default function AdminTemplatesPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-[var(--text-primary)] px-6 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
               >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 {saving ? 'Saving...' : editingId ? 'Update Template' : 'Create Template'}

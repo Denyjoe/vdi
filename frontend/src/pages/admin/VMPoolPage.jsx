@@ -307,7 +307,7 @@ export default function VMPoolPage() {
                 <select 
                   value={createForm.template_id}
                   onChange={e => setCreateForm({ ...createForm, template_id: e.target.value })}
-                  className="w-full bg-[#0f1923] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                 >
                   <option value="">Select a real template...</option>
                   {realTemplates.map(t => (
@@ -321,12 +321,12 @@ export default function VMPoolPage() {
                   type="number" min="1" max="5" 
                   value={createForm.count}
                   onChange={e => setCreateForm({ ...createForm, count: parseInt(e.target.value) || 1 })}
-                  className="w-full bg-[#0f1923] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
               <button 
                 onClick={handleCreate} disabled={creating}
-                className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-[var(--text-primary)] font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+                className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
               >
                 {creating ? 'Starting...' : `Clone ${createForm.count} VM(s)`}
               </button>
@@ -352,13 +352,13 @@ export default function VMPoolPage() {
                   value={linkForm.proxmox_template_id}
                   onChange={e => setLinkForm({ proxmox_template_id: e.target.value })}
                   placeholder="e.g. 9000"
-                  className="w-full bg-[#0f1923] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
               <div className="flex gap-3 mt-2">
                 <button 
                   onClick={() => handleLink(showLinkModal)}
-                  className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-[var(--text-primary)] font-medium transition-colors"
+                  className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-colors"
                 >
                   Link
                 </button>

@@ -110,6 +110,8 @@ const GaugeCard = ({ title, value, centerLine1, centerLine2, color }) => {
 // ── Main Component ───────────────────────────────────────────────────────────
 
 export default function AdminHardwarePage() {
+  const getVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
   const [stats, setStats] = useState(null);
   const [history, setHistory] = useState([]);      // 20 data points
   const [loading, setLoading] = useState(true);
@@ -327,31 +329,31 @@ export default function AdminHardwarePage() {
           <div style={{ height: 280 }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={history} margin={{ top: 5, right: 16, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke={getVar('--chart-grid')} vertical={false} />
                 <XAxis
                   dataKey="time"
-                  stroke="#64748b"
-                  tick={{ fontSize: 11, fill: '#94a3b8' }}
+                  stroke={getVar('--chart-text')}
+                  tick={{ fontSize: 11, fill: 'var(--chart-text)' }}
                   interval={3}
                 />
                 <YAxis
-                  stroke="#64748b"
-                  tick={{ fontSize: 11, fill: '#94a3b8' }}
+                  stroke={getVar('--chart-text')}
+                  tick={{ fontSize: 11, fill: 'var(--chart-text)' }}
                   domain={[0, 100]}
                   tickFormatter={v => `${v}%`}
                 />
                 <RechartsTooltip content={<DarkTooltip />} />
                 <Legend
                   wrapperStyle={{ paddingTop: 12, fontSize: 12 }}
-                  formatter={v => <span style={{ color: '#94a3b8' }}>{v}</span>}
+                  formatter={v => <span style={{ color: 'var(--text-secondary)' }}>{v}</span>}
                 />
                 <Line
                   type="monotone" dataKey="cpu" name="CPU"
-                  stroke="#3B82F6" strokeWidth={2} dot={false} activeDot={{ r: 4 }}
+                  stroke={getVar('--info')} strokeWidth={2} dot={false} activeDot={{ r: 4 }}
                 />
                 <Line
                   type="monotone" dataKey="ram" name="RAM"
-                  stroke="#8B5CF6" strokeWidth={2} dot={false} activeDot={{ r: 4 }}
+                  stroke={getVar('--accent')} strokeWidth={2} dot={false} activeDot={{ r: 4 }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -386,8 +388,8 @@ export default function AdminHardwarePage() {
                       ))}
                     </Pie>
                     <RechartsTooltip
-                      contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
-                      itemStyle={{ color: '#f1f5f9' }}
+                      contentStyle={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8 }}
+                      itemStyle={{ color: 'var(--text-heading)' }}
                     />
                   </PieChart>
                 </ResponsiveContainer>

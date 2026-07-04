@@ -37,7 +37,7 @@ class ErrorBoundary extends React.Component {
             Page Error
           </h2>
           <pre style={{
-            color: '#94a3b8',
+            color: 'var(--text-secondary)',
             fontSize: '12px',
             whiteSpace: 'pre-wrap'
           }}>
@@ -131,6 +131,7 @@ export default function App() {
 
         {/* ── Protected routes (without layout) ───────────────────── */}
         <Route path="/host/session/:sessionId" element={<ProtectedRoute><ErrorBoundary><HostSessionPage /></ErrorBoundary></ProtectedRoute>} />
+        <Route path="/session/:id" element={<ProtectedRoute><ErrorBoundary><DesktopSessionPage /></ErrorBoundary></ProtectedRoute>} />
 
         {/* ── Protected routes (with layout) ──────────────────────── */}
         <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
@@ -139,7 +140,6 @@ export default function App() {
           <Route path="/workspaces" element={<WorkspacesPage />} />
           <Route path="/sessions/my" element={<MemberSessionsPage />} />
           <Route path="/sessions/history" element={<SessionHistoryPage />} />
-          <Route path="/session/:id" element={<DesktopSessionPage />} />
           <Route path="/host/analytics" element={<HostAnalyticsPage />} />
           
           <Route path="/sessions" element={<SessionsPage />} />

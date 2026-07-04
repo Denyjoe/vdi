@@ -208,7 +208,7 @@ export default function AdminLogsPage() {
           <button
             onClick={handleExportCSV}
             disabled={filteredLogs.length === 0}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-[var(--text-primary)] bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Download className="w-4 h-4" />
             Export CSV
@@ -252,7 +252,7 @@ export default function AdminLogsPage() {
               onClick={() => setDateRange(range.key)}
               className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
                 dateRange === range.key
-                  ? 'bg-indigo-600 text-[var(--text-primary)] shadow-md'
+                  ? 'bg-indigo-600 text-white shadow-md'
                   : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)]'
               }`}
             >

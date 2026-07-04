@@ -119,7 +119,7 @@ export default function ExamBanner() {
         </div>
 
         <button
-          onClick={() => navigate('/student/vms')}
+          onClick={() => navigate('/workspaces')}
           className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all
             ${isUrgent
               ? 'bg-red-500 hover:bg-red-600 text-[var(--text-primary)]'

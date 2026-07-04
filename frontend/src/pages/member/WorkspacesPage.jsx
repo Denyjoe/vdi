@@ -1,11 +1,28 @@
 import { useState, useEffect } from 'react'
 import { Monitor, Plus, Play, Square,
   Cpu, HardDrive, Search, X,
-  CheckCircle, Loader, Zap, Clock } from 'lucide-react'
+  CheckCircle, Zap, Clock,
+  Code2, Compass, Terminal, Palette,
+  Network, Database, Shield, Globe,
+  Film, Smartphone } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import useAuthStore from '../../store/authStore'
 import useUIStore from '../../store/uiStore'
+
+/** Maps backend icon name → lucide-react component. */
+const TEMPLATE_ICONS = {
+  Code2, Compass, Terminal, Palette,
+  Network, Database, Shield, Cpu,
+  Monitor, Globe, Film, Smartphone,
+  HardDrive,
+}
+
+/**
+ * Resolve a template's icon field to a React component.
+ * Falls back to Monitor if the icon name is unknown.
+ */
+const getTemplateIcon = (iconName) => TEMPLATE_ICONS[iconName] || Monitor
 
 export default function WorkspacesPage() {
   const [workspaces, setWorkspaces] = useState([])
@@ -13,6 +30,7 @@ export default function WorkspacesPage() {
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [launchingId, setLaunchingId] = useState(null)
   const [selectedTemplate, setSelectedTemplate] = useState(null)
   const [wsName, setWsName] = useState('')
   const [search, setSearch] = useState('')
@@ -72,12 +90,25 @@ export default function WorkspacesPage() {
     if (!selectedTemplate || !wsName.trim()) return
     setCreating(true)
     try {
-      const res = await api.post('/workspaces/', {
+      const res = await api.post('/workspaces/create/', {
         name: wsName.trim(),
-        vm_template_id: selectedTemplate.id
+        vm_template: selectedTemplate.id
       })
-      setWorkspaces(prev => [res.data.data, ...prev])
+      const newWs = res.data.data
+      setWorkspaces(prev => [newWs, ...prev])
       setShowCreate(false)
+      // Auto-launch after creation
+      if (newWs?.id) {
+        setLaunchingId(newWs.id)
+        try {
+          await api.post(`/workspaces/${newWs.id}/launch/`)
+          navigate(`/session/${newWs.id}?type=workspace`)
+        } catch (launchErr) {
+          console.error('Auto-launch failed:', launchErr)
+        } finally {
+          setLaunchingId(null)
+        }
+      }
     } catch(e) {
       console.error(e)
     } finally {
@@ -87,9 +118,14 @@ export default function WorkspacesPage() {
 
   const handleLaunch = async (ws) => {
     try {
+      setLaunchingId(ws.id)
       await api.post(`/workspaces/${ws.id}/launch/`)
-      fetchWorkspaces()
-    } catch(e) { console.error(e) }
+      navigate(`/session/${ws.id}?type=workspace`)
+    } catch(e) {
+      console.error(e)
+    } finally {
+      setLaunchingId(null)
+    }
   }
 
   const handleStop = async (ws) => {
@@ -174,7 +210,7 @@ export default function WorkspacesPage() {
               marginBottom: '4px'
             }}>
               <span style={{
-                color: '#94a3b8', fontSize: '13px'
+                color: 'var(--text-secondary)', fontSize: '13px'
               }}>
                 Free plan: {hoursRemaining}h 
                 remaining this month
@@ -341,13 +377,13 @@ export default function WorkspacesPage() {
               {/* Card Header */}
               <div style={{
                 height: '120px',
-                background: osGradient(ws.vm_template?.os),
+                background: osGradient(ws.vm_template_details?.os),
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 position: 'relative'
               }}>
-                <Monitor size={44} color="rgba(255,255,255,0.7)" />
+                {(() => { const Icon = getTemplateIcon(ws.vm_template_details?.icon); return <Icon size={44} color="rgba(255,255,255,0.7)" />; })()}
                 
                 {/* Status */}
                 <div style={{
@@ -395,7 +431,7 @@ export default function WorkspacesPage() {
                   fontSize: '13px',
                   margin: '0 0 16px'
                 }}>
-                  {ws.vm_template?.name} · {ws.vm_template?.os}
+                  {ws.vm_template_details?.name || 'Unknown'} · {ws.vm_template_details?.os || ''}
                 </p>
 
                 {/* Specs */}
@@ -405,14 +441,14 @@ export default function WorkspacesPage() {
                   marginBottom: '18px'
                 }}>
                   {[
-                    { icon: Cpu, text: `${ws.vm_template?.cpu_cores} Cores` },
-                    { icon: HardDrive, text: `${ws.vm_template?.ram_gb}GB RAM` },
+                    { icon: Cpu, text: `${ws.vm_template_details?.cpu_cores || '?'} Cores` },
+                    { icon: HardDrive, text: `${ws.vm_template_details?.ram_gb || '?'}GB RAM` },
                   ].map((spec, i) => (
                     <div key={i} style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: '5px',
-                      color: '#64748b',
+                      color: 'var(--text-muted)',
                       fontSize: '12px'
                     }}>
                       <spec.icon size={13} />
@@ -425,7 +461,7 @@ export default function WorkspacesPage() {
                 {ws.status === 'active' ? (
                   <div style={{display: 'flex', gap: '8px'}}>
                     <button
-                      onClick={() => navigate(`/session/${ws.vm}`)}
+                      onClick={() => navigate(`/session/${ws.id}?type=workspace`)}
                       style={{
                         flex: 1, padding: '10px',
                         borderRadius: '10px',
@@ -459,23 +495,41 @@ export default function WorkspacesPage() {
                 ) : (
                   <button
                     onClick={() => handleLaunch(ws)}
+                    disabled={launchingId === ws.id}
                     style={{
                       width: '100%',
                       padding: '11px',
                       borderRadius: '10px',
-                      background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                      background: launchingId === ws.id
+                        ? '#1e293b'
+                        : 'linear-gradient(135deg, #6366f1, #4f46e5)',
                       color: 'white',
                       fontWeight: 600,
                       fontSize: '13px',
                       border: 'none',
-                      cursor: 'pointer',
+                      cursor: launchingId === ws.id ? 'wait' : 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '6px'
                     }}>
-                    <Play size={15} />
-                    Launch Workspace
+                    {launchingId === ws.id ? (
+                      <>
+                        <div style={{
+                          width: '15px', height: '15px',
+                          border: '2px solid rgba(255,255,255,0.3)',
+                          borderTopColor: 'white',
+                          borderRadius: '50%',
+                          animation: 'spin 1s linear infinite'
+                        }} />
+                        Launching...
+                      </>
+                    ) : (
+                      <>
+                        <Play size={15} />
+                        Launch Workspace
+                      </>
+                    )}
                   </button>
                 )}
               </div>
@@ -532,7 +586,7 @@ export default function WorkspacesPage() {
                   borderRadius: '10px',
                   background: 'rgba(255,255,255,0.05)',
                   border: '1px solid #1e293b',
-                  color: '#94a3b8',
+                  color: 'var(--text-secondary)',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -545,7 +599,7 @@ export default function WorkspacesPage() {
             {/* Workspace Name */}
             <div style={{marginBottom: '24px'}}>
               <label style={{
-                color: '#94a3b8', fontSize: '13px',
+                color: 'var(--text-secondary)', fontSize: '13px',
                 fontWeight: 500, display: 'block', marginBottom: '8px'
               }}>
                 Workspace Name
@@ -570,7 +624,7 @@ export default function WorkspacesPage() {
             {/* Template Selection */}
             <div style={{marginBottom: '28px'}}>
               <label style={{
-                color: '#94a3b8', fontSize: '13px',
+                color: 'var(--text-secondary)', fontSize: '13px',
                 fontWeight: 500, display: 'block', marginBottom: '12px'
               }}>
                 Choose VM Template
@@ -628,7 +682,7 @@ export default function WorkspacesPage() {
                         {t.name}
                       </p>
                       <p style={{
-                        color: '#64748b', fontSize: '11px', margin: '0 0 8px'
+                        color: 'var(--text-muted)', fontSize: '11px', margin: '0 0 8px'
                       }}>
                         {t.os}
                       </p>
@@ -740,7 +794,7 @@ export default function WorkspacesPage() {
             </h2>
             
             <p style={{
-              color: '#64748b', fontSize: '14px',
+              color: 'var(--text-muted)', fontSize: '14px',
               lineHeight: 1.6, margin: '0 0 8px'
             }}>
               Free plan includes 1 workspace 
@@ -748,7 +802,7 @@ export default function WorkspacesPage() {
             </p>
             
             <p style={{
-              color: '#94a3b8', fontSize: '14px',
+              color: 'var(--text-secondary)', fontSize: '14px',
               margin: '0 0 28px'
             }}>
               Upgrade to get more workspaces, 
@@ -817,7 +871,7 @@ export default function WorkspacesPage() {
                       )}
                     </p>
                     <p style={{
-                      color: '#64748b',
+                      color: 'var(--text-muted)',
                       fontSize: '12px',
                       margin: 0
                     }}>
@@ -846,7 +900,7 @@ export default function WorkspacesPage() {
                 borderRadius: '10px',
                 background: 'rgba(255,255,255,0.05)',
                 border: '1px solid #1e293b',
-                color: '#94a3b8',
+                color: 'var(--text-secondary)',
                 cursor: 'pointer',
                 fontSize: '14px'
               }}>

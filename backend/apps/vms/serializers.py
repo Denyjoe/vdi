@@ -17,20 +17,17 @@ class VirtualMachineSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_guacamole_url(self, obj):
-        """
-        Build the Guacamole connection URL if a connection exists.
-
-        Returns:
-            str or None: Full Guacamole client URL, or None.
-        """
         if not obj.guacamole_connection_id:
             return None
-        try:
-            from apps.vms.services.guacamole_service import get_guacamole_service
-            gs = get_guacamole_service()
-            return gs.get_connection_url(obj.guacamole_connection_id)
-        except Exception:
-            return None
+        import base64
+        from decouple import config
+        guac_public = config(
+            'GUACAMOLE_PUBLIC_URL',
+            default='http://192.168.1.4:8080/guacamole'
+        )
+        identifier = f"{obj.guacamole_connection_id}\x00c\x00postgresql"
+        encoded = base64.b64encode(identifier.encode()).decode()
+        return f"{guac_public}/#/client/{encoded}"
 
 class WorkspaceSerializer(serializers.ModelSerializer):
     vm_template_details = VMTemplateSerializer(source='vm_template', read_only=True)

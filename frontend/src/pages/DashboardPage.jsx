@@ -173,7 +173,7 @@ export default function DashboardPage() {
               {greeting}, {firstName} ✨
             </h1>
             <p style={{
-              color: '#64748b',
+              color: 'var(--text-muted)',
               fontSize: '15px',
               margin: '0 0 20px 0'
             }}>
@@ -256,7 +256,7 @@ export default function DashboardPage() {
                   padding: '12px 20px',
                   borderRadius: '12px',
                   background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.1)',
+                  border: '1px solid var(--border-input)',
                   color: 'white',
                   fontWeight: 600,
                   fontSize: '14px',
@@ -594,7 +594,7 @@ export default function DashboardPage() {
                       fontSize: '12px',
                       margin: '2px 0 0 0'
                     }}>
-                      {ws.vm_template?.name}
+                      {ws.vm_template_details?.name || 'Unknown'}
                     </p>
                   </div>
                   <div style={{
@@ -833,7 +833,7 @@ export default function DashboardPage() {
                 Start Hosting Sessions
               </p>
               <p style={{
-                color: '#64748b',
+                color: 'var(--text-muted)',
                 fontSize: '13px',
                 lineHeight: 1.6,
                 margin: '0 0 20px 0'

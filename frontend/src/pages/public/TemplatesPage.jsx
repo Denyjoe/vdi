@@ -128,7 +128,7 @@ export default function TemplatesPage() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${activeTab === tab ? 'bg-indigo-600 text-[var(--text-primary)]' : 'bg-[#0D1526] border border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-white/30'}`}
+                className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${activeTab === tab ? 'bg-indigo-600 text-white' : 'bg-[#0D1526] border border-[var(--border-color)] text-[var(--text-secondary)] hover:text-white hover:border-white/30'}`}
               >
                 {tab}
               </button>

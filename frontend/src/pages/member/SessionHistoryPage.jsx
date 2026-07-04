@@ -153,7 +153,7 @@ export default function SessionHistoryPage() {
                       {session.status === 'active' ? (
                         <button 
                           onClick={() => navigate(`/session/${session.id}`)}
-                          className="bg-indigo-600 hover:bg-indigo-500 text-[var(--text-primary)] px-3 py-1.5 rounded text-xs font-medium transition-colors"
+                          className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors"
                         >
                           Resume
                         </button>

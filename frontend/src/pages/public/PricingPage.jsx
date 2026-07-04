@@ -55,7 +55,7 @@ export default function PricingPage() {
         'Analytics and reports'
       ],
       ctaText: 'Go Pro',
-      ctaStyle: 'bg-indigo-600 hover:bg-indigo-500 text-[var(--text-primary)] shadow-[0_0_20px_rgba(99,102,241,0.4)]'
+      ctaStyle: 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.4)]'
     },
     {
       name: 'Institution',
@@ -111,13 +111,13 @@ export default function PricingPage() {
             <div className="inline-flex items-center p-1 bg-white/5 rounded-full border border-[var(--border-color)]">
               <button 
                 onClick={() => setBilling('monthly')}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${billing === 'monthly' ? 'bg-indigo-600 text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${billing === 'monthly' ? 'bg-indigo-600 text-white' : 'text-[var(--text-secondary)] hover:text-white'}`}
               >
                 Monthly
               </button>
               <button 
                 onClick={() => setBilling('annually')}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${billing === 'annually' ? 'bg-indigo-600 text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${billing === 'annually' ? 'bg-indigo-600 text-white' : 'text-[var(--text-secondary)] hover:text-white'}`}
               >
                 Annually
                 <span className="text-[10px] uppercase font-bold px-2 py-0.5 bg-green-500/20 text-green-400 rounded-full border border-green-500/20">Save 20%</span>

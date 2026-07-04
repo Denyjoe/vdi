@@ -212,7 +212,7 @@ export default function CreateOfficialClassModal({ onClose, onCreated }) {
           
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="flex-1 py-2.5 border border-slate-600 text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] rounded-lg text-sm transition-colors">Cancel</button>
-            <button type="submit" disabled={saving} className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-[var(--text-primary)] rounded-lg text-sm transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+            <button type="submit" disabled={saving} className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
               {saving ? 'Creating...' : 'Create Official Class'}
             </button>

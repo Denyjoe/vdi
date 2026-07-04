@@ -150,7 +150,7 @@ export default function JoinByCodeModal({ onClose, onJoined }) {
                             <button 
                                 type="submit" 
                                 disabled={isLoading || code.length !== 8 || (requiresPassword && !password)}
-                                className="w-full py-3.5 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-[var(--text-primary)] rounded-xl font-bold transition-colors"
+                                className="w-full py-3.5 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold transition-colors"
                             >
                                 {isLoading ? 'Joining...' : 'Join Session'}
                             </button>

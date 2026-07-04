@@ -33,7 +33,7 @@ export default function NotificationsPage() {
           >
             <Check className="w-5 h-5" />
             <span>Mark all read</span>
-            <span className="bg-indigo-500 text-[var(--text-primary)] text-xs font-bold px-2 py-0.5 rounded-full ml-1">
+            <span className="bg-indigo-500 text-white text-xs font-bold px-2 py-0.5 rounded-full ml-1">
               {unreadCount}
             </span>
           </button>
