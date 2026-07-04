@@ -8,7 +8,12 @@ import {
   BarChart2,
   UserCircle,
   Settings,
-  LogOut
+  LogOut,
+  Server,
+  Users,
+  Database,
+  Cpu,
+  FileText
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import useUIStore from '../../store/uiStore';
@@ -101,6 +106,23 @@ export default function Sidebar() {
                 Create Session
               </button>
               <NavItem to="/host/analytics" icon={BarChart2}>Analytics</NavItem>
+            </div>
+          </div>
+        )}
+
+        {/* ADMIN SECTION */}
+        {user?.role === 'admin' && (
+          <div>
+            <p className="px-4 text-xs font-semibold text-rose-400/80 uppercase tracking-wider mb-4">
+              Admin
+            </p>
+            <div className="space-y-1">
+              <NavItem to="/admin/dashboard" icon={LayoutDashboard}>Admin Dashboard</NavItem>
+              <NavItem to="/admin/vm-pool" icon={Server}>VM Pool</NavItem>
+              <NavItem to="/admin/users" icon={Users}>Users & Classes</NavItem>
+              <NavItem to="/admin/templates" icon={Database}>Templates</NavItem>
+              <NavItem to="/admin/hardware" icon={Cpu}>Hardware Nodes</NavItem>
+              <NavItem to="/admin/logs" icon={FileText}>System Logs</NavItem>
             </div>
           </div>
         )}

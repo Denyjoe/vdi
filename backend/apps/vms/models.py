@@ -223,3 +223,91 @@ class Workspace(models.Model):
 
   class Meta:
     unique_together = ['owner', 'name']
+
+
+class VMPoolEntry(models.Model):
+    """
+    A pre-cloned VM sitting ready in the pool for instant assignment.
+
+    Admin pre-clones VMs that sit ready. When a user launches a workspace,
+    they get assigned a ready VM instantly (~30s to start). When done, the
+    VM is destroyed and the pool is refilled by admin.
+
+    Attributes:
+        template (VMTemplate): The template this VM was cloned from.
+        proxmox_vmid (int): The Proxmox VM ID of this clone.
+        ip_address (str): IP address assigned by DHCP/guest agent.
+        guacamole_connection_id (str): Guacamole connection identifier.
+        status (str): Pool lifecycle status.
+        assigned_to (User): The user currently using this VM.
+        assigned_vm (VirtualMachine): The linked VirtualMachine record.
+        created_at (datetime): When this pool entry was created.
+        assigned_at (datetime): When this VM was assigned to a user.
+    """
+
+    POOL_STATUS_CHOICES = [
+        ('creating', 'Creating'),
+        ('ready', 'Ready'),
+        ('assigned', 'Assigned'),
+        ('error', 'Error'),
+    ]
+
+    template = models.ForeignKey(
+        VMTemplate,
+        on_delete=models.CASCADE,
+        related_name='pool_entries',
+        help_text="The template this pool VM was cloned from.",
+    )
+    proxmox_vmid = models.IntegerField(
+        unique=True,
+        help_text="Proxmox VM ID of this clone.",
+    )
+    ip_address = models.CharField(
+        max_length=50,
+        blank=True,
+        default='',
+        help_text="IP address assigned to this VM.",
+    )
+    guacamole_connection_id = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        help_text="Guacamole connection identifier for remote access.",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=POOL_STATUS_CHOICES,
+        default='creating',
+        help_text="Current pool lifecycle status.",
+    )
+    assigned_to = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='assigned_pool_vms',
+        help_text="The user currently using this VM.",
+    )
+    assigned_vm = models.ForeignKey(
+        VirtualMachine,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='pool_entry',
+        help_text="The linked VirtualMachine record when assigned.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    assigned_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When this VM was assigned to a user.",
+    )
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'VM Pool Entry'
+        verbose_name_plural = 'VM Pool Entries'
+
+    def __str__(self):
+        """Return a readable representation of this pool entry."""
+        return f"Pool VM {self.proxmox_vmid} ({self.status})"

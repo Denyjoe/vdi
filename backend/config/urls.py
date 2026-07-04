@@ -25,6 +25,7 @@ urlpatterns = [
 
     path("api/admin/", include("apps.vms.admin_urls")),
     path("api/admin/", include("apps.users.analytics_urls")),
+    path("api/vms/admin/", include("apps.vms.pool_urls")),
     path("api/notifications/", include("apps.notifications.urls")),
 
     # ── Health check ─────────────────────────────────────────────────────────

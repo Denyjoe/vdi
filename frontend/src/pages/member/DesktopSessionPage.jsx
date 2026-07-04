@@ -199,15 +199,23 @@ export default function DesktopSessionPage() {
       {/* ── Main Workspace ── */}
       <div className="flex-1 relative flex overflow-hidden">
         
-        {/* ── Simulated Desktop Viewport ── */}
-        <div 
-          className="flex-1 relative flex flex-col"
-          style={{
-            background: osType === 'windows' 
-              ? 'linear-gradient(to bottom, #1a1a2e, #16213e)' 
-              : 'linear-gradient(to bottom, #1e1e2e, #2d2d3d)'
-          }}
-        >
+        {/* ── Desktop Viewport ── */}
+        {vmData?.guacamole_url ? (
+          <iframe
+            src={vmData.guacamole_url}
+            title="CloudDesk Virtual Machine"
+            className="w-full h-full border-0 bg-black"
+            allowFullScreen
+          />
+        ) : (
+          <div 
+            className="flex-1 relative flex flex-col"
+            style={{
+              background: osType === 'windows' 
+                ? 'linear-gradient(to bottom, #1a1a2e, #16213e)' 
+                : 'linear-gradient(to bottom, #1e1e2e, #2d2d3d)'
+            }}
+          >
           {/* Simulation Badge */}
           <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
             <div className="bg-amber-500/20 border border-amber-500/40 text-amber-200 text-xs px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg flex items-center gap-2">
@@ -296,6 +304,7 @@ export default function DesktopSessionPage() {
             </div>
           )}
         </div>
+        )}
 
         {/* ── Session Info Panel (Collapsible) ── */}
         <div 

@@ -69,6 +69,7 @@ import AdminAnalyticsPage from "./pages/admin/AdminAnalyticsPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
 import AdminLogsPage from "./pages/admin/AdminLogsPage";
 import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
+import VMPoolPage from "./pages/admin/VMPoolPage";
 
 // Shared/User pages
 import ProfilePage from './pages/shared/ProfilePage';
@@ -151,6 +152,7 @@ export default function App() {
             <Route path="analytics" element={<AdminAnalyticsPage />} />
             <Route path="logs" element={<AdminLogsPage />} />
             <Route path="settings" element={<AdminSettingsPage />} />
+            <Route path="vm-pool" element={<VMPoolPage />} />
           </Route>
           
         </Route>

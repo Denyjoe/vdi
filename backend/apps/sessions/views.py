@@ -156,8 +156,8 @@ class EndSessionView(APIView):
         if session.host != request.user:
             return Response({"success": False, "message": "Only host can end session"}, status=status.HTTP_403_FORBIDDEN)
             
-        session.status = 'ended'
-        session.save()
+        from apps.sessions.services.session_lifecycle_service import SessionLifecycleService
+        SessionLifecycleService.end_live_session(session)
         return Response({"success": True})
 
 class SessionMonitorView(APIView):
@@ -189,8 +189,24 @@ class RemoveParticipantView(APIView):
         if session.host != request.user:
             return Response({"success": False, "message": "Only host can remove participants"}, status=status.HTTP_403_FORBIDDEN)
             
-        participant = get_object_or_404(SessionParticipant, session=session, user_id=user_id)
-        participant.status = 'removed'
-        participant.save()
+        from apps.sessions.services.session_lifecycle_service import SessionLifecycleService
         
+        participant = get_object_or_404(SessionParticipant, session=session, user_id=user_id)
+        SessionLifecycleService.handle_participant_removal(participant)
+        
+        return Response({"success": True})
+
+class DisconnectSessionView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        # A participant disconnecting from a live session
+        session = get_object_or_404(LiveSession, pk=pk)
+        
+        from apps.sessions.services.session_lifecycle_service import SessionLifecycleService
+        participant = SessionParticipant.objects.filter(session=session, user=request.user).first()
+        
+        if participant:
+            SessionLifecycleService.handle_participant_disconnect(participant)
+            
         return Response({"success": True})

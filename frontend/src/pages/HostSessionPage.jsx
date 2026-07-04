@@ -695,75 +695,91 @@ export default function HostSessionPage() {
                         border: '1px solid #1e293b',
                         background: '#0a0f1e'
                       }}>
-                        {/* Preview area */}
-                        <div style={{
-                          height: '80px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px',
-                          background: 'rgba(99,102,241,0.04)'
-                        }}>
-                          <Monitor size={20} 
-                            color="rgba(99,102,241,0.4)" />
-                          <span style={{
-                            color: '#334155',
-                            fontSize: '10px',
-                            textAlign: 'center',
-                            lineHeight: 1.4,
-                            padding: '0 8px'
-                          }}>
-                            Screen preview will appear here
-                            after Guacamole is connected
-                          </span>
-                        </div>
-                        
-                        {/* Action bar below preview */}
-                        <div style={{
-                          display: 'flex',
-                          borderTop: '1px solid #0f172a'
-                        }}>
-                          <button
-                            disabled
-                            title="Connect Guacamole to enable screen viewing"
-                            style={{
-                              flex: 1,
-                              padding: '7px',
-                              background: 'none',
-                              border: 'none',
-                              borderRight: '1px solid #0f172a',
-                              color: '#1e293b',
-                              fontSize: '11px',
-                              cursor: 'not-allowed',
+                        {p.vm?.guacamole_url ? (
+                          <div className="w-full h-full relative overflow-hidden bg-black" style={{height: '110px'}}>
+                            <iframe
+                              src={p.vm.guacamole_url}
+                              title="Monitor"
+                              className="absolute top-0 left-0 w-full h-full border-0 pointer-events-none"
+                              style={{
+                                transform: 'scale(1)',
+                                transformOrigin: '0 0'
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <>
+                            {/* Preview area */}
+                            <div style={{
+                              height: '80px',
                               display: 'flex',
+                              flexDirection: 'column',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: '4px'
+                              gap: '6px',
+                              background: 'rgba(99,102,241,0.04)'
                             }}>
-                            <Monitor size={11} />
-                            View Screen
-                          </button>
-                          <button
-                            disabled
-                            title="Available with Guacamole"
-                            style={{
-                              flex: 1,
-                              padding: '7px',
-                              background: 'none',
-                              border: 'none',
-                              color: '#1e293b',
-                              fontSize: '11px',
-                              cursor: 'not-allowed',
+                              <Monitor size={20} 
+                                color="rgba(99,102,241,0.4)" />
+                              <span style={{
+                                color: '#334155',
+                                fontSize: '10px',
+                                textAlign: 'center',
+                                lineHeight: 1.4,
+                                padding: '0 8px'
+                              }}>
+                                Screen preview will appear here
+                                after Guacamole is connected
+                              </span>
+                            </div>
+                            
+                            {/* Action bar below preview */}
+                            <div style={{
                               display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '4px'
+                              borderTop: '1px solid #0f172a'
                             }}>
-                            <Video size={11} />
-                            Take Control
-                          </button>
-                        </div>
+                              <button
+                                disabled
+                                title="Connect Guacamole to enable screen viewing"
+                                style={{
+                                  flex: 1,
+                                  padding: '7px',
+                                  background: 'none',
+                                  border: 'none',
+                                  borderRight: '1px solid #0f172a',
+                                  color: '#1e293b',
+                                  fontSize: '11px',
+                                  cursor: 'not-allowed',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '4px'
+                                }}>
+                                <Monitor size={11} />
+                                View Screen
+                              </button>
+                              <button
+                                disabled
+                                title="Available with Guacamole"
+                                style={{
+                                  flex: 1,
+                                  padding: '7px',
+                                  background: 'none',
+                                  border: 'none',
+                                  color: '#1e293b',
+                                  fontSize: '11px',
+                                  cursor: 'not-allowed',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '4px'
+                                }}>
+                                <Video size={11} />
+                                Take Control
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </div>
 
                       {/* Actions */}
