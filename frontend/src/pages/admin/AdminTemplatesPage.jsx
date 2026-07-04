@@ -230,20 +230,20 @@ export default function AdminTemplatesPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white font-inter">VM Template Management</h1>
-          <p className="text-slate-400 text-sm mt-1">{templates.length} templates total</p>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)] font-inter">VM Template Management</h1>
+          <p className="text-[var(--text-secondary)] text-sm mt-1">{templates.length} templates total</p>
         </div>
         <div className="flex gap-3">
           <button
             onClick={fetchTemplates}
-            className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+            className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] rounded-lg transition-colors"
             title="Refresh"
           >
             <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
           </button>
           <button
             onClick={formOpen ? () => { setFormOpen(false); resetForm(); } : openCreateForm}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
             {formOpen ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
             {formOpen ? 'Cancel' : 'Add Template'}
@@ -253,9 +253,9 @@ export default function AdminTemplatesPage() {
 
       {/* ── Collapsible Form ─────────────────────────────────────────── */}
       {formOpen && (
-        <div className="bg-slate-800 rounded-xl border border-indigo-500/30 shadow-lg">
-          <div className="px-6 py-4 border-b border-slate-700 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-white">
+        <div className="bg-[var(--bg-card)] rounded-xl border border-indigo-500/30 shadow-lg">
+          <div className="px-6 py-4 border-b border-[var(--border-color)] flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">
               {editingId ? 'Edit Template' : 'New Template'}
             </h2>
           </div>
@@ -263,24 +263,24 @@ export default function AdminTemplatesPage() {
           <form onSubmit={handleSubmit} className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Template Name */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Template Name *</label>
+              <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">Template Name *</label>
               <input
                 type="text"
                 value={form.name}
                 onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
                 placeholder="e.g. Machine Learning Lab"
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
               />
               {formErrors.name && <p className="text-red-400 text-xs mt-1">{formErrors.name}</p>}
             </div>
 
             {/* Operating System */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Operating System *</label>
+              <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">Operating System *</label>
               <select
                 value={form.os}
                 onChange={e => setForm(p => ({ ...p, os: e.target.value }))}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500"
+                className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500"
               >
                 {OS_OPTIONS.map(os => <option key={os} value={os}>{os}</option>)}
               </select>
@@ -290,7 +290,7 @@ export default function AdminTemplatesPage() {
                   value={customOs}
                   onChange={e => setCustomOs(e.target.value)}
                   placeholder="Enter custom OS name"
-                  className="w-full mt-2 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full mt-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500"
                 />
               )}
               {formErrors.os && <p className="text-red-400 text-xs mt-1">{formErrors.os}</p>}
@@ -298,11 +298,11 @@ export default function AdminTemplatesPage() {
 
             {/* Icon */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Icon</label>
+              <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">Icon</label>
               <select
                 value={form.icon}
                 onChange={e => setForm(p => ({ ...p, icon: e.target.value }))}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500"
+                className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500"
               >
                 {ICON_OPTIONS.map(ic => <option key={ic} value={ic}>{ic}</option>)}
               </select>
@@ -310,34 +310,34 @@ export default function AdminTemplatesPage() {
 
             {/* CPU, RAM, Storage */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">CPU Cores * (1–32)</label>
+              <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">CPU Cores * (1–32)</label>
               <input
                 type="number" min="1" max="32"
                 value={form.cpu_cores}
                 onChange={e => setForm(p => ({ ...p, cpu_cores: parseInt(e.target.value) || 1 }))}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500"
+                className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500"
               />
               {formErrors.cpu_cores && <p className="text-red-400 text-xs mt-1">{formErrors.cpu_cores}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">RAM GB * (2–128)</label>
+              <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">RAM GB * (2–128)</label>
               <input
                 type="number" min="2" max="128"
                 value={form.ram_gb}
                 onChange={e => setForm(p => ({ ...p, ram_gb: parseInt(e.target.value) || 2 }))}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500"
+                className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500"
               />
               {formErrors.ram_gb && <p className="text-red-400 text-xs mt-1">{formErrors.ram_gb}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Storage GB * (20–2000)</label>
+              <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">Storage GB * (20–2000)</label>
               <input
                 type="number" min="20" max="2000"
                 value={form.storage_gb}
                 onChange={e => setForm(p => ({ ...p, storage_gb: parseInt(e.target.value) || 20 }))}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500"
+                className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500"
               />
               {formErrors.storage_gb && <p className="text-red-400 text-xs mt-1">{formErrors.storage_gb}</p>}
             </div>
@@ -351,20 +351,20 @@ export default function AdminTemplatesPage() {
               >
                 <span className={`inline-block h-5 w-5 mt-0.5 rounded-full bg-white shadow transform transition-transform duration-200 ${form.is_available ? 'translate-x-5' : 'translate-x-0.5'}`} />
               </button>
-              <span className="text-sm text-slate-300">
+              <span className="text-sm text-[var(--text-primary)]">
                 {form.is_available ? 'Available in catalog' : 'Hidden from catalog'}
               </span>
             </div>
 
             {/* Software List */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Software List</label>
-              <div className="bg-slate-900 border border-slate-700 rounded-lg p-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500">
+              <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">Software List</label>
+              <div className="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg p-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500">
                 <div className="flex flex-wrap gap-2 mb-2">
                   {form.software_list.map(sw => (
                     <span key={sw} className="flex items-center gap-1.5 bg-indigo-600/20 text-indigo-300 px-3 py-1 rounded-full text-sm border border-indigo-500/30">
                       {sw}
-                      <button type="button" onClick={() => removeSoftwareTag(sw)} className="hover:text-white transition-colors">
+                      <button type="button" onClick={() => removeSoftwareTag(sw)} className="hover:text-[var(--text-primary)] transition-colors">
                         <X className="w-3 h-3" />
                       </button>
                     </span>
@@ -376,7 +376,7 @@ export default function AdminTemplatesPage() {
                   onChange={e => setSoftwareInput(e.target.value)}
                   onKeyDown={handleSoftwareKeyDown}
                   placeholder='Type software name and press Enter...'
-                  className="w-full bg-transparent text-white text-sm focus:outline-none placeholder-slate-500"
+                  className="w-full bg-transparent text-[var(--text-primary)] text-sm focus:outline-none placeholder-slate-500"
                 />
               </div>
               <p className="text-slate-500 text-xs mt-1">Press Enter to add each software item.</p>
@@ -384,29 +384,29 @@ export default function AdminTemplatesPage() {
 
             {/* Description */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Description (optional)</label>
+              <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">Description (optional)</label>
               <textarea
                 value={form.description}
                 onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
                 rows={3}
                 placeholder="Brief description of what this template is used for..."
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
               />
             </div>
 
             {/* Form Actions */}
-            <div className="md:col-span-2 flex justify-end gap-3 pt-2 border-t border-slate-700">
+            <div className="md:col-span-2 flex justify-end gap-3 pt-2 border-t border-[var(--border-color)]">
               <button
                 type="button"
                 onClick={() => { setFormOpen(false); resetForm(); }}
-                className="px-4 py-2 text-slate-300 hover:text-white transition-colors text-sm font-medium"
+                className="px-4 py-2 text-[var(--text-primary)] hover:text-[var(--text-primary)] transition-colors text-sm font-medium"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={saving}
-                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-[var(--text-primary)] px-6 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
               >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 {saving ? 'Saving...' : editingId ? 'Update Template' : 'Create Template'}
@@ -417,10 +417,10 @@ export default function AdminTemplatesPage() {
       )}
 
       {/* ── Templates Table ─────────────────────────────────────────── */}
-      <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+      <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-300">
-            <thead className="text-xs text-slate-400 uppercase bg-slate-900/50 border-b border-slate-700">
+          <table className="w-full text-left text-sm text-[var(--text-primary)]">
+            <thead className="text-xs text-[var(--text-secondary)] uppercase bg-[var(--bg-primary)]/50 border-b border-[var(--border-color)]">
               <tr>
                 <th className="px-6 py-4 font-medium">Icon</th>
                 <th className="px-6 py-4 font-medium">Name</th>
@@ -443,21 +443,21 @@ export default function AdminTemplatesPage() {
               )}
               {!loading && templates.length === 0 && (
                 <tr>
-                  <td colSpan="9" className="px-6 py-10 text-center text-slate-400">
+                  <td colSpan="9" className="px-6 py-10 text-center text-[var(--text-secondary)]">
                     No templates found. Click "Add Template" to create one.
                   </td>
                 </tr>
               )}
               {templates.map(template => (
-                <tr key={template.id} className={`hover:bg-slate-700/20 transition-colors ${!template.is_available ? 'opacity-50' : ''}`}>
-                  <td className="px-6 py-4 text-lg font-mono text-slate-400">{template.icon || '💻'}</td>
-                  <td className="px-6 py-4 font-medium text-white">{template.name}</td>
-                  <td className="px-6 py-4 text-slate-400 text-xs">{template.os}</td>
+                <tr key={template.id} className={`hover:bg-[var(--bg-card-hover)]/20 transition-colors ${!template.is_available ? 'opacity-50' : ''}`}>
+                  <td className="px-6 py-4 text-lg font-mono text-[var(--text-secondary)]">{template.icon || '💻'}</td>
+                  <td className="px-6 py-4 font-medium text-[var(--text-primary)]">{template.name}</td>
+                  <td className="px-6 py-4 text-[var(--text-secondary)] text-xs">{template.os}</td>
                   <td className="px-6 py-4 text-center">{template.cpu_cores} cores</td>
                   <td className="px-6 py-4 text-center">{template.ram_gb} GB</td>
                   <td className="px-6 py-4 text-center">{template.storage_gb} GB</td>
                   <td className="px-6 py-4 text-center">
-                    <span className="bg-slate-700 px-2 py-0.5 rounded text-xs">
+                    <span className="bg-[var(--bg-card-hover)] px-2 py-0.5 rounded text-xs">
                       {template.software_list?.length || 0} apps
                     </span>
                   </td>
@@ -465,7 +465,7 @@ export default function AdminTemplatesPage() {
                     {template.is_available ? (
                       <span className="text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded text-xs font-medium border border-emerald-400/20">Available</span>
                     ) : (
-                      <span className="text-slate-400 bg-slate-700 px-2 py-1 rounded text-xs font-medium border border-slate-600">Hidden</span>
+                      <span className="text-[var(--text-secondary)] bg-[var(--bg-card-hover)] px-2 py-1 rounded text-xs font-medium border border-slate-600">Hidden</span>
                     )}
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -473,21 +473,21 @@ export default function AdminTemplatesPage() {
                       <button
                         onClick={() => openEditForm(template)}
                         title="Edit"
-                        className="p-1.5 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors"
+                        className="p-1.5 text-[var(--text-secondary)] hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => toggleAvailability(template)}
                         title={template.is_available ? 'Hide from catalog' : 'Show in catalog'}
-                        className="p-1.5 text-slate-400 hover:text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-colors"
+                        className="p-1.5 text-[var(--text-secondary)] hover:text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-colors"
                       >
                         {template.is_available ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                       </button>
                       <button
                         onClick={() => setDeleteTarget(template)}
                         title="Deactivate"
-                        className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                        className="p-1.5 text-[var(--text-secondary)] hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

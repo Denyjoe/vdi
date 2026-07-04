@@ -21,7 +21,7 @@ export default function PricingPage() {
         'Basic support'
       ],
       ctaText: 'Get Started Free',
-      ctaStyle: 'border border-white/20 hover:border-white/40 bg-transparent text-white'
+      ctaStyle: 'border border-white/20 hover:border-white/40 bg-transparent text-[var(--text-primary)]'
     },
     {
       name: 'Starter',
@@ -38,7 +38,7 @@ export default function PricingPage() {
         'Priority support'
       ],
       ctaText: 'Start Starter',
-      ctaStyle: 'border border-white/20 hover:border-white/40 bg-transparent text-white'
+      ctaStyle: 'border border-white/20 hover:border-white/40 bg-transparent text-[var(--text-primary)]'
     },
     {
       name: 'Pro',
@@ -55,7 +55,7 @@ export default function PricingPage() {
         'Analytics and reports'
       ],
       ctaText: 'Go Pro',
-      ctaStyle: 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.4)]'
+      ctaStyle: 'bg-indigo-600 hover:bg-indigo-500 text-[var(--text-primary)] shadow-[0_0_20px_rgba(99,102,241,0.4)]'
     },
     {
       name: 'Institution',
@@ -73,7 +73,7 @@ export default function PricingPage() {
         'Full usage analytics'
       ],
       ctaText: 'Contact Us',
-      ctaStyle: 'border border-white/20 hover:border-white/40 bg-transparent text-white'
+      ctaStyle: 'border border-white/20 hover:border-white/40 bg-transparent text-[var(--text-primary)]'
     }
   ];
 
@@ -102,38 +102,38 @@ export default function PricingPage() {
 
       <div className="pt-32 pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">Simple, transparent pricing</h1>
-          <p className="text-lg text-slate-400 mb-8">
+          <h1 className="text-4xl md:text-5xl font-bold text-[var(--text-primary)] mb-6">Simple, transparent pricing</h1>
+          <p className="text-lg text-[var(--text-secondary)] mb-8">
             Start free, scale as you grow. No hidden fees. Pay in USD or TZS.
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-            <div className="inline-flex items-center p-1 bg-white/5 rounded-full border border-white/10">
+            <div className="inline-flex items-center p-1 bg-white/5 rounded-full border border-[var(--border-color)]">
               <button 
                 onClick={() => setBilling('monthly')}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${billing === 'monthly' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${billing === 'monthly' ? 'bg-indigo-600 text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
               >
                 Monthly
               </button>
               <button 
                 onClick={() => setBilling('annually')}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${billing === 'annually' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                className={`px-6 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${billing === 'annually' ? 'bg-indigo-600 text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
               >
                 Annually
                 <span className="text-[10px] uppercase font-bold px-2 py-0.5 bg-green-500/20 text-green-400 rounded-full border border-green-500/20">Save 20%</span>
               </button>
             </div>
             
-            <div className="inline-flex items-center p-1 bg-white/5 rounded-full border border-white/10">
+            <div className="inline-flex items-center p-1 bg-white/5 rounded-full border border-[var(--border-color)]">
               <button 
                 onClick={() => setCurrency('USD')}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${currency === 'USD' ? 'bg-white/10 text-white' : 'text-slate-400 hover:text-white'}`}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${currency === 'USD' ? 'bg-white/10 text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
               >
                 USD
               </button>
               <button 
                 onClick={() => setCurrency('TZS')}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${currency === 'TZS' ? 'bg-white/10 text-white' : 'text-slate-400 hover:text-white'}`}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${currency === 'TZS' ? 'bg-white/10 text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
               >
                 TZS
               </button>
@@ -165,16 +165,16 @@ export default function PricingPage() {
                 )}
                 
                 <div className="mb-8">
-                  <h3 className="text-xl font-semibold text-white mb-2">{plan.name}</h3>
-                  <p className="text-sm text-slate-400 h-10">{plan.description}</p>
+                  <h3 className="text-xl font-semibold text-[var(--text-primary)] mb-2">{plan.name}</h3>
+                  <p className="text-sm text-[var(--text-secondary)] h-10">{plan.description}</p>
                 </div>
                 
                 <div className="mb-8">
                   <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-bold text-white">
+                    <span className="text-4xl font-bold text-[var(--text-primary)]">
                       {currencySymbol}{displayPrice.toLocaleString()}
                     </span>
-                    <span className="text-slate-400">{plan.period}</span>
+                    <span className="text-[var(--text-secondary)]">{plan.period}</span>
                   </div>
                   {billing === 'annually' && price > 0 && (
                     <p className="text-sm text-green-400 mt-1">Billed annually</p>
@@ -183,7 +183,7 @@ export default function PricingPage() {
                 
                 <ul className="space-y-4 mb-8 flex-1">
                   {plan.features.map((feature, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm text-slate-300">
+                    <li key={i} className="flex items-start gap-3 text-sm text-[var(--text-primary)]">
                       <Check className="w-5 h-5 text-indigo-400 shrink-0" />
                       <span>{feature}</span>
                     </li>
@@ -204,17 +204,17 @@ export default function PricingPage() {
         </div>
       </div>
 
-      <div className="border-t border-white/5 bg-white/[0.02] py-24">
+      <div className="border-t border-[var(--border-color)] bg-white/[0.02] py-24">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-white mb-4">Frequently asked questions</h2>
+            <h2 className="text-3xl font-bold text-[var(--text-primary)] mb-4">Frequently asked questions</h2>
           </div>
           
           <div className="space-y-6">
             {faqs.map((faq, i) => (
               <div key={i} className="glass-card rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-white mb-2">{faq.q}</h3>
-                <p className="text-slate-400">{faq.a}</p>
+                <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">{faq.q}</h3>
+                <p className="text-[var(--text-secondary)]">{faq.a}</p>
               </div>
             ))}
           </div>

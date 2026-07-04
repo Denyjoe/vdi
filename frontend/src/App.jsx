@@ -13,6 +13,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import React, { useEffect } from "react";
 import useAuthStore from "./store/authStore";
+import useThemeStore from "./store/themeStore";
 
 // Error Boundary for Dashboard
 class ErrorBoundary extends React.Component {
@@ -95,10 +96,15 @@ import ProtectedRoute from "./components/shared/ProtectedRoute";
 export default function App() {
   const initializeAuth = useAuthStore((state) => state.initializeAuth);
   const user = useAuthStore((state) => state.user);
+  const theme = useThemeStore((state) => state.theme);
 
   useEffect(() => {
     initializeAuth();
   }, [initializeAuth]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
 
   const getDashboardRoute = () => {
     if (!user) return "/";

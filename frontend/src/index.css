@@ -9,6 +9,40 @@
 
 @import "tailwindcss";
 
+:root, [data-theme="dark"] {
+  --bg-primary: #0f1923;
+  --bg-secondary: #1a2332;
+  --bg-card: #1e2d3d;
+  --bg-card-hover: #243447;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --border-color: rgba(255,255,255,0.08);
+  --accent: #6c63ff;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --sidebar-bg: #0f1923;
+  --input-bg: #1e2d3d;
+}
+
+[data-theme="light"] {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f1f5f9;
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --border-color: #e2e8f0;
+  --accent: #6c63ff;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --sidebar-bg: #ffffff;
+  --input-bg: #f1f5f9;
+}
+
 /* ── Custom Theme ─────────────────────────────────────────────────────────── */
 @theme {
   --font-sans: "Inter", sans-serif;
@@ -36,8 +70,8 @@
 /* ── Base Styles ──────────────────────────────────────────────────────────── */
 body {
   font-family: var(--font-sans);
-  background-color: var(--color-clouddesk-bg);
-  color: #F8FAFC; /* slate-50 */
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   margin: 0;
   padding: 0;
   min-height: 100vh;

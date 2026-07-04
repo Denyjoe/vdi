@@ -107,28 +107,28 @@ export default function CreateLiveSessionModal({ onClose, onCreated }) {
     if (successData) {
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
-                <div className="bg-[#0D1526] border border-white/10 rounded-2xl w-full max-w-md shadow-2xl p-8 text-center relative overflow-hidden">
+                <div className="bg-[#0D1526] border border-[var(--border-color)] rounded-2xl w-full max-w-md shadow-2xl p-8 text-center relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
                     <div className="relative z-10">
                         <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
                             <CheckCircle className="w-8 h-8 text-green-500" />
                         </div>
-                        <h2 className="text-2xl font-bold text-white mb-2">Session Created!</h2>
-                        <p className="text-slate-400 mb-6">Share this code with your students to join.</p>
+                        <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Session Created!</h2>
+                        <p className="text-[var(--text-secondary)] mb-6">Share this code with your students to join.</p>
                         
-                        <div className="bg-[#050B18] p-6 rounded-xl border border-white/5 mb-6">
+                        <div className="bg-[#050B18] p-6 rounded-xl border border-[var(--border-color)] mb-6">
                             <div className="text-sm text-slate-500 font-medium uppercase tracking-wider mb-2">Invite Code</div>
-                            <div className="text-4xl font-mono font-bold text-white tracking-widest mb-4">
+                            <div className="text-4xl font-mono font-bold text-[var(--text-primary)] tracking-widest mb-4">
                                 {successData.invite_code}
                             </div>
-                            <button onClick={handleCopyCode} className="mx-auto flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm text-slate-300 transition-colors">
+                            <button onClick={handleCopyCode} className="mx-auto flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm text-[var(--text-primary)] transition-colors">
                                 {copiedCode ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
                                 {copiedCode ? 'Copied!' : 'Copy Code'}
                             </button>
                         </div>
                         
-                        <div className="flex items-center justify-between bg-[#050B18] p-3 rounded-lg border border-white/5 mb-8">
-                            <span className="text-xs text-slate-400 truncate max-w-[200px]">
+                        <div className="flex items-center justify-between bg-[#050B18] p-3 rounded-lg border border-[var(--border-color)] mb-8">
+                            <span className="text-xs text-[var(--text-secondary)] truncate max-w-[200px]">
                                 app.clouddesk.io/join/session/{successData.invite_code}
                             </span>
                             <button onClick={handleCopyLink} className="text-indigo-400 hover:text-indigo-300 text-sm font-medium flex items-center gap-1">
@@ -138,10 +138,10 @@ export default function CreateLiveSessionModal({ onClose, onCreated }) {
                         </div>
                         
                         <div className="flex gap-3">
-                            <button onClick={onClose} className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-medium transition-colors border border-white/10">
+                            <button onClick={onClose} className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-[var(--text-primary)] rounded-xl font-medium transition-colors border border-[var(--border-color)]">
                                 Start Later
                             </button>
-                            <button onClick={() => { onClose(); navigate(`/instructor/sessions/${successData.id}/monitor`); }} className="flex-1 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl font-medium transition-colors shadow-lg shadow-green-500/20">
+                            <button onClick={() => { onClose(); navigate(`/instructor/sessions/${successData.id}/monitor`); }} className="flex-1 py-3 bg-green-600 hover:bg-green-500 text-[var(--text-primary)] rounded-xl font-medium transition-colors shadow-lg shadow-green-500/20">
                                 Start Now
                             </button>
                         </div>
@@ -153,13 +153,13 @@ export default function CreateLiveSessionModal({ onClose, onCreated }) {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
-            <div className="bg-[#0B1120] border border-white/10 rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]">
-                <div className="p-6 border-b border-white/10 flex items-center justify-between">
+            <div className="bg-[#0B1120] border border-[var(--border-color)] rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]">
+                <div className="p-6 border-b border-[var(--border-color)] flex items-center justify-between">
                     <div>
-                        <h2 className="text-xl font-bold text-white">Create Live Session</h2>
-                        <p className="text-sm text-slate-400 mt-1">Setup a new interactive session for your students.</p>
+                        <h2 className="text-xl font-bold text-[var(--text-primary)]">Create Live Session</h2>
+                        <p className="text-sm text-[var(--text-secondary)] mt-1">Setup a new interactive session for your students.</p>
                     </div>
-                    <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors bg-white/5 hover:bg-white/10 p-2 rounded-lg">
+                    <button onClick={onClose} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors bg-white/5 hover:bg-white/10 p-2 rounded-lg">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -176,26 +176,26 @@ export default function CreateLiveSessionModal({ onClose, onCreated }) {
                             )}
 
                             <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-2">Session Name</label>
+                                <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">Session Name</label>
                                 <input 
                                     type="text" 
                                     name="name"
                                     value={formData.name}
                                     onChange={handleChange}
                                     placeholder="e.g. AutoCAD Week 4 Lab"
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
+                                    className="w-full bg-white/5 border border-[var(--border-color)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
                                     required
                                 />
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">Session Type</label>
+                                    <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">Session Type</label>
                                     <select 
                                         name="session_type"
                                         value={formData.session_type}
                                         onChange={handleChange}
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500/50"
+                                        className="w-full bg-white/5 border border-[var(--border-color)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500/50"
                                     >
                                         <option value="Lecture">Lecture</option>
                                         <option value="Workshop">Workshop</option>
@@ -206,12 +206,12 @@ export default function CreateLiveSessionModal({ onClose, onCreated }) {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">Link to Group (Optional)</label>
+                                    <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">Link to Group (Optional)</label>
                                     <select 
                                         name="group_id"
                                         value={formData.group_id}
                                         onChange={handleChange}
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500/50"
+                                        className="w-full bg-white/5 border border-[var(--border-color)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500/50"
                                     >
                                         <option value="">Standalone (no group)</option>
                                         {groups.map(g => (
@@ -222,12 +222,12 @@ export default function CreateLiveSessionModal({ onClose, onCreated }) {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-2">Required VM Template</label>
+                                <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">Required VM Template</label>
                                 <select 
                                     name="vm_template_id"
                                     value={formData.vm_template_id}
                                     onChange={handleChange}
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500/50"
+                                    className="w-full bg-white/5 border border-[var(--border-color)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500/50"
                                 >
                                     <option value="">Any template</option>
                                     {templates.map(t => (
@@ -238,61 +238,61 @@ export default function CreateLiveSessionModal({ onClose, onCreated }) {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">Start Date & Time</label>
+                                    <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">Start Date & Time</label>
                                     <input 
                                         type="datetime-local" 
                                         name="start_time"
                                         value={formData.start_time}
                                         onChange={handleChange}
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500/50"
+                                        className="w-full bg-white/5 border border-[var(--border-color)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500/50"
                                         required
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">End Date & Time</label>
+                                    <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">End Date & Time</label>
                                     <input 
                                         type="datetime-local" 
                                         name="end_time"
                                         value={formData.end_time}
                                         onChange={handleChange}
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500/50"
+                                        className="w-full bg-white/5 border border-[var(--border-color)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500/50"
                                         required
                                     />
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-6 p-4 bg-white/5 border border-white/10 rounded-xl">
+                            <div className="flex items-center gap-6 p-4 bg-white/5 border border-[var(--border-color)] rounded-xl">
                                 <div className="flex-1">
-                                    <label className="block text-sm font-medium text-white mb-1">Public Session</label>
-                                    <p className="text-xs text-slate-400">If ON, anyone can discover and join. If OFF, invite code only.</p>
+                                    <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">Public Session</label>
+                                    <p className="text-xs text-[var(--text-secondary)]">If ON, anyone can discover and join. If OFF, invite code only.</p>
                                 </div>
                                 <label className="relative inline-flex items-center cursor-pointer">
                                     <input type="checkbox" name="is_public" checked={formData.is_public} onChange={handleChange} className="sr-only peer" />
-                                    <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                    <div className="w-11 h-6 bg-[var(--bg-card-hover)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                                 </label>
                             </div>
                             
                             <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-2">Max Participants</label>
+                                <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">Max Participants</label>
                                 <input 
                                     type="number" 
                                     name="max_participants"
                                     value={formData.max_participants}
                                     onChange={handleChange}
                                     min="1"
-                                    className="w-full md:w-1/3 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500/50"
+                                    className="w-full md:w-1/3 bg-white/5 border border-[var(--border-color)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500/50"
                                     required
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-2">Instructions (Optional)</label>
+                                <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">Instructions (Optional)</label>
                                 <textarea 
                                     name="instructions"
                                     value={formData.instructions}
                                     onChange={handleChange}
                                     rows="3"
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
+                                    className="w-full bg-white/5 border border-[var(--border-color)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
                                     placeholder="Add any instructions for students before they join..."
                                 ></textarea>
                             </div>
@@ -300,15 +300,15 @@ export default function CreateLiveSessionModal({ onClose, onCreated }) {
                     )}
                 </div>
 
-                <div className="p-6 border-t border-white/10 flex justify-end gap-3 bg-slate-900/50 rounded-b-2xl">
-                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors">
+                <div className="p-6 border-t border-[var(--border-color)] flex justify-end gap-3 bg-[var(--bg-primary)]/50 rounded-b-2xl">
+                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-[var(--text-primary)] hover:text-[var(--text-primary)] transition-colors">
                         Cancel
                     </button>
                     <button 
                         type="submit"
                         form="create-session-form"
                         disabled={isSubmitting || isLoading}
-                        className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 disabled:text-slate-400 text-white rounded-lg text-sm font-medium transition-colors shadow-lg shadow-indigo-500/20"
+                        className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-[var(--bg-card-hover)] disabled:text-[var(--text-secondary)] text-[var(--text-primary)] rounded-lg text-sm font-medium transition-colors shadow-lg shadow-indigo-500/20"
                     >
                         {isSubmitting ? 'Creating...' : 'Create Session'}
                     </button>

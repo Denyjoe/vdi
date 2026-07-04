@@ -24,6 +24,8 @@ urlpatterns = [
     path("api/sessions/live/", include("apps.sessions.live_urls")),
 
     path("api/admin/", include("apps.vms.admin_urls")),
+    path("api/users/admin/", include("apps.users.admin_urls")),
+    path("api/sessions/admin/", include("apps.sessions.admin_urls")),
     path("api/admin/", include("apps.users.analytics_urls")),
     path("api/vms/admin/", include("apps.vms.pool_urls")),
     path("api/notifications/", include("apps.notifications.urls")),
@@ -36,6 +38,7 @@ urlpatterns = [
     path("api/auth/", include("apps.users.urls")),
     path("api/settings/", include("apps.users.public_urls")),
     path("api/subscriptions/", include("apps.users.subscription_urls")),
+    path("api/payments/admin/", include("apps.users.admin_payment_urls")),
     path("api/payments/", include("apps.users.payment_urls")),
 ]
 

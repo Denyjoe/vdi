@@ -71,13 +71,13 @@ export default function JoinByCodeModal({ onClose, onJoined }) {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={onClose}></div>
+            <div className="absolute inset-0 bg-[var(--bg-primary)]/80 backdrop-blur-sm" onClick={onClose}></div>
             
-            <div className="relative bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-fade-in">
+            <div className="relative bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-fade-in">
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-slate-800">
-                    <h3 className="text-xl font-bold text-white">Join a Session</h3>
-                    <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+                <div className="flex items-center justify-between p-6 border-b border-[var(--border-color)]">
+                    <h3 className="text-xl font-bold text-[var(--text-primary)]">Join a Session</h3>
+                    <button onClick={onClose} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
                         <X size={24} />
                     </button>
                 </div>
@@ -89,15 +89,15 @@ export default function JoinByCodeModal({ onClose, onJoined }) {
                             <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
                                 <CheckCircle size={40} className="text-emerald-400" />
                             </div>
-                            <h4 className="text-xl font-bold text-white mb-2">{successData.name}</h4>
-                            <p className="text-slate-400 mb-8">You've successfully joined this session!</p>
+                            <h4 className="text-xl font-bold text-[var(--text-primary)] mb-2">{successData.name}</h4>
+                            <p className="text-[var(--text-secondary)] mb-8">You've successfully joined this session!</p>
                             
                             {successData.status === 'active' ? (
-                                <button onClick={() => { onClose(); navigate(`/session/${successData.id}`); }} className="w-full py-3 bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/25">
+                                <button onClick={() => { onClose(); navigate(`/session/${successData.id}`); }} className="w-full py-3 bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 text-[var(--text-primary)] rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/25">
                                     Enter Session Now →
                                 </button>
                             ) : (
-                                <button onClick={() => { onClose(); navigate('/sessions/my'); }} className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-medium transition-colors border border-slate-700">
+                                <button onClick={() => { onClose(); navigate('/sessions/my'); }} className="w-full py-3 bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] text-[var(--text-primary)] rounded-xl font-medium transition-colors border border-[var(--border-color)]">
                                     View My Sessions
                                 </button>
                             )}
@@ -105,7 +105,7 @@ export default function JoinByCodeModal({ onClose, onJoined }) {
                     ) : (
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <div className="text-center mb-8">
-                                <p className="text-slate-400">Enter the 8-character invite code provided by the session host.</p>
+                                <p className="text-[var(--text-secondary)]">Enter the 8-character invite code provided by the session host.</p>
                             </div>
 
                             <div>
@@ -115,7 +115,7 @@ export default function JoinByCodeModal({ onClose, onJoined }) {
                                         value={code}
                                         onChange={handleCodeChange}
                                         placeholder="e.g. A1B2C3D4"
-                                        className="w-full bg-slate-800/50 border border-slate-700 focus:border-indigo-500 rounded-xl px-4 py-4 text-center text-3xl tracking-[0.5em] font-mono text-white placeholder-slate-600 transition-colors outline-none"
+                                        className="w-full bg-[var(--bg-card)]/50 border border-[var(--border-color)] focus:border-indigo-500 rounded-xl px-4 py-4 text-center text-3xl tracking-[0.5em] font-mono text-[var(--text-primary)] placeholder-slate-600 transition-colors outline-none"
                                         autoFocus
                                         required
                                         disabled={requiresPassword}
@@ -128,7 +128,7 @@ export default function JoinByCodeModal({ onClose, onJoined }) {
                                 <div className="animate-fade-in">
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                            <Lock size={18} className="text-slate-400" />
+                                            <Lock size={18} className="text-[var(--text-secondary)]" />
                                         </div>
                                         <input 
                                             type="password" 
@@ -138,7 +138,7 @@ export default function JoinByCodeModal({ onClose, onJoined }) {
                                                 setError('');
                                             }}
                                             placeholder="Enter session password"
-                                            className="w-full bg-slate-800 border border-slate-700 focus:border-indigo-500 rounded-xl pl-11 pr-4 py-3 text-white transition-colors outline-none"
+                                            className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-indigo-500 rounded-xl pl-11 pr-4 py-3 text-[var(--text-primary)] transition-colors outline-none"
                                             autoFocus
                                             required
                                         />
@@ -150,7 +150,7 @@ export default function JoinByCodeModal({ onClose, onJoined }) {
                             <button 
                                 type="submit" 
                                 disabled={isLoading || code.length !== 8 || (requiresPassword && !password)}
-                                className="w-full py-3.5 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold transition-colors"
+                                className="w-full py-3.5 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-[var(--text-primary)] rounded-xl font-bold transition-colors"
                             >
                                 {isLoading ? 'Joining...' : 'Join Session'}
                             </button>

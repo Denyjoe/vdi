@@ -22,9 +22,9 @@ export default function EmptyState({
       <span className="text-5xl mb-4" role="img" aria-label="empty">
         {icon}
       </span>
-      <h3 className="text-lg font-semibold text-white">{title}</h3>
+      <h3 className="text-lg font-semibold text-[var(--text-primary)]">{title}</h3>
       {description && (
-        <p className="text-slate-400 mt-2 text-sm text-center max-w-md">
+        <p className="text-[var(--text-secondary)] mt-2 text-sm text-center max-w-md">
           {description}
         </p>
       )}

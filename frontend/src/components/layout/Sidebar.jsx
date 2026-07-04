@@ -40,7 +40,7 @@ export default function Sidebar() {
         `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
           isActive
             ? 'bg-indigo-500/10 text-indigo-400 font-medium'
-            : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+            : 'text-[var(--text-secondary)] hover:bg-[var(--bg-card)]/50 hover:text-slate-200'
         }`
       }
     >
@@ -50,8 +50,8 @@ export default function Sidebar() {
   );
 
   return (
-    <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col h-screen fixed top-0 left-0">
-      <div className="h-16 flex items-center px-6 border-b border-slate-800 shrink-0">
+    <aside className="w-64 bg-[var(--bg-primary)] border-r border-[var(--border-color)] flex flex-col h-screen fixed top-0 left-0">
+      <div className="h-16 flex items-center px-6 border-b border-[var(--border-color)] shrink-0">
         <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
           CloudDesk
         </h1>
@@ -132,15 +132,17 @@ export default function Sidebar() {
         )}
 
         {/* ACCOUNT SECTION */}
-        <div>
-          <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">
-            Account
-          </p>
-          <div className="space-y-1">
-            <NavItem to="/profile" icon={UserCircle}>My Profile</NavItem>
-            <NavItem to="/settings" icon={Settings}>Settings</NavItem>
+        {user?.role !== 'admin' && (
+          <div>
+            <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">
+              Account
+            </p>
+            <div className="space-y-1">
+              <NavItem to="/profile" icon={UserCircle}>My Profile</NavItem>
+              <NavItem to="/settings" icon={Settings}>Settings</NavItem>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* UPGRADE BANNER */}
@@ -177,8 +179,8 @@ export default function Sidebar() {
       )}
 
       {/* USER PROFILE CARD */}
-      <div className="p-4 border-t border-slate-800 shrink-0">
-        <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/50">
+      <div className="p-4 border-t border-[var(--border-color)] shrink-0">
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-card)]/50">
           {user?.avatar ? (
             <img 
               src={user.avatar} 
@@ -191,7 +193,7 @@ export default function Sidebar() {
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">
+            <p className="text-sm font-medium text-[var(--text-primary)] truncate">
               {user?.first_name} {user?.last_name}
             </p>
             {user?.role === 'admin' ? (
@@ -199,12 +201,12 @@ export default function Sidebar() {
             ) : user?.is_host ? (
               <span className="text-xs text-blue-400 font-semibold tracking-wider truncate px-2 py-0.5 bg-blue-500/20 rounded-md border border-blue-500/30">HOST</span>
             ) : (
-              <span className="text-xs text-slate-400 font-semibold tracking-wider truncate px-2 py-0.5 bg-slate-700/50 rounded-md border border-slate-600/50">FREE</span>
+              <span className="text-xs text-[var(--text-secondary)] font-semibold tracking-wider truncate px-2 py-0.5 bg-[var(--bg-card-hover)]/50 rounded-md border border-slate-600/50">FREE</span>
             )}
           </div>
           <button 
             onClick={handleLogout}
-            className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+            className="p-2 text-[var(--text-secondary)] hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
             title="Log out"
           >
             <LogOut size={18} />

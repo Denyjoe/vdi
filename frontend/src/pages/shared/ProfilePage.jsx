@@ -153,7 +153,7 @@ export default function ProfilePage() {
         <div className="max-w-7xl mx-auto px-8 relative">
           <div className="absolute -top-12 left-8">
             <div className="relative group">
-              <div className="w-24 h-24 rounded-full border-4 border-[#030712] overflow-hidden bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-3xl font-bold text-white shadow-xl">
+              <div className="w-24 h-24 rounded-full border-4 border-[#030712] overflow-hidden bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-3xl font-bold text-[var(--text-primary)] shadow-xl">
                 {avatarUrl ? (
                   <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                 ) : getInitials()}
@@ -164,7 +164,7 @@ export default function ProfilePage() {
                   onClick={() => fileInputRef.current?.click()}
                   className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                 >
-                  <Camera className="w-6 h-6 text-white" />
+                  <Camera className="w-6 h-6 text-[var(--text-primary)]" />
                 </button>
               )}
               <input 
@@ -180,18 +180,18 @@ export default function ProfilePage() {
           <div className="flex flex-col md:flex-row md:items-start justify-between pt-16">
             <div>
               <div className="flex items-center gap-3 mb-1">
-                <h1 className="text-3xl font-bold text-white">{user?.first_name} {user?.last_name}</h1>
+                <h1 className="text-3xl font-bold text-[var(--text-primary)]">{user?.first_name} {user?.last_name}</h1>
                 <span className="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
                   {user?.role}
                 </span>
               </div>
               
-              <div className="text-slate-400 text-sm mb-4">
+              <div className="text-[var(--text-secondary)] text-sm mb-4">
                 @{user?.email?.split('@')[0]}
               </div>
 
               {user?.bio ? (
-                <p className="text-slate-300 max-w-2xl text-sm mb-4">{user.bio}</p>
+                <p className="text-[var(--text-primary)] max-w-2xl text-sm mb-4">{user.bio}</p>
               ) : isEditing ? (
                 <p className="text-slate-500 italic text-sm mb-4">Add a bio below...</p>
               ) : null}
@@ -212,15 +212,15 @@ export default function ProfilePage() {
             <div className="mt-6 md:mt-0">
               {isEditing ? (
                 <div className="flex items-center gap-3">
-                  <button onClick={() => setIsEditing(false)} className="px-4 py-2 text-slate-300 hover:text-white transition-colors font-medium text-sm">
+                  <button onClick={() => setIsEditing(false)} className="px-4 py-2 text-[var(--text-primary)] hover:text-[var(--text-primary)] transition-colors font-medium text-sm">
                     Cancel
                   </button>
-                  <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium text-sm transition-colors shadow-lg shadow-indigo-500/20 flex items-center gap-2">
+                  <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-[var(--text-primary)] rounded-lg font-medium text-sm transition-colors shadow-lg shadow-indigo-500/20 flex items-center gap-2">
                     {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : <><Save className="w-4 h-4" /> Save Changes</>}
                   </button>
                 </div>
               ) : (
-                <button onClick={() => setIsEditing(true)} className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg font-medium text-sm transition-colors border border-white/10 flex items-center gap-2">
+                <button onClick={() => setIsEditing(true)} className="px-4 py-2 bg-white/5 hover:bg-white/10 text-[var(--text-primary)] rounded-lg font-medium text-sm transition-colors border border-[var(--border-color)] flex items-center gap-2">
                   <Edit2 className="w-4 h-4" /> Edit Profile
                 </button>
               )}
@@ -234,38 +234,38 @@ export default function ProfilePage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {user?.role === 'instructor' ? (
             <>
-              <div className="glass-card p-5 rounded-xl border border-white/5">
+              <div className="glass-card p-5 rounded-xl border border-[var(--border-color)]">
                 <div className="text-3xl font-bold bg-gradient-to-br from-indigo-400 to-cyan-400 text-transparent bg-clip-text mb-1">{stats?.sessions_hosted || 0}</div>
                 <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">Sessions Hosted</div>
               </div>
-              <div className="glass-card p-5 rounded-xl border border-white/5">
+              <div className="glass-card p-5 rounded-xl border border-[var(--border-color)]">
                 <div className="text-3xl font-bold bg-gradient-to-br from-indigo-400 to-cyan-400 text-transparent bg-clip-text mb-1">{stats?.groups_created || 0}</div>
                 <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">Groups Created</div>
               </div>
-              <div className="glass-card p-5 rounded-xl border border-white/5">
+              <div className="glass-card p-5 rounded-xl border border-[var(--border-color)]">
                 <div className="text-3xl font-bold bg-gradient-to-br from-indigo-400 to-cyan-400 text-transparent bg-clip-text mb-1">{stats?.total_members || 0}</div>
                 <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Members</div>
               </div>
-              <div className="glass-card p-5 rounded-xl border border-white/5">
+              <div className="glass-card p-5 rounded-xl border border-[var(--border-color)]">
                 <div className="text-3xl font-bold bg-gradient-to-br from-indigo-400 to-cyan-400 text-transparent bg-clip-text mb-1">{stats?.total_participants || 0}</div>
                 <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Participants</div>
               </div>
             </>
           ) : (
             <>
-              <div className="glass-card p-5 rounded-xl border border-white/5">
+              <div className="glass-card p-5 rounded-xl border border-[var(--border-color)]">
                 <div className="text-3xl font-bold bg-gradient-to-br from-indigo-400 to-cyan-400 text-transparent bg-clip-text mb-1">{stats?.workspaces || 0}</div>
                 <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">Workspaces</div>
               </div>
-              <div className="glass-card p-5 rounded-xl border border-white/5">
+              <div className="glass-card p-5 rounded-xl border border-[var(--border-color)]">
                 <div className="text-3xl font-bold bg-gradient-to-br from-indigo-400 to-cyan-400 text-transparent bg-clip-text mb-1">{stats?.sessions_joined || 0}</div>
                 <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">Sessions</div>
               </div>
-              <div className="glass-card p-5 rounded-xl border border-white/5">
+              <div className="glass-card p-5 rounded-xl border border-[var(--border-color)]">
                 <div className="text-3xl font-bold bg-gradient-to-br from-indigo-400 to-cyan-400 text-transparent bg-clip-text mb-1">{stats?.groups_joined || 0}</div>
                 <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">Groups</div>
               </div>
-              <div className="glass-card p-5 rounded-xl border border-white/5">
+              <div className="glass-card p-5 rounded-xl border border-[var(--border-color)]">
                 <div className="text-3xl font-bold bg-gradient-to-br from-indigo-400 to-cyan-400 text-transparent bg-clip-text mb-1">{stats?.hours_used_this_month?.toFixed(1) || '0.0'}</div>
                 <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">Hours Used</div>
               </div>
@@ -280,9 +280,9 @@ export default function ProfilePage() {
           <div className="lg:col-span-3 space-y-8">
             
             {/* SUBSCRIPTION CARD */}
-            <div className="glass-card rounded-2xl border border-white/5 overflow-hidden">
-              <div className="p-6 border-b border-white/5 flex items-center justify-between">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+            <div className="glass-card rounded-2xl border border-[var(--border-color)] overflow-hidden">
+              <div className="p-6 border-b border-[var(--border-color)] flex items-center justify-between">
+                <h3 className="text-lg font-bold text-[var(--text-primary)] flex items-center gap-2">
                   <Zap className="w-5 h-5 text-indigo-400" /> Subscription Plan
                 </h3>
                 <span className="px-3 py-1 bg-indigo-500/10 text-indigo-400 rounded-lg text-sm font-bold capitalize border border-indigo-500/20">
@@ -293,15 +293,15 @@ export default function ProfilePage() {
               <div className="p-6">
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-slate-300">Monthly Usage</span>
-                    <span className="text-sm font-bold text-white">
+                    <span className="text-sm font-medium text-[var(--text-primary)]">Monthly Usage</span>
+                    <span className="text-sm font-bold text-[var(--text-primary)]">
                       {user?.subscription?.plan_name === 'institution' ? 'Unlimited' : `${stats?.hours_used_this_month?.toFixed(1) || 0} / ${user?.subscription?.compute_hours_per_month || 0} hrs`}
                     </span>
                   </div>
                   
                   {user?.subscription?.plan_name !== 'institution' && (
                     <>
-                      <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                      <div className="h-2 bg-[var(--bg-card)] rounded-full overflow-hidden">
                         <div 
                           className="h-full bg-gradient-to-r from-indigo-500 to-cyan-500"
                           style={{ width: `${Math.min(((stats?.hours_used_this_month || 0) / (user?.subscription?.compute_hours_per_month || 1)) * 100, 100)}%` }}
@@ -317,11 +317,11 @@ export default function ProfilePage() {
                   )}
                 </div>
                 
-                <div className="flex items-center justify-between pt-6 border-t border-white/5">
-                  <div className="text-slate-400 text-sm">
-                    Plan Price: <span className="text-white font-bold">$0/month</span> {/* Simulated */}
+                <div className="flex items-center justify-between pt-6 border-t border-[var(--border-color)]">
+                  <div className="text-[var(--text-secondary)] text-sm">
+                    Plan Price: <span className="text-[var(--text-primary)] font-bold">$0/month</span> {/* Simulated */}
                   </div>
-                  <button className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-sm font-medium transition-colors">
+                  <button className="px-4 py-2 bg-white/5 hover:bg-white/10 text-[var(--text-primary)] rounded-lg text-sm font-medium transition-colors">
                     Manage Subscription
                   </button>
                 </div>
@@ -329,10 +329,10 @@ export default function ProfilePage() {
             </div>
 
             {/* RECENT ACTIVITY */}
-            <div className="glass-card rounded-2xl border border-white/5 overflow-hidden">
-              <div className="p-6 border-b border-white/5">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <History className="w-5 h-5 text-slate-400" /> Recent Activity
+            <div className="glass-card rounded-2xl border border-[var(--border-color)] overflow-hidden">
+              <div className="p-6 border-b border-[var(--border-color)]">
+                <h3 className="text-lg font-bold text-[var(--text-primary)] flex items-center gap-2">
+                  <History className="w-5 h-5 text-[var(--text-secondary)]" /> Recent Activity
                 </h3>
               </div>
               <div className="p-2">
@@ -340,7 +340,7 @@ export default function ProfilePage() {
                   <div key={activity.id} className="flex items-center justify-between p-4 hover:bg-white/5 rounded-xl transition-colors">
                     <div className="flex items-center gap-3">
                       <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
-                      <span className="text-sm font-medium text-slate-300">{activity.action}</span>
+                      <span className="text-sm font-medium text-[var(--text-primary)]">{activity.action}</span>
                     </div>
                     <span className="text-xs text-slate-500">{activity.time}</span>
                   </div>
@@ -352,9 +352,9 @@ export default function ProfilePage() {
 
           {/* RIGHT COLUMN (40%) */}
           <div className="lg:col-span-2">
-            <div className="glass-card rounded-2xl border border-white/5 overflow-hidden">
-              <div className="p-6 border-b border-white/5">
-                <h3 className="text-lg font-bold text-white">Profile Details</h3>
+            <div className="glass-card rounded-2xl border border-[var(--border-color)] overflow-hidden">
+              <div className="p-6 border-b border-[var(--border-color)]">
+                <h3 className="text-lg font-bold text-[var(--text-primary)]">Profile Details</h3>
               </div>
               
               <div className="p-6 space-y-6">
@@ -368,7 +368,7 @@ export default function ProfilePage() {
                         value={formData.first_name}
                         onChange={(e) => setFormData({...formData, first_name: e.target.value})}
                         disabled={!isEditing}
-                        className="w-full px-4 py-2.5 bg-[#030712] border border-white/10 rounded-xl text-white focus:outline-none focus:border-indigo-500 transition-colors disabled:opacity-50"
+                        className="w-full px-4 py-2.5 bg-[#030712] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] focus:outline-none focus:border-indigo-500 transition-colors disabled:opacity-50"
                       />
                     </div>
                     <div>
@@ -378,7 +378,7 @@ export default function ProfilePage() {
                         value={formData.last_name}
                         onChange={(e) => setFormData({...formData, last_name: e.target.value})}
                         disabled={!isEditing}
-                        className="w-full px-4 py-2.5 bg-[#030712] border border-white/10 rounded-xl text-white focus:outline-none focus:border-indigo-500 transition-colors disabled:opacity-50"
+                        className="w-full px-4 py-2.5 bg-[#030712] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] focus:outline-none focus:border-indigo-500 transition-colors disabled:opacity-50"
                       />
                     </div>
                   </div>
@@ -390,7 +390,7 @@ export default function ProfilePage() {
                       onChange={(e) => setFormData({...formData, bio: e.target.value})}
                       disabled={!isEditing}
                       rows="3"
-                      className="w-full px-4 py-2.5 bg-[#030712] border border-white/10 rounded-xl text-white focus:outline-none focus:border-indigo-500 transition-colors disabled:opacity-50 resize-none"
+                      className="w-full px-4 py-2.5 bg-[#030712] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] focus:outline-none focus:border-indigo-500 transition-colors disabled:opacity-50 resize-none"
                     ></textarea>
                   </div>
 
@@ -402,7 +402,7 @@ export default function ProfilePage() {
                       onChange={(e) => setFormData({...formData, website: e.target.value})}
                       disabled={!isEditing}
                       placeholder="https://"
-                      className="w-full px-4 py-2.5 bg-[#030712] border border-white/10 rounded-xl text-white focus:outline-none focus:border-indigo-500 transition-colors disabled:opacity-50"
+                      className="w-full px-4 py-2.5 bg-[#030712] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] focus:outline-none focus:border-indigo-500 transition-colors disabled:opacity-50"
                     />
                   </div>
 
@@ -412,7 +412,7 @@ export default function ProfilePage() {
                       value={formData.country}
                       onChange={(e) => setFormData({...formData, country: e.target.value})}
                       disabled={!isEditing}
-                      className="w-full px-4 py-2.5 bg-[#030712] border border-white/10 rounded-xl text-white focus:outline-none focus:border-indigo-500 transition-colors disabled:opacity-50 appearance-none"
+                      className="w-full px-4 py-2.5 bg-[#030712] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] focus:outline-none focus:border-indigo-500 transition-colors disabled:opacity-50 appearance-none"
                     >
                       {countries.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
@@ -420,26 +420,26 @@ export default function ProfilePage() {
                 </div>
 
                 {isEditing && (
-                  <div className="pt-6 border-t border-white/5">
+                  <div className="pt-6 border-t border-[var(--border-color)]">
                     <button 
                       onClick={() => setPasswordExpanded(!passwordExpanded)}
                       className="flex items-center justify-between w-full p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-colors"
                     >
-                      <div className="flex items-center gap-2 text-white font-medium">
+                      <div className="flex items-center gap-2 text-[var(--text-primary)] font-medium">
                         <Shield className="w-5 h-5 text-indigo-400" /> Change Password
                       </div>
-                      <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${passwordExpanded ? 'rotate-180' : ''}`} />
+                      <ChevronDown className={`w-5 h-5 text-[var(--text-secondary)] transition-transform ${passwordExpanded ? 'rotate-180' : ''}`} />
                     </button>
 
                     {passwordExpanded && (
-                      <div className="mt-4 p-4 border border-white/5 rounded-xl space-y-4 bg-[#050B18]">
+                      <div className="mt-4 p-4 border border-[var(--border-color)] rounded-xl space-y-4 bg-[#050B18]">
                         <div>
                           <label className="block text-xs font-medium text-slate-500 mb-1 uppercase tracking-wider">Current Password</label>
                           <input 
                             type="password" 
                             value={passData.old_password}
                             onChange={(e) => setPassData({...passData, old_password: e.target.value})}
-                            className="w-full px-4 py-2 bg-[#030712] border border-white/10 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+                            className="w-full px-4 py-2 bg-[#030712] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:border-indigo-500"
                           />
                         </div>
                         <div>
@@ -448,7 +448,7 @@ export default function ProfilePage() {
                             type="password" 
                             value={passData.new_password}
                             onChange={(e) => setPassData({...passData, new_password: e.target.value})}
-                            className="w-full px-4 py-2 bg-[#030712] border border-white/10 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+                            className="w-full px-4 py-2 bg-[#030712] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:border-indigo-500"
                           />
                         </div>
                         <div>
@@ -457,7 +457,7 @@ export default function ProfilePage() {
                             type="password" 
                             value={passData.confirm_new_password}
                             onChange={(e) => setPassData({...passData, confirm_new_password: e.target.value})}
-                            className="w-full px-4 py-2 bg-[#030712] border border-white/10 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+                            className="w-full px-4 py-2 bg-[#030712] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:border-indigo-500"
                           />
                         </div>
                         {passError && <p className="text-red-400 text-sm">{passError}</p>}
@@ -470,7 +470,7 @@ export default function ProfilePage() {
                   <button 
                     onClick={handleSave} 
                     disabled={saving}
-                    className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-colors shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 mt-4"
+                    className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-[var(--text-primary)] rounded-xl font-medium transition-colors shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 mt-4"
                   >
                     {saving ? <><Loader2 className="w-5 h-5 animate-spin" /> Saving...</> : 'Save Changes'}
                   </button>

@@ -45,12 +45,12 @@ export default function Toast({
   return (
     <div className="fixed top-4 right-4 z-50 animate-fade-in">
       <div
-        className={`${TYPE_STYLES[type]} text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 min-w-[280px]`}
+        className={`${TYPE_STYLES[type]} text-[var(--text-primary)] px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 min-w-[280px]`}
       >
         <span className="flex-1 text-sm font-medium">{message}</span>
         <button
           onClick={onClose}
-          className="text-white/80 hover:text-white transition-colors text-lg leading-none"
+          className="text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] transition-colors text-lg leading-none"
           aria-label="Close notification"
         >
           ✕

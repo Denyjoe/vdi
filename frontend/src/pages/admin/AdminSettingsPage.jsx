@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Server, Shield, CreditCard, Save, Activity, RefreshCw } from 'lucide-react';
+import { Settings as SettingsIcon, Server, Shield, CreditCard, Save, Activity, RefreshCw, X, Lock } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -29,13 +29,23 @@ export default function AdminSettingsPage() {
   const [infraStats, setInfraStats] = useState(null);
   const [testingInfra, setTestingInfra] = useState(false);
 
-  // Plans (Mocked for now since backend might not have them yet)
-  const plans = [
-    { id: 1, name: 'Free', price: '$0/mo', hours: '5hrs', users: 'No host' },
-    { id: 2, name: 'Personal', price: '$9/mo', hours: '20hrs', users: '10 users' },
-    { id: 3, name: 'Pro Host', price: '$19/mo', hours: '80hrs', users: '50 users' },
-    { id: 4, name: 'Institution', price: '$99/mo', hours: 'Unlimited', users: '200 users' }
-  ];
+  // Plans
+  const [plans, setPlans] = useState([]);
+  const [editingPlan, setEditingPlan] = useState(null);
+  const [planForm, setPlanForm] = useState({
+    name: '',
+    price_usd: 0,
+    price_tzs: 0,
+    max_hours: 0,
+    max_participants: 0,
+    can_host: false
+  });
+
+  // Change Password
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: ''
+  });
 
   useEffect(() => {
     // Load config from localStorage for frontend-only state
@@ -46,14 +56,27 @@ export default function AdminSettingsPage() {
     if (savedLimits) setResourceLimits(JSON.parse(savedLimits));
 
     testConnections();
+    fetchPlans();
   }, []);
+
+  const fetchPlans = async () => {
+    try {
+      const res = await api.get('/subscriptions/plans/');
+      if (res.data.success && res.data.data) {
+        setPlans(res.data.data);
+      } else if (Array.isArray(res.data)) {
+        setPlans(res.data);
+      }
+    } catch (err) {
+      toast.error('Failed to fetch subscription plans');
+    }
+  };
 
   const handlePlatformChange = (k, v) => setPlatformConfig(p => ({ ...p, [k]: v }));
   const handleLimitChange = (k, v) => setResourceLimits(p => ({ ...p, [k]: v }));
 
   const savePlatformConfig = async () => {
     setSavingSection('platform');
-    // Simulate API delay
     await new Promise(r => setTimeout(r, 600));
     localStorage.setItem('clouddesk_platform_config', JSON.stringify(platformConfig));
     toast.success('Platform configuration saved');
@@ -62,7 +85,6 @@ export default function AdminSettingsPage() {
 
   const saveResourceLimits = async () => {
     setSavingSection('limits');
-    // Simulate API delay
     await new Promise(r => setTimeout(r, 600));
     localStorage.setItem('clouddesk_resource_limits', JSON.stringify(resourceLimits));
     toast.success('Resource limits saved');
@@ -83,68 +105,109 @@ export default function AdminSettingsPage() {
     }
   };
 
+  const openPlanEdit = (plan) => {
+    setEditingPlan(plan);
+    setPlanForm({
+      name: plan.name || plan.display_name,
+      price_usd: plan.price_usd || plan.price || 0,
+      price_tzs: plan.price_tzs || 0,
+      max_hours: plan.max_hours || plan.compute_hours_per_month || 0,
+      max_participants: plan.max_participants || plan.max_session_participants || 0,
+      can_host: plan.can_host || plan.can_host_sessions || false
+    });
+  };
+
+  const savePlan = async () => {
+    if (!editingPlan) return;
+    try {
+      await api.put(`/subscriptions/plans/${editingPlan.id}/`, planForm);
+      toast.success(`Plan "${planForm.name}" updated successfully`);
+      setEditingPlan(null);
+      fetchPlans();
+    } catch (err) {
+      toast.error('Failed to update plan');
+    }
+  };
+
+  const handlePasswordUpdate = async (e) => {
+    e.preventDefault();
+    setSavingSection('password');
+    try {
+      await api.post('/auth/password/change/', {
+        current_password: passwordForm.currentPassword,
+        new_password: passwordForm.newPassword,
+      });
+      toast.success('Password changed successfully');
+      setPasswordForm({ currentPassword: '', newPassword: '' });
+    } catch (err) {
+      toast.error('Failed to change password');
+    } finally {
+      setSavingSection(null);
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto pb-12 animate-fade-in p-6">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-[var(--text-primary)] flex items-center gap-2">
           <SettingsIcon className="w-6 h-6 text-indigo-500" />
           System Settings
         </h1>
-        <p className="text-slate-400 mt-1">Configure platform behaviour, limits, and infrastructure</p>
+        <p className="text-[var(--text-secondary)] mt-1">Configure platform behaviour, limits, and infrastructure</p>
       </div>
 
       <div className="space-y-8">
         {/* SECTION 1: Platform Config */}
-        <section className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-700 bg-slate-900/50 flex items-center gap-2">
+        <section className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/50 flex items-center gap-2">
             <Shield className="w-5 h-5 text-indigo-400" />
-            <h2 className="text-lg font-semibold text-white">Platform Configuration</h2>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Platform Configuration</h2>
           </div>
           <div className="p-6 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Platform Name</label>
-                <input type="text" className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white"
+                <label className="block text-sm text-[var(--text-secondary)] mb-1">Platform Name</label>
+                <input type="text" className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
                   value={platformConfig.platform_name} onChange={e => handlePlatformChange('platform_name', e.target.value)} />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Support Email</label>
-                <input type="email" className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white"
+                <label className="block text-sm text-[var(--text-secondary)] mb-1">Support Email</label>
+                <input type="email" className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
                   value={platformConfig.support_email} onChange={e => handlePlatformChange('support_email', e.target.value)} />
               </div>
             </div>
             
-            <div className="flex items-center justify-between p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
+            <div className="flex items-center justify-between p-4 bg-[var(--bg-primary)]/50 rounded-lg border border-[var(--border-color)]/50">
               <div>
-                <p className="text-white font-medium text-sm">Allow Registration</p>
+                <p className="text-[var(--text-primary)] font-medium text-sm">Allow Registration</p>
                 <p className="text-slate-500 text-xs">Allow users to sign up for free</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" className="sr-only peer" checked={platformConfig.allow_registration} onChange={e => handlePlatformChange('allow_registration', e.target.checked)} />
-                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
+                <div className="w-11 h-6 bg-[var(--bg-card-hover)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
               </label>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
+            <div className="flex items-center justify-between p-4 bg-[var(--bg-primary)]/50 rounded-lg border border-[var(--border-color)]/50">
               <div>
-                <p className="text-white font-medium text-sm">Maintenance Mode</p>
+                <p className="text-[var(--text-primary)] font-medium text-sm">Maintenance Mode</p>
                 <p className="text-slate-500 text-xs">Block non-admin access</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" className="sr-only peer" checked={platformConfig.maintenance_mode} onChange={e => handlePlatformChange('maintenance_mode', e.target.checked)} />
-                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"></div>
+                <div className="w-11 h-6 bg-[var(--bg-card-hover)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"></div>
               </label>
             </div>
 
             <div>
-              <label className="block text-sm text-slate-400 mb-1">System Announcement</label>
-              <textarea className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white h-20 resize-none"
+              <label className="block text-sm text-[var(--text-secondary)] mb-1">System Announcement</label>
+              <textarea className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] h-20 resize-none"
                 placeholder="Message shown to all users..."
                 value={platformConfig.system_announcement} onChange={e => handlePlatformChange('system_announcement', e.target.value)} />
             </div>
           </div>
-          <div className="px-6 py-4 border-t border-slate-700 bg-slate-900/30 flex justify-end">
-            <button onClick={savePlatformConfig} disabled={savingSection === 'platform'} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+          <div className="px-6 py-4 border-t border-[var(--border-color)] bg-[var(--bg-primary)]/30 flex justify-end">
+            <button onClick={savePlatformConfig} disabled={savingSection === 'platform'} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium transition-colors">
               <Save size={16} />
               {savingSection === 'platform' ? 'Saving...' : 'Save Changes'}
             </button>
@@ -152,22 +215,28 @@ export default function AdminSettingsPage() {
         </section>
 
         {/* SECTION 2: Subscription Plans */}
-        <section className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-700 bg-slate-900/50 flex items-center gap-2">
+        <section className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/50 flex items-center gap-2">
             <CreditCard className="w-5 h-5 text-emerald-400" />
-            <h2 className="text-lg font-semibold text-white">Subscription Plans</h2>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Subscription Plans</h2>
           </div>
           <div className="p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {plans.map(p => (
-                <div key={p.id} className="bg-slate-900/80 border border-slate-700 rounded-lg p-5 flex flex-col text-center hover:border-indigo-500/50 transition-colors group">
-                  <h3 className="text-lg font-bold text-white mb-2">{p.name}</h3>
-                  <p className="text-2xl font-bold text-indigo-400 mb-4">{p.price}</p>
+              {plans.length === 0 ? (
+                <div className="col-span-full text-center text-[var(--text-secondary)] p-4">No plans found. Loading...</div>
+              ) : plans.map(p => (
+                <div key={p.id} className="bg-[var(--bg-primary)]/80 border border-[var(--border-color)] rounded-lg p-5 flex flex-col text-center hover:border-indigo-500/50 transition-colors group">
+                  <h3 className="text-lg font-bold text-[var(--text-primary)] mb-2">{p.display_name || p.name}</h3>
+                  <p className="text-2xl font-bold text-indigo-400 mb-4">${p.price_usd || p.price || 0}/mo</p>
                   <div className="space-y-2 mb-6 flex-1">
-                    <p className="text-sm text-slate-300">{p.hours}</p>
-                    <p className="text-sm text-slate-400">{p.users}</p>
+                    <p className="text-sm text-[var(--text-primary)]">
+                      {(p.max_hours || p.compute_hours_per_month) === -1 ? 'Unlimited hrs' : `${p.max_hours || p.compute_hours_per_month} hrs/mo`}
+                    </p>
+                    <p className="text-sm text-[var(--text-secondary)]">
+                      {p.can_host_sessions || p.can_host ? `${p.max_participants || p.max_session_participants || 0} participants` : 'No hosting'}
+                    </p>
                   </div>
-                  <button className="w-full py-2 bg-slate-800 group-hover:bg-indigo-600 text-slate-300 group-hover:text-white rounded-md text-sm font-medium transition-colors border border-slate-700 group-hover:border-indigo-500">
+                  <button onClick={() => openPlanEdit(p)} className="w-full py-2 bg-[var(--bg-card)] group-hover:bg-indigo-600 text-[var(--text-primary)] group-hover:text-[var(--text-primary)] rounded-md text-sm font-medium transition-colors border border-[var(--border-color)] group-hover:border-indigo-500">
                     Edit Plan
                   </button>
                 </div>
@@ -177,47 +246,47 @@ export default function AdminSettingsPage() {
         </section>
 
         {/* SECTION 3: VM & Resource Limits */}
-        <section className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-700 bg-slate-900/50 flex items-center gap-2">
+        <section className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/50 flex items-center gap-2">
             <Activity className="w-5 h-5 text-orange-400" />
-            <h2 className="text-lg font-semibold text-white">VM & Resource Limits</h2>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">VM & Resource Limits</h2>
           </div>
           <div className="p-6 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Max VMs per User</label>
-                <input type="number" className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white"
+                <label className="block text-sm text-[var(--text-secondary)] mb-1">Max VMs per User</label>
+                <input type="number" className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
                   value={resourceLimits.max_vms_per_user} onChange={e => handleLimitChange('max_vms_per_user', e.target.value)} />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Max Concurrent VMs</label>
-                <input type="number" className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white"
+                <label className="block text-sm text-[var(--text-secondary)] mb-1">Max Concurrent VMs</label>
+                <input type="number" className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
                   value={resourceLimits.max_concurrent_vms} onChange={e => handleLimitChange('max_concurrent_vms', e.target.value)} />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">VM Provisioning Timeout (s)</label>
-                <input type="number" className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white"
+                <label className="block text-sm text-[var(--text-secondary)] mb-1">VM Provisioning Timeout (s)</label>
+                <input type="number" className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
                   value={resourceLimits.vm_provisioning_timeout} onChange={e => handleLimitChange('vm_provisioning_timeout', e.target.value)} />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Idle Timeout (minutes)</label>
-                <input type="number" className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white"
+                <label className="block text-sm text-[var(--text-secondary)] mb-1">Idle Timeout (minutes)</label>
+                <input type="number" className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
                   value={resourceLimits.idle_timeout_mins} onChange={e => handleLimitChange('idle_timeout_mins', e.target.value)} />
               </div>
             </div>
-            <div className="flex items-center justify-between p-4 bg-slate-900/50 rounded-lg border border-slate-700/50 mt-4">
+            <div className="flex items-center justify-between p-4 bg-[var(--bg-primary)]/50 rounded-lg border border-[var(--border-color)]/50 mt-4">
               <div>
-                <p className="text-white font-medium text-sm">Auto-shutdown Idle VMs</p>
+                <p className="text-[var(--text-primary)] font-medium text-sm">Auto-shutdown Idle VMs</p>
                 <p className="text-slate-500 text-xs">Stop VMs automatically after idle timeout</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" className="sr-only peer" checked={resourceLimits.auto_shutdown_idle} onChange={e => handleLimitChange('auto_shutdown_idle', e.target.checked)} />
-                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                <div className="w-11 h-6 bg-[var(--bg-card-hover)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
               </label>
             </div>
           </div>
-          <div className="px-6 py-4 border-t border-slate-700 bg-slate-900/30 flex justify-end">
-            <button onClick={saveResourceLimits} disabled={savingSection === 'limits'} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+          <div className="px-6 py-4 border-t border-[var(--border-color)] bg-[var(--bg-primary)]/30 flex justify-end">
+            <button onClick={saveResourceLimits} disabled={savingSection === 'limits'} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium transition-colors">
               <Save size={16} />
               {savingSection === 'limits' ? 'Saving...' : 'Save Changes'}
             </button>
@@ -227,15 +296,15 @@ export default function AdminSettingsPage() {
         {/* SECTION 4 & 5 Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Infrastructure */}
-          <section className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden flex flex-col">
-            <div className="px-6 py-4 border-b border-slate-700 bg-slate-900/50 flex items-center gap-2">
+          <section className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl overflow-hidden flex flex-col">
+            <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/50 flex items-center gap-2">
               <Server className="w-5 h-5 text-purple-400" />
-              <h2 className="text-lg font-semibold text-white">Infrastructure</h2>
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">Infrastructure</h2>
             </div>
             <div className="p-6 flex-1 space-y-4">
-              <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4">
+              <div className="bg-[var(--bg-primary)]/50 border border-[var(--border-color)]/50 rounded-lg p-4">
                 <p className="text-xs text-slate-500 mb-1">Proxmox Host</p>
-                <p className="text-sm text-slate-300 font-mono">192.168.1.13 (pve)</p>
+                <p className="text-sm text-[var(--text-primary)] font-mono">192.168.1.13 (pve)</p>
                 <p className="text-sm mt-2 flex items-center gap-1.5">
                   <span className={`w-2 h-2 rounded-full ${infraStats?.proxmox?.status === 'online' ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
                   <span className={infraStats?.proxmox?.status === 'online' ? 'text-emerald-400' : 'text-red-400'}>
@@ -243,9 +312,9 @@ export default function AdminSettingsPage() {
                   </span>
                 </p>
               </div>
-              <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4">
+              <div className="bg-[var(--bg-primary)]/50 border border-[var(--border-color)]/50 rounded-lg p-4">
                 <p className="text-xs text-slate-500 mb-1">Guacamole URL</p>
-                <p className="text-sm text-slate-300 font-mono">localhost:8080</p>
+                <p className="text-sm text-[var(--text-primary)] font-mono">localhost:8080</p>
                 <p className="text-sm mt-2 flex items-center gap-1.5">
                   <span className={`w-2 h-2 rounded-full ${infraStats?.guacamole?.status === 'online' ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
                   <span className={infraStats?.guacamole?.status === 'online' ? 'text-emerald-400' : 'text-red-400'}>
@@ -254,8 +323,8 @@ export default function AdminSettingsPage() {
                 </p>
               </div>
             </div>
-            <div className="px-6 py-4 border-t border-slate-700 bg-slate-900/30">
-              <button onClick={testConnections} disabled={testingInfra} className="w-full flex justify-center items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <div className="px-6 py-4 border-t border-[var(--border-color)] bg-[var(--bg-primary)]/30">
+              <button onClick={testConnections} disabled={testingInfra} className="w-full flex justify-center items-center gap-2 bg-[var(--bg-card-hover)] hover:bg-slate-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                 <RefreshCw size={16} className={testingInfra ? "animate-spin" : ""} />
                 Test Connections
               </button>
@@ -263,31 +332,31 @@ export default function AdminSettingsPage() {
           </section>
 
           {/* Payment Configuration */}
-          <section className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden flex flex-col">
-            <div className="px-6 py-4 border-b border-slate-700 bg-slate-900/50 flex items-center gap-2">
+          <section className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl overflow-hidden flex flex-col">
+            <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/50 flex items-center gap-2">
               <CreditCard className="w-5 h-5 text-blue-400" />
-              <h2 className="text-lg font-semibold text-white">Payment Configuration</h2>
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">Payment Configuration</h2>
             </div>
             <div className="p-6 flex-1 space-y-4">
-              <div className="flex justify-between items-center py-2 border-b border-slate-700/50">
-                <span className="text-sm text-slate-400">Payment Provider</span>
-                <span className="text-sm text-white font-medium">AzamPay</span>
+              <div className="flex justify-between items-center py-2 border-b border-[var(--border-color)]/50">
+                <span className="text-sm text-[var(--text-secondary)]">Payment Provider</span>
+                <span className="text-sm text-[var(--text-primary)] font-medium">AzamPay</span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-slate-700/50">
-                <span className="text-sm text-slate-400">Environment</span>
+              <div className="flex justify-between items-center py-2 border-b border-[var(--border-color)]/50">
+                <span className="text-sm text-[var(--text-secondary)]">Environment</span>
                 <span className="text-sm px-2 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded">Sandbox</span>
               </div>
-              <div className="py-2 border-b border-slate-700/50">
-                <span className="text-sm text-slate-400 block mb-2">Supported Methods</span>
+              <div className="py-2 border-b border-[var(--border-color)]/50">
+                <span className="text-sm text-[var(--text-secondary)] block mb-2">Supported Methods</span>
                 <div className="flex flex-wrap gap-2">
-                  <span className="text-xs bg-slate-700 text-slate-300 px-2 py-1 rounded">☑ M-Pesa</span>
-                  <span className="text-xs bg-slate-700 text-slate-300 px-2 py-1 rounded">☑ Airtel Money</span>
-                  <span className="text-xs bg-slate-700 text-slate-300 px-2 py-1 rounded">☑ Tigo Pesa</span>
-                  <span className="text-xs bg-slate-700 text-slate-300 px-2 py-1 rounded">☑ Halopesa</span>
+                  <span className="text-xs bg-[var(--bg-card-hover)] text-[var(--text-primary)] px-2 py-1 rounded">☑ M-Pesa</span>
+                  <span className="text-xs bg-[var(--bg-card-hover)] text-[var(--text-primary)] px-2 py-1 rounded">☑ Airtel Money</span>
+                  <span className="text-xs bg-[var(--bg-card-hover)] text-[var(--text-primary)] px-2 py-1 rounded">☑ Tigo Pesa</span>
+                  <span className="text-xs bg-[var(--bg-card-hover)] text-[var(--text-primary)] px-2 py-1 rounded">☑ Halopesa</span>
                 </div>
               </div>
               <div className="flex justify-between items-center pt-2">
-                <span className="text-sm text-slate-400">Status</span>
+                <span className="text-sm text-[var(--text-secondary)]">Status</span>
                 <span className="text-sm flex items-center gap-1.5 text-emerald-400">
                   <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Connected
                 </span>
@@ -295,7 +364,104 @@ export default function AdminSettingsPage() {
             </div>
           </section>
         </div>
+        
+        {/* SECTION 6: Admin Password */}
+        <section className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/50 flex items-center gap-2">
+            <Lock className="w-5 h-5 text-red-400" />
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Change Admin Password</h2>
+          </div>
+          <div className="p-6">
+            <form onSubmit={handlePasswordUpdate} className="flex flex-col gap-4 max-w-sm">
+              <div>
+                <label className="block text-sm text-[var(--text-secondary)] mb-1">Current Password</label>
+                <input 
+                  type="password" 
+                  value={passwordForm.currentPassword}
+                  onChange={e => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
+                  className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-[var(--text-secondary)] mb-1">New Password</label>
+                <input 
+                  type="password" 
+                  value={passwordForm.newPassword}
+                  onChange={e => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                  className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+              <button 
+                type="submit"
+                disabled={savingSection === 'password' || !passwordForm.currentPassword || !passwordForm.newPassword}
+                className="mt-2 flex items-center justify-center gap-2 bg-[var(--bg-card-hover)] hover:bg-slate-600 disabled:opacity-50 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                {savingSection === 'password' ? 'Updating...' : 'Update Password'}
+              </button>
+            </form>
+          </div>
+        </section>
       </div>
+
+      {/* Edit Plan Modal */}
+      {editingPlan && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl max-w-md w-full shadow-2xl animate-fade-in">
+            <div className="flex justify-between items-center px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/50">
+              <h3 className="text-lg font-bold text-[var(--text-primary)]">Edit Plan: "{editingPlan.display_name || editingPlan.name}"</h3>
+              <button onClick={() => setEditingPlan(null)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm text-[var(--text-secondary)] mb-1">Plan Name</label>
+                <input type="text" className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
+                  value={planForm.name} onChange={e => setPlanForm({...planForm, name: e.target.value})} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-[var(--text-secondary)] mb-1">Price (USD)</label>
+                  <input type="number" className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
+                    value={planForm.price_usd} onChange={e => setPlanForm({...planForm, price_usd: parseFloat(e.target.value) || 0})} />
+                </div>
+                <div>
+                  <label className="block text-sm text-[var(--text-secondary)] mb-1">Price (TZS)</label>
+                  <input type="number" className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
+                    value={planForm.price_tzs} onChange={e => setPlanForm({...planForm, price_tzs: parseInt(e.target.value) || 0})} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-[var(--text-secondary)] mb-1">Max Hours/Month (-1=unl)</label>
+                  <input type="number" className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
+                    value={planForm.max_hours} onChange={e => setPlanForm({...planForm, max_hours: parseInt(e.target.value) || 0})} />
+                </div>
+                <div>
+                  <label className="block text-sm text-[var(--text-secondary)] mb-1">Max Participants</label>
+                  <input type="number" className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
+                    value={planForm.max_participants} onChange={e => setPlanForm({...planForm, max_participants: parseInt(e.target.value) || 0})} />
+                </div>
+              </div>
+              <div className="flex items-center justify-between p-4 bg-[var(--bg-primary)]/50 rounded-lg border border-[var(--border-color)]/50">
+                <span className="text-sm text-[var(--text-primary)] font-medium">Can Host Sessions</span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" className="sr-only peer" checked={planForm.can_host} onChange={e => setPlanForm({...planForm, can_host: e.target.checked})} />
+                  <div className="w-11 h-6 bg-[var(--bg-card-hover)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
+                </label>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-[var(--border-color)] bg-[var(--bg-primary)]/30 flex justify-end gap-3">
+              <button onClick={() => setEditingPlan(null)} className="px-4 py-2 text-[var(--text-primary)] hover:text-[var(--text-primary)] transition-colors text-sm font-medium">
+                Cancel
+              </button>
+              <button onClick={savePlan} className="bg-indigo-600 hover:bg-indigo-700 text-[var(--text-primary)] px-6 py-2 rounded-lg text-sm font-medium transition-colors">
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

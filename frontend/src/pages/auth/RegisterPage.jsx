@@ -69,17 +69,17 @@ export default function RegisterPage() {
     return (
         <div className="min-h-screen bg-[#050B18] flex">
             {/* Left Panel - Features Showcase (Desktop Only) */}
-            <div className="hidden lg:flex lg:w-[55%] relative flex-col justify-between p-12 overflow-hidden border-r border-white/5">
+            <div className="hidden lg:flex lg:w-[55%] relative flex-col justify-between p-12 overflow-hidden border-r border-[var(--border-color)]">
                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/20 to-transparent z-0"></div>
                 
                 <div className="relative z-10">
                     <Link to="/" className="flex items-center gap-2 mb-16">
                         <Monitor className="w-8 h-8 text-indigo-500" />
-                        <span className="text-xl font-bold text-white tracking-tight">CloudDesk</span>
+                        <span className="text-xl font-bold text-[var(--text-primary)] tracking-tight">CloudDesk</span>
                     </Link>
 
-                    <h1 className="text-4xl font-bold text-white mb-4">Start your journey with CloudDesk</h1>
-                    <p className="text-lg text-slate-400 max-w-md mb-12">
+                    <h1 className="text-4xl font-bold text-[var(--text-primary)] mb-4">Start your journey with CloudDesk</h1>
+                    <p className="text-lg text-[var(--text-secondary)] max-w-md mb-12">
                         Get 5 free workspace hours every month. No credit card required.
                     </p>
 
@@ -89,8 +89,8 @@ export default function RegisterPage() {
                                 <Zap className="w-6 h-6 text-indigo-400" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-semibold text-white mb-1">Instant Access</h3>
-                                <p className="text-slate-400">Launch powerful virtual machines directly in your browser. No downloads, no installation.</p>
+                                <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-1">Instant Access</h3>
+                                <p className="text-[var(--text-secondary)]">Launch powerful virtual machines directly in your browser. No downloads, no installation.</p>
                             </div>
                         </div>
 
@@ -99,8 +99,8 @@ export default function RegisterPage() {
                                 <Users className="w-6 h-6 text-cyan-400" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-semibold text-white mb-1">Live Sessions</h3>
-                                <p className="text-slate-400">Join interactive workshops and classes led by experts from around the world.</p>
+                                <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-1">Live Sessions</h3>
+                                <p className="text-[var(--text-secondary)]">Join interactive workshops and classes led by experts from around the world.</p>
                             </div>
                         </div>
 
@@ -109,18 +109,18 @@ export default function RegisterPage() {
                                 <Shield className="w-6 h-6 text-emerald-400" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-semibold text-white mb-1">Enterprise Grade</h3>
-                                <p className="text-slate-400">Secure, isolated environments with guaranteed performance and data protection.</p>
+                                <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-1">Enterprise Grade</h3>
+                                <p className="text-[var(--text-secondary)]">Secure, isolated environments with guaranteed performance and data protection.</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="relative z-10 mt-12 flex items-center justify-between border-t border-white/10 pt-8">
+                <div className="relative z-10 mt-12 flex items-center justify-between border-t border-[var(--border-color)] pt-8">
                     <p className="text-sm text-slate-500">&copy; 2026 CloudDesk. All rights reserved.</p>
                     <div className="flex gap-4">
-                        <a href="#" className="text-sm text-slate-500 hover:text-white transition-colors">Privacy</a>
-                        <a href="#" className="text-sm text-slate-500 hover:text-white transition-colors">Terms</a>
+                        <a href="#" className="text-sm text-slate-500 hover:text-[var(--text-primary)] transition-colors">Privacy</a>
+                        <a href="#" className="text-sm text-slate-500 hover:text-[var(--text-primary)] transition-colors">Terms</a>
                     </div>
                 </div>
             </div>
@@ -129,37 +129,37 @@ export default function RegisterPage() {
             <div className="w-full lg:w-[45%] flex flex-col justify-center px-8 sm:px-16 py-12 relative">
                 <Link to="/" className="lg:hidden flex items-center gap-2 mb-12">
                     <Monitor className="w-8 h-8 text-indigo-500" />
-                    <span className="text-xl font-bold text-white tracking-tight">CloudDesk</span>
+                    <span className="text-xl font-bold text-[var(--text-primary)] tracking-tight">CloudDesk</span>
                 </Link>
 
                 <div className="w-full max-w-md mx-auto">
                     <div className="mb-10">
-                        <h2 className="text-3xl font-bold text-white mb-2">Create an account</h2>
-                        <p className="text-slate-400">Join CloudDesk today and start building.</p>
+                        <h2 className="text-3xl font-bold text-[var(--text-primary)] mb-2">Create an account</h2>
+                        <p className="text-[var(--text-secondary)]">Join CloudDesk today and start building.</p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-5">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                                <label className="text-sm font-medium text-slate-300">First Name</label>
+                                <label className="text-sm font-medium text-[var(--text-primary)]">First Name</label>
                                 <input
                                     type="text"
                                     name="first_name"
                                     value={formData.first_name}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-3 bg-[#0A101F] border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                    className="w-full px-4 py-3 bg-[#0A101F] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                                     placeholder="John"
                                     required
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-sm font-medium text-slate-300">Last Name</label>
+                                <label className="text-sm font-medium text-[var(--text-primary)]">Last Name</label>
                                 <input
                                     type="text"
                                     name="last_name"
                                     value={formData.last_name}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-3 bg-[#0A101F] border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                    className="w-full px-4 py-3 bg-[#0A101F] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                                     placeholder="Doe"
                                     required
                                 />
@@ -167,26 +167,26 @@ export default function RegisterPage() {
                         </div>
 
                         <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-slate-300">Email Address</label>
+                            <label className="text-sm font-medium text-[var(--text-primary)]">Email Address</label>
                             <input
                                 type="email"
                                 name="email"
                                 value={formData.email}
                                 onChange={handleChange}
-                                className="w-full px-4 py-3 bg-[#0A101F] border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                className="w-full px-4 py-3 bg-[#0A101F] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                                 placeholder="john@example.com"
                                 required
                             />
                         </div>
 
                         <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-slate-300">Password</label>
+                            <label className="text-sm font-medium text-[var(--text-primary)]">Password</label>
                             <input
                                 type="password"
                                 name="password"
                                 value={formData.password}
                                 onChange={handleChange}
-                                className="w-full px-4 py-3 bg-[#0A101F] border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                className="w-full px-4 py-3 bg-[#0A101F] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                                 placeholder="Min. 8 characters"
                                 required
                                 minLength="8"
@@ -194,13 +194,13 @@ export default function RegisterPage() {
                         </div>
 
                         <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-slate-300">Confirm Password</label>
+                            <label className="text-sm font-medium text-[var(--text-primary)]">Confirm Password</label>
                             <input
                                 type="password"
                                 name="confirm_password"
                                 value={formData.confirm_password}
                                 onChange={handleChange}
-                                className="w-full px-4 py-3 bg-[#0A101F] border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                className="w-full px-4 py-3 bg-[#0A101F] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                                 placeholder="Re-enter password"
                                 required
                             />
@@ -212,9 +212,9 @@ export default function RegisterPage() {
                                 id="terms"
                                 checked={agreedToTerms}
                                 onChange={(e) => setAgreedToTerms(e.target.checked)}
-                                className="mt-1 w-4 h-4 rounded border-slate-700 bg-[#0A101F] text-indigo-500 focus:ring-indigo-500"
+                                className="mt-1 w-4 h-4 rounded border-[var(--border-color)] bg-[#0A101F] text-indigo-500 focus:ring-indigo-500"
                             />
-                            <label htmlFor="terms" className="text-sm text-slate-400">
+                            <label htmlFor="terms" className="text-sm text-[var(--text-secondary)]">
                                 I agree to the <a href="#" className="text-indigo-400 hover:text-indigo-300">Terms of Service</a> and <a href="#" className="text-indigo-400 hover:text-indigo-300">Privacy Policy</a>
                             </label>
                         </div>
@@ -228,13 +228,13 @@ export default function RegisterPage() {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold shadow-lg shadow-indigo-600/20 transition-all flex justify-center items-center gap-2 mt-8 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-[var(--text-primary)] rounded-xl font-semibold shadow-lg shadow-indigo-600/20 transition-all flex justify-center items-center gap-2 mt-8 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isLoading ? 'Creating Account...' : 'Create Account'}
                         </button>
                     </form>
 
-                    <p className="mt-8 text-center text-slate-400 text-sm">
+                    <p className="mt-8 text-center text-[var(--text-secondary)] text-sm">
                         Already have an account?{' '}
                         <Link to="/login" className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
                             Sign in

@@ -33,11 +33,11 @@ export default function NotificationBell() {
     <div className="relative" ref={dropdownRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-slate-400 hover:text-white transition-colors rounded-full hover:bg-slate-800 focus:outline-none"
+        className="relative p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors rounded-full hover:bg-[var(--bg-card)] focus:outline-none"
       >
         <Bell className="w-6 h-6" />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-navy-900">
+          <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-[var(--text-primary)] ring-2 ring-navy-900">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -46,7 +46,7 @@ export default function NotificationBell() {
       {isOpen && (
         <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-navy-800 rounded-xl shadow-2xl border border-navy-700 overflow-hidden z-50">
           <div className="flex items-center justify-between p-4 border-b border-navy-700 bg-navy-800/95 backdrop-blur">
-            <h3 className="font-semibold text-white">Notifications</h3>
+            <h3 className="font-semibold text-[var(--text-primary)]">Notifications</h3>
             {unreadCount > 0 && (
               <button 
                 onClick={markAllAsRead}
@@ -59,7 +59,7 @@ export default function NotificationBell() {
           
           <div className="max-h-[400px] overflow-y-auto">
             {notifications.length === 0 ? (
-              <div className="p-8 text-center text-slate-400">
+              <div className="p-8 text-center text-[var(--text-secondary)]">
                 <Bell className="w-8 h-8 mx-auto mb-3 opacity-20" />
                 <p className="text-sm">No notifications yet</p>
               </div>
@@ -69,15 +69,15 @@ export default function NotificationBell() {
                   <div 
                     key={notif.id}
                     onClick={() => handleNotificationClick(notif)}
-                    className={`p-4 hover:bg-slate-800/50 cursor-pointer transition-colors ${!notif.is_read ? 'bg-indigo-500/5' : ''}`}
+                    className={`p-4 hover:bg-[var(--bg-card)]/50 cursor-pointer transition-colors ${!notif.is_read ? 'bg-indigo-500/5' : ''}`}
                   >
                     <div className="flex gap-3">
                       <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${!notif.is_read ? 'bg-indigo-500' : 'bg-transparent'}`} />
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm ${!notif.is_read ? 'text-white font-medium' : 'text-slate-300'}`}>
+                        <p className={`text-sm ${!notif.is_read ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-primary)]'}`}>
                           {notif.title}
                         </p>
-                        <p className="text-xs text-slate-400 mt-1 line-clamp-2">
+                        <p className="text-xs text-[var(--text-secondary)] mt-1 line-clamp-2">
                           {notif.message}
                         </p>
                         <p className="text-[10px] text-slate-500 mt-2">
@@ -94,7 +94,7 @@ export default function NotificationBell() {
           <div className="p-3 border-t border-navy-700 bg-navy-800 text-center">
             <button 
               onClick={() => { setIsOpen(false); navigate('/notifications'); }}
-              className="text-sm text-slate-400 hover:text-white transition-colors"
+              className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
             >
               View all notifications
             </button>

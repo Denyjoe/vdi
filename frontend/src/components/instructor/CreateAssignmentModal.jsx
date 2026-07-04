@@ -98,22 +98,22 @@ export default function CreateAssignmentModal({ isOpen, onClose, onSuccess }) {
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       
       <div className="relative bg-navy-800 rounded-xl shadow-xl w-full max-w-lg mx-4 border border-navy-700 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-slate-700">
-          <h2 className="text-xl font-bold text-white">Create Assignment</h2>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-white rounded-lg transition-colors">
+        <div className="flex items-center justify-between p-6 border-b border-[var(--border-color)]">
+          <h2 className="text-xl font-bold text-[var(--text-primary)]">Create Assignment</h2>
+          <button onClick={onClose} className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-lg transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">Select Class <span className="text-red-400">*</span></label>
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">Select Class <span className="text-red-400">*</span></label>
             <select
               name="class_room"
               value={formData.class_room}
               onChange={handleChange}
               required
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="">Select a class...</option>
               {classes.map(c => (
@@ -123,7 +123,7 @@ export default function CreateAssignmentModal({ isOpen, onClose, onSuccess }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">Assignment Title <span className="text-red-400">*</span></label>
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">Assignment Title <span className="text-red-400">*</span></label>
             <input
               type="text"
               name="title"
@@ -131,12 +131,12 @@ export default function CreateAssignmentModal({ isOpen, onClose, onSuccess }) {
               onChange={handleChange}
               required
               placeholder="e.g. AutoCAD Floor Plan"
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">Description <span className="text-red-400">*</span></label>
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">Description <span className="text-red-400">*</span></label>
             <textarea
               name="description"
               value={formData.description}
@@ -144,24 +144,24 @@ export default function CreateAssignmentModal({ isOpen, onClose, onSuccess }) {
               required
               rows={4}
               placeholder="Detailed instructions for students..."
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+              className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">Due Date & Time <span className="text-red-400">*</span></label>
+              <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">Due Date & Time <span className="text-red-400">*</span></label>
               <input
                 type="datetime-local"
                 name="due_date"
                 value={formData.due_date}
                 onChange={handleChange}
                 required
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
+                className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-indigo-500 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">Max File Size (MB) <span className="text-red-400">*</span></label>
+              <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">Max File Size (MB) <span className="text-red-400">*</span></label>
               <input
                 type="number"
                 name="max_file_size_mb"
@@ -170,13 +170,13 @@ export default function CreateAssignmentModal({ isOpen, onClose, onSuccess }) {
                 required
                 min="1"
                 max="100"
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">Attachment (Optional)</label>
+            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">Attachment (Optional)</label>
             <div className="relative">
               <input
                 type="file"
@@ -188,9 +188,9 @@ export default function CreateAssignmentModal({ isOpen, onClose, onSuccess }) {
               />
               <label
                 htmlFor="assignment-attachment-upload"
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white cursor-pointer flex items-center justify-between hover:bg-slate-800 transition-colors"
+                className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] cursor-pointer flex items-center justify-between hover:bg-[var(--bg-card)] transition-colors"
               >
-                <span className="truncate text-slate-400">
+                <span className="truncate text-[var(--text-secondary)]">
                   {formData.attachment ? formData.attachment.name : 'Choose file...'}
                 </span>
                 <span className="text-sm text-slate-500">Browse</span>
@@ -201,18 +201,18 @@ export default function CreateAssignmentModal({ isOpen, onClose, onSuccess }) {
             </div>
           </div>
 
-          <div className="pt-4 border-t border-slate-700 flex justify-end gap-3">
+          <div className="pt-4 border-t border-[var(--border-color)] flex justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-slate-300 border border-slate-600 rounded-lg hover:bg-slate-700 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-[var(--text-primary)] border border-slate-600 rounded-lg hover:bg-[var(--bg-card-hover)] transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-[var(--text-primary)] text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />

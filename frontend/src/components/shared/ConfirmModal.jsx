@@ -45,19 +45,19 @@ export default function ConfirmModal({
 
       {/* Modal */}
       <div className="relative bg-navy-800 rounded-xl shadow-xl p-6 max-w-md w-full mx-4 border border-navy-700">
-        <h2 className="text-lg font-semibold text-white">{title}</h2>
-        <p className="text-slate-400 mt-2 text-sm">{message}</p>
+        <h2 className="text-lg font-semibold text-[var(--text-primary)]">{title}</h2>
+        <p className="text-[var(--text-secondary)] mt-2 text-sm">{message}</p>
 
         <div className="flex justify-end gap-3 mt-6">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-sm font-medium text-slate-300 border border-navy-600 rounded-lg hover:bg-navy-700 transition-colors"
+            className="px-4 py-2 text-sm font-medium text-[var(--text-primary)] border border-navy-600 rounded-lg hover:bg-navy-700 transition-colors"
           >
             {cancelText}
           </button>
           <button
             onClick={onConfirm}
-            className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${VARIANT_CLASSES[variant]}`}
+            className={`px-4 py-2 text-sm font-medium text-[var(--text-primary)] rounded-lg transition-colors ${VARIANT_CLASSES[variant]}`}
           >
             {confirmText}
           </button>

@@ -5,6 +5,7 @@ from django.utils import timezone
 from dateutil.relativedelta import relativedelta
 from apps.users.models import SubscriptionPlan, UserSubscription
 from apps.users.serializers import SubscriptionPlanSerializer, UserSubscriptionSerializer
+from apps.users.permissions import IsAdmin
 
 class SubscriptionPlansView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -85,4 +86,43 @@ class UpgradeSubscriptionView(APIView):
         return Response({
             "success": True,
             "data": serializer.data
+        })
+
+class SubscriptionPlanUpdateView(APIView):
+    """
+    PUT /api/subscriptions/plans/<id>/
+    Admin only — update plan pricing and limits.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+    
+    def put(self, request, plan_id):
+        try:
+            plan = SubscriptionPlan.objects.get(id=plan_id)
+        except SubscriptionPlan.DoesNotExist:
+            return Response({'error': 'Plan not found'}, status=404)
+        
+        if 'name' in request.data:
+            plan.name = request.data['name']
+        if 'price_usd' in request.data:
+            if hasattr(plan, 'price'):
+                plan.price = request.data['price_usd']
+        if 'price_tzs' in request.data:
+            if hasattr(plan, 'price_tzs'):
+                plan.price_tzs = request.data['price_tzs']
+        if 'max_hours' in request.data:
+            if hasattr(plan, 'max_hours'):
+                plan.max_hours = request.data['max_hours']
+            elif hasattr(plan, 'compute_hours_per_month'):
+                plan.compute_hours_per_month = request.data['max_hours']
+        if 'max_participants' in request.data:
+            if hasattr(plan, 'max_session_participants'):
+                plan.max_session_participants = request.data['max_participants']
+        if 'can_host' in request.data:
+            if hasattr(plan, 'can_host_sessions'):
+                plan.can_host_sessions = request.data['can_host']
+        
+        plan.save()
+        return Response({
+            'success': True,
+            'message': f'Plan "{plan.name}" updated successfully'
         })

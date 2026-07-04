@@ -16,13 +16,13 @@ export default function PublicNavbar() {
   ];
 
   return (
-    <nav className="fixed top-0 w-full z-50 bg-black/30 backdrop-blur-md border-b border-white/5 transition-all duration-300">
+    <nav className="fixed top-0 w-full z-50 bg-black/30 backdrop-blur-md border-b border-[var(--border-color)] transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
             <Monitor className="w-8 h-8 text-indigo-500" />
-            <span className="text-xl font-bold text-white tracking-tight">CloudDesk</span>
+            <span className="text-xl font-bold text-[var(--text-primary)] tracking-tight">CloudDesk</span>
           </Link>
 
           {/* Desktop Nav Links */}
@@ -31,7 +31,7 @@ export default function PublicNavbar() {
               <a 
                 key={link.label}
                 href={link.href}
-                className="text-sm font-medium text-slate-300 hover:text-white transition-colors"
+                className="text-sm font-medium text-[var(--text-primary)] hover:text-[var(--text-primary)] transition-colors"
               >
                 {link.label}
               </a>
@@ -43,7 +43,7 @@ export default function PublicNavbar() {
             {user ? (
               <Link 
                 to="/dashboard"
-                className="text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 px-5 py-2.5 rounded-full transition-all duration-300 glow-primary"
+                className="text-sm font-medium text-[var(--text-primary)] bg-indigo-600 hover:bg-indigo-500 px-5 py-2.5 rounded-full transition-all duration-300 glow-primary"
               >
                 Go to Dashboard
               </Link>
@@ -51,13 +51,13 @@ export default function PublicNavbar() {
               <>
                 <Link 
                   to="/login"
-                  className="text-sm font-medium text-slate-300 hover:text-white transition-colors px-4 py-2"
+                  className="text-sm font-medium text-[var(--text-primary)] hover:text-[var(--text-primary)] transition-colors px-4 py-2"
                 >
                   Sign In
                 </Link>
                 <Link 
                   to="/register"
-                  className="text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 px-5 py-2.5 rounded-full transition-all duration-300 glow-primary"
+                  className="text-sm font-medium text-[var(--text-primary)] bg-indigo-600 hover:bg-indigo-500 px-5 py-2.5 rounded-full transition-all duration-300 glow-primary"
                 >
                   Get Started Free
                 </Link>
@@ -69,7 +69,7 @@ export default function PublicNavbar() {
           <div className="md:hidden flex items-center">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="text-slate-300 hover:text-white focus:outline-none p-2"
+              className="text-[var(--text-primary)] hover:text-[var(--text-primary)] focus:outline-none p-2"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -79,23 +79,23 @@ export default function PublicNavbar() {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-[#0D1526] border-b border-white/10 absolute w-full left-0 top-16 shadow-2xl">
+        <div className="md:hidden bg-[#0D1526] border-b border-[var(--border-color)] absolute w-full left-0 top-16 shadow-2xl">
           <div className="px-4 pt-2 pb-6 space-y-1">
             {navLinks.map((link) => (
               <a
                 key={link.label}
                 href={link.href}
-                className="block px-3 py-3 text-base font-medium text-slate-300 hover:text-white hover:bg-white/5 rounded-md"
+                className="block px-3 py-3 text-base font-medium text-[var(--text-primary)] hover:text-[var(--text-primary)] hover:bg-white/5 rounded-md"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {link.label}
               </a>
             ))}
-            <div className="mt-6 pt-6 border-t border-white/10 flex flex-col gap-3">
+            <div className="mt-6 pt-6 border-t border-[var(--border-color)] flex flex-col gap-3">
               {user ? (
                 <Link 
                   to="/dashboard"
-                  className="block text-center w-full text-base font-medium text-white bg-indigo-600 hover:bg-indigo-500 px-5 py-3 rounded-xl transition-all duration-300"
+                  className="block text-center w-full text-base font-medium text-[var(--text-primary)] bg-indigo-600 hover:bg-indigo-500 px-5 py-3 rounded-xl transition-all duration-300"
                 >
                   Go to Dashboard
                 </Link>
@@ -103,13 +103,13 @@ export default function PublicNavbar() {
                 <>
                   <Link 
                     to="/login"
-                    className="block text-center w-full text-base font-medium text-white border border-white/20 hover:bg-white/5 px-5 py-3 rounded-xl transition-all duration-300"
+                    className="block text-center w-full text-base font-medium text-[var(--text-primary)] border border-white/20 hover:bg-white/5 px-5 py-3 rounded-xl transition-all duration-300"
                   >
                     Sign In
                   </Link>
                   <Link 
                     to="/register"
-                    className="block text-center w-full text-base font-medium text-white bg-indigo-600 hover:bg-indigo-500 px-5 py-3 rounded-xl transition-all duration-300"
+                    className="block text-center w-full text-base font-medium text-[var(--text-primary)] bg-indigo-600 hover:bg-indigo-500 px-5 py-3 rounded-xl transition-all duration-300"
                   >
                     Get Started Free
                   </Link>

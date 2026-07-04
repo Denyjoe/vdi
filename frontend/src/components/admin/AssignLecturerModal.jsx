@@ -34,24 +34,24 @@ export default function AssignLecturerModal({ classItem, lecturers, onClose, onA
     }
   };
 
-  const inputClass = 'w-full bg-slate-900/50 border border-slate-600 rounded-lg px-3 py-2 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500';
+  const inputClass = 'w-full bg-[var(--bg-primary)]/50 border border-slate-600 rounded-lg px-3 py-2 text-[var(--text-primary)] placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500';
 
   return (
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-slate-800 rounded-2xl border border-slate-700 shadow-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto"
+      <div className="bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] shadow-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto"
            onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-700">
-          <h3 className="text-lg font-bold text-white">Assign Lecturer</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-white p-1 rounded-lg"><X className="w-5 h-5" /></button>
+        <div className="flex items-center justify-between px-6 py-5 border-b border-[var(--border-color)]">
+          <h3 className="text-lg font-bold text-[var(--text-primary)]">Assign Lecturer</h3>
+          <button onClick={onClose} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1 rounded-lg"><X className="w-5 h-5" /></button>
         </div>
         
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           <div className="mb-2">
-            <p className="text-sm text-slate-300">Assign a lecturer to <strong>{classItem.name}</strong></p>
+            <p className="text-sm text-[var(--text-primary)]">Assign a lecturer to <strong>{classItem.name}</strong></p>
           </div>
           
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Select Lecturer</label>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">Select Lecturer</label>
             <select 
               value={lecturerId} 
               onChange={(e) => setLecturerId(e.target.value)} 
@@ -69,8 +69,8 @@ export default function AssignLecturerModal({ classItem, lecturers, onClose, onA
           )}
           
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 py-2 border border-slate-600 text-slate-300 hover:bg-slate-700 rounded-lg text-sm transition-colors">Cancel</button>
-            <button type="submit" disabled={saving} className="flex-1 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+            <button type="button" onClick={onClose} className="flex-1 py-2 border border-slate-600 text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] rounded-lg text-sm transition-colors">Cancel</button>
+            <button type="submit" disabled={saving} className="flex-1 py-2 bg-purple-600 hover:bg-purple-700 text-[var(--text-primary)] rounded-lg text-sm transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
               {saving ? 'Saving...' : 'Assign'}
             </button>

@@ -75,9 +75,9 @@ export default function MemberDashboard() {
                     <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
                     <div className="relative z-10">
                         <div className="flex items-center gap-3 mb-2">
-                            <h1 className="text-3xl font-bold text-white">{getGreeting()}, {user?.first_name} 👋</h1>
+                            <h1 className="text-3xl font-bold text-[var(--text-primary)]">{getGreeting()}, {user?.first_name} 👋</h1>
                         </div>
-                        <p className="text-slate-400 text-lg mb-6">Welcome back to your cloud workspace.</p>
+                        <p className="text-[var(--text-secondary)] text-lg mb-6">Welcome back to your cloud workspace.</p>
                         
                         <button onClick={() => navigate('/pricing')} className="inline-flex items-center px-3 py-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-sm font-medium hover:bg-indigo-500/20 transition-colors">
                             <Zap className="w-4 h-4 mr-1.5" />
@@ -87,17 +87,17 @@ export default function MemberDashboard() {
                 </div>
 
                 <div className="glass-card p-6 rounded-2xl flex flex-col justify-between">
-                    <h3 className="font-semibold text-white mb-4">Compute Hours</h3>
+                    <h3 className="font-semibold text-[var(--text-primary)] mb-4">Compute Hours</h3>
                     <div className="flex items-center justify-between">
                         <div>
                             {planName === 'institution' ? (
                                 <div className="text-2xl font-bold text-green-500">Unlimited</div>
                             ) : (
                                 <>
-                                    <div className="text-3xl font-bold text-white mb-1">
+                                    <div className="text-3xl font-bold text-[var(--text-primary)] mb-1">
                                         <span className={hoursColor}>{hoursUsed.toFixed(1)}</span> <span className="text-slate-500 text-xl">/ {hoursTotal}h</span>
                                     </div>
-                                    <p className="text-sm text-slate-400">Used this month</p>
+                                    <p className="text-sm text-[var(--text-secondary)]">Used this month</p>
                                 </>
                             )}
                         </div>
@@ -125,8 +125,8 @@ export default function MemberDashboard() {
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-2">
                             <Laptop className="w-5 h-5 text-indigo-400" />
-                            <h3 className="font-semibold text-white">My Workspaces</h3>
-                            <span className="bg-slate-800 text-slate-300 text-xs py-0.5 px-2 rounded-full">{stats?.workspaces || 0}</span>
+                            <h3 className="font-semibold text-[var(--text-primary)]">My Workspaces</h3>
+                            <span className="bg-[var(--bg-card)] text-[var(--text-primary)] text-xs py-0.5 px-2 rounded-full">{stats?.workspaces || 0}</span>
                         </div>
                         <Link to="/member/workspaces" className="text-sm text-indigo-400 hover:text-indigo-300 flex items-center">
                             View All <ChevronRight className="w-4 h-4" />
@@ -135,12 +135,12 @@ export default function MemberDashboard() {
                     
                     <div className="flex-1 flex flex-col gap-3">
                         {workspaces.length > 0 ? workspaces.map(ws => (
-                            <div key={ws.id} className="p-3 bg-[#0D1526] rounded-xl border border-white/5 flex items-center justify-between group hover:border-indigo-500/30 transition-all">
+                            <div key={ws.id} className="p-3 bg-[#0D1526] rounded-xl border border-[var(--border-color)] flex items-center justify-between group hover:border-indigo-500/30 transition-all">
                                 <div>
-                                    <p className="font-medium text-white text-sm">{ws.name}</p>
+                                    <p className="font-medium text-[var(--text-primary)] text-sm">{ws.name}</p>
                                     <div className="flex items-center gap-2 mt-1">
                                         <span className={`w-1.5 h-1.5 rounded-full ${ws.status === 'active' ? 'bg-green-500' : 'bg-slate-500'}`}></span>
-                                        <span className="text-xs text-slate-400 capitalize">{ws.status}</span>
+                                        <span className="text-xs text-[var(--text-secondary)] capitalize">{ws.status}</span>
                                     </div>
                                 </div>
                                 <button className="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
@@ -149,7 +149,7 @@ export default function MemberDashboard() {
                             </div>
                         )) : (
                             <div className="flex-1 flex flex-col items-center justify-center text-center py-6">
-                                <p className="text-sm text-slate-400 mb-4">No workspaces yet.</p>
+                                <p className="text-sm text-[var(--text-secondary)] mb-4">No workspaces yet.</p>
                                 <button onClick={() => navigate('/member/workspaces')} className="text-sm text-indigo-400 font-medium bg-indigo-500/10 px-4 py-2 rounded-lg border border-indigo-500/20">
                                     Create Workspace
                                 </button>
@@ -163,7 +163,7 @@ export default function MemberDashboard() {
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-2">
                             <Tv className="w-5 h-5 text-indigo-400" />
-                            <h3 className="font-semibold text-white">Joined Sessions</h3>
+                            <h3 className="font-semibold text-[var(--text-primary)]">Joined Sessions</h3>
                         </div>
                         <Link to="/sessions" className="text-sm text-indigo-400 hover:text-indigo-300 flex items-center">
                             Discover <ChevronRight className="w-4 h-4" />
@@ -172,9 +172,9 @@ export default function MemberDashboard() {
                     
                     <div className="flex-1 flex flex-col gap-3">
                         {sessions.length > 0 ? sessions.map(session => (
-                            <div key={session.id} className="p-3 bg-[#0D1526] rounded-xl border border-white/5">
-                                <p className="font-medium text-white text-sm mb-1">{session.name}</p>
-                                <p className="text-xs text-slate-400">{new Date(session.start_time).toLocaleString()}</p>
+                            <div key={session.id} className="p-3 bg-[#0D1526] rounded-xl border border-[var(--border-color)]">
+                                <p className="font-medium text-[var(--text-primary)] text-sm mb-1">{session.name}</p>
+                                <p className="text-xs text-[var(--text-secondary)]">{new Date(session.start_time).toLocaleString()}</p>
                                 {session.status === 'active' && (
                                     <button className="mt-2 w-full py-1.5 bg-green-500/10 text-green-500 rounded text-xs font-medium border border-green-500/20">
                                         Join Live Session
@@ -183,7 +183,7 @@ export default function MemberDashboard() {
                             </div>
                         )) : (
                             <div className="flex-1 flex flex-col items-center justify-center text-center py-6">
-                                <p className="text-sm text-slate-400 mb-4">No upcoming sessions.</p>
+                                <p className="text-sm text-[var(--text-secondary)] mb-4">No upcoming sessions.</p>
                                 <button onClick={() => setIsJoinSessionOpen(true)} className="text-sm text-indigo-400 font-medium bg-indigo-500/10 px-4 py-2 rounded-lg border border-indigo-500/20">
                                     Join by Code
                                 </button>
@@ -197,7 +197,7 @@ export default function MemberDashboard() {
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-2">
                             <FolderOpen className="w-5 h-5 text-indigo-400" />
-                            <h3 className="font-semibold text-white">My Groups</h3>
+                            <h3 className="font-semibold text-[var(--text-primary)]">My Groups</h3>
                         </div>
                         <Link to="/member/groups" className="text-sm text-indigo-400 hover:text-indigo-300 flex items-center">
                             View All <ChevronRight className="w-4 h-4" />
@@ -206,18 +206,18 @@ export default function MemberDashboard() {
                     
                     <div className="flex-1 flex flex-col gap-3">
                         {groups.length > 0 ? groups.map(group => (
-                            <div key={group.id} className="p-3 bg-[#0D1526] rounded-xl border border-white/5 flex items-center justify-between">
+                            <div key={group.id} className="p-3 bg-[#0D1526] rounded-xl border border-[var(--border-color)] flex items-center justify-between">
                                 <div>
-                                    <p className="font-medium text-white text-sm">{group.name}</p>
-                                    <p className="text-xs text-slate-400 mt-1">{group.member_count} members</p>
+                                    <p className="font-medium text-[var(--text-primary)] text-sm">{group.name}</p>
+                                    <p className="text-xs text-[var(--text-secondary)] mt-1">{group.member_count} members</p>
                                 </div>
-                                <button onClick={() => navigate(`/groups/${group.id}`)} className="text-xs font-medium text-indigo-400 hover:text-white transition-colors">
+                                <button onClick={() => navigate(`/groups/${group.id}`)} className="text-xs font-medium text-indigo-400 hover:text-[var(--text-primary)] transition-colors">
                                     Open
                                 </button>
                             </div>
                         )) : (
                             <div className="flex-1 flex flex-col items-center justify-center text-center py-6">
-                                <p className="text-sm text-slate-400 mb-4">You haven't joined any groups.</p>
+                                <p className="text-sm text-[var(--text-secondary)] mb-4">You haven't joined any groups.</p>
                                 <button onClick={() => setIsJoinGroupOpen(true)} className="text-sm text-indigo-400 font-medium bg-indigo-500/10 px-4 py-2 rounded-lg border border-indigo-500/20">
                                     + Join a Group
                                 </button>
@@ -233,25 +233,25 @@ export default function MemberDashboard() {
                     <div className="w-12 h-12 rounded-full bg-indigo-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                         <Laptop className="w-6 h-6 text-indigo-400" />
                     </div>
-                    <span className="text-sm font-medium text-white">Browse Templates</span>
+                    <span className="text-sm font-medium text-[var(--text-primary)]">Browse Templates</span>
                 </Link>
                 <button onClick={() => setIsJoinSessionOpen(true)} className="glass-card p-4 rounded-xl flex flex-col items-center text-center hover:border-indigo-500/40 transition-all group">
                     <div className="w-12 h-12 rounded-full bg-cyan-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                         <Tv className="w-6 h-6 text-cyan-400" />
                     </div>
-                    <span className="text-sm font-medium text-white">Join Session</span>
+                    <span className="text-sm font-medium text-[var(--text-primary)]">Join Session</span>
                 </button>
                 <Link to="/member/groups" className="glass-card p-4 rounded-xl flex flex-col items-center text-center hover:border-indigo-500/40 transition-all group">
                     <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                         <Users className="w-6 h-6 text-purple-400" />
                     </div>
-                    <span className="text-sm font-medium text-white">Browse Groups</span>
+                    <span className="text-sm font-medium text-[var(--text-primary)]">Browse Groups</span>
                 </Link>
                 <button onClick={() => setIsUpgradeModalOpen(true)} className="glass-card p-4 rounded-xl flex flex-col items-center text-center hover:border-indigo-500/40 transition-all group">
                     <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                         <CreditCard className="w-6 h-6 text-emerald-400" />
                     </div>
-                    <span className="text-sm font-medium text-white">Upgrade Plan</span>
+                    <span className="text-sm font-medium text-[var(--text-primary)]">Upgrade Plan</span>
                 </button>
             </div>
 

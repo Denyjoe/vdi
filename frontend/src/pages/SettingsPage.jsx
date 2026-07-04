@@ -226,6 +226,7 @@ export default function SettingsPage() {
         </section>
 
         {/* SUBSCRIPTION */}
+        {user?.role !== 'admin' && (
         <section style={{
           background: '#0d1526', border: '1px solid #1e293b', borderRadius: '20px', overflow: 'hidden'
         }}>
@@ -302,6 +303,7 @@ export default function SettingsPage() {
             </div>
           </div>
         </section>
+        )}
 
         {/* PREFERENCES */}
         <section style={{

@@ -72,8 +72,8 @@ export default function HostAnalyticsPage() {
     <div className="max-w-7xl mx-auto space-y-6">
       {/* HEADER */}
       <div>
-        <h1 className="text-2xl font-bold text-white mb-2">My Analytics</h1>
-        <p className="text-slate-400">Track your session performance</p>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-2">My Analytics</h1>
+        <p className="text-[var(--text-secondary)]">Track your session performance</p>
       </div>
 
       {/* STATS ROW */}
@@ -84,36 +84,36 @@ export default function HostAnalyticsPage() {
           { label: 'Total Session Hours', value: stats.total_session_hours || 0, icon: Clock, color: 'text-cyan-400', bg: 'bg-cyan-400/10' },
           { label: 'Avg Participants/Session', value: stats.avg_participants_per_session || 0, icon: BarChart2, color: 'text-amber-400', bg: 'bg-amber-400/10' },
         ].map(s => (
-          <div key={s.label} className="glass-card p-6 rounded-xl border border-white/5">
+          <div key={s.label} className="glass-card p-6 rounded-xl border border-[var(--border-color)]">
             <div className="flex items-center gap-4 mb-4">
               <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${s.bg}`}>
                 <s.icon className={`w-5 h-5 ${s.color}`} />
               </div>
-              <p className="text-slate-400 text-sm font-medium">{s.label}</p>
+              <p className="text-[var(--text-secondary)] text-sm font-medium">{s.label}</p>
             </div>
-            <p className="text-3xl font-bold text-white">{s.value}</p>
+            <p className="text-3xl font-bold text-[var(--text-primary)]">{s.value}</p>
           </div>
         ))}
       </div>
 
       {/* SESSIONS TABLE */}
-      <div className="glass-card rounded-xl border border-white/5 overflow-hidden">
-        <div className="p-6 border-b border-white/5">
-          <h2 className="text-lg font-bold text-white">Recent Sessions</h2>
+      <div className="glass-card rounded-xl border border-[var(--border-color)] overflow-hidden">
+        <div className="p-6 border-b border-[var(--border-color)]">
+          <h2 className="text-lg font-bold text-[var(--text-primary)]">Recent Sessions</h2>
         </div>
         
         {loading ? (
-          <div className="p-12 flex justify-center text-slate-400">Loading...</div>
+          <div className="p-12 flex justify-center text-[var(--text-secondary)]">Loading...</div>
         ) : sessions.length === 0 ? (
           <div className="p-16 text-center">
             <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 flex items-center justify-center mx-auto mb-4">
               <Video className="w-8 h-8 text-indigo-400" />
             </div>
-            <h3 className="text-lg font-bold text-white mb-2">No sessions yet</h3>
-            <p className="text-slate-400 mb-6">Create a live session to see your analytics here.</p>
+            <h3 className="text-lg font-bold text-[var(--text-primary)] mb-2">No sessions yet</h3>
+            <p className="text-[var(--text-secondary)] mb-6">Create a live session to see your analytics here.</p>
             <button 
               onClick={openCreateSessionModal}
-              className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-colors"
+              className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-[var(--text-primary)] rounded-lg font-medium transition-colors"
             >
               Create your first session &rarr;
             </button>
@@ -122,33 +122,33 @@ export default function HostAnalyticsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-white/5 bg-white/[0.02]">
-                  <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Type</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Participants</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Duration</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
+                <tr className="border-b border-[var(--border-color)] bg-white/[0.02]">
+                  <th className="px-6 py-4 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Name</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Type</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Participants</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Duration</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {sessions.map(s => (
                   <tr key={s.id} className="hover:bg-white/[0.02] transition-colors">
                     <td className="px-6 py-4">
-                      <p className="text-sm font-medium text-white">{s.name}</p>
+                      <p className="text-sm font-medium text-[var(--text-primary)]">{s.name}</p>
                     </td>
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 capitalize">
                         {s.session_type || 'Custom'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-300">
+                    <td className="px-6 py-4 text-sm text-[var(--text-primary)]">
                       {s.start_time ? new Date(s.start_time).toLocaleDateString() : '---'}
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-300">
+                    <td className="px-6 py-4 text-sm text-[var(--text-primary)]">
                       {s.participants_count || s.max_participants || 0}
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-300">
+                    <td className="px-6 py-4 text-sm text-[var(--text-primary)]">
                       {s.start_time && s.end_time
                         ? `${((new Date(s.end_time) - new Date(s.start_time)) / 3600000).toFixed(1)}h`
                         : 'Ongoing'}

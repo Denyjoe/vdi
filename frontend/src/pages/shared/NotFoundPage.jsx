@@ -38,16 +38,16 @@ export default function NotFoundPage() {
         <AlertTriangle className="w-10 h-10 text-red-400" />
       </div>
 
-      <h1 className="text-5xl font-bold text-white mb-2">404</h1>
-      <h2 className="text-xl font-semibold text-slate-300 mb-4">Page Not Found</h2>
-      <p className="text-slate-400 max-w-md mb-8">
+      <h1 className="text-5xl font-bold text-[var(--text-primary)] mb-2">404</h1>
+      <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-4">Page Not Found</h2>
+      <p className="text-[var(--text-secondary)] max-w-md mb-8">
         The page you're looking for doesn't exist or has been moved.
         Let's get you back to safety.
       </p>
 
       <button
         onClick={() => navigate(getBackPath())}
-        className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium shadow-lg shadow-blue-900/50"
+        className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-[var(--text-primary)] rounded-lg hover:bg-indigo-700 transition-colors font-medium shadow-lg shadow-blue-900/50"
       >
         <ArrowLeft className="w-4 h-4" />
         Back to Dashboard

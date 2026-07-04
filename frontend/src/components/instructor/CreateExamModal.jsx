@@ -104,17 +104,17 @@ export default function CreateExamModal({ isOpen, onClose, onSuccess }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
-      <div className="bg-slate-800 rounded-xl shadow-xl w-full max-w-2xl border border-slate-700 max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--bg-primary)]/80 backdrop-blur-sm">
+      <div className="bg-[var(--bg-card)] rounded-xl shadow-xl w-full max-w-2xl border border-[var(--border-color)] max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-700 shrink-0">
+        <div className="flex items-center justify-between p-6 border-b border-[var(--border-color)] shrink-0">
           <div>
-            <h2 className="text-xl font-bold text-white">New Exam Session</h2>
-            <p className="text-sm text-slate-400 mt-1">Create a monitored session for an assessment</p>
+            <h2 className="text-xl font-bold text-[var(--text-primary)]">New Exam Session</h2>
+            <p className="text-sm text-[var(--text-secondary)] mt-1">Create a monitored session for an assessment</p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+            className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -131,7 +131,7 @@ export default function CreateExamModal({ isOpen, onClose, onSuccess }) {
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
                     Exam Name <span className="text-red-400">*</span>
                   </label>
                   <input
@@ -141,12 +141,12 @@ export default function CreateExamModal({ isOpen, onClose, onSuccess }) {
                     onChange={handleChange}
                     required
                     placeholder="e.g. CAD Practical Exam 1"
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
                     Select Class <span className="text-red-400">*</span>
                   </label>
                   <select
@@ -154,7 +154,7 @@ export default function CreateExamModal({ isOpen, onClose, onSuccess }) {
                     value={formData.class_room}
                     onChange={handleChange}
                     required
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="">Select a class...</option>
                     {classes.map(c => (
@@ -165,7 +165,7 @@ export default function CreateExamModal({ isOpen, onClose, onSuccess }) {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
+                    <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
                       Start Date & Time <span className="text-red-400">*</span>
                     </label>
                     <input
@@ -174,11 +174,11 @@ export default function CreateExamModal({ isOpen, onClose, onSuccess }) {
                       value={formData.starts_at}
                       onChange={handleChange}
                       required
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
+                      className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-indigo-500 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
+                    <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
                       End Date & Time <span className="text-red-400">*</span>
                     </label>
                     <input
@@ -187,31 +187,31 @@ export default function CreateExamModal({ isOpen, onClose, onSuccess }) {
                       value={formData.ends_at}
                       onChange={handleChange}
                       required
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
+                      className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-indigo-500 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
                     Allowed VM Template (Optional)
                   </label>
                   <select
                     name="allowed_vm_template"
                     value={formData.allowed_vm_template}
                     onChange={handleChange}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="">Any template</option>
                     {templates.map(t => (
                       <option key={t.id} value={t.id}>{t.name}</option>
                     ))}
                   </select>
-                  <p className="text-xs text-slate-400 mt-1">If selected, students can only use VMs based on this template during the exam.</p>
+                  <p className="text-xs text-[var(--text-secondary)] mt-1">If selected, students can only use VMs based on this template during the exam.</p>
                 </div>
               </div>
 
-              <div className="bg-slate-900/50 rounded-lg border border-slate-700 p-4">
+              <div className="bg-[var(--bg-primary)]/50 rounded-lg border border-[var(--border-color)] p-4">
                 <div className="flex items-center gap-2 mb-4 text-amber-400">
                   <ShieldAlert className="w-5 h-5" />
                   <h3 className="font-medium">Restrictions</h3>
@@ -224,11 +224,11 @@ export default function CreateExamModal({ isOpen, onClose, onSuccess }) {
                       name="restrict_internet"
                       checked={formData.restrict_internet}
                       onChange={handleChange}
-                      className="w-5 h-5 rounded border-slate-600 bg-slate-900 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900"
+                      className="w-5 h-5 rounded border-slate-600 bg-[var(--bg-primary)] text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900"
                     />
                     <div>
-                      <div className="text-white">Restrict Internet Access</div>
-                      <div className="text-xs text-slate-400">Blocks external websites (simulated)</div>
+                      <div className="text-[var(--text-primary)]">Restrict Internet Access</div>
+                      <div className="text-xs text-[var(--text-secondary)]">Blocks external websites (simulated)</div>
                     </div>
                   </label>
 
@@ -238,18 +238,18 @@ export default function CreateExamModal({ isOpen, onClose, onSuccess }) {
                       name="restrict_copy_paste"
                       checked={formData.restrict_copy_paste}
                       onChange={handleChange}
-                      className="w-5 h-5 rounded border-slate-600 bg-slate-900 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900"
+                      className="w-5 h-5 rounded border-slate-600 bg-[var(--bg-primary)] text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900"
                     />
                     <div>
-                      <div className="text-white">Restrict Copy & Paste</div>
-                      <div className="text-xs text-slate-400">Prevents clipboard sharing with local machine (simulated)</div>
+                      <div className="text-[var(--text-primary)]">Restrict Copy & Paste</div>
+                      <div className="text-xs text-[var(--text-secondary)]">Prevents clipboard sharing with local machine (simulated)</div>
                     </div>
                   </label>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
                   Instructions for Students
                 </label>
                 <textarea
@@ -258,12 +258,12 @@ export default function CreateExamModal({ isOpen, onClose, onSuccess }) {
                   onChange={handleChange}
                   rows={3}
                   placeholder="Instructions shown to students when they join the exam..."
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                  className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
                   Grace period (Minutes)
                 </label>
                 <input
@@ -272,20 +272,20 @@ export default function CreateExamModal({ isOpen, onClose, onSuccess }) {
                   value={formData.grace_period_minutes}
                   onChange={handleChange}
                   min="0"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
-                <p className="text-xs text-slate-400 mt-1">Minutes after end before force-termination.</p>
+                <p className="text-xs text-[var(--text-secondary)] mt-1">Minutes after end before force-termination.</p>
               </div>
             </form>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-700 shrink-0">
+        <div className="flex items-center justify-end gap-3 p-6 border-t border-[var(--border-color)] shrink-0">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-slate-300 bg-slate-800 border border-slate-600 rounded-lg hover:bg-slate-700 transition-colors"
+            className="px-4 py-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--bg-card)] border border-slate-600 rounded-lg hover:bg-[var(--bg-card-hover)] transition-colors"
           >
             Cancel
           </button>
@@ -293,7 +293,7 @@ export default function CreateExamModal({ isOpen, onClose, onSuccess }) {
             type="submit"
             form="createExamForm"
             disabled={isSubmitting || isLoading}
-            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-4 py-2 text-sm font-medium text-[var(--text-primary)] bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {isSubmitting ? (
               <>

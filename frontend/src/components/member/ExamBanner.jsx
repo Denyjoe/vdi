@@ -84,7 +84,7 @@ export default function ExamBanner() {
               📋 Exam In Progress
             </p>
           </div>
-          <p className="text-white font-bold text-base">{activeExam.name}</p>
+          <p className="text-[var(--text-primary)] font-bold text-base">{activeExam.name}</p>
           <p className="text-amber-200/70 text-sm">
             {activeExam.allowed_vm_template
               ? `Allowed VM: ${activeExam.allowed_vm_template.name}`
@@ -122,7 +122,7 @@ export default function ExamBanner() {
           onClick={() => navigate('/student/vms')}
           className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all
             ${isUrgent
-              ? 'bg-red-500 hover:bg-red-600 text-white'
+              ? 'bg-red-500 hover:bg-red-600 text-[var(--text-primary)]'
               : 'bg-amber-500 hover:bg-amber-400 text-amber-900'
             }`}
         >

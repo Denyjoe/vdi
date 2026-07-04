@@ -44,7 +44,7 @@ export default function SessionHistoryPage() {
         );
       case 'disconnected':
         return (
-          <span className="inline-flex items-center gap-1.5 bg-slate-700 text-slate-300 px-2.5 py-1 rounded-full text-xs font-medium border border-slate-600">
+          <span className="inline-flex items-center gap-1.5 bg-[var(--bg-card-hover)] text-[var(--text-primary)] px-2.5 py-1 rounded-full text-xs font-medium border border-slate-600">
             Disconnected
           </span>
         );
@@ -56,7 +56,7 @@ export default function SessionHistoryPage() {
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 bg-slate-700 text-slate-300 px-2.5 py-1 rounded-full text-xs font-medium border border-slate-600">
+          <span className="inline-flex items-center gap-1.5 bg-[var(--bg-card-hover)] text-[var(--text-primary)] px-2.5 py-1 rounded-full text-xs font-medium border border-slate-600">
             {status}
           </span>
         );
@@ -82,41 +82,41 @@ export default function SessionHistoryPage() {
   return (
     <div className="space-y-8 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold text-white font-inter">Session History</h1>
-        <p className="text-slate-400 mt-1 text-sm">Review your past virtual machine sessions</p>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)] font-inter">Session History</h1>
+        <p className="text-[var(--text-secondary)] mt-1 text-sm">Review your past virtual machine sessions</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-slate-800 rounded-xl p-6 shadow-md border border-slate-700 flex items-center gap-4">
+        <div className="bg-[var(--bg-card)] rounded-xl p-6 shadow-md border border-[var(--border-color)] flex items-center gap-4">
           <div className="bg-indigo-500/20 p-4 rounded-lg">
             <Monitor className="w-6 h-6 text-indigo-400" />
           </div>
           <div>
-            <p className="text-slate-400 text-sm font-medium">Total Sessions</p>
-            <p className="text-2xl font-bold text-white">{sessions.length}</p>
+            <p className="text-[var(--text-secondary)] text-sm font-medium">Total Sessions</p>
+            <p className="text-2xl font-bold text-[var(--text-primary)]">{sessions.length}</p>
           </div>
         </div>
-        <div className="bg-slate-800 rounded-xl p-6 shadow-md border border-slate-700 flex items-center gap-4">
+        <div className="bg-[var(--bg-card)] rounded-xl p-6 shadow-md border border-[var(--border-color)] flex items-center gap-4">
           <div className="bg-purple-500/20 p-4 rounded-lg">
             <Clock className="w-6 h-6 text-purple-400" />
           </div>
           <div>
-            <p className="text-slate-400 text-sm font-medium">Total Time</p>
-            <p className="text-2xl font-bold text-white">{totalTimeStr}</p>
+            <p className="text-[var(--text-secondary)] text-sm font-medium">Total Time</p>
+            <p className="text-2xl font-bold text-[var(--text-primary)]">{totalTimeStr}</p>
           </div>
         </div>
-        <div className="bg-slate-800 rounded-xl p-6 shadow-md border border-slate-700 flex items-center gap-4">
+        <div className="bg-[var(--bg-card)] rounded-xl p-6 shadow-md border border-[var(--border-color)] flex items-center gap-4">
           <div className="bg-emerald-500/20 p-4 rounded-lg">
             <Activity className="w-6 h-6 text-emerald-400" />
           </div>
           <div>
-            <p className="text-slate-400 text-sm font-medium">Average Session</p>
-            <p className="text-2xl font-bold text-white">{avgM}m</p>
+            <p className="text-[var(--text-secondary)] text-sm font-medium">Average Session</p>
+            <p className="text-2xl font-bold text-[var(--text-primary)]">{avgM}m</p>
           </div>
         </div>
       </div>
 
-      <div className="bg-slate-800 rounded-xl border border-slate-700 shadow-md overflow-hidden flex flex-col">
+      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] shadow-md overflow-hidden flex flex-col">
         {sessions.length === 0 ? (
           <EmptyState
             icon={<Terminal className="w-12 h-12 text-slate-500 mx-auto" />}
@@ -125,8 +125,8 @@ export default function SessionHistoryPage() {
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-slate-300">
-              <thead className="text-xs uppercase text-slate-400 bg-slate-900/50 border-b border-slate-700">
+            <table className="w-full text-sm text-[var(--text-primary)]">
+              <thead className="text-xs uppercase text-[var(--text-secondary)] bg-[var(--bg-primary)]/50 border-b border-[var(--border-color)]">
                 <tr>
                   <th className="px-6 py-4 text-left font-medium">VM Name</th>
                   <th className="px-6 py-4 text-left font-medium">Status</th>
@@ -138,13 +138,13 @@ export default function SessionHistoryPage() {
               </thead>
               <tbody className="divide-y divide-slate-700/50">
                 {sessions.map((session) => (
-                  <tr key={session.id} className="hover:bg-slate-700/20 transition-colors group">
+                  <tr key={session.id} className="hover:bg-[var(--bg-card-hover)]/20 transition-colors group">
                     <td className="px-6 py-4">
-                      <div className="font-medium text-white">{session.vm.name}</div>
+                      <div className="font-medium text-[var(--text-primary)]">{session.vm.name}</div>
                       <div className="text-xs text-slate-500 mt-1">{session.vm.template_name}</div>
                     </td>
                     <td className="px-6 py-4">{getStatusBadge(session.status)}</td>
-                    <td className="px-6 py-4 text-slate-300 font-mono text-xs tracking-wider">
+                    <td className="px-6 py-4 text-[var(--text-primary)] font-mono text-xs tracking-wider">
                       {session.duration_display}
                     </td>
                     <td className="px-6 py-4">{formatDateTime(session.started_at)}</td>
@@ -153,7 +153,7 @@ export default function SessionHistoryPage() {
                       {session.status === 'active' ? (
                         <button 
                           onClick={() => navigate(`/session/${session.id}`)}
-                          className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors"
+                          className="bg-indigo-600 hover:bg-indigo-500 text-[var(--text-primary)] px-3 py-1.5 rounded text-xs font-medium transition-colors"
                         >
                           Resume
                         </button>

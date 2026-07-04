@@ -153,21 +153,21 @@ export default function UpgradeModal({ onClose }) {
             
             <div className="relative bg-[#0D1526] border border-[#1e293b] rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl animate-[fadeIn_0.2s_ease-out]">
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-white/5 sticky top-0 bg-[#0D1526]/90 backdrop-blur-md z-10">
+                <div className="flex items-center justify-between p-6 border-b border-[var(--border-color)] sticky top-0 bg-[#0D1526]/90 backdrop-blur-md z-10">
                     <div>
-                        <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                        <h3 className="text-xl font-bold text-[var(--text-primary)] flex items-center gap-2">
                             {step === 'plans' ? (
                                 <><ShieldAlert className="w-6 h-6 text-indigo-400" /> Upgrade Your Plan</>
                             ) : (
                                 <><Zap className="w-6 h-6 text-indigo-400" /> Complete Your Upgrade</>
                             )}
                         </h3>
-                        <p className="text-slate-400 text-sm mt-1">
+                        <p className="text-[var(--text-secondary)] text-sm mt-1">
                             {step === 'plans' ? 'Unlock more compute hours and premium features.' : 
                              selectedPlan ? `${selectedPlan.display_name} — TZS ${Number(selectedPlan.price_tzs).toLocaleString()}/month` : ''}
                         </p>
                     </div>
-                    <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+                    <button onClick={onClose} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -182,35 +182,35 @@ export default function UpgradeModal({ onClose }) {
                             {plans.map(plan => {
                                 const isCurrent = user?.subscription?.plan_name === plan.name;
                                 return (
-                                    <div key={plan.id} className={`glass-card p-6 rounded-2xl flex flex-col relative ${isCurrent ? 'border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.1)]' : 'border-white/5'}`}>
+                                    <div key={plan.id} className={`glass-card p-6 rounded-2xl flex flex-col relative ${isCurrent ? 'border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.1)]' : 'border-[var(--border-color)]'}`}>
                                         {plan.name === 'pro_host' && (
-                                            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                                            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-500 text-[var(--text-primary)] text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                                                 Most Popular
                                             </div>
                                         )}
                                         
-                                        <h4 className="text-xl font-bold text-white mb-2">{plan.display_name}</h4>
+                                        <h4 className="text-xl font-bold text-[var(--text-primary)] mb-2">{plan.display_name}</h4>
                                         <div className="flex items-baseline gap-1 mb-6">
-                                            <span className="text-3xl font-bold text-white">TZS {Number(plan.price_tzs).toLocaleString()}</span>
-                                            <span className="text-slate-400">/mo</span>
+                                            <span className="text-3xl font-bold text-[var(--text-primary)]">TZS {Number(plan.price_tzs).toLocaleString()}</span>
+                                            <span className="text-[var(--text-secondary)]">/mo</span>
                                         </div>
 
                                         <div className="flex-1 space-y-4 mb-8">
                                             <div className="flex items-start gap-3">
                                                 <CheckCircle className="w-5 h-5 text-indigo-400 shrink-0" />
-                                                <span className="text-sm text-slate-300">
+                                                <span className="text-sm text-[var(--text-primary)]">
                                                     {plan.compute_hours_per_month === -1 ? 'Unlimited' : plan.compute_hours_per_month} Compute Hours
                                                 </span>
                                             </div>
                                             <div className="flex items-start gap-3">
                                                 <CheckCircle className="w-5 h-5 text-indigo-400 shrink-0" />
-                                                <span className="text-sm text-slate-300">
+                                                <span className="text-sm text-[var(--text-primary)]">
                                                     Create Live Sessions
                                                 </span>
                                             </div>
                                             <div className="flex items-start gap-3">
                                                 <CheckCircle className="w-5 h-5 text-indigo-400 shrink-0" />
-                                                <span className="text-sm text-slate-300">
+                                                <span className="text-sm text-[var(--text-primary)]">
                                                     Up to {plan.max_session_participants === -1 ? 'Unlimited' : plan.max_session_participants} participants
                                                 </span>
                                             </div>
@@ -224,8 +224,8 @@ export default function UpgradeModal({ onClose }) {
                                             disabled={isCurrent}
                                             className={`w-full py-3 rounded-xl font-medium transition-all ${
                                                 isCurrent ? 'bg-white/5 text-slate-500 cursor-not-allowed' :
-                                                plan.name === 'pro_host' ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/25' :
-                                                'bg-white/10 hover:bg-white/20 text-white'
+                                                plan.name === 'pro_host' ? 'bg-indigo-600 hover:bg-indigo-500 text-[var(--text-primary)] shadow-lg shadow-indigo-500/25' :
+                                                'bg-white/10 hover:bg-white/20 text-[var(--text-primary)]'
                                             }`}
                                         >
                                             {isCurrent ? 'Current Plan' : 'Select Plan'}
@@ -238,17 +238,17 @@ export default function UpgradeModal({ onClose }) {
                         /* STEP 2: PAYMENT DETAILS */
                         <div className="max-w-md mx-auto animate-[fadeIn_0.3s_ease-out]">
                             <div className="bg-[#111827] p-6 rounded-2xl border border-[#1e293b] mb-6">
-                                <label className="block text-sm font-medium text-slate-300 mb-2">Mobile Money Number</label>
+                                <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">Mobile Money Number</label>
                                 <input 
                                     type="text" 
                                     value={phone}
                                     onChange={handlePhoneChange}
                                     placeholder="0712 345 678"
-                                    className="w-full bg-[#0d1526] border border-[#1e293b] rounded-xl px-4 py-3 text-white text-lg focus:outline-none focus:border-indigo-500 transition-colors mb-2"
+                                    className="w-full bg-[#0d1526] border border-[#1e293b] rounded-xl px-4 py-3 text-[var(--text-primary)] text-lg focus:outline-none focus:border-indigo-500 transition-colors mb-2"
                                 />
                                 <p className="text-xs text-slate-500 mb-6">Enter your M-Pesa, Airtel, Tigo or Halopesa number</p>
 
-                                <label className="block text-sm font-medium text-slate-300 mb-2">Provider</label>
+                                <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">Provider</label>
                                 <div className="grid grid-cols-2 gap-3 mb-6">
                                     {['Mpesa', 'Airtel', 'Tigo', 'Halopesa'].map(prov => (
                                         <button 
@@ -257,7 +257,7 @@ export default function UpgradeModal({ onClose }) {
                                             className={`py-2 px-3 rounded-xl border text-sm font-medium transition-colors ${
                                                 provider === prov 
                                                 ? 'bg-indigo-600/20 border-indigo-500 text-indigo-400' 
-                                                : 'bg-[#0d1526] border-[#1e293b] text-slate-400 hover:border-slate-700'
+                                                : 'bg-[#0d1526] border-[#1e293b] text-[var(--text-secondary)] hover:border-[var(--border-color)]'
                                             }`}
                                         >
                                             {prov}
@@ -267,14 +267,14 @@ export default function UpgradeModal({ onClose }) {
                             </div>
                             
                             <div className="text-center mb-6">
-                                <p className="text-3xl font-bold text-white mb-1">TZS {Number(selectedPlan?.price_tzs || 0).toLocaleString()}</p>
+                                <p className="text-3xl font-bold text-[var(--text-primary)] mb-1">TZS {Number(selectedPlan?.price_tzs || 0).toLocaleString()}</p>
                                 <p className="text-sm text-slate-500">≈ ${selectedPlan?.price_usd}/month</p>
                             </div>
 
                             <button 
                                 onClick={handlePayNow}
                                 disabled={!phone.replace(/\s/g, '')}
-                                className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-600/50 disabled:cursor-not-allowed text-white rounded-xl font-bold text-lg transition-all shadow-[0_4px_15px_rgba(99,102,241,0.3)] disabled:shadow-none mb-4"
+                                className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-600/50 disabled:cursor-not-allowed text-[var(--text-primary)] rounded-xl font-bold text-lg transition-all shadow-[0_4px_15px_rgba(99,102,241,0.3)] disabled:shadow-none mb-4"
                             >
                                 Pay Now
                             </button>
@@ -293,16 +293,16 @@ export default function UpgradeModal({ onClose }) {
                                 </div>
                             </div>
                             
-                            <h2 className="text-2xl font-bold text-white mb-3">Check your phone</h2>
-                            <p className="text-slate-400 mb-6">
-                                A payment request has been sent to <span className="text-white font-medium">{phone}</span>. Confirm it on your phone to complete the upgrade.
+                            <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-3">Check your phone</h2>
+                            <p className="text-[var(--text-secondary)] mb-6">
+                                A payment request has been sent to <span className="text-[var(--text-primary)] font-medium">{phone}</span>. Confirm it on your phone to complete the upgrade.
                             </p>
                             
                             <div className="bg-[#111827] border border-[#1e293b] rounded-xl p-4 mb-8">
                                 <p className="text-indigo-400 font-medium">{getInstruction()}</p>
                             </div>
                             
-                            <div className="flex items-center justify-center gap-2 text-slate-400">
+                            <div className="flex items-center justify-center gap-2 text-[var(--text-secondary)]">
                                 <Loader className="w-4 h-4 animate-spin" />
                                 <span>Waiting for confirmation<span className="tracking-widest">...</span></span>
                             </div>
@@ -377,19 +377,19 @@ export default function UpgradeModal({ onClose }) {
                                 <CheckCircle className="w-10 h-10 text-emerald-400" />
                             </div>
                             
-                            <h2 className="text-2xl font-bold text-white mb-2">Payment Successful! 🎉</h2>
+                            <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Payment Successful! 🎉</h2>
                             <p className="text-emerald-400 mb-8 font-medium">You are now on {selectedPlan?.display_name}</p>
                             
                             <div className="bg-[#111827] border border-[#1e293b] rounded-2xl p-6 text-left mb-8">
-                                <h4 className="text-white font-medium mb-4">New features unlocked:</h4>
+                                <h4 className="text-[var(--text-primary)] font-medium mb-4">New features unlocked:</h4>
                                 <ul className="space-y-3">
-                                    <li className="flex gap-3 text-slate-300">
+                                    <li className="flex gap-3 text-[var(--text-primary)]">
                                         <CheckCircle className="w-5 h-5 text-indigo-400 shrink-0" /> Host live sessions
                                     </li>
-                                    <li className="flex gap-3 text-slate-300">
+                                    <li className="flex gap-3 text-[var(--text-primary)]">
                                         <CheckCircle className="w-5 h-5 text-indigo-400 shrink-0" /> Up to {selectedPlan?.max_session_participants === -1 ? 'Unlimited' : selectedPlan?.max_session_participants} participants
                                     </li>
-                                    <li className="flex gap-3 text-slate-300">
+                                    <li className="flex gap-3 text-[var(--text-primary)]">
                                         <CheckCircle className="w-5 h-5 text-indigo-400 shrink-0" /> {selectedPlan?.compute_hours_per_month === -1 ? 'Unlimited' : selectedPlan?.compute_hours_per_month} hours/month
                                     </li>
                                 </ul>
@@ -400,7 +400,7 @@ export default function UpgradeModal({ onClose }) {
                                     onClose();
                                     window.location.reload();
                                 }}
-                                className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-lg transition-all shadow-lg shadow-emerald-500/20"
+                                className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-[var(--text-primary)] rounded-xl font-bold text-lg transition-all shadow-lg shadow-emerald-500/20"
                             >
                                 Start Hosting Now &rarr;
                             </button>
@@ -412,21 +412,21 @@ export default function UpgradeModal({ onClose }) {
                                 <XCircle className="w-10 h-10 text-rose-400" />
                             </div>
                             
-                            <h2 className="text-2xl font-bold text-white mb-3">Payment Failed</h2>
-                            <p className="text-slate-400 mb-8">
+                            <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-3">Payment Failed</h2>
+                            <p className="text-[var(--text-secondary)] mb-8">
                                 {paymentError || "The payment was not confirmed. Please try again."}
                             </p>
                             
                             <div className="flex gap-3">
                                 <button 
                                     onClick={() => setStep('payment')}
-                                    className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-colors"
+                                    className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 text-[var(--text-primary)] rounded-xl font-medium transition-colors"
                                 >
                                     Try Again
                                 </button>
                                 <button 
                                     onClick={onClose}
-                                    className="flex-1 py-3 bg-[#111827] border border-[#1e293b] hover:bg-[#1e293b] text-white rounded-xl font-medium transition-colors"
+                                    className="flex-1 py-3 bg-[#111827] border border-[#1e293b] hover:bg-[#1e293b] text-[var(--text-primary)] rounded-xl font-medium transition-colors"
                                 >
                                     Cancel
                                 </button>

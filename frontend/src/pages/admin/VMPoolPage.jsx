@@ -124,25 +124,25 @@ export default function VMPoolPage() {
     <div className="p-6 max-w-7xl mx-auto space-y-8 animate-[fadeIn_0.4s_ease-out]">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-[var(--text-primary)] flex items-center gap-2">
             <Server className="w-6 h-6 text-indigo-400" /> 
             VM Pool Management
           </h1>
-          <p className="text-slate-400 mt-1">Pre-clone VMs for instant user assignment</p>
+          <p className="text-[var(--text-secondary)] mt-1">Pre-clone VMs for instant user assignment</p>
         </div>
         <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer mr-2">
+          <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)] cursor-pointer mr-2">
             <input 
               type="checkbox" 
               checked={autoRefresh} 
               onChange={e => setAutoRefresh(e.target.checked)}
-              className="rounded bg-slate-800 border-slate-600 text-indigo-500 focus:ring-indigo-500"
+              className="rounded bg-[var(--bg-card)] border-slate-600 text-indigo-500 focus:ring-indigo-500"
             />
             Auto-refresh
           </label>
           <button 
             onClick={fetchData} 
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-slate-300 transition-colors text-sm font-medium"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border-color)] hover:bg-white/10 text-[var(--text-primary)] transition-colors text-sm font-medium"
           >
             <RefreshCw size={16} /> Refresh
           </button>
@@ -154,7 +154,7 @@ export default function VMPoolPage() {
           </button>
           <button 
             onClick={() => setShowCreateModal(true)} 
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition-colors text-sm font-bold shadow-lg shadow-indigo-500/20"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-[var(--text-primary)] transition-colors text-sm font-bold shadow-lg shadow-indigo-500/20"
           >
             <Plus size={16} /> Pre-clone VMs
           </button>
@@ -169,17 +169,17 @@ export default function VMPoolPage() {
           { label: 'Creating', value: stats?.creating || 0, color: 'text-amber-400', border: 'border-l-amber-400' },
           { label: 'Error', value: stats?.error || 0, color: 'text-red-400', border: 'border-l-red-400' },
         ].map(card => (
-          <div key={card.label} className={`bg-[#1e2d3d]/80 backdrop-blur-md rounded-xl p-5 border border-white/5 border-l-4 ${card.border} shadow-lg`}>
-            <p className="text-slate-400 text-xs uppercase tracking-wider font-medium mb-1">{card.label}</p>
+          <div key={card.label} className={`bg-[var(--bg-card)]/80 backdrop-blur-md rounded-xl p-5 border border-[var(--border-color)] border-l-4 ${card.border} shadow-lg`}>
+            <p className="text-[var(--text-secondary)] text-xs uppercase tracking-wider font-medium mb-1">{card.label}</p>
             <p className={`text-3xl font-bold ${card.color}`}>{card.value}</p>
           </div>
         ))}
       </div>
 
       {/* Pool Entries Table */}
-      <div className="bg-[#1e2d3d]/80 backdrop-blur-md rounded-2xl shadow-lg border border-white/5 overflow-hidden">
-        <div className="px-6 py-5 border-b border-white/5">
-          <h2 className="text-lg font-semibold text-white">Pool Entries</h2>
+      <div className="bg-[var(--bg-card)]/80 backdrop-blur-md rounded-2xl shadow-lg border border-[var(--border-color)] overflow-hidden">
+        <div className="px-6 py-5 border-b border-[var(--border-color)]">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Pool Entries</h2>
         </div>
         
         {entries.length === 0 ? (
@@ -187,16 +187,16 @@ export default function VMPoolPage() {
             <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
               <Cloud className="w-8 h-8 text-slate-500" />
             </div>
-            <p className="text-white font-medium mb-1">No VMs in pool</p>
-            <p className="text-slate-400 text-sm">Click "Pre-clone VMs" to get started.</p>
+            <p className="text-[var(--text-primary)] font-medium mb-1">No VMs in pool</p>
+            <p className="text-[var(--text-secondary)] text-sm">Click "Pre-clone VMs" to get started.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="bg-white/[0.02] border-b border-white/5">
+                <tr className="bg-white/[0.02] border-b border-[var(--border-color)]">
                   {['VM ID', 'Template', 'IP Address', 'Status', 'Assigned To', 'Created', 'Actions'].map(h => (
-                    <th key={h} className="py-3 px-6 text-xs font-medium text-slate-400 uppercase tracking-wider">
+                    <th key={h} className="py-3 px-6 text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider">
                       {h}
                     </th>
                   ))}
@@ -206,10 +206,10 @@ export default function VMPoolPage() {
                 {entries.map(e => (
                   <tr key={e.id} className="hover:bg-white/[0.02] transition-colors">
                     <td className="py-3 px-6">
-                      <span className="font-mono text-white text-sm font-medium">{e.proxmox_vmid || '—'}</span>
+                      <span className="font-mono text-[var(--text-primary)] text-sm font-medium">{e.proxmox_vmid || '—'}</span>
                     </td>
-                    <td className="py-3 px-6 text-slate-300 text-sm">{e.template}</td>
-                    <td className="py-3 px-6 font-mono text-slate-400 text-sm">{e.ip_address || '—'}</td>
+                    <td className="py-3 px-6 text-[var(--text-primary)] text-sm">{e.template}</td>
+                    <td className="py-3 px-6 font-mono text-[var(--text-secondary)] text-sm">{e.ip_address || '—'}</td>
                     <td className="py-3 px-6">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
                         e.status === 'ready' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
@@ -222,16 +222,16 @@ export default function VMPoolPage() {
                         <span className="capitalize">{e.status}</span>
                       </span>
                     </td>
-                    <td className="py-3 px-6 text-slate-400 text-sm">{e.assigned_to || '—'}</td>
-                    <td className="py-3 px-6 text-slate-400 text-sm">{new Date(e.created_at).toLocaleDateString()}</td>
+                    <td className="py-3 px-6 text-[var(--text-secondary)] text-sm">{e.assigned_to || '—'}</td>
+                    <td className="py-3 px-6 text-[var(--text-secondary)] text-sm">{new Date(e.created_at).toLocaleDateString()}</td>
                     <td className="py-3 px-6">
                       <div className="flex items-center gap-2">
-                        <button className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors">
+                        <button className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-lg hover:bg-white/10 transition-colors">
                           <Eye size={16} />
                         </button>
                         <button 
                           onClick={() => handleDeleteEntry(e.id)}
-                          className="p-1.5 text-slate-400 hover:text-red-400 rounded-lg hover:bg-red-400/10 transition-colors"
+                          className="p-1.5 text-[var(--text-secondary)] hover:text-red-400 rounded-lg hover:bg-red-400/10 transition-colors"
                         >
                           <Trash2 size={16} />
                         </button>
@@ -247,21 +247,21 @@ export default function VMPoolPage() {
 
       {/* Templates Section */}
       <div>
-        <h2 className="text-lg font-semibold text-white mb-4">Template Cards</h2>
+        <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Template Cards</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {templates.map(t => (
-            <div key={t.id} className="bg-[#1e2d3d]/80 backdrop-blur-md rounded-2xl p-5 border border-white/5 shadow-lg flex flex-col">
+            <div key={t.id} className="bg-[var(--bg-card)]/80 backdrop-blur-md rounded-2xl p-5 border border-[var(--border-color)] shadow-lg flex flex-col">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h3 className="font-semibold text-white text-lg">{t.name}</h3>
-                  <p className="text-slate-400 text-sm">{t.os}</p>
+                  <h3 className="font-semibold text-[var(--text-primary)] text-lg">{t.name}</h3>
+                  <p className="text-[var(--text-secondary)] text-sm">{t.os}</p>
                 </div>
                 {t.is_real ? (
                   <span className="px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-medium">
                     Linked (ID: {t.proxmox_template_id})
                   </span>
                 ) : (
-                  <span className="px-2.5 py-1 rounded bg-slate-800 text-slate-400 border border-slate-700 text-xs font-medium">
+                  <span className="px-2.5 py-1 rounded bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border-color)] text-xs font-medium">
                     Unlinked
                   </span>
                 )}
@@ -281,7 +281,7 @@ export default function VMPoolPage() {
               <div className="mt-auto">
                 <button 
                   onClick={() => { setShowLinkModal(t.id); setLinkForm({ proxmox_template_id: t.proxmox_template_id || '' }) }}
-                  className="w-full py-2.5 rounded-xl border text-sm font-medium transition-colors flex items-center justify-center gap-2 bg-white/5 border-white/10 text-white hover:bg-white/10"
+                  className="w-full py-2.5 rounded-xl border text-sm font-medium transition-colors flex items-center justify-center gap-2 bg-white/5 border-[var(--border-color)] text-[var(--text-primary)] hover:bg-white/10"
                 >
                   {t.is_real ? <><Unlink size={16} /> Manage Link</> : <><Link2 size={16} /> Link to Proxmox</>}
                 </button>
@@ -294,20 +294,20 @@ export default function VMPoolPage() {
       {/* Modals remain essentially the same but with updated styling matching AdminDashboard */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1e2d3d] border border-white/10 rounded-2xl p-6 max-w-md w-full shadow-2xl animate-[fadeIn_0.2s_ease-out]">
+          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-6 max-w-md w-full shadow-2xl animate-[fadeIn_0.2s_ease-out]">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-white">Pre-clone VMs</h3>
-              <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-white transition-colors">
+              <h3 className="text-xl font-bold text-[var(--text-primary)]">Pre-clone VMs</h3>
+              <button onClick={() => setShowCreateModal(false)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
                 <X size={20} />
               </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">Template</label>
+                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">Template</label>
                 <select 
                   value={createForm.template_id}
                   onChange={e => setCreateForm({ ...createForm, template_id: e.target.value })}
-                  className="w-full bg-[#0f1923] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  className="w-full bg-[#0f1923] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                 >
                   <option value="">Select a real template...</option>
                   {realTemplates.map(t => (
@@ -316,17 +316,17 @@ export default function VMPoolPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">Number of VMs (1–5)</label>
+                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">Number of VMs (1–5)</label>
                 <input 
                   type="number" min="1" max="5" 
                   value={createForm.count}
                   onChange={e => setCreateForm({ ...createForm, count: parseInt(e.target.value) || 1 })}
-                  className="w-full bg-[#0f1923] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  className="w-full bg-[#0f1923] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
               <button 
                 onClick={handleCreate} disabled={creating}
-                className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+                className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-[var(--text-primary)] font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
               >
                 {creating ? 'Starting...' : `Clone ${createForm.count} VM(s)`}
               </button>
@@ -337,28 +337,28 @@ export default function VMPoolPage() {
 
       {showLinkModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1e2d3d] border border-white/10 rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-[fadeIn_0.2s_ease-out]">
+          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-[fadeIn_0.2s_ease-out]">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-white">Link to Proxmox</h3>
-              <button onClick={() => setShowLinkModal(null)} className="text-slate-400 hover:text-white transition-colors">
+              <h3 className="text-xl font-bold text-[var(--text-primary)]">Link to Proxmox</h3>
+              <button onClick={() => setShowLinkModal(null)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
                 <X size={20} />
               </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">Proxmox Template VM ID</label>
+                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">Proxmox Template VM ID</label>
                 <input 
                   type="number" 
                   value={linkForm.proxmox_template_id}
                   onChange={e => setLinkForm({ proxmox_template_id: e.target.value })}
                   placeholder="e.g. 9000"
-                  className="w-full bg-[#0f1923] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  className="w-full bg-[#0f1923] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
               <div className="flex gap-3 mt-2">
                 <button 
                   onClick={() => handleLink(showLinkModal)}
-                  className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-colors"
+                  className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-[var(--text-primary)] font-medium transition-colors"
                 >
                   Link
                 </button>

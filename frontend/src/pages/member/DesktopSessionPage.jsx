@@ -136,14 +136,14 @@ export default function DesktopSessionPage() {
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-black font-inter select-none">
       {/* ── Top Bar ── */}
-      <div className="h-12 bg-slate-900 border-b border-slate-700 flex items-center justify-between px-4 shrink-0 shadow-md relative z-50">
+      <div className="h-12 bg-[var(--bg-primary)] border-b border-[var(--border-color)] flex items-center justify-between px-4 shrink-0 shadow-md relative z-50">
         <div className="flex items-center gap-4">
           <Monitor className="w-5 h-5 text-indigo-400" />
-          <span className="text-white font-medium text-sm sm:text-base hidden sm:block">
+          <span className="text-[var(--text-primary)] font-medium text-sm sm:text-base hidden sm:block">
             {sessionData.vm_name}
           </span>
           
-          <div className="h-5 w-px bg-slate-700 hidden sm:block" />
+          <div className="h-5 w-px bg-[var(--bg-card-hover)] hidden sm:block" />
           
           <div className="flex items-center gap-1.5">
             <span className="relative flex h-2.5 w-2.5">
@@ -153,9 +153,9 @@ export default function DesktopSessionPage() {
             <span className="text-emerald-400 text-sm font-medium">Connected</span>
           </div>
           
-          <div className="h-5 w-px bg-slate-700" />
+          <div className="h-5 w-px bg-[var(--bg-card-hover)]" />
           
-          <span className="text-slate-300 font-mono text-sm tracking-wider">
+          <span className="text-[var(--text-primary)] font-mono text-sm tracking-wider">
             {formatTimer(timer)}
           </span>
         </div>
@@ -168,11 +168,11 @@ export default function DesktopSessionPage() {
             RAM: {ram.toFixed(1)}%
           </span>
           
-          <div className="h-5 w-px bg-slate-700 hidden md:block" />
+          <div className="h-5 w-px bg-[var(--bg-card-hover)] hidden md:block" />
           
           <button 
             onClick={() => setShowConfirm(true)}
-            className="bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded text-xs font-medium transition-colors border border-red-500/30 flex items-center gap-1.5"
+            className="bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-[var(--text-primary)] px-3 py-1.5 rounded text-xs font-medium transition-colors border border-red-500/30 flex items-center gap-1.5"
           >
             <Power className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Disconnect</span>
@@ -180,7 +180,7 @@ export default function DesktopSessionPage() {
           
           <button 
             onClick={toggleFullscreen}
-            className="text-slate-400 hover:text-white transition-colors"
+            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
             title="Fullscreen"
           >
             <Maximize2 className="w-4 h-4" />
@@ -188,7 +188,7 @@ export default function DesktopSessionPage() {
 
           <button
             onClick={() => setIsPanelOpen(!isPanelOpen)}
-            className="text-slate-400 hover:text-white transition-colors ml-1"
+            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors ml-1"
             title="Session Info"
           >
             {isPanelOpen ? <PanelRightClose className="w-5 h-5" /> : <PanelRightOpen className="w-5 h-5" />}
@@ -226,7 +226,7 @@ export default function DesktopSessionPage() {
 
           {/* Linux Top Panel */}
           {osType === 'linux' && (
-            <div className="h-8 bg-black/50 backdrop-blur-md flex items-center justify-between px-4 text-xs text-white shadow-sm shrink-0">
+            <div className="h-8 bg-black/50 backdrop-blur-md flex items-center justify-between px-4 text-xs text-[var(--text-primary)] shadow-sm shrink-0">
               <div className="font-semibold cursor-default hover:bg-white/10 px-2 py-1 rounded">Activities</div>
               <div className="font-semibold cursor-default hover:bg-white/10 px-2 py-1 rounded">
                 {currentTime.toLocaleTimeString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -243,7 +243,7 @@ export default function DesktopSessionPage() {
           <div className="flex-1 p-6 relative">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-fit h-fit">
               {softwareList.map((sw, idx) => (
-                <div key={idx} className="flex flex-col items-center justify-center w-24 p-2 rounded hover:bg-white/10 cursor-pointer text-white/90 group transition-colors">
+                <div key={idx} className="flex flex-col items-center justify-center w-24 p-2 rounded hover:bg-white/10 cursor-pointer text-[var(--text-primary)]/90 group transition-colors">
                   <div className="drop-shadow-lg group-hover:scale-105 transition-transform">
                     {getSoftwareIcon(sw)}
                   </div>
@@ -256,31 +256,31 @@ export default function DesktopSessionPage() {
 
             {/* Watermark */}
             <div className="absolute bottom-6 right-8 opacity-10 pointer-events-none text-right">
-              <p className="text-4xl font-bold text-white tracking-widest uppercase">CloudDesk</p>
-              <p className="text-xl text-white mt-1 tracking-wide">{sessionData.os}</p>
+              <p className="text-4xl font-bold text-[var(--text-primary)] tracking-widest uppercase">CloudDesk</p>
+              <p className="text-xl text-[var(--text-primary)] mt-1 tracking-wide">{sessionData.os}</p>
             </div>
           </div>
 
           {/* Linux Dock */}
           {osType === 'linux' && (
             <div className="w-full flex justify-center pb-4">
-              <div className="bg-white/10 backdrop-blur-lg border border-white/5 rounded-2xl px-4 py-2 flex gap-4 shadow-xl">
-                <div className="w-10 h-10 bg-orange-500/80 rounded-xl flex items-center justify-center cursor-pointer hover:bg-orange-500 hover:-translate-y-1 transition-all"><Box className="w-6 h-6 text-white"/></div>
-                <div className="w-10 h-10 bg-indigo-500/80 rounded-xl flex items-center justify-center cursor-pointer hover:bg-indigo-500 hover:-translate-y-1 transition-all"><LayoutGrid className="w-6 h-6 text-white"/></div>
-                <div className="w-10 h-10 bg-emerald-500/80 rounded-xl flex items-center justify-center cursor-pointer hover:bg-emerald-500 hover:-translate-y-1 transition-all"><Monitor className="w-6 h-6 text-white"/></div>
-                <div className="w-10 h-10 bg-purple-500/80 rounded-xl flex items-center justify-center cursor-pointer hover:bg-purple-500 hover:-translate-y-1 transition-all"><Code2 className="w-6 h-6 text-white"/></div>
+              <div className="bg-white/10 backdrop-blur-lg border border-[var(--border-color)] rounded-2xl px-4 py-2 flex gap-4 shadow-xl">
+                <div className="w-10 h-10 bg-orange-500/80 rounded-xl flex items-center justify-center cursor-pointer hover:bg-orange-500 hover:-translate-y-1 transition-all"><Box className="w-6 h-6 text-[var(--text-primary)]"/></div>
+                <div className="w-10 h-10 bg-indigo-500/80 rounded-xl flex items-center justify-center cursor-pointer hover:bg-indigo-500 hover:-translate-y-1 transition-all"><LayoutGrid className="w-6 h-6 text-[var(--text-primary)]"/></div>
+                <div className="w-10 h-10 bg-emerald-500/80 rounded-xl flex items-center justify-center cursor-pointer hover:bg-emerald-500 hover:-translate-y-1 transition-all"><Monitor className="w-6 h-6 text-[var(--text-primary)]"/></div>
+                <div className="w-10 h-10 bg-purple-500/80 rounded-xl flex items-center justify-center cursor-pointer hover:bg-purple-500 hover:-translate-y-1 transition-all"><Code2 className="w-6 h-6 text-[var(--text-primary)]"/></div>
               </div>
             </div>
           )}
 
           {/* Windows Taskbar */}
           {osType === 'windows' && (
-            <div className="h-11 bg-[#111111]/95 backdrop-blur-md flex items-center justify-between px-2 text-white border-t border-white/10 shrink-0 relative z-20 shadow-2xl">
+            <div className="h-11 bg-[#111111]/95 backdrop-blur-md flex items-center justify-between px-2 text-[var(--text-primary)] border-t border-[var(--border-color)] shrink-0 relative z-20 shadow-2xl">
               <div className="flex items-center h-full gap-2">
                 <div className="h-full px-3 flex items-center justify-center hover:bg-white/10 cursor-pointer transition-colors">
                   <LayoutGrid className="w-5 h-5 text-indigo-400" />
                 </div>
-                <div className="h-7 w-48 bg-white/10 border border-white/5 rounded-full flex items-center px-3 text-xs text-slate-400 ml-2">
+                <div className="h-7 w-48 bg-white/10 border border-[var(--border-color)] rounded-full flex items-center px-3 text-xs text-[var(--text-secondary)] ml-2">
                   Type here to search
                 </div>
               </div>
@@ -291,7 +291,7 @@ export default function DesktopSessionPage() {
               </div>
 
               <div className="flex items-center h-full text-[11px]">
-                <div className="h-full px-2 flex items-center justify-center hover:bg-white/10 cursor-pointer gap-2 text-slate-300">
+                <div className="h-full px-2 flex items-center justify-center hover:bg-white/10 cursor-pointer gap-2 text-[var(--text-primary)]">
                   <Wifi className="w-3.5 h-3.5" />
                   <Volume2 className="w-3.5 h-3.5" />
                   <Battery className="w-3.5 h-3.5" />
@@ -308,12 +308,12 @@ export default function DesktopSessionPage() {
 
         {/* ── Session Info Panel (Collapsible) ── */}
         <div 
-          className={`bg-slate-900 border-l border-slate-700 flex flex-col transition-all duration-300 overflow-hidden shadow-2xl z-40 ${
+          className={`bg-[var(--bg-primary)] border-l border-[var(--border-color)] flex flex-col transition-all duration-300 overflow-hidden shadow-2xl z-40 ${
             isPanelOpen ? 'w-72' : 'w-0'
           }`}
         >
           <div className="p-5 flex-1 overflow-y-auto w-72">
-            <h3 className="text-white font-semibold text-lg mb-6">Session Info</h3>
+            <h3 className="text-[var(--text-primary)] font-semibold text-lg mb-6">Session Info</h3>
             
             <div className="space-y-6">
               {/* General Info */}
@@ -321,16 +321,16 @@ export default function DesktopSessionPage() {
                 <h4 className="text-xs uppercase text-slate-500 font-bold mb-3 tracking-wider">Connection</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Session ID</span>
-                    <span className="text-white font-mono">#{sessionData.session_id}</span>
+                    <span className="text-[var(--text-secondary)]">Session ID</span>
+                    <span className="text-[var(--text-primary)] font-mono">#{sessionData.session_id}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Resolution</span>
-                    <span className="text-white">{sessionData.resolution}</span>
+                    <span className="text-[var(--text-secondary)]">Resolution</span>
+                    <span className="text-[var(--text-primary)]">{sessionData.resolution}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Client IP</span>
-                    <span className="text-white font-mono text-xs">{vmData?.ip_address || '127.0.0.1'}</span>
+                    <span className="text-[var(--text-secondary)]">Client IP</span>
+                    <span className="text-[var(--text-primary)] font-mono text-xs">{vmData?.ip_address || '127.0.0.1'}</span>
                   </div>
                 </div>
               </div>
@@ -338,22 +338,22 @@ export default function DesktopSessionPage() {
               {/* VM Specs */}
               <div>
                 <h4 className="text-xs uppercase text-slate-500 font-bold mb-3 tracking-wider">Specifications</h4>
-                <div className="bg-slate-800 rounded-lg p-3 space-y-2 text-sm border border-slate-700">
-                  <div className="flex justify-between border-b border-slate-700/50 pb-2">
-                    <span className="text-slate-400">OS</span>
-                    <span className="text-white text-right">{sessionData.os}</span>
+                <div className="bg-[var(--bg-card)] rounded-lg p-3 space-y-2 text-sm border border-[var(--border-color)]">
+                  <div className="flex justify-between border-b border-[var(--border-color)]/50 pb-2">
+                    <span className="text-[var(--text-secondary)]">OS</span>
+                    <span className="text-[var(--text-primary)] text-right">{sessionData.os}</span>
                   </div>
-                  <div className="flex justify-between border-b border-slate-700/50 pb-2">
-                    <span className="text-slate-400">CPU</span>
-                    <span className="text-white font-mono">{vmData?.template?.cpu_cores || 4} vCPUs</span>
+                  <div className="flex justify-between border-b border-[var(--border-color)]/50 pb-2">
+                    <span className="text-[var(--text-secondary)]">CPU</span>
+                    <span className="text-[var(--text-primary)] font-mono">{vmData?.template?.cpu_cores || 4} vCPUs</span>
                   </div>
-                  <div className="flex justify-between border-b border-slate-700/50 pb-2">
-                    <span className="text-slate-400">RAM</span>
-                    <span className="text-white font-mono">{vmData?.template?.ram_gb || 8} GB</span>
+                  <div className="flex justify-between border-b border-[var(--border-color)]/50 pb-2">
+                    <span className="text-[var(--text-secondary)]">RAM</span>
+                    <span className="text-[var(--text-primary)] font-mono">{vmData?.template?.ram_gb || 8} GB</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Storage</span>
-                    <span className="text-white font-mono">{vmData?.template?.storage_gb || 60} GB</span>
+                    <span className="text-[var(--text-secondary)]">Storage</span>
+                    <span className="text-[var(--text-primary)] font-mono">{vmData?.template?.storage_gb || 60} GB</span>
                   </div>
                 </div>
               </div>
@@ -374,16 +374,16 @@ export default function DesktopSessionPage() {
               <div>
                 <h4 className="text-xs uppercase text-slate-500 font-bold mb-3 tracking-wider">Restrictions</h4>
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between bg-slate-800 p-2.5 rounded-lg border border-slate-700">
-                    <span className="text-sm text-slate-300">Internet Access</span>
+                  <div className="flex items-center justify-between bg-[var(--bg-card)] p-2.5 rounded-lg border border-[var(--border-color)]">
+                    <span className="text-sm text-[var(--text-primary)]">Internet Access</span>
                     {sessionData.restrictions?.internet ? (
                       <div className="flex items-center text-emerald-400 text-xs font-medium gap-1"><Check className="w-3.5 h-3.5"/> Allowed</div>
                     ) : (
                       <div className="flex items-center text-red-400 text-xs font-medium gap-1"><X className="w-3.5 h-3.5"/> Blocked</div>
                     )}
                   </div>
-                  <div className="flex items-center justify-between bg-slate-800 p-2.5 rounded-lg border border-slate-700">
-                    <span className="text-sm text-slate-300">Copy & Paste</span>
+                  <div className="flex items-center justify-between bg-[var(--bg-card)] p-2.5 rounded-lg border border-[var(--border-color)]">
+                    <span className="text-sm text-[var(--text-primary)]">Copy & Paste</span>
                     {sessionData.restrictions?.copy_paste ? (
                       <div className="flex items-center text-emerald-400 text-xs font-medium gap-1"><Check className="w-3.5 h-3.5"/> Allowed</div>
                     ) : (

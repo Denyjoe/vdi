@@ -24,7 +24,7 @@ export default function LoadingSpinner({ message = "Loading...", size = "md" }) 
         className={`${SIZE_CLASSES[size]} animate-spin rounded-full border-4 border-navy-700 border-t-electric-blue`}
       />
       {message && (
-        <p className="text-slate-400 mt-4 text-sm">{message}</p>
+        <p className="text-[var(--text-secondary)] mt-4 text-sm">{message}</p>
       )}
     </div>
   );

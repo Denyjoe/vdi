@@ -48,22 +48,22 @@ export default function SubmissionsModal({ isOpen, onClose, assignment }) {
       
       <div className="relative bg-navy-800 rounded-xl shadow-xl w-full max-w-5xl mx-4 border border-navy-700 max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-start justify-between p-6 border-b border-slate-700 shrink-0">
+        <div className="flex items-start justify-between p-6 border-b border-[var(--border-color)] shrink-0">
           <div>
-            <h2 className="text-xl font-bold text-white">{assignment.title} — Submissions</h2>
-            <p className="text-slate-400 mt-1 text-sm">
+            <h2 className="text-xl font-bold text-[var(--text-primary)]">{assignment.title} — Submissions</h2>
+            <p className="text-[var(--text-secondary)] mt-1 text-sm">
               Due: {new Date(assignment.due_date).toLocaleString()}
             </p>
           </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-white rounded-lg transition-colors">
+          <button onClick={onClose} className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-lg transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Stats Bar */}
-        <div className="px-6 py-4 bg-slate-900/50 border-b border-slate-700 flex items-center justify-between shrink-0">
-          <div className="text-sm font-medium text-slate-300">
-            <span className="text-white">{assignment.submission_count}</span> of <span className="text-white">{assignment.enrolled_student_count || '?'}</span> students submitted
+        <div className="px-6 py-4 bg-[var(--bg-primary)]/50 border-b border-[var(--border-color)] flex items-center justify-between shrink-0">
+          <div className="text-sm font-medium text-[var(--text-primary)]">
+            <span className="text-[var(--text-primary)]">{assignment.submission_count}</span> of <span className="text-[var(--text-primary)]">{assignment.enrolled_student_count || '?'}</span> students submitted
           </div>
         </div>
 
@@ -76,14 +76,14 @@ export default function SubmissionsModal({ isOpen, onClose, assignment }) {
           ) : submissions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-slate-500">
               <AlertCircle className="w-12 h-12 mb-3 opacity-40" />
-              <p className="text-base font-medium text-white">No Submissions Yet</p>
+              <p className="text-base font-medium text-[var(--text-primary)]">No Submissions Yet</p>
               <p className="text-sm mt-1">Students have not submitted any files for this assignment.</p>
             </div>
           ) : (
-            <div className="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden">
+            <div className="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
-                  <thead className="bg-slate-800 text-slate-400 text-xs uppercase tracking-wider">
+                  <thead className="bg-[var(--bg-card)] text-[var(--text-secondary)] text-xs uppercase tracking-wider">
                     <tr>
                       <th className="px-6 py-4 font-medium">Member</th>
                       <th className="px-6 py-4 font-medium">ID</th>
@@ -95,13 +95,13 @@ export default function SubmissionsModal({ isOpen, onClose, assignment }) {
                   </thead>
                   <tbody className="divide-y divide-slate-700/50">
                     {submissions.map(sub => (
-                      <tr key={sub.id} className="hover:bg-slate-800/50 transition-colors">
+                      <tr key={sub.id} className="hover:bg-[var(--bg-card)]/50 transition-colors">
                         <td className="px-6 py-4">
-                          <div className="font-medium text-white">{sub.student?.full_name}</div>
-                          <div className="text-xs text-slate-400">{sub.student?.email}</div>
+                          <div className="font-medium text-[var(--text-primary)]">{sub.student?.full_name}</div>
+                          <div className="text-xs text-[var(--text-secondary)]">{sub.student?.email}</div>
                         </td>
-                        <td className="px-6 py-4 text-sm text-slate-300">{sub.student?.student_id}</td>
-                        <td className="px-6 py-4 text-sm text-slate-300">
+                        <td className="px-6 py-4 text-sm text-[var(--text-primary)]">{sub.student?.student_id}</td>
+                        <td className="px-6 py-4 text-sm text-[var(--text-primary)]">
                           {new Date(sub.submitted_at).toLocaleString()}
                         </td>
                         <td className="px-6 py-4">
@@ -116,15 +116,15 @@ export default function SubmissionsModal({ isOpen, onClose, assignment }) {
                           )}
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-sm text-white truncate max-w-[150px]" title={sub.file_name}>
+                          <div className="text-sm text-[var(--text-primary)] truncate max-w-[150px]" title={sub.file_name}>
                             {sub.file_name}
                           </div>
-                          <div className="text-xs text-slate-400">{sub.file_size_display}</div>
+                          <div className="text-xs text-[var(--text-secondary)]">{sub.file_size_display}</div>
                         </td>
                         <td className="px-6 py-4 text-right">
                           <button
                             onClick={() => handleDownload(sub.id, sub.file_name)}
-                            className="p-2 text-slate-400 hover:text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-colors inline-flex items-center gap-1.5"
+                            className="p-2 text-[var(--text-secondary)] hover:text-indigo-400 hover:bg-indigo-400/10 rounded-lg transition-colors inline-flex items-center gap-1.5"
                             title="Download File"
                           >
                             <Download className="w-4 h-4" />

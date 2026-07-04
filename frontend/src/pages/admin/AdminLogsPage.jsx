@@ -48,7 +48,7 @@ const getActionBadgeClass = (action) => {
     return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
   if (lowered.includes('admin') || lowered.includes('deactivate') || lowered.includes('activate') || lowered.includes('delete'))
     return 'bg-red-500/20 text-red-400 border-red-500/30';
-  return 'bg-slate-700/50 text-slate-300 border-slate-600';
+  return 'bg-[var(--bg-card-hover)]/50 text-[var(--text-primary)] border-slate-600';
 };
 
 export default function AdminLogsPage() {
@@ -186,8 +186,8 @@ export default function AdminLogsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-white">Activity Logs</h2>
-          <p className="text-slate-400 mt-1">
+          <h2 className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)]">Activity Logs</h2>
+          <p className="text-[var(--text-secondary)] mt-1">
             {filteredLogs.length} log entries
             {isRefreshing && (
               <span className="ml-2 text-indigo-400 text-xs">
@@ -200,7 +200,7 @@ export default function AdminLogsPage() {
         <div className="flex gap-2">
           <button
             onClick={() => fetchLogs(true)}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-[var(--text-primary)] bg-[var(--bg-card-hover)] hover:bg-slate-600 rounded-lg transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
             <span className="hidden sm:inline">Refresh</span>
@@ -208,7 +208,7 @@ export default function AdminLogsPage() {
           <button
             onClick={handleExportCSV}
             disabled={filteredLogs.length === 0}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-[var(--text-primary)] bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Download className="w-4 h-4" />
             Export CSV
@@ -226,18 +226,18 @@ export default function AdminLogsPage() {
       <div className="flex flex-col sm:flex-row gap-4">
         {/* Search */}
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]" />
           <input
             type="text"
             placeholder="Search by user, action, or description..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+            className="w-full pl-10 pr-4 py-2.5 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             >
               <X className="w-4 h-4" />
             </button>
@@ -245,15 +245,15 @@ export default function AdminLogsPage() {
         </div>
 
         {/* Date range tabs */}
-        <div className="flex gap-1 bg-slate-800 p-1 rounded-lg border border-slate-700">
+        <div className="flex gap-1 bg-[var(--bg-card)] p-1 rounded-lg border border-[var(--border-color)]">
           {DATE_RANGES.map((range) => (
             <button
               key={range.key}
               onClick={() => setDateRange(range.key)}
               className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
                 dateRange === range.key
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                  ? 'bg-indigo-600 text-[var(--text-primary)] shadow-md'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)]'
               }`}
             >
               {range.label}
@@ -263,16 +263,16 @@ export default function AdminLogsPage() {
       </div>
 
       {/* Logs Table */}
-      <div className="bg-slate-800 rounded-xl border border-slate-700 shadow-md overflow-hidden">
+      <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] shadow-md overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-700 bg-slate-900/50">
-                <th className="text-left px-6 py-4 text-slate-400 font-medium whitespace-nowrap">Time</th>
-                <th className="text-left px-6 py-4 text-slate-400 font-medium">User</th>
-                <th className="text-left px-6 py-4 text-slate-400 font-medium">Action</th>
-                <th className="text-left px-6 py-4 text-slate-400 font-medium hidden md:table-cell">Description</th>
-                <th className="text-left px-6 py-4 text-slate-400 font-medium hidden lg:table-cell">IP Address</th>
+              <tr className="border-b border-[var(--border-color)] bg-[var(--bg-primary)]/50">
+                <th className="text-left px-6 py-4 text-[var(--text-secondary)] font-medium whitespace-nowrap">Time</th>
+                <th className="text-left px-6 py-4 text-[var(--text-secondary)] font-medium">User</th>
+                <th className="text-left px-6 py-4 text-[var(--text-secondary)] font-medium">Action</th>
+                <th className="text-left px-6 py-4 text-[var(--text-secondary)] font-medium hidden md:table-cell">Description</th>
+                <th className="text-left px-6 py-4 text-[var(--text-secondary)] font-medium hidden lg:table-cell">IP Address</th>
               </tr>
             </thead>
             <tbody>
@@ -280,12 +280,12 @@ export default function AdminLogsPage() {
                 filteredLogs.map((log) => (
                   <tr
                     key={log.id}
-                    className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors"
+                    className="border-b border-[var(--border-color)]/50 hover:bg-[var(--bg-card-hover)]/30 transition-colors"
                   >
-                    <td className="px-6 py-4 text-slate-300 text-xs whitespace-nowrap">
+                    <td className="px-6 py-4 text-[var(--text-primary)] text-xs whitespace-nowrap">
                       {formatTimestamp(log.timestamp)}
                     </td>
-                    <td className="px-6 py-4 text-white text-sm">
+                    <td className="px-6 py-4 text-[var(--text-primary)] text-sm">
                       {log.user || log.user_email || 'System'}
                     </td>
                     <td className="px-6 py-4">
@@ -297,7 +297,7 @@ export default function AdminLogsPage() {
                         {log.action}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-slate-400 text-sm max-w-xs truncate hidden md:table-cell">
+                    <td className="px-6 py-4 text-[var(--text-secondary)] text-sm max-w-xs truncate hidden md:table-cell">
                       {log.description || '—'}
                     </td>
                     <td className="px-6 py-4 text-slate-500 text-xs font-mono hidden lg:table-cell">
@@ -307,7 +307,7 @@ export default function AdminLogsPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={5} className="px-6 py-12 text-center text-[var(--text-secondary)]">
                     <ScrollText className="w-10 h-10 mx-auto mb-3 text-slate-600" />
                     No activity logs found for the selected filters.
                   </td>
