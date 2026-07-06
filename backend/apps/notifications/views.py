@@ -8,7 +8,8 @@ class NotificationListView(views.APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        notifications = Notification.objects.filter(user=request.user)
+        limit = int(request.query_params.get('limit', 20))
+        notifications = Notification.objects.filter(user=request.user).order_by('-created_at')[:limit]
         serializer = NotificationSerializer(notifications, many=True)
         return Response({
             "success": True,
@@ -19,7 +20,7 @@ class NotificationListView(views.APIView):
 class MarkReadView(views.APIView):
     permission_classes = [IsAuthenticated]
 
-    def patch(self, request, pk):
+    def post(self, request, pk):
         try:
             notification = Notification.objects.get(pk=pk, user=request.user)
             notification.is_read = True
@@ -32,8 +33,7 @@ class MarkReadView(views.APIView):
         except Notification.DoesNotExist:
             return Response({
                 "success": False,
-                "error": "Notification not found",
-                "message": "Failed to mark as read"
+                "message": "Notification not found"
             }, status=status.HTTP_404_NOT_FOUND)
 
 class MarkAllReadView(views.APIView):
@@ -46,3 +46,13 @@ class MarkAllReadView(views.APIView):
             "data": {},
             "message": "All notifications marked as read"
         }, status=status.HTTP_200_OK)
+
+class UnreadCountView(views.APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        count = Notification.objects.filter(user=request.user, is_read=False).count()
+        return Response({
+            "success": True,
+            "count": count
+        })

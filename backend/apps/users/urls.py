@@ -12,4 +12,9 @@ urlpatterns = [
     path('me/avatar/delete/', views.AvatarDeleteView.as_view(), name='delete-avatar'),
     path('me/change-password/', views.ChangePasswordView.as_view(), name='change-password'),
     path('stats/', views.UserStatsView.as_view(), name='user-stats'),
+    path('account/', views.UpdateProfileView.as_view(), name='account-update'),
+    path('password-reset/request/', views.PasswordResetRequestView.as_view(), name='password-reset-request'),
+    path('password-reset/confirm/', views.PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
+    path('verify-email/', views.VerifyEmailView.as_view(), name='verify-email'),
+    path('resend-verification/', views.ResendVerificationView.as_view(), name='resend-verification'),
 ]

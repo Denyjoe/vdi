@@ -248,11 +248,21 @@ class VMOrchestrator:
             RDP_READY_WAIT = 15
             time.sleep(RDP_READY_WAIT)
 
+            session_restrictions = {}
+            try:
+                from apps.sessions.models import SessionParticipant
+                participant = SessionParticipant.objects.filter(vm=vm).first()
+                if participant and participant.session:
+                    session_restrictions = participant.session.restrictions
+            except ImportError:
+                pass
+
             conn_id = guacamole.create_connection(
                 name=clone_name,
                 hostname=ip_address,
                 username=config('VM_DEFAULT_USER', default='student'),
                 password=config('VM_DEFAULT_PASSWORD', default='student123'),
+                restrictions=session_restrictions
             )
 
             vm.guacamole_connection_id = conn_id or ''

@@ -48,17 +48,22 @@ export default function LoginPage() {
                 else navigate('/dashboard');
             }
         } catch (err) {
-            setError(err.response?.data?.message || err.response?.data?.error?.detail || 'Failed to login. Please try again.');
+            const data = err.response?.data;
+            if (data?.needs_verification) {
+                navigate(`/verify-email?email=${encodeURIComponent(email)}`);
+                return;
+            }
+            setError(data?.message || err.response?.data?.error?.detail || 'Failed to login. Please try again.');
         } finally {
             setIsLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-[#050B18] flex">
+        <div className="min-h-screen bg-[var(--bg-primary)] flex">
             {/* Left Panel - Features Showcase (Desktop Only) */}
             <div className="hidden lg:flex lg:w-[55%] relative flex-col justify-between p-12 overflow-hidden border-r border-[var(--border-color)]">
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/20 to-transparent z-0"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent z-0"></div>
                 
                 <div className="relative z-10">
                     <Link to="/" className="flex items-center gap-2 mb-16">
@@ -102,50 +107,43 @@ export default function LoginPage() {
                     </div>
                 </div>
 
-                <div className="relative z-10 mt-12">
-                    <div className="flex items-center gap-4 text-sm text-slate-500">
-                        <span>Trusted by professionals worldwide</span>
-                        <div className="flex gap-2">
-                            {/* Decorative dots */}
-                            <div className="w-2 h-2 rounded-full bg-indigo-500/40"></div>
-                            <div className="w-2 h-2 rounded-full bg-cyan-500/40"></div>
-                            <div className="w-2 h-2 rounded-full bg-indigo-500/40"></div>
-                        </div>
-                    </div>
+                <div className="relative z-10 flex items-center gap-6 text-sm text-[var(--text-secondary)]">
+                    <Link to="/terms" className="hover:text-indigo-400 transition-colors">Terms of Service</Link>
+                    <Link to="/privacy" className="hover:text-indigo-400 transition-colors">Privacy Policy</Link>
                 </div>
             </div>
 
             {/* Right Panel - Login Form */}
-            <div className="w-full lg:w-[45%] bg-[#0D1526] flex items-center justify-center p-8 sm:p-12 relative">
-                {/* Mobile Logo */}
-                <div className="absolute top-8 left-8 lg:hidden">
-                    <Link to="/" className="flex items-center gap-2">
-                        <Monitor className="w-6 h-6 text-indigo-500" />
-                        <span className="font-bold text-[var(--text-primary)] tracking-tight">CloudDesk</span>
-                    </Link>
-                </div>
-
-                <div className="w-full max-w-md">
-                    <div className="mb-10 text-center lg:text-left">
-                        <h2 className="text-3xl font-bold text-[var(--text-primary)] mb-2">Sign in to {publicSettings.institution_name}</h2>
-                        <p className="text-[var(--text-secondary)]">Welcome back! Please enter your details.</p>
+            <div className="w-full lg:w-[45%] flex flex-col justify-center px-8 sm:px-12 lg:px-16 xl:px-24 bg-[#050B18]">
+                <div className="w-full max-w-md mx-auto">
+                    <div className="lg:hidden flex items-center gap-2 mb-12">
+                        <Monitor className="w-8 h-8 text-indigo-500" />
+                        <span className="text-xl font-bold text-[var(--text-primary)]">CloudDesk</span>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        {error && (
-                            <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-lg text-sm">
-                                {error}
-                            </div>
-                        )}
+                    <div className="mb-10">
+                        <h2 className="text-3xl font-bold text-[var(--text-primary)] mb-2 tracking-tight">Sign In</h2>
+                        <p className="text-[var(--text-secondary)]">Enter your details to access your workspaces.</p>
+                    </div>
 
+                    {error && (
+                        <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex gap-3 text-red-400">
+                            <svg className="w-5 h-5 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd" />
+                            </svg>
+                            <p className="text-sm font-medium">{error}</p>
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="space-y-5">
                         <div>
                             <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5" htmlFor="email">
-                                Email
+                                Email Address
                             </label>
                             <input
                                 id="email"
                                 type="email"
-                                placeholder="Enter your email"
+                                placeholder="you@company.com"
                                 required
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
@@ -158,9 +156,9 @@ export default function LoginPage() {
                                 <label className="block text-sm font-medium text-[var(--text-primary)]" htmlFor="password">
                                     Password
                                 </label>
-                                <a href="#" className="text-sm font-medium text-indigo-400 hover:text-indigo-300">
+                                <Link to="/forgot-password" className="text-sm font-medium text-indigo-400 hover:text-indigo-300">
                                     Forgot password?
-                                </a>
+                                </Link>
                             </div>
                             <input
                                 id="password"
@@ -186,7 +184,7 @@ export default function LoginPage() {
                                 <div className="w-full border-t border-[var(--border-color)]"></div>
                             </div>
                             <div className="relative flex justify-center text-sm">
-                                <span className="px-2 bg-[#0D1526] text-slate-500">or</span>
+                                <span className="px-2 bg-[var(--bg-card)] text-slate-500">or</span>
                             </div>
                         </div>
 

@@ -1,352 +1,358 @@
-import React, { useState, useEffect } from 'react';
-import { X, CheckCircle, Monitor, ShieldAlert, Lock, Clock, Calendar } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Radio, X, ArrowLeft, ArrowRight, Rocket, Check, Monitor as MonitorIcon, Database, Terminal, Shield, Globe, Clipboard, FolderUp, Usb, Monitor, Film, Fingerprint, Users, MousePointer, Timer, Eye } from 'lucide-react';
 import api from '../../services/api';
-import useAuthStore from '../../store/authStore';
+import useUIStore from '../../store/uiStore';
+
+const TemplateIcon = ({ icon, className, size = 16 }) => {
+  switch (icon) {
+    case 'monitor': return <MonitorIcon size={size} className={className} />;
+    case 'database': return <Database size={size} className={className} />;
+    case 'terminal': return <Terminal size={size} className={className} />;
+    default: return <MonitorIcon size={size} className={className} />;
+  }
+};
+
+const ControlToggle = ({ label, description, icon: Icon, value, onChange, onColor = '#00FF87' }) => (
+  <div className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-300 ${value ? `bg-[#0F131A] border-slate-800/50` : 'bg-[#0F131A] border-slate-800/50'}`}
+    style={value ? { backgroundColor: onColor + '08', borderColor: onColor + '25' } : {}}>
+    <div className="flex items-center gap-3 flex-1">
+      <Icon size={15} className={value ? `text-[${onColor}]` : 'text-slate-600'} style={value ? { color: onColor } : {}} />
+      <div>
+        <p className="text-sm font-medium text-white">{label}</p>
+        <p className="text-[11px] text-slate-500 mt-0.5">{description}</p>
+      </div>
+    </div>
+    <button onClick={() => onChange(!value)}
+      className={`relative w-11 h-6 rounded-full transition-all duration-300 active:scale-95 ${value ? '' : 'bg-slate-700'}`}
+      style={value ? { backgroundColor: onColor } : {}}>
+      <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-all duration-300 ${value ? 'left-[22px]' : 'left-0.5'}`} />
+    </button>
+  </div>
+);
 
 export default function CreateSessionModal({ onClose, onCreated }) {
-  const { user } = useAuthStore();
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
+  const [sessionName, setSessionName] = useState('');
+  const [sessionDesc, setSessionDesc] = useState('');
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [maxParticipants, setMaxParticipants] = useState(10);
+  const [duration, setDuration] = useState('2');
+  const [scheduleType, setScheduleType] = useState('now');
+  const [scheduleDate, setScheduleDate] = useState('');
+  const [scheduleTime, setScheduleTime] = useState('');
   const [templates, setTemplates] = useState([]);
-  
-  const [formData, setFormData] = useState({
-    name: '',
-    session_type: 'workshop',
-    required_vm_template_id: null,
-    start_time: '',
-    end_time: '',
-    max_participants: 50,
-    restrict_internet: false,
-    is_exam_mode: false,
-    password: '',
-    auto_end: true
+  const [launching, setLaunching] = useState(false);
+  const [activePreset, setActivePreset] = useState(null);
+  const [restrictions, setRestrictions] = useState({
+    internet_access: true,
+    clipboard: true,
+    file_transfer: true,
+    usb_access: false,
+    screen_monitoring: false,
+    session_recording: false,
+    screen_watermark: false,
+    interaction_mode: 'full_control',
+    auto_shutdown_idle: false,
+    idle_timeout_minutes: 15,
   });
-  
-  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    setStep(1);
-    // set default times (start in 1 hr, end in 3 hrs)
-    const start = new Date();
-    start.setHours(start.getHours() + 1);
-    const end = new Date(start);
-    end.setHours(end.getHours() + 2);
-    
-    const maxP = user?.subscription?.max_session_participants || 10;
-    
-    setFormData(prev => ({
-      ...prev,
-      start_time: start.toISOString().slice(0, 16),
-      end_time: end.toISOString().slice(0, 16),
-      max_participants: maxP
-    }));
-    
     api.get('/vms/templates/').then(res => {
-      setTemplates(res.data?.data || []);
-    }).catch(console.error);
-  }, [user]);
+      const data = Array.isArray(res.data) ? res.data : res.data?.data || [];
+      setTemplates(data);
+    });
+  }, []);
 
-  const handleClose = () => {
-    if (onClose) onClose();
-  };
-
-  const handleNext = () => setStep(s => s + 1);
-  const handlePrev = () => setStep(s => s - 1);
-
-  const handleSubmit = async () => {
-    setCreating(true);
-    try {
-      const res = await api.post('/sessions/live/create/', {
-        ...formData,
-        required_vm_template: formData.required_vm_template_id
+  const applyPreset = (preset) => {
+    setActivePreset(preset);
+    if (preset === 'open') {
+      setRestrictions({
+        internet_access: true, clipboard: true, file_transfer: true,
+        usb_access: false, screen_monitoring: false, session_recording: false,
+        screen_watermark: false, interaction_mode: 'full_control',
+        auto_shutdown_idle: false, idle_timeout_minutes: 15,
       });
-      
-      const session = res.data.data;
-      
-      // Auto-start session immediately
-      await api.post(`/sessions/live/${session.id}/start/`);
-      
-      // Go directly to monitor
-      if (onCreated) {
-        onCreated(session);
-      }
-    } catch (err) {
-      console.error('Session creation error:', err, err.response?.data);
-      alert(err.response?.data?.message || err.response?.data?.errors?.non_field_errors?.[0] || 'Error creating session. Check your plan limits.');
-    } finally {
-      setCreating(false);
+    } else if (preset === 'restricted') {
+      setRestrictions({
+        internet_access: true, clipboard: false, file_transfer: false,
+        usb_access: false, screen_monitoring: true, session_recording: false,
+        screen_watermark: false, interaction_mode: 'full_control',
+        auto_shutdown_idle: false, idle_timeout_minutes: 15,
+      });
+    } else if (preset === 'lockdown') {
+      setRestrictions({
+        internet_access: false, clipboard: false, file_transfer: false,
+        usb_access: false, screen_monitoring: true, session_recording: true,
+        screen_watermark: true, interaction_mode: 'full_control',
+        auto_shutdown_idle: true, idle_timeout_minutes: 15,
+      });
     }
   };
 
-  const sessionTypes = [
-    { id: 'lab', icon: '🧪', label: 'Lab / Practical' },
-    { id: 'exam', icon: '📝', label: 'Exam / Assessment' },
-    { id: 'workshop', icon: '🎓', label: 'Workshop / Tutorial' },
-    { id: 'training', icon: '💻', label: 'Training Session' },
-    { id: 'other', icon: '📋', label: 'Other' },
-  ];
+  const canProceed = () => {
+    if (step === 1) return sessionName.trim().length > 0;
+    if (step === 2) return selectedTemplate != null;
+    return true;
+  };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--bg-primary)]/80 backdrop-blur-sm">
-      <div className="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-        
-        {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b border-[var(--border-color)]">
-          <h2 className="text-xl font-bold text-[var(--text-primary)]">
-            Create Live Session
-          </h2>
-          <button onClick={handleClose} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
-            <X size={24} />
-          </button>
+  const handleLaunch = async () => {
+    try {
+      setLaunching(true);
+      const payload = {
+        name: sessionName,
+        description: sessionDesc,
+        required_vm_template: selectedTemplate.id,
+        max_participants: maxParticipants,
+        duration_hours: parseFloat(duration),
+        restrictions: restrictions,
+      };
+      if (scheduleType === 'later' && scheduleDate && scheduleTime) {
+        payload.scheduled_at = `${scheduleDate}T${scheduleTime}`;
+      }
+      const res = await api.post('/sessions/live/create/', payload);
+      const data = res.data?.data || res.data;
+      if (onCreated) {
+        onCreated(data);
+      } else {
+        onClose();
+        if (data?.id) navigate(`/host/session/${data.id}`);
+      }
+    } catch(e) {
+      console.error('Create failed:', e);
+      alert('Failed to create session: ' + (e.response?.data?.message || e.message));
+    } finally {
+      setLaunching(false);
+    }
+  };
+
+  const renderStepDetails = () => (
+    <div className="space-y-5">
+      <div>
+        <label className="text-[11px] uppercase tracking-widest text-slate-500 font-medium block mb-2">Session Name</label>
+        <input value={sessionName} onChange={e => setSessionName(e.target.value)} placeholder="e.g. Python Workshop, Network Security Lab..."
+          className="w-full bg-[#0F131A] border border-slate-800/50 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 outline-none focus:border-[#0066FF]/50 transition-colors" />
+      </div>
+      <div>
+        <label className="text-[11px] uppercase tracking-widest text-slate-500 font-medium block mb-2">
+          Description <span className="text-slate-700 ml-1 normal-case tracking-normal">(optional)</span>
+        </label>
+        <textarea value={sessionDesc} onChange={e => setSessionDesc(e.target.value)} placeholder="Brief description for participants..." rows={3}
+          className="w-full bg-[#0F131A] border border-slate-800/50 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 outline-none resize-none focus:border-[#0066FF]/50 transition-colors" />
+      </div>
+    </div>
+  );
+
+  const renderStepEnvironment = () => (
+    <div className="space-y-5">
+      <div>
+        <label className="text-[11px] uppercase tracking-widest text-slate-500 font-medium block mb-3">Participant Environment</label>
+        <p className="text-xs text-slate-600 mb-3 -mt-1">Each participant gets their own isolated desktop with this configuration</p>
+        <div className="grid grid-cols-2 gap-3">
+          {templates.map(t => (
+            <button key={t.id} onClick={() => setSelectedTemplate(t)}
+              className={`text-left p-4 rounded-xl border transition-all duration-200 active:scale-[0.98] ${selectedTemplate?.id === t.id ? 'bg-[#0066FF]/10 border-[#0066FF]/40 shadow-lg shadow-blue-500/10' : 'bg-[#0F131A] border-slate-800/50 hover:border-slate-600'}`}>
+              <div className="flex items-center gap-2.5 mb-2">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${selectedTemplate?.id === t.id ? 'bg-[#0066FF]/20' : 'bg-slate-800/50'}`}>
+                  <TemplateIcon icon={t.icon} size={16} className={selectedTemplate?.id === t.id ? 'text-[#0066FF]' : 'text-slate-400'} />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-white">{t.name}</p>
+                  <p className="text-[10px] text-slate-500">{t.os}</p>
+                </div>
+                {selectedTemplate?.id === t.id && <Check size={14} className="text-[#0066FF] ml-auto" />}
+              </div>
+              <div className="flex gap-2 mt-2">
+                <span className="text-[9px] px-2 py-0.5 rounded-full bg-slate-800/50 text-slate-400">{t.cpu_cores} vCPU</span>
+                <span className="text-[9px] px-2 py-0.5 rounded-full bg-slate-800/50 text-slate-400">{t.ram_gb}GB RAM</span>
+                <span className="text-[9px] px-2 py-0.5 rounded-full bg-slate-800/50 text-slate-400">{t.storage_gb}GB</span>
+              </div>
+              {!t.is_ready && <p className="text-[9px] text-slate-600 mt-2">Ready to use</p>}
+            </button>
+          ))}
         </div>
-
-        {/* Body */}
-        <div className="p-6 overflow-y-auto no-scrollbar flex-1">
-          
-          {step === 1 && (
-            <div className="space-y-6 animate-fade-in">
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">Session Name</label>
-                <input 
-                  type="text" 
-                  value={formData.name}
-                  onChange={e => setFormData({...formData, name: e.target.value})}
-                  className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none"
-                  placeholder="e.g. AutoCAD Practical — Wednesday Class"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-primary)] mb-3">Session Type</label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {sessionTypes.map(t => (
-                    <div 
-                      key={t.id}
-                      onClick={() => {
-                        setFormData({...formData, session_type: t.id, is_exam_mode: t.id === 'exam'});
-                      }}
-                      className={`cursor-pointer p-4 rounded-xl border flex flex-col items-center gap-2 transition-all ${
-                        formData.session_type === t.id 
-                          ? 'bg-indigo-500/10 border-indigo-500 text-indigo-300' 
-                          : 'bg-[var(--bg-card)] border-[var(--border-color)] text-[var(--text-secondary)] hover:border-slate-600'
-                      }`}
-                    >
-                      <span className="text-2xl">{t.icon}</span>
-                      <span className="text-xs font-medium text-center">{t.label}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className="space-y-4 animate-fade-in">
-              <label className="block text-sm font-medium text-[var(--text-primary)]">Which VM should participants use?</label>
-              
-              <div 
-                onClick={() => setFormData({...formData, required_vm_template_id: null})}
-                className={`cursor-pointer p-4 rounded-xl border flex items-center gap-4 transition-all ${
-                  formData.required_vm_template_id === null
-                    ? 'bg-indigo-500/10 border-indigo-500' 
-                    : 'bg-[var(--bg-card)] border-[var(--border-color)] hover:border-slate-600'
-                }`}
-              >
-                <div className="p-3 bg-[var(--bg-card-hover)] rounded-lg text-[var(--text-primary)]"><Monitor size={20} /></div>
-                <div>
-                  <h4 className="text-[var(--text-primary)] font-medium">Let them choose (Any Template)</h4>
-                  <p className="text-sm text-[var(--text-secondary)]">Participants can pick any available VM template</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                {templates.map(t => (
-                  <div 
-                    key={t.id}
-                    onClick={() => setFormData({...formData, required_vm_template_id: t.id})}
-                    className={`cursor-pointer p-4 rounded-xl border transition-all ${
-                      formData.required_vm_template_id === t.id
-                        ? 'bg-indigo-500/10 border-indigo-500 relative overflow-hidden' 
-                        : 'bg-[var(--bg-card)] border-[var(--border-color)] hover:border-slate-600'
-                    }`}
-                  >
-                    {formData.required_vm_template_id === t.id && (
-                      <div className="absolute top-0 right-0 bg-indigo-500 text-white p-1 rounded-bl-lg">
-                        <CheckCircle size={14} />
-                      </div>
-                    )}
-                    <h4 className="text-[var(--text-primary)] font-medium truncate">{t.name}</h4>
-                    <p className="text-xs text-[var(--text-secondary)] mt-1">{t.os} • {t.cpu_cores} Cores • {t.ram_gb}GB RAM</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="space-y-6 animate-fade-in">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">Start Date & Time</label>
-                  <input 
-                    type="datetime-local" 
-                    value={formData.start_time}
-                    onChange={e => setFormData({...formData, start_time: e.target.value})}
-                    className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:border-indigo-500 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">End Date & Time</label>
-                  <input 
-                    type="datetime-local" 
-                    value={formData.end_time}
-                    onChange={e => setFormData({...formData, end_time: e.target.value})}
-                    className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:border-indigo-500 outline-none"
-                  />
-                </div>
-              </div>
-              <p className="text-xs text-slate-500 flex items-center gap-2">
-                <Clock size={14} /> Session times shown in your local timezone
-              </p>
-            </div>
-          )}
-
-          {step === 4 && (
-            <div className="space-y-6 animate-fade-in">
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">Max Participants</label>
-                <input 
-                  type="number" 
-                  min="1" max={user?.subscription?.max_session_participants || 10}
-                  value={formData.max_participants}
-                  onChange={e => setFormData({...formData, max_participants: parseInt(e.target.value)})}
-                  className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:border-indigo-500 outline-none"
-                />
-                <p className="text-xs text-indigo-400 mt-2">Your plan allows up to {user?.subscription?.max_session_participants || 10} participants.</p>
-              </div>
-
-              <div className="space-y-3">
-                <label className="flex items-center gap-3 p-4 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl cursor-pointer hover:border-slate-600 transition-colors">
-                  <input 
-                    type="checkbox" 
-                    checked={formData.restrict_internet}
-                    onChange={e => setFormData({...formData, restrict_internet: e.target.checked})}
-                    className="w-5 h-5 rounded border-slate-600 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-800 bg-[var(--bg-card-hover)]"
-                  />
-                  <div>
-                    <span className="text-[var(--text-primary)] font-medium flex items-center gap-2">
-                      <ShieldAlert size={16} className="text-amber-400" /> Restrict Internet Access
-                    </span>
-                    <p className="text-xs text-[var(--text-secondary)] mt-1">Block outside internet inside VMs</p>
-                  </div>
-                </label>
-
-                <label className="flex items-center gap-3 p-4 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl cursor-pointer hover:border-slate-600 transition-colors">
-                  <input 
-                    type="checkbox" 
-                    checked={formData.is_exam_mode}
-                    onChange={e => setFormData({...formData, is_exam_mode: e.target.checked})}
-                    className="w-5 h-5 rounded border-slate-600 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-800 bg-[var(--bg-card-hover)]"
-                  />
-                  <div>
-                    <span className="text-[var(--text-primary)] font-medium flex items-center gap-2">
-                      <Lock size={16} className="text-red-400" /> Exam Mode
-                    </span>
-                    <p className="text-xs text-[var(--text-secondary)] mt-1">Activates strict settings and shows exam watermark</p>
-                  </div>
-                </label>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">Session Password (Optional)</label>
-                <input 
-                  type="text" 
-                  value={formData.password}
-                  onChange={e => setFormData({...formData, password: e.target.value})}
-                  className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:border-indigo-500 outline-none"
-                  placeholder="Leave empty for code-only access"
-                />
-              </div>
-            </div>
-          )}
-
-          {step === 5 && (
-            <div className="space-y-6 animate-fade-in">
-              <div className="p-6 bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] space-y-4">
-                <div>
-                  <p className="text-sm text-[var(--text-secondary)]">Session Name</p>
-                  <p className="text-lg font-bold text-[var(--text-primary)]">{formData.name}</p>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[var(--border-color)]">
-                  <div>
-                    <p className="text-xs text-[var(--text-secondary)] mb-1">Type</p>
-                    <span className="px-2 py-1 bg-[var(--bg-card-hover)] text-[var(--text-primary)] text-xs rounded-lg uppercase tracking-wider font-bold">
-                      {formData.session_type}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-xs text-[var(--text-secondary)] mb-1">Participants</p>
-                    <p className="text-sm text-[var(--text-primary)] font-medium">Up to {formData.max_participants}</p>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[var(--border-color)]">
-                  <div>
-                    <p className="text-xs text-[var(--text-secondary)] mb-1">Start</p>
-                    <p className="text-sm text-[var(--text-primary)] font-medium">{new Date(formData.start_time).toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-[var(--text-secondary)] mb-1">End</p>
-                    <p className="text-sm text-[var(--text-primary)] font-medium">{new Date(formData.end_time).toLocaleString()}</p>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-[var(--border-color)]">
-                  <p className="text-xs text-[var(--text-secondary)] mb-1">Virtual Machine</p>
-                  <p className="text-sm text-[var(--text-primary)] font-medium">
-                    {formData.required_vm_template_id 
-                      ? templates.find(t => t.id === formData.required_vm_template_id)?.name 
-                      : 'Any Template'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="text-[11px] uppercase tracking-widest text-slate-500 font-medium block mb-2">Max Participants</label>
+          <input type="number" value={maxParticipants} onChange={e => setMaxParticipants(parseInt(e.target.value) || 10)} min={2} max={200}
+            className="w-full bg-[#0F131A] border border-slate-800/50 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-[#0066FF]/50 transition-colors" />
         </div>
-
-        {/* Footer */}
-        {step < 6 && (
-          <div className="p-6 border-t border-[var(--border-color)] flex justify-between items-center bg-[var(--bg-primary)]/50 shrink-0">
-            {step > 1 ? (
-              <button onClick={handlePrev} className="px-4 py-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-medium">
-                Back
-              </button>
-            ) : <div></div>}
-            
-            {step < 5 ? (
-              <button 
-                onClick={handleNext} 
-                disabled={step === 1 && !formData.name}
-                className="px-6 py-2.5 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors"
-              >
-                Next Step
-              </button>
-            ) : (
-              <button 
-                onClick={handleSubmit} 
-                disabled={creating}
-                className="px-6 py-2.5 bg-gradient-to-r from-indigo-500 to-blue-600 text-[var(--text-primary)] rounded-xl font-bold hover:shadow-lg hover:shadow-indigo-500/25 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {creating ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Creating...
-                  </>
-                ) : 'Create Session'}
-              </button>
-            )}
+        <div>
+          <label className="text-[11px] uppercase tracking-widest text-slate-500 font-medium block mb-2">Duration</label>
+          <select value={duration} onChange={e => setDuration(e.target.value)}
+            className="w-full bg-[#0F131A] border border-slate-800/50 rounded-xl px-4 py-3 text-sm text-white outline-none appearance-none cursor-pointer focus:border-[#0066FF]/50">
+            <option value="0.5">30 minutes</option>
+            <option value="1">1 hour</option>
+            <option value="1.5">1.5 hours</option>
+            <option value="2">2 hours</option>
+            <option value="3">3 hours</option>
+            <option value="4">4 hours</option>
+            <option value="6">6 hours</option>
+            <option value="8">8 hours</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label className="text-[11px] uppercase tracking-widest text-slate-500 font-medium block mb-2">When to start</label>
+        <div className="flex gap-3">
+          <button onClick={() => setScheduleType('now')} className={`flex-1 p-3 rounded-xl border text-sm font-medium transition-all active:scale-[0.98] ${scheduleType === 'now' ? 'bg-[#0066FF]/10 border-[#0066FF]/40 text-[#0066FF]' : 'bg-[#0F131A] border-slate-800/50 text-slate-400 hover:border-slate-600'}`}>Start Immediately</button>
+          <button onClick={() => setScheduleType('later')} className={`flex-1 p-3 rounded-xl border text-sm font-medium transition-all active:scale-[0.98] ${scheduleType === 'later' ? 'bg-[#0066FF]/10 border-[#0066FF]/40 text-[#0066FF]' : 'bg-[#0F131A] border-slate-800/50 text-slate-400 hover:border-slate-600'}`}>Schedule for Later</button>
+        </div>
+        {scheduleType === 'later' && (
+          <div className="grid grid-cols-2 gap-3 mt-3">
+            <input type="date" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} className="bg-[#0F131A] border border-slate-800/50 rounded-xl px-4 py-3 text-sm text-white outline-none" />
+            <input type="time" value={scheduleTime} onChange={e => setScheduleTime(e.target.value)} className="bg-[#0F131A] border border-slate-800/50 rounded-xl px-4 py-3 text-sm text-white outline-none" />
           </div>
         )}
+      </div>
+    </div>
+  );
+
+  const renderStepControls = () => (
+    <div className="space-y-6">
+      <div>
+        <label className="text-[11px] uppercase tracking-widest text-slate-500 font-medium block mb-3">Quick Presets</label>
+        <div className="flex gap-2">
+          <button onClick={() => applyPreset('open')} className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all active:scale-95 ${activePreset === 'open' ? 'bg-[#00FF87]/10 border-[#00FF87]/30 text-[#00FF87]' : 'bg-[#0F131A] border-slate-800/50 text-slate-400 hover:border-slate-600'}`}>Open Access</button>
+          <button onClick={() => applyPreset('restricted')} className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all active:scale-95 ${activePreset === 'restricted' ? 'bg-[#FF6B00]/10 border-[#FF6B00]/30 text-[#FF6B00]' : 'bg-[#0F131A] border-slate-800/50 text-slate-400 hover:border-slate-600'}`}>Restricted</button>
+          <button onClick={() => applyPreset('lockdown')} className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all active:scale-95 ${activePreset === 'lockdown' ? 'bg-[#FF3366]/10 border-[#FF3366]/30 text-[#FF3366]' : 'bg-[#0F131A] border-slate-800/50 text-slate-400 hover:border-slate-600'}`}>Lockdown</button>
+        </div>
+      </div>
+      <div>
+        <h3 className="text-[11px] uppercase tracking-widest text-slate-400 font-semibold mb-3 flex items-center gap-2"><Shield size={13} className="text-[#00A3FF]" /> Access Controls</h3>
+        <div className="space-y-2">
+          <ControlToggle label="Internet Access" description="Participants can browse the web" icon={Globe} value={restrictions.internet_access} onChange={v => setRestrictions(r => ({...r, internet_access: v}))} onColor="#00FF87" />
+          <ControlToggle label="Clipboard / Copy-Paste" description="Allow copy-paste between VM and local device" icon={Clipboard} value={restrictions.clipboard} onChange={v => setRestrictions(r => ({...r, clipboard: v}))} onColor="#00FF87" />
+          <ControlToggle label="File Transfer" description="Allow file upload and download between VM and local device" icon={FolderUp} value={restrictions.file_transfer} onChange={v => setRestrictions(r => ({...r, file_transfer: v}))} onColor="#00FF87" />
+          <ControlToggle label="USB Device Access" description="Allow USB devices to pass through to the VM" icon={Usb} value={restrictions.usb_access} onChange={v => setRestrictions(r => ({...r, usb_access: v}))} onColor="#00FF87" />
+        </div>
+      </div>
+      <div>
+        <h3 className="text-[11px] uppercase tracking-widest text-slate-400 font-semibold mb-3 flex items-center gap-2"><Eye size={13} className="text-[#6C63FF]" /> Monitoring</h3>
+        <div className="space-y-2">
+          <ControlToggle label="Live Screen Monitoring" description="View participant screens in real-time from the monitor dashboard" icon={Monitor} value={restrictions.screen_monitoring} onChange={v => setRestrictions(r => ({...r, screen_monitoring: v}))} onColor="#6C63FF" />
+          <ControlToggle label="Session Recording" description="Record participant screen activity for later review" icon={Film} value={restrictions.session_recording} onChange={v => setRestrictions(r => ({...r, session_recording: v}))} onColor="#6C63FF" />
+          <ControlToggle label="Screen Watermark" description="Display participant name on their desktop as an overlay watermark" icon={Fingerprint} value={restrictions.screen_watermark} onChange={v => setRestrictions(r => ({...r, screen_watermark: v}))} onColor="#6C63FF" />
+        </div>
+      </div>
+      <div>
+        <h3 className="text-[11px] uppercase tracking-widest text-slate-400 font-semibold mb-3 flex items-center gap-2"><Users size={13} className="text-[#FF6B00]" /> Participant Permissions</h3>
+        <div className="space-y-2">
+          <div className="bg-[#0F131A] border border-slate-800/50 rounded-xl p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <MousePointer size={14} className="text-slate-400" />
+              <div>
+                <p className="text-sm font-medium text-white">Interaction Mode</p>
+                <p className="text-[11px] text-slate-500">Control how participants interact with their desktop</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setRestrictions(r => ({...r, interaction_mode: 'full_control'}))} className={`flex-1 py-2 rounded-lg text-xs font-semibold border transition-all active:scale-95 ${restrictions.interaction_mode === 'full_control' ? 'bg-[#00FF87]/10 border-[#00FF87]/30 text-[#00FF87]' : 'bg-slate-900/30 border-slate-800/50 text-slate-500'}`}>Full Control</button>
+              <button onClick={() => setRestrictions(r => ({...r, interaction_mode: 'view_only'}))} className={`flex-1 py-2 rounded-lg text-xs font-semibold border transition-all active:scale-95 ${restrictions.interaction_mode === 'view_only' ? 'bg-[#FF6B00]/10 border-[#FF6B00]/30 text-[#FF6B00]' : 'bg-slate-900/30 border-slate-800/50 text-slate-500'}`}>View Only</button>
+            </div>
+          </div>
+          <ControlToggle label="Auto-Shutdown on Idle" description="Automatically stop participant VM after inactivity" icon={Timer} value={restrictions.auto_shutdown_idle} onChange={v => setRestrictions(r => ({...r, auto_shutdown_idle: v}))} onColor="#FF6B00" />
+          {restrictions.auto_shutdown_idle && (
+            <div className="pl-12">
+              <label className="text-[10px] text-slate-500 block mb-1">Idle timeout (minutes)</label>
+              <input type="number" value={restrictions.idle_timeout_minutes} onChange={e => setRestrictions(r => ({...r, idle_timeout_minutes: parseInt(e.target.value) || 15}))} min={5} max={120} className="w-24 bg-slate-900/50 border border-slate-800/50 rounded-lg px-3 py-2 text-xs text-white outline-none" />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderStepReview = () => (
+    <div className="space-y-5">
+      <div className="bg-[#0F131A] border border-slate-800/50 rounded-xl p-5">
+        <h3 className="text-[10px] uppercase tracking-widest text-[#00A3FF] font-semibold mb-4">Session Summary</h3>
+        <div className="space-y-3">
+          <div className="flex justify-between"><span className="text-xs text-slate-500">Name</span><span className="text-sm font-semibold text-white">{sessionName}</span></div>
+          {sessionDesc && <div className="flex justify-between"><span className="text-xs text-slate-500">Description</span><span className="text-xs text-slate-300 text-right max-w-[60%]">{sessionDesc}</span></div>}
+          <div className="flex justify-between"><span className="text-xs text-slate-500">Template</span><span className="text-sm text-white">{selectedTemplate?.name}</span></div>
+          <div className="flex justify-between"><span className="text-xs text-slate-500">Specs</span><span className="text-xs text-slate-300">{selectedTemplate?.cpu_cores} vCPU · {selectedTemplate?.ram_gb}GB RAM · {selectedTemplate?.os}</span></div>
+          <div className="flex justify-between"><span className="text-xs text-slate-500">Participants</span><span className="text-sm text-white">up to {maxParticipants}</span></div>
+          <div className="flex justify-between"><span className="text-xs text-slate-500">Duration</span><span className="text-sm text-white">{duration} hour{duration > 1 ? 's' : ''}</span></div>
+          <div className="flex justify-between"><span className="text-xs text-slate-500">Start</span><span className="text-sm text-white">{scheduleType === 'now' ? 'Immediately' : `${scheduleDate} ${scheduleTime}`}</span></div>
+        </div>
+      </div>
+      <div className="bg-[#0F131A] border border-slate-800/50 rounded-xl p-5">
+        <h3 className="text-[10px] uppercase tracking-widest text-[#6C63FF] font-semibold mb-4">Session Controls</h3>
+        <div className="grid grid-cols-2 gap-2">
+          {[{ label: 'Internet', active: restrictions.internet_access }, { label: 'Clipboard', active: restrictions.clipboard }, { label: 'File Transfer', active: restrictions.file_transfer }, { label: 'Monitoring', active: restrictions.screen_monitoring }, { label: 'Recording', active: restrictions.session_recording }, { label: 'Watermark', active: restrictions.screen_watermark }].map(c => (
+            <div key={c.label} className="flex items-center gap-2 text-xs">
+              <div className={`w-1.5 h-1.5 rounded-full ${c.active ? 'bg-[#00FF87]' : 'bg-[#FF3366]'}`} />
+              <span className="text-slate-400">{c.label}:</span>
+              <span className={c.active ? 'text-[#00FF87]' : 'text-[#FF3366]'}>{c.active ? 'Allowed' : 'Blocked'}</span>
+            </div>
+          ))}
+          <div className="flex items-center gap-2 text-xs col-span-2 mt-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#00A3FF]" />
+            <span className="text-slate-400">Mode:</span>
+            <span className="text-[#00A3FF]">{restrictions.interaction_mode === 'full_control' ? 'Full Control' : 'View Only'}</span>
+          </div>
+        </div>
+      </div>
+      {selectedTemplate?.price_per_hour > 0 && (
+        <div className="bg-[#0F131A] border border-[#FF6B00]/20 rounded-xl p-5">
+          <h3 className="text-[10px] uppercase tracking-widest text-[#FF6B00] font-semibold mb-3">Cost Estimate</h3>
+          <div className="text-sm text-slate-300">TZS {selectedTemplate.price_per_hour.toLocaleString()}/hr x {maxParticipants} participants x {duration}hrs</div>
+          <div className="text-lg font-bold text-white mt-1">= TZS {(selectedTemplate.price_per_hour * maxParticipants * duration).toLocaleString()} <span className="text-xs text-slate-500 font-normal ml-1">(maximum)</span></div>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+      <div className="bg-[#0A0E14] border border-slate-800/50 rounded-2xl w-[680px] max-h-[85vh] overflow-hidden shadow-2xl shadow-black/50 flex flex-col">
+        <div className="px-6 py-4 border-b border-slate-800/30 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#0066FF]/10 flex items-center justify-center">
+              <Radio size={18} className="text-[#0066FF]" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-white">Create Session</h2>
+              <p className="text-[11px] text-slate-500">Step {step} of 4</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-500 hover:text-white active:scale-95 transition-all"><X size={18} /></button>
+        </div>
+        <div className="px-6 py-3 border-b border-slate-800/20 flex-shrink-0">
+          <div className="flex gap-2">
+            {['Details', 'Environment', 'Controls', 'Review'].map((s, i) => (
+              <div key={s} className="flex-1">
+                <div className={`h-1 rounded-full transition-all duration-500 ${i + 1 <= step ? 'bg-[#0066FF]' : 'bg-slate-800/50'}`} />
+                <p className={`text-[9px] mt-1.5 font-medium uppercase tracking-wider ${i + 1 === step ? 'text-[#0066FF]' : i + 1 < step ? 'text-slate-400' : 'text-slate-600'}`}>{s}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto px-6 py-5 custom-scrollbar">
+          {step === 1 && renderStepDetails()}
+          {step === 2 && renderStepEnvironment()}
+          {step === 3 && renderStepControls()}
+          {step === 4 && renderStepReview()}
+        </div>
+        <div className="px-6 py-4 border-t border-slate-800/30 flex justify-between flex-shrink-0">
+          {step > 1 ? (
+            <button onClick={() => setStep(s => s - 1)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-300 text-sm font-medium hover:border-slate-500 active:scale-95 transition-all"><ArrowLeft size={15} /> Back</button>
+          ) : <div />}
+          {step < 4 ? (
+            <button onClick={() => setStep(s => s + 1)} disabled={!canProceed()} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0066FF] text-white text-sm font-semibold hover:bg-[#0052CC] active:scale-95 transition-all shadow-lg shadow-blue-500/20 disabled:opacity-30 disabled:cursor-not-allowed">Continue <ArrowRight size={15} /></button>
+          ) : (
+            <button onClick={handleLaunch} disabled={launching} className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#0066FF] to-[#6C63FF] text-white text-sm font-semibold active:scale-95 transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50">
+              {launching ? (
+                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Launching...</>
+              ) : (
+                <><Rocket size={15} /> Launch Session</>
+              )}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

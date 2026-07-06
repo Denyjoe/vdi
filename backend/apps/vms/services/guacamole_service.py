@@ -97,7 +97,7 @@ class GuacamoleService:
 
     def create_connection(
         self, name, hostname,
-        username=None, password=None, port='3389',
+        username=None, password=None, port='3389', restrictions=None
     ):
         """
         Create an RDP connection in Guacamole.
@@ -108,6 +108,7 @@ class GuacamoleService:
             username (str): RDP login username (defaults to VM_DEFAULT_USER).
             password (str): RDP login password (defaults to VM_DEFAULT_PASSWORD).
             port (str): RDP port (default '3389').
+            restrictions (dict): Session control restrictions.
 
         Returns:
             str or None: Connection identifier, or None on failure.
@@ -119,19 +120,39 @@ class GuacamoleService:
         if password is None:
             password = VM_DEFAULT_PASSWORD
 
+        parameters = {
+            "hostname": hostname,
+            "port": port,
+            "username": username,
+            "password": password,
+            "security": "any",
+            "ignore-cert": "true",
+            "resize-method": "display-update",
+            "enable-font-smoothing": "true",
+        }
+        
+        if restrictions:
+            if not restrictions.get('clipboard', True):
+                parameters["disable-copy"] = "true"
+                parameters["disable-paste"] = "true"
+            
+            if not restrictions.get('file_transfer', True):
+                parameters["disable-download"] = "true"
+                parameters["disable-upload"] = "true"
+            
+            if restrictions.get('interaction_mode') == 'view_only':
+                parameters["read-only"] = "true"
+            
+            if restrictions.get('session_recording'):
+                parameters["recording-path"] = "/var/lib/guacamole/recordings"
+                parameters["recording-name"] = f"{name}-recording"
+                parameters["create-recording-path"] = "true"
+
         payload = {
             "parentIdentifier": "ROOT",
             "name": name,
             "protocol": "rdp",
-            "parameters": {
-                "hostname": hostname,
-                "port": port,
-                "username": username,
-                "password": password,
-                "security": "any",
-                "ignore-cert": "true",
-                "resize-method": "display-update",
-            },
+            "parameters": parameters,
             "attributes": {
                 "max-connections": "1",
                 "max-connections-per-user": "1",

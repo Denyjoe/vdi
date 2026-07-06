@@ -74,6 +74,12 @@ class User(AbstractUser):
         default='Africa/Dar_es_Salaam'
     )
     is_verified = models.BooleanField(default=False)
+    verification_code = models.CharField(
+        max_length=6, blank=True, default='')
+    password_reset_code = models.CharField(
+        max_length=6, blank=True, default='')
+    password_reset_expires = models.DateTimeField(
+        null=True, blank=True)
     referred_by = models.ForeignKey(
         'self', null=True, blank=True,
         on_delete=models.SET_NULL,
@@ -83,6 +89,9 @@ class User(AbstractUser):
         default=True,
         help_text="Unapproved accounts cannot log in. Admins control this.",
     )
+    notification_email = models.BooleanField(default=True)
+    notification_session = models.BooleanField(default=True)
+    notification_usage = models.BooleanField(default=True)
     created_at = models.DateTimeField(
         auto_now_add=True,
         help_text="Timestamp when the account was first created.",
@@ -116,41 +125,34 @@ class User(AbstractUser):
             return 'free'
 
 
-class SystemSetting(models.Model):
-    key = models.CharField(max_length=100, unique=True)
-    value = models.TextField()
-    description = models.TextField(blank=True)
-    updated_by = models.ForeignKey(
-        User, on_delete=models.SET_NULL, null=True, blank=True
-    )
-    updated_at = models.DateTimeField(auto_now=True)
-
+class SystemConfig(models.Model):
+    """Platform-wide settings managed 
+    by admin from the dashboard"""
+    key = models.CharField(
+        max_length=100, unique=True)
+    value = models.TextField(default='')
+    
     class Meta:
-        db_table = "system_settings"
-        verbose_name = "System Setting"
-        verbose_name_plural = "System Settings"
-        ordering = ["key"]
-
+        verbose_name = 'System Configuration'
+    
     def __str__(self):
-        return f"{self.key} = {self.value}"
-
+        return f"{self.key}: {self.value}"
+    
     @classmethod
-    def get(cls, key, default=None):
+    def get(cls, key, default=''):
         try:
-            return cls.objects.get(key=key).value
+            return cls.objects.get(
+                key=key).value
         except cls.DoesNotExist:
             return default
-
+    
     @classmethod
-    def set(cls, key, value, user=None):
+    def set(cls, key, value):
         obj, _ = cls.objects.update_or_create(
             key=key,
-            defaults={
-                'value': str(value),
-                'updated_by': user
-            }
-        )
+            defaults={'value': str(value)})
         return obj
+
 
 class SubscriptionPlan(models.Model):
     PLAN_CHOICES = [

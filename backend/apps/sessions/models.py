@@ -228,6 +228,13 @@ class LiveSession(models.Model):
         default=True)
     created_at = models.DateTimeField(
         auto_now_add=True)
+    restrictions = models.JSONField(
+        default=dict, blank=True,
+        help_text="Session control settings")
+    duration_hours = models.FloatField(
+        default=2.0)
+    scheduled_at = models.DateTimeField(
+        null=True, blank=True)
 
     def save(self, *args, **kwargs):
         if not self.invite_code:

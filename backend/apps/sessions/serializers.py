@@ -15,7 +15,8 @@ class LiveSessionSerializer(serializers.ModelSerializer):
             'end_time', 'submission_deadline', 'restrict_internet',
             'restrict_copy_paste', 'allow_late_submission', 'submission_type',
             'instructions', 'status', 'created_at', 'participant_count',
-            'password', 'allow_participant_chat', 'record_session', 'show_participant_list'
+            'password', 'allow_participant_chat', 'record_session', 'show_participant_list',
+            'restrictions', 'duration_hours', 'scheduled_at'
         ]
         read_only_fields = ['host', 'invite_code', 'invite_link', 'status']
 

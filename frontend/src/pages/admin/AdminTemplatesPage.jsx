@@ -450,7 +450,7 @@ export default function AdminTemplatesPage() {
               )}
               {templates.map(template => (
                 <tr key={template.id} className={`hover:bg-[var(--bg-card-hover)]/20 transition-colors ${!template.is_available ? 'opacity-50' : ''}`}>
-                  <td className="px-6 py-4 text-lg font-mono text-[var(--text-secondary)]">{template.icon || '💻'}</td>
+                  <td className="px-6 py-4 text-lg font-mono text-[var(--text-secondary)]">{template.icon || 'Monitor'}</td>
                   <td className="px-6 py-4 font-medium text-[var(--text-primary)]">{template.name}</td>
                   <td className="px-6 py-4 text-[var(--text-secondary)] text-xs">{template.os}</td>
                   <td className="px-6 py-4 text-center">{template.cpu_cores} cores</td>

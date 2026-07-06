@@ -16,10 +16,46 @@ class HealthCheckView(APIView):
     def get(self, request):
         return Response({"status": "ok"})
 
-class RegisterView(generics.CreateAPIView):
-    queryset = User.objects.all()
+class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
-    serializer_class = RegisterSerializer
+    
+    def post(self, request):
+        email = request.data.get('email')
+        if User.objects.filter(email=email).exists():
+            return Response({
+                'success': False,
+                'message': 'An account with this email already exists'
+            }, status=400)
+            
+        serializer = RegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            
+            # Setup verification
+            import random
+            code = str(random.randint(100000, 999999))
+            user.is_verified = False
+            user.verification_code = code
+            user.save()
+            
+            logger.info(f"Verification code for {user.email}: {code}")
+            
+            return Response({
+                'success': True,
+                'message': 'Registration successful',
+                'dev_code': code
+            }, status=201)
+        
+        # Format errors
+        error_msg = "Invalid data"
+        if serializer.errors:
+            first_error = list(serializer.errors.values())[0]
+            error_msg = first_error[0] if isinstance(first_error, list) else first_error
+            
+        return Response({
+            'success': False,
+            'message': error_msg
+        }, status=400)
 
 class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -34,6 +70,13 @@ class LoginView(APIView):
                 return Response({
                     "success": False,
                     "message": "Account is inactive or pending approval"
+                }, status=status.HTTP_401_UNAUTHORIZED)
+            
+            if not user.is_verified and user.role != 'admin' and not user.is_staff and not user.is_superuser:
+                return Response({
+                    "success": False,
+                    "message": "Please verify your email first",
+                    "needs_verification": True
                 }, status=status.HTTP_401_UNAUTHORIZED)
                 
             refresh = RefreshToken.for_user(user)
@@ -51,6 +94,115 @@ class LoginView(APIView):
             "success": False,
             "message": "Invalid email or password"
         }, status=status.HTTP_401_UNAUTHORIZED)
+
+import random
+from django.utils import timezone
+from datetime import timedelta
+import logging
+
+logger = logging.getLogger(__name__)
+
+class PasswordResetRequestView(APIView):
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request):
+        email = request.data.get('email')
+        try:
+            user = User.objects.get(email=email)
+            code = str(random.randint(100000, 999999))
+            user.password_reset_code = code
+            user.password_reset_expires = timezone.now() + timedelta(minutes=30)
+            user.save()
+            
+            logger.info(f"Password reset code for {email}: {code}")
+            
+            return Response({
+                'success': True,
+                'message': 'Reset code sent',
+                'dev_code': code
+            })
+        except User.DoesNotExist:
+            return Response({
+                'success': True,
+                'message': 'If this email is registered, a reset code has been sent'
+            })
+
+class PasswordResetConfirmView(APIView):
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request):
+        email = request.data.get('email')
+        code = request.data.get('code')
+        new_password = request.data.get('new_password')
+        
+        try:
+            user = User.objects.get(email=email)
+            if user.password_reset_code != code or not user.password_reset_expires or user.password_reset_expires < timezone.now():
+                return Response({
+                    'success': False,
+                    'message': 'Invalid or expired code'
+                }, status=400)
+            
+            user.set_password(new_password)
+            user.password_reset_code = ''
+            user.password_reset_expires = None
+            user.save()
+            
+            return Response({
+                'success': True,
+                'message': 'Password reset successfully'
+            })
+        except User.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'Invalid request'
+            }, status=400)
+
+class VerifyEmailView(APIView):
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request):
+        email = request.data.get('email')
+        code = request.data.get('code')
+        try:
+            user = User.objects.get(email=email)
+            if user.is_verified:
+                return Response({'success': True, 'message': 'Email already verified'})
+                
+            if user.verification_code == code:
+                user.is_verified = True
+                user.verification_code = ''
+                user.save()
+                return Response({'success': True, 'message': 'Email verified successfully'})
+            else:
+                return Response({'success': False, 'message': 'Invalid verification code'}, status=400)
+        except User.DoesNotExist:
+            return Response({'success': False, 'message': 'User not found'}, status=404)
+
+class ResendVerificationView(APIView):
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request):
+        email = request.data.get('email')
+        try:
+            user = User.objects.get(email=email)
+            if user.is_verified:
+                return Response({'success': False, 'message': 'Email already verified'}, status=400)
+                
+            code = str(random.randint(100000, 999999))
+            user.verification_code = code
+            user.save()
+            
+            logger.info(f"Verification code for {email}: {code}")
+            
+            return Response({
+                'success': True, 
+                'message': 'Verification code resent',
+                'dev_code': code
+            })
+        except User.DoesNotExist:
+            return Response({'success': False, 'message': 'User not found'}, status=404)
+
 
 class LogoutView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -97,6 +249,24 @@ class AvatarUploadView(APIView):
         return Response({
             "success": True,
             "data": UserProfileSerializer(user).data
+        })
+
+class PricingView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        from apps.users.models import SubscriptionPlan
+        from apps.vms.models import VMTemplate
+        from apps.vms.serializers import VMTemplateSerializer
+        
+        plans = SubscriptionPlan.objects.all().values()
+        templates = VMTemplate.objects.filter(is_available=True)
+        return Response({
+            "success": True,
+            "data": {
+                "plans": list(plans),
+                "templates": VMTemplateSerializer(templates, many=True).data
+            }
         })
 
 class AvatarDeleteView(APIView):

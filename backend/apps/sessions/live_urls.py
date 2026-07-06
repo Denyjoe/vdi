@@ -11,4 +11,5 @@ urlpatterns = [
     path('<int:pk>/end/', views.EndSessionView.as_view(), name='live-session-end'),
     path('<int:pk>/monitor/', views.SessionMonitorView.as_view(), name='live-session-monitor'),
     path('<int:pk>/remove/<int:user_id>/', views.RemoveParticipantView.as_view(), name='live-session-remove-participant'),
+    path('<int:pk>/leave/', views.LeaveSessionView.as_view(), name='live-session-leave'),
 ]

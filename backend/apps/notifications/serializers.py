@@ -4,4 +4,4 @@ from .models import Notification
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
-        fields = ['id', 'type', 'title', 'message', 'is_read', 'action_url', 'created_at']
+        fields = ['id', 'notification_type', 'title', 'message', 'is_read', 'link', 'created_at']

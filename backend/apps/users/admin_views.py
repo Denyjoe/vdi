@@ -48,3 +48,28 @@ class AdminUserDetailView(APIView):
             return Response({"success": True, "data": UserProfileSerializer(user).data})
             
         return Response({"success": False, "message": "Invalid role"}, status=status.HTTP_400_BAD_REQUEST)
+
+class SystemConfigView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        from apps.users.models import SystemConfig
+        configs = SystemConfig.objects.all()
+        data = {c.key: c.value for c in configs}
+        return Response({
+            "success": True,
+            "data": data
+        })
+
+    def put(self, request):
+        from apps.users.models import SystemConfig
+        for key, value in request.data.items():
+            SystemConfig.set(key, value)
+            
+        configs = SystemConfig.objects.all()
+        data = {c.key: c.value for c in configs}
+        return Response({
+            "success": True,
+            "data": data,
+            "message": "System configuration updated"
+        })

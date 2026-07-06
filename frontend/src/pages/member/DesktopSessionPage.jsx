@@ -193,46 +193,64 @@ export default function DesktopSessionPage() {
   if (type === 'workspace') {
     if (wsLoading || workspace?.vm_details?.status === 'provisioning') {
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: '24px', backgroundColor: '#0f172a' }}>
-          <div style={{ width: '40px', height: '40px', border: '3px solid rgba(99,102,241,0.2)', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-          <h2 style={{ color: '#f1f5f9', fontSize: '20px', fontWeight: 600 }}>Preparing your workspace...</h2>
-          <p style={{ color: '#94a3b8' }}>Starting virtual machine. This usually takes 30-60 seconds.</p>
+        <div className="flex flex-col items-center justify-center h-screen gap-6 bg-[#050B18]">
+          <div className="w-10 h-10 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+          <div className="text-center">
+             <h2 className="text-[var(--text-primary)] text-xl font-semibold mb-2">Preparing your workspace...</h2>
+             <p className="text-[var(--text-secondary)]">Starting virtual machine. This usually takes 30-60 seconds.</p>
+          </div>
         </div>
       );
     }
     
     if (workspace?.vm_details?.status === 'error') {
        return (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: '24px', backgroundColor: '#0f172a' }}>
-          <h2 style={{ color: '#ef4444', fontSize: '20px', fontWeight: 600 }}>Error Provisioning Workspace</h2>
-          <p style={{ color: '#94a3b8' }}>{workspace.vm_details?.notes || 'Unknown error occurred during provisioning.'}</p>
-          <button onClick={() => navigate('/workspaces')} className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors">Back to Workspaces</button>
+        <div className="flex flex-col items-center justify-center h-screen gap-6 bg-[#050B18]">
+          <div className="text-center max-w-md">
+             <h2 className="text-red-400 text-xl font-semibold mb-2">Error Provisioning Workspace</h2>
+             <p className="text-[var(--text-secondary)] mb-6">{workspace.vm_details?.notes || 'Unknown error occurred during provisioning.'}</p>
+             <button onClick={() => navigate('/workspaces')} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/25">
+               Back to Workspaces
+             </button>
+          </div>
         </div>
        );
     }
     
     if (workspace?.vm_details?.guacamole_url) {
       return (
-        <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
-          <div style={{ height: '48px', backgroundColor: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ color: '#f1f5f9', fontWeight: 600 }}>{workspace.name}</span>
-              <span style={{ backgroundColor: '#10b981', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> Connected
+        <div className="relative w-screen h-screen overflow-hidden bg-black flex flex-col font-inter">
+          <div className="h-12 bg-[var(--bg-primary)] border-b border-[var(--border-color)] flex items-center justify-between px-4 shrink-0 shadow-md relative z-50">
+            <div className="flex items-center gap-4">
+              <Monitor className="w-5 h-5 text-indigo-400" />
+              <span className="text-[var(--text-primary)] font-medium text-sm sm:text-base hidden sm:block">
+                {workspace.name}
               </span>
+              
+              <div className="h-5 w-px bg-[var(--border-color)] hidden sm:block" />
+              
+              <div className="flex items-center gap-1.5">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+                <span className="text-emerald-400 text-sm font-medium">Connected</span>
+              </div>
             </div>
+            
             <button 
               onClick={handleDisconnect} 
-              style={{ backgroundColor: '#ef4444', color: 'white', border: 'none', padding: '6px 16px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 500 }}
               disabled={isDisconnecting}
+              className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors border border-red-500/20 flex items-center gap-2"
             >
-              {isDisconnecting ? 'Disconnecting...' : 'Disconnect'}
+              <Power className="w-4 h-4" />
+              {isDisconnecting ? 'Disconnecting...' : 'End Session'}
             </button>
           </div>
           <iframe 
             src={workspace.vm_details.guacamole_url} 
-            style={{ width: '100%', height: 'calc(100% - 48px)', border: 'none', backgroundColor: '#000' }} 
-            allow="clipboard-read; clipboard-write" 
+            className="w-full flex-1 border-none bg-black" 
+            allow="clipboard-read; clipboard-write; fullscreen" 
             title="Virtual Desktop" 
           />
         </div>
@@ -342,7 +360,7 @@ export default function DesktopSessionPage() {
           {/* Simulation Badge */}
           <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
             <div className="bg-amber-500/20 border border-amber-500/40 text-amber-200 text-xs px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg flex items-center gap-2">
-              <span>🔬</span>
+              
               <span>Simulation Mode — Connect Proxmox for live desktop</span>
             </div>
           </div>

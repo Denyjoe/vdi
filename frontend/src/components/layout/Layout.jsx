@@ -36,7 +36,7 @@ export default function Layout({ children }) {
 
   return (
     <NotificationProvider>
-      <div className="flex h-screen bg-[#0F172A]">
+      <div className="flex h-screen bg-[#080B10]">
         {/* Mobile overlay — covers content when sidebar is open on small screens */}
         {sidebarOpen && (
           <div

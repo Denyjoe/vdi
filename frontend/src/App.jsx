@@ -56,10 +56,14 @@ class ErrorBoundary extends React.Component {
 import LandingPage from "./pages/public/LandingPage";
 import PricingPage from "./pages/public/PricingPage";
 import TemplatesPage from "./pages/public/TemplatesPage";
+import TermsPage from "./pages/public/TermsPage";
+import PrivacyPage from "./pages/public/PrivacyPage";
 
 // Auth pages
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+import VerifyEmailPage from "./pages/auth/VerifyEmailPage";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -73,7 +77,6 @@ import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
 import VMPoolPage from "./pages/admin/VMPoolPage";
 
 // Shared/User pages
-import ProfilePage from './pages/shared/ProfilePage';
 import NotificationsPage from './pages/shared/NotificationsPage';
 import SessionsPage from "./pages/shared/SessionsPage";
 import JoinSessionPage from "./pages/shared/JoinSessionPage";
@@ -119,9 +122,13 @@ export default function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/pricing" element={<PricingPage />} />
         <Route path="/templates" element={<TemplatesPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
         
         <Route path="/login" element={user ? <Navigate to={getDashboardRoute()} replace /> : <LoginPage />} />
         <Route path="/register" element={user ? <Navigate to={getDashboardRoute()} replace /> : <RegisterPage />} />
+        <Route path="/forgot-password" element={user ? <Navigate to={getDashboardRoute()} replace /> : <ForgotPasswordPage />} />
+        <Route path="/verify-email" element={user ? <Navigate to={getDashboardRoute()} replace /> : <VerifyEmailPage />} />
         
         <Route path="/join/session/:code" element={<JoinSessionPage />} />
         
@@ -143,7 +150,7 @@ export default function App() {
           <Route path="/host/analytics" element={<HostAnalyticsPage />} />
           
           <Route path="/sessions" element={<SessionsPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/profile" element={<Navigate to="/settings" replace />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
 

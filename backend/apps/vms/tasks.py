@@ -144,11 +144,11 @@ def cleanup_expired_sessions():
   Runs every hour.
   """
   from apps.sessions.models import RemoteSession
-  from apps.users.models import SystemSetting
+  from apps.users.models import SystemConfig
   from django.utils import timezone
   import datetime
   
-  max_hours = int(SystemSetting.get(
+  max_hours = int(SystemConfig.get(
     'max_session_hours', '8'))
   
   cutoff = timezone.now() - \

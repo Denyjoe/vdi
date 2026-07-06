@@ -1,202 +1,201 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Cpu, MemoryStick, HardDrive } from 'lucide-react';
+import { Search, Cpu, HardDrive, Monitor, Code2, Compass, Terminal, Palette, Network, Database, Shield, Globe, Film, Smartphone } from 'lucide-react';
 import PublicNavbar from '../../components/public/PublicNavbar';
 import useAuthStore from '../../store/authStore';
+import api from '../../services/api';
+
+const TEMPLATE_ICONS = {
+  Code2, Compass, Terminal, Palette,
+  Network, Database, Shield, Cpu,
+  Monitor, Globe, Film, Smartphone,
+  HardDrive,
+};
+
+const getTemplateIcon = (iconName) => TEMPLATE_ICONS[iconName] || Monitor;
 
 export default function TemplatesPage() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('All');
+  const [templates, setTemplates] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const templates = [
-    {
-      id: 1, name: 'AutoCAD Workstation', icon: '📐', os: 'Windows 10 Pro', category: 'Windows', cpu: 4, ram: 8, storage: 60,
-      description: 'Professional CAD design environment',
-      software: ['AutoCAD 2024', 'AutoCAD LT']
-    },
-    {
-      id: 2, name: 'MATLAB Lab', icon: '📊', os: 'Windows 10 Pro', category: 'Windows', cpu: 4, ram: 16, storage: 80,
-      description: 'Mathematical computing environment',
-      software: ['MATLAB R2023', 'Simulink', 'Signal Processing Toolbox']
-    },
-    {
-      id: 3, name: 'Programming Environment', icon: '💻', os: 'Ubuntu 22.04 LTS', category: 'Linux', cpu: 2, ram: 4, storage: 40,
-      description: 'Full-stack development workspace',
-      software: ['VS Code', 'Python 3.11', 'Node.js', 'Git', 'PostgreSQL']
-    },
-    {
-      id: 4, name: 'Graphic Design Studio', icon: '🎨', os: 'Windows 10 Pro', category: 'Windows', cpu: 4, ram: 8, storage: 80,
-      description: 'Creative design environment',
-      software: ['Photoshop 2024', 'Illustrator 2024', 'Premiere Pro']
-    },
-    {
-      id: 5, name: 'Network Lab', icon: '🌐', os: 'Ubuntu 22.04 LTS', category: 'Linux', cpu: 2, ram: 4, storage: 40,
-      description: 'Network engineering environment',
-      software: ['Cisco Packet Tracer', 'Wireshark', 'GNS3', 'PuTTY']
-    },
-    {
-      id: 6, name: 'Cybersecurity Lab', icon: '🛡️', os: 'Kali Linux 2024', category: 'Kali', cpu: 4, ram: 8, storage: 60,
-      description: 'Penetration testing and security',
-      software: ['Metasploit', 'Wireshark', 'Burp Suite', 'Nmap', 'John the Ripper']
-    },
-    {
-      id: 7, name: 'Civil Engineering Suite', icon: '🏢', os: 'Windows 10 Pro', category: 'Windows', cpu: 4, ram: 16, storage: 100,
-      description: 'Structural and civil engineering tools',
-      software: ['AutoCAD Civil 3D', 'Revit 2024', 'SAP2000', 'ETABS']
-    },
-    {
-      id: 8, name: 'Data Science Lab', icon: '🧠', os: 'Ubuntu 22.04 LTS', category: 'Linux', cpu: 4, ram: 16, storage: 80,
-      description: 'Machine learning and data analysis',
-      software: ['Python 3.11', 'Jupyter Lab', 'TensorFlow', 'PyTorch', 'Pandas']
-    },
-    {
-      id: 9, name: 'Mobile Development Studio', icon: '📱', os: 'Ubuntu 22.04 LTS', category: 'Linux', cpu: 4, ram: 8, storage: 60,
-      description: 'Android and Flutter development',
-      software: ['Android Studio', 'Flutter SDK', 'VS Code', 'Firebase CLI']
-    },
-    {
-      id: 10, name: 'Database Administration Lab', icon: '🗄️', os: 'Ubuntu 22.04 LTS', category: 'Linux', cpu: 2, ram: 4, storage: 60,
-      description: 'Database management environment',
-      software: ['MySQL Workbench', 'pgAdmin 4', 'MongoDB Compass', 'Redis']
-    },
-    {
-      id: 11, name: 'Video Production Suite', icon: '🎬', os: 'Windows 10 Pro', category: 'Windows', cpu: 8, ram: 32, storage: 200,
-      description: 'Professional video editing',
-      software: ['DaVinci Resolve', 'Adobe Premiere Pro', 'After Effects']
-    },
-    {
-      id: 12, name: 'Web Development Studio', icon: '🌐', os: 'Ubuntu 22.04 LTS', category: 'Linux', cpu: 2, ram: 4, storage: 40,
-      description: 'Full-stack web development',
-      software: ['VS Code', 'Node.js LTS', 'React', 'Docker', 'Nginx']
+  useEffect(() => {
+    fetchTemplates();
+  }, []);
+
+  const fetchTemplates = async () => {
+    try {
+      const res = await api.get('/vms/templates/');
+      if (res.data?.success) {
+        setTemplates(res.data.data);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   const handleLaunch = () => {
     if (user) {
-      navigate('/dashboard'); // Real implementation would go to specific VM request
+      navigate('/workspaces');
     } else {
       navigate('/register');
     }
   };
 
-  const getGradientByOS = (category) => {
-    switch (category) {
-      case 'Windows': return 'from-blue-900 to-blue-800';
-      case 'Linux': return 'from-orange-900 to-orange-800';
-      case 'Kali': return 'from-purple-900 to-purple-800';
-      default: return 'from-slate-800 to-slate-900';
-    }
+  const getGradientByOS = (os) => {
+    const o = (os || '').toLowerCase();
+    if (o.includes('windows')) return 'from-blue-900/60 to-indigo-900/40 border-blue-500/20';
+    if (o.includes('linux') || o.includes('ubuntu') || o.includes('debian')) return 'from-orange-900/60 to-red-900/40 border-orange-500/20';
+    if (o.includes('kali')) return 'from-purple-900/60 to-fuchsia-900/40 border-purple-500/20';
+    return 'from-slate-800 to-slate-900 border-slate-700/50';
   };
 
   const filteredTemplates = templates.filter(t => {
     const matchesSearch = t.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          t.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTab = activeTab === 'All' || t.category === activeTab;
+                          (t.description || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const isWindows = (t.os || '').toLowerCase().includes('windows');
+    const isLinux = (t.os || '').toLowerCase().includes('linux') || (t.os || '').toLowerCase().includes('ubuntu');
+    const isKali = (t.os || '').toLowerCase().includes('kali');
+    
+    let category = 'Other';
+    if (isWindows) category = 'Windows';
+    else if (isKali) category = 'Kali';
+    else if (isLinux) category = 'Linux';
+    
+    const matchesTab = activeTab === 'All' || category === activeTab;
     return matchesSearch && matchesTab;
   });
 
   return (
-    <div className="min-h-screen bg-[#050B18]">
+    <div className="min-h-screen bg-[var(--bg-primary)] flex flex-col font-inter">
       <PublicNavbar />
 
-      {/* Hero Section */}
-      <section className="pt-32 pb-16 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-indigo-900/20 to-transparent"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-[var(--text-primary)] mb-6">12+ Professional VM Templates</h1>
-          <p className="text-xl text-[var(--text-secondary)] mb-10 max-w-2xl mx-auto">
-            Launch powerful tools instantly. No installation required.
-          </p>
+      <main className="flex-1 pt-32 pb-24">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-16 animate-fade-in-up">
+            <h1 className="text-4xl md:text-5xl font-bold text-[var(--text-primary)] mb-6 tracking-tight">
+              Virtual Workspaces
+            </h1>
+            <p className="text-lg text-[var(--text-secondary)] max-w-2xl mx-auto">
+              Choose from our curated collection of professional environments. Pre-configured with the tools you need.
+            </p>
+          </div>
 
-          <div className="max-w-2xl mx-auto flex flex-col md:flex-row gap-4 mb-8">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] w-5 h-5" />
-              <input 
-                type="text" 
-                placeholder="Search templates, software, or OS..."
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-12">
+            <div className="flex space-x-2 bg-white/5 p-1 rounded-xl backdrop-blur-sm border border-[var(--border-color)]">
+              {['All', 'Windows', 'Linux', 'Kali'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                    activeTab === tab
+                      ? 'bg-indigo-600 text-white shadow-lg'
+                      : 'text-[var(--text-secondary)] hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+
+            <div className="relative w-full md:w-96">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search environments, software..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-[#0D1526] border border-[var(--border-color)] rounded-xl pl-12 pr-4 py-4 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all"
+                className="w-full pl-12 pr-4 py-3 bg-white/5 border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all backdrop-blur-sm"
               />
             </div>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-2">
-            {['All', 'Windows', 'Linux', 'Kali'].map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${activeTab === tab ? 'bg-indigo-600 text-white' : 'bg-[#0D1526] border border-[var(--border-color)] text-[var(--text-secondary)] hover:text-white hover:border-white/30'}`}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
+          {loading ? (
+             <div className="flex justify-center items-center py-24">
+                 <div className="w-12 h-12 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 animate-spin"></div>
+             </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {filteredTemplates.map((template) => {
+                const Icon = getTemplateIcon(template.icon);
+                return (
+                  <div key={template.id} className="group flex flex-col bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] overflow-hidden hover:border-indigo-500/50 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300">
+                    <div className={`p-8 bg-gradient-to-br ${getGradientByOS(template.os)} border-b`}>
+                      <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center mb-6 shadow-inner border border-white/10">
+                        <Icon className="w-8 h-8 text-white" />
+                      </div>
+                      <h3 className="text-2xl font-bold text-white mb-2">{template.name}</h3>
+                      <p className="text-white/70 font-medium">{template.os}</p>
+                    </div>
 
-      {/* Templates Grid */}
-      <section className="pb-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredTemplates.map(t => (
-              <div key={t.id} className="glass-card rounded-2xl overflow-hidden flex flex-col hover:border-indigo-500/30 transition-all duration-300 hover:-translate-y-1 shadow-lg shadow-black/20">
-                {/* Top Section */}
-                <div className={`p-6 bg-gradient-to-br ${getGradientByOS(t.category)} relative`}>
-                  <div className="absolute top-4 right-4 bg-black/30 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold text-[var(--text-primary)]/90">
-                    {t.os}
-                  </div>
-                  <div className="text-5xl mb-2">{t.icon}</div>
-                </div>
-                
-                {/* Bottom Section */}
-                <div className="p-6 flex-1 flex flex-col bg-[#0D1526]">
-                  <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2">{t.name}</h3>
-                  <p className="text-sm text-[var(--text-secondary)] mb-6 h-10 line-clamp-2">{t.description}</p>
-                  
-                  <div className="flex items-center gap-4 text-xs text-[var(--text-primary)] mb-6 bg-white/5 p-3 rounded-xl border border-[var(--border-color)]">
-                    <div className="flex items-center gap-1.5"><Cpu className="w-4 h-4 text-[var(--text-secondary)]" /> {t.cpu} Cores</div>
-                    <div className="flex items-center gap-1.5"><MemoryStick className="w-4 h-4 text-[var(--text-secondary)]" /> {t.ram}GB RAM</div>
-                    <div className="flex items-center gap-1.5"><HardDrive className="w-4 h-4 text-[var(--text-secondary)]" /> {t.storage}GB</div>
-                  </div>
-                  
-                  <div className="mb-6 flex-1">
-                    <div className="flex flex-wrap gap-2">
-                      {t.software.slice(0, 3).map(sw => (
-                        <span key={sw} className="text-xs px-2 py-1 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
-                          {sw}
-                        </span>
-                      ))}
-                      {t.software.length > 3 && (
-                        <span className="text-xs px-2 py-1 rounded bg-white/5 text-[var(--text-secondary)] border border-[var(--border-color)]">
-                          +{t.software.length - 3} more
-                        </span>
-                      )}
+                    <div className="p-8 flex-1 flex flex-col">
+                      <p className="text-[var(--text-secondary)] mb-8 flex-1 leading-relaxed">
+                        {template.description || 'Pre-configured workspace ready for use.'}
+                      </p>
+
+                      <div className="grid grid-cols-2 gap-4 mb-8">
+                        <div className="bg-white/5 rounded-xl p-4 border border-[var(--border-color)]">
+                          <div className="flex items-center gap-2 text-indigo-400 mb-1">
+                            <Cpu className="w-4 h-4" />
+                            <span className="text-xs font-semibold uppercase tracking-wider">Compute</span>
+                          </div>
+                          <p className="text-[var(--text-primary)] font-semibold">{template.cpu_cores} Cores</p>
+                        </div>
+                        <div className="bg-white/5 rounded-xl p-4 border border-[var(--border-color)]">
+                          <div className="flex items-center gap-2 text-emerald-400 mb-1">
+                            <HardDrive className="w-4 h-4" />
+                            <span className="text-xs font-semibold uppercase tracking-wider">Memory</span>
+                          </div>
+                          <p className="text-[var(--text-primary)] font-semibold">{template.ram_gb} GB</p>
+                        </div>
+                      </div>
+
+                      <div className="mb-8">
+                        <h4 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-4">Included Software</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {(template.software_list || []).map((software, index) => (
+                            <span key={index} className="px-3 py-1.5 bg-white/5 text-[var(--text-primary)] rounded-lg text-sm border border-[var(--border-color)]">
+                              {software}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={handleLaunch}
+                        className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2 group-hover:scale-[1.02]"
+                      >
+                        Launch Workspace <span className="group-hover:translate-x-1 transition-transform">→</span>
+                      </button>
                     </div>
                   </div>
-                  
-                  <button 
-                    onClick={handleLaunch}
-                    className="w-full py-3 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-[var(--text-primary)] rounded-xl font-medium transition-all shadow-lg shadow-indigo-500/25"
-                  >
-                    Launch This VM →
-                  </button>
-                </div>
+                );
+              })}
+            </div>
+          )}
+
+          {!loading && filteredTemplates.length === 0 && (
+            <div className="text-center py-24 bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)]">
+              <div className="w-20 h-20 bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Search className="w-10 h-10 text-indigo-400" />
               </div>
-            ))}
-          </div>
-          
-          {filteredTemplates.length === 0 && (
-            <div className="text-center py-20">
-              <div className="text-6xl mb-4">🔍</div>
-              <h3 className="text-xl font-semibold text-[var(--text-primary)] mb-2">No templates found</h3>
-              <p className="text-[var(--text-secondary)]">Try adjusting your search or filters.</p>
+              <h3 className="text-2xl font-bold text-[var(--text-primary)] mb-2">No templates found</h3>
+              <p className="text-[var(--text-secondary)]">Try adjusting your search or category filters.</p>
             </div>
           )}
         </div>
-      </section>
+      </main>
+
+      <footer className="py-8 bg-[#050B18] border-t border-[var(--border-color)]">
+        <div className="max-w-7xl mx-auto px-6 text-center text-[var(--text-secondary)] text-sm">
+          <p>© 2026 CloudDesk. All rights reserved.</p>
+        </div>
+      </footer>
     </div>
   );
 }

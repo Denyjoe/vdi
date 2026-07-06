@@ -182,12 +182,22 @@ class VMPoolService:
                     except Exception:
                         pass
 
+                session_restrictions = {}
+                try:
+                    from apps.sessions.models import SessionParticipant
+                    participant = SessionParticipant.objects.filter(vm=vm_instance).first()
+                    if participant and participant.session:
+                        session_restrictions = participant.session.restrictions
+                except ImportError:
+                    pass
+
                 # Create new one with correct IP
                 conn_id = self.guacamole.create_connection(
                     name=f'user-{user.id}-vm-{entry.proxmox_vmid}',
                     hostname=ip_address,
                     username=config('VM_DEFAULT_USER', default='student'),
                     password=config('VM_DEFAULT_PASSWORD', default='student123'),
+                    restrictions=session_restrictions
                 )
                 entry.guacamole_connection_id = conn_id or ''
                 entry.save()

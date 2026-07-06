@@ -55,9 +55,9 @@ export default function RegisterPage() {
             });
             
             if (response.status === 201 || response.data?.success) {
-                navigate('/login', { state: { message: 'Registration successful! Please login.' }});
+                navigate(`/verify-email?email=${encodeURIComponent(formData.email)}`);
             } else {
-                navigate('/login', { state: { message: 'Registration successful! Please login.' }});
+                navigate(`/verify-email?email=${encodeURIComponent(formData.email)}`);
             }
         } catch (err) {
             setError(err.response?.data?.message || err.response?.data?.error?.detail || 'Failed to register. Please try again.');
@@ -67,7 +67,7 @@ export default function RegisterPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#050B18] flex">
+        <div className="min-h-screen bg-[var(--bg-primary)] flex">
             {/* Left Panel - Features Showcase (Desktop Only) */}
             <div className="hidden lg:flex lg:w-[55%] relative flex-col justify-between p-12 overflow-hidden border-r border-[var(--border-color)]">
                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/20 to-transparent z-0"></div>

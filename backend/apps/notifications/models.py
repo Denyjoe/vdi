@@ -5,18 +5,20 @@ User = get_user_model()
 
 class Notification(models.Model):
     NOTIFICATION_TYPES = (
-        ('info', 'Info'),
-        ('success', 'Success'),
-        ('warning', 'Warning'),
-        ('error', 'Error'),
+        ('workspace_ready', 'Workspace Ready'),
+        ('hours_low', 'Hours Running Low'),
+        ('session_invite', 'Session Invite'),
+        ('workspace_stopped', 'Workspace Stopped'),
+        ('payment_confirmed', 'Payment Confirmed'),
+        ('system', 'System'),
     )
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
-    type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES, default='info')
-    title = models.CharField(max_length=255)
+    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES, default='system')
+    title = models.CharField(max_length=200)
     message = models.TextField()
     is_read = models.BooleanField(default=False)
-    action_url = models.CharField(max_length=255, null=True, blank=True)
+    link = models.CharField(max_length=200, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -65,18 +65,8 @@ class Command(BaseCommand):
         ]
 
         for s in default_settings:
-            obj, created = SystemSetting.objects.get_or_create(
-                key=s['key'],
-                defaults={
-                    'value': s['value'],
-                    'description': s['description']
-                }
-            )
-            if created:
-                self.stdout.write(self.style.SUCCESS(f"  ✓ Created setting: {s['key']} = {s['value']}"))
-            else:
-                self.stdout.write(self.style.WARNING(f"  – Setting exists: {s['key']}"))
-
+            SystemConfig.set(s['key'], s['value'])
+            self.stdout.write(self.style.SUCCESS(f"  ✓ Set setting: {s['key']} = {s['value']}"))
     def _seed_users(self):
         """
         Create initial user accounts for testing.
@@ -127,102 +117,75 @@ class Command(BaseCommand):
         """Create VM template catalog for students to choose from."""
         self.stdout.write('\n── Seeding VM Templates ──')
 
+        # Delete old templates first
+        VMTemplate.objects.all().delete()
+        
         templates_data = [
             {
-                'name': 'AutoCAD Workstation',
-                'cpu_cores': 4, 'ram_gb': 8, 'storage_gb': 60,
-                'os': 'Windows 10 Pro',
-                'software_list': ["AutoCAD 2024", "AutoCAD LT"],
-                'description': 'Full AutoCAD suite for civil and mechanical engineering drawings.',
-                'icon': 'Compass'
+                'name': 'Basic Desktop',
+                'template_type': 'desktop',
+                'cpu_cores': 1, 'ram_gb': 2, 'storage_gb': 20,
+                'os': 'Ubuntu 22.04 LTS',
+                'description': 'Light desktop for browsing, documents, and basic coding',
+                'software_list': ["Firefox", "LibreOffice", "Text Editor", "Terminal"],
+                'icon': 'Monitor',
+                'price_per_hour': 0, 'monthly_cap': 0,
+                'is_real': True, 'proxmox_template_id': 9000
             },
             {
-                'name': 'MATLAB Lab',
-                'cpu_cores': 4, 'ram_gb': 16, 'storage_gb': 80,
-                'os': 'Windows 10 Pro',
-                'software_list': ["MATLAB R2023", "Simulink", "Signal Processing Toolbox"],
-                'description': 'MATLAB environment for mathematical computing and simulation.',
-                'icon': 'BarChart2'
-            },
-            {
-                'name': 'Programming Environment',
+                'name': 'Standard Desktop',
+                'template_type': 'desktop',
                 'cpu_cores': 2, 'ram_gb': 4, 'storage_gb': 40,
                 'os': 'Ubuntu 22.04 LTS',
-                'software_list': ["VS Code", "Python 3.11", "Node.js", "Git", "PostgreSQL"],
-                'description': 'General-purpose development environment for programming courses.',
-                'icon': 'Code2'
+                'description': 'Development workspace with pre-installed tools for programming and data analysis',
+                'software_list': ["VS Code", "Python 3.11", "Node.js", "Git", "PostgreSQL", "Firefox", "LibreOffice"],
+                'icon': 'Code',
+                'price_per_hour': 0, 'monthly_cap': 0,
+                'is_real': True, 'proxmox_template_id': 9000
             },
             {
-                'name': 'Graphic Design Studio',
-                'cpu_cores': 4, 'ram_gb': 8, 'storage_gb': 80,
-                'os': 'Windows 10 Pro',
-                'software_list': ["Photoshop 2024", "Illustrator 2024", "Premiere Pro"],
-                'description': 'Creative suite for graphic design and multimedia production.',
-                'icon': 'Palette'
-            },
-            {
-                'name': 'Network Lab',
-                'cpu_cores': 2, 'ram_gb': 4, 'storage_gb': 40,
-                'os': 'Ubuntu 22.04 LTS',
-                'software_list': ["Cisco Packet Tracer", "Wireshark", "GNS3", "PuTTY"],
-                'description': 'Networking tools for simulation and traffic analysis.',
-                'icon': 'Network'
-            },
-            {
-                'name': 'Cybersecurity Lab',
-                'cpu_cores': 4, 'ram_gb': 8, 'storage_gb': 60,
-                'os': 'Kali Linux 2024',
-                'software_list': ["Metasploit", "Wireshark", "Burp Suite", "Nmap", "John the Ripper", "Aircrack-ng"],
-                'description': 'Penetration testing and ethical hacking lab for cybersecurity courses.',
-                'icon': 'Shield'
-            },
-            {
-                'name': 'Civil Engineering Suite',
-                'cpu_cores': 4, 'ram_gb': 16, 'storage_gb': 100,
-                'os': 'Windows 10 Pro',
-                'software_list': ["AutoCAD Civil 3D", "Revit 2024", "SAP2000", "ETABS"],
-                'description': 'Structural and civil design tools for engineering students.',
-                'icon': 'Building2'
-            },
-            {
-                'name': 'Data Science Lab',
-                'cpu_cores': 4, 'ram_gb': 16, 'storage_gb': 80,
-                'os': 'Ubuntu 22.04 LTS',
-                'software_list': ["Python 3.11", "Jupyter Lab", "TensorFlow", "PyTorch", "Pandas", "Scikit-learn", "R Studio"],
-                'description': 'Machine learning and data analysis environment for data science courses.',
-                'icon': 'BrainCircuit'
-            },
-            {
-                'name': 'Mobile Development Studio',
+                'name': 'Performance Desktop',
+                'template_type': 'desktop',
                 'cpu_cores': 4, 'ram_gb': 8, 'storage_gb': 60,
                 'os': 'Ubuntu 22.04 LTS',
-                'software_list': ["Android Studio", "Flutter SDK", "VS Code", "Firebase CLI", "Dart"],
-                'description': 'Android and cross-platform mobile app development environment.',
-                'icon': 'Smartphone'
+                'description': 'High-performance workspace for CAD, data science, and heavy applications',
+                'software_list': ["VS Code", "Python 3.11", "MATLAB", "Docker", "Firefox"],
+                'icon': 'Zap',
+                'price_per_hour': 0, 'monthly_cap': 0,
+                'is_real': False
             },
             {
-                'name': 'Database Administration Lab',
-                'cpu_cores': 2, 'ram_gb': 4, 'storage_gb': 60,
-                'os': 'Ubuntu 22.04 LTS',
-                'software_list': ["MySQL Workbench", "pgAdmin 4", "MongoDB Compass", "Redis", "DBeaver"],
-                'description': 'Comprehensive database management and administration tools.',
-                'icon': 'Database'
-            },
-            {
-                'name': 'Video Production Suite',
-                'cpu_cores': 8, 'ram_gb': 32, 'storage_gb': 200,
+                'name': 'Windows Desktop',
+                'template_type': 'desktop',
+                'cpu_cores': 4, 'ram_gb': 8, 'storage_gb': 60,
                 'os': 'Windows 10 Pro',
-                'software_list': ["DaVinci Resolve", "Adobe Premiere Pro", "After Effects", "Audacity"],
-                'description': 'High-performance video editing and production workstation.',
-                'icon': 'Film'
+                'description': 'Windows environment for AutoCAD, Office, and Windows-only applications',
+                'software_list': ["AutoCAD", "Microsoft Office", "Visual Studio"],
+                'icon': 'AppWindow',
+                'price_per_hour': 0, 'monthly_cap': 0,
+                'is_real': False
             },
             {
-                'name': 'Web Development Studio',
-                'cpu_cores': 2, 'ram_gb': 4, 'storage_gb': 40,
-                'os': 'Ubuntu 22.04 LTS',
-                'software_list': ["VS Code", "Node.js LTS", "React", "Docker", "Nginx", "Postman", "Git"],
-                'description': 'Full-stack web development environment with modern tooling.',
-                'icon': 'Globe'
+                'name': 'Basic Server',
+                'template_type': 'server',
+                'cpu_cores': 1, 'ram_gb': 1, 'storage_gb': 20,
+                'os': 'Ubuntu 22.04 Server',
+                'description': 'Lightweight Linux server for web hosting and development',
+                'software_list': ["Python", "Node.js", "Nginx", "PostgreSQL", "Git"],
+                'icon': 'Server',
+                'price_per_hour': 0, 'monthly_cap': 0,
+                'is_real': False
+            },
+            {
+                'name': 'Standard Server',
+                'template_type': 'server',
+                'cpu_cores': 2, 'ram_gb': 4, 'storage_gb': 80,
+                'os': 'Ubuntu 22.04 Server',
+                'description': 'Production-ready server for apps, APIs, and databases',
+                'software_list': ["Docker", "Python", "Node.js", "PostgreSQL", "Redis", "Nginx"],
+                'icon': 'HardDrive',
+                'price_per_hour': 0, 'monthly_cap': 0,
+                'is_real': False
             },
         ]
 

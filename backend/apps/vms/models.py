@@ -74,6 +74,24 @@ class VMTemplate(models.Model):
         default=False,
         help_text="If True, launches real Proxmox VM. If False, simulated.",
     )
+    template_type = models.CharField(
+        max_length=20,
+        choices=[
+            ('desktop', 'Desktop'),
+            ('server', 'Server'),
+        ],
+        default='desktop'
+    )
+    price_per_hour = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        default=0,
+        help_text="Price per hour in TZS"
+    )
+    monthly_cap = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        default=0,
+        help_text="Max monthly charge TZS"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

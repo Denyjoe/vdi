@@ -7,6 +7,7 @@ from .models import Workspace, VMTemplate, VirtualMachine
 from .serializers import WorkspaceSerializer
 from apps.users.models import UserSubscription, ComputeUsageLog
 from apps.vms.services.vm_orchestrator import VMOrchestrator
+from apps.notifications.services import notify
 
 class WorkspaceListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -23,7 +24,7 @@ class WorkspaceCreateView(APIView):
         if serializer.is_valid():
             try:
                 sub = request.user.subscription
-                max_w = sub.plan.max_workspaces
+                max_w = getattr(sub.plan, 'max_workspaces', -1)
                 current_w = Workspace.objects.filter(owner=request.user).exclude(status='deleted').count()
                 
                 if max_w != -1 and current_w >= max_w:
@@ -117,6 +118,14 @@ class WorkspaceLaunchView(APIView):
             session_type='workspace'
         )
         
+        notify(
+            user=request.user,
+            title='Workspace Launched',
+            message=f'Launched {workspace.name}',
+            notification_type='workspace_ready',
+            link=f'/workspace/{workspace.id}'
+        )
+        
         return Response({
             "success": True,
             "data": WorkspaceSerializer(workspace).data
@@ -160,6 +169,13 @@ class WorkspaceStopView(APIView):
                 pass
                 
         # Log: 'WORKSPACE_STOPPED'
+        notify(
+            user=request.user,
+            title='Workspace Stopped',
+            message=f'Stopped {workspace.name}',
+            notification_type='workspace_stopped',
+            link='/workspaces'
+        )
         return Response({"success": True})
 
 class WorkspaceDeleteView(APIView):
@@ -181,3 +197,42 @@ class WorkspaceDeleteView(APIView):
         workspace.status = 'deleted'
         workspace.save()
         return Response({"success": True})
+
+class WorkspaceStatsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request, pk):
+        from apps.vms.models import Workspace
+        ws = get_object_or_404(Workspace, id=pk, owner=request.user)
+        
+        if not ws.vm:
+            return Response({'status': 'stopped'})
+        
+        try:
+            from apps.vms.services.proxmox_service import ProxmoxService
+            ps = ProxmoxService()
+            
+            vmid = ws.vm.proxmox_vm_id if hasattr(ws.vm, 'proxmox_vm_id') else getattr(ws.vm, 'proxmox_vmid', None)
+            
+            if not vmid:
+                return Response({'status': 'no_vm'})
+            
+            status_data = ps.proxmox.nodes(ps.node).qemu(vmid).status.current.get()
+            
+            return Response({
+                'status': status_data.get('status', 'unknown'),
+                'cpu_usage': round(status_data.get('cpu', 0) * 100, 1),
+                'cpu_cores': status_data.get('cpus', 0),
+                'ram_used_mb': round(status_data.get('mem', 0) / (1024**2)),
+                'ram_total_mb': round(status_data.get('maxmem', 0) / (1024**2)),
+                'disk_used_gb': round(status_data.get('disk', 0) / (1024**3), 1),
+                'disk_total_gb': round(status_data.get('maxdisk', 0) / (1024**3), 1),
+                'network_in': status_data.get('netin', 0),
+                'network_out': status_data.get('netout', 0),
+                'uptime_seconds': status_data.get('uptime', 0),
+            })
+        except Exception as e:
+            return Response({
+                'status': 'error',
+                'error': str(e)
+            })

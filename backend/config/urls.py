@@ -12,6 +12,7 @@ from django.conf.urls.static import static
 from django.urls import path, include
 
 from apps.users.views import HealthCheckView
+import apps.users.views
 
 urlpatterns = [
     # Django admin panel
@@ -40,6 +41,7 @@ urlpatterns = [
     path("api/subscriptions/", include("apps.users.subscription_urls")),
     path("api/payments/admin/", include("apps.users.admin_payment_urls")),
     path("api/payments/", include("apps.users.payment_urls")),
+    path("api/pricing/", apps.users.views.PricingView.as_view(), name="public-pricing"),
 ]
 
 # Serve uploaded media files during development.

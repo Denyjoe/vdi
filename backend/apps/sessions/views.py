@@ -58,7 +58,21 @@ class LiveSessionCreateView(APIView):
     permission_classes = [CanHostSessions]
 
     def post(self, request):
-        serializer = LiveSessionSerializer(data=request.data)
+        from django.utils import timezone
+        import datetime
+        data = request.data.copy()
+        
+        # Populate start_time and end_time if missing
+        scheduled_at = data.get('scheduled_at')
+        duration_hours = float(data.get('duration_hours', 2.0))
+        
+        if not data.get('start_time'):
+            start = timezone.now() if not scheduled_at else timezone.datetime.fromisoformat(scheduled_at.replace('Z', '+00:00'))
+            data['start_time'] = start
+        if not data.get('end_time'):
+            data['end_time'] = data['start_time'] + datetime.timedelta(hours=duration_hours)
+            
+        serializer = LiveSessionSerializer(data=data)
         if serializer.is_valid():
             max_allowed = request.user.subscription.plan.max_session_participants
             if serializer.validated_data.get('max_participants', 50) > max_allowed:
@@ -106,6 +120,15 @@ class JoinSessionByCodeView(APIView):
             
         participant, created = SessionParticipant.objects.get_or_create(session=session, user=request.user)
         
+        from apps.notifications.services import notify
+        notify(
+            user=request.user,
+            title='Session Joined',
+            message=f'Joined session "{session.name}"',
+            notification_type='session_invite',
+            link=f'/session/{session.id}'
+        )
+        
         session.participant_count = session.participants.count()
         return Response({
             "success": True,
@@ -114,7 +137,6 @@ class JoinSessionByCodeView(APIView):
                 "participant": SessionParticipantSerializer(participant).data
             }
         })
-
 class LiveSessionDetailView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -168,10 +190,21 @@ class SessionMonitorView(APIView):
         if session.host != request.user:
             return Response({"success": False, "message": "Only host can monitor session"}, status=status.HTTP_403_FORBIDDEN)
             
+        # Auto-end check
+        from django.utils import timezone
+        import datetime
+        if session.status in ['active', 'scheduled'] and session.duration_hours and session.start_time:
+            end_time = session.start_time + datetime.timedelta(hours=session.duration_hours)
+            if timezone.now() > end_time:
+                from apps.sessions.services.session_lifecycle_service import SessionLifecycleService
+                SessionLifecycleService.end_live_session(session)
+                session.refresh_from_db()
+            
         participants = session.participants.all()
         return Response({
             "success": True,
             "data": {
+                "session": LiveSessionSerializer(session).data,
                 "participants": SessionParticipantSerializer(participants, many=True).data,
                 "summary": {
                     "total_joined": participants.count(),
@@ -194,6 +227,21 @@ class RemoveParticipantView(APIView):
         participant = get_object_or_404(SessionParticipant, session=session, user_id=user_id)
         SessionLifecycleService.handle_participant_removal(participant)
         
+        return Response({"success": True})
+
+class LeaveSessionView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        session = get_object_or_404(LiveSession, pk=pk)
+        
+        from apps.sessions.services.session_lifecycle_service import SessionLifecycleService
+        participant = SessionParticipant.objects.filter(session=session, user=request.user).first()
+        
+        if participant:
+            SessionLifecycleService.handle_participant_disconnect(participant)
+            participant.delete()
+            
         return Response({"success": True})
 
 class DisconnectSessionView(APIView):

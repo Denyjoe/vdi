@@ -32,6 +32,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'first_name', 'last_name', 'email', 'role', 'is_host', 'host_plan', 'avatar',
             'bio', 'website', 'country', 'timezone_preference', 'is_verified',
+            'notification_email', 'notification_session', 'notification_usage',
             'created_at', 'subscription'
         ]
 

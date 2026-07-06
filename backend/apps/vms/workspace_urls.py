@@ -8,4 +8,5 @@ urlpatterns = [
     path('<int:pk>/launch/', workspace_views.WorkspaceLaunchView.as_view(), name='workspace-launch'),
     path('<int:pk>/stop/', workspace_views.WorkspaceStopView.as_view(), name='workspace-stop'),
     path('<int:pk>/delete/', workspace_views.WorkspaceDeleteView.as_view(), name='workspace-delete'),
+    path('<int:pk>/stats/', workspace_views.WorkspaceStatsView.as_view(), name='workspace-stats'),
 ]

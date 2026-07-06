@@ -196,6 +196,15 @@ class PaymentCallbackView(APIView):
             str(payment.amount_tzs)
         }
       )
+      
+      from apps.notifications.services import notify
+      notify(
+          user=user,
+          title='Payment Confirmed',
+          message=f'Payment of TZS {payment.amount_tzs} confirmed',
+          notification_type='payment_confirmed',
+          link='/account'
+      )
     else:
       payment.status = 'failed'
       payment.metadata = data

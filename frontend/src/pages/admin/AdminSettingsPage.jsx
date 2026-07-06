@@ -48,16 +48,21 @@ export default function AdminSettingsPage() {
   });
 
   useEffect(() => {
-    // Load config from localStorage for frontend-only state
-    const savedPlatform = localStorage.getItem('clouddesk_platform_config');
-    const savedLimits = localStorage.getItem('clouddesk_resource_limits');
-    
-    if (savedPlatform) setPlatformConfig(JSON.parse(savedPlatform));
-    if (savedLimits) setResourceLimits(JSON.parse(savedLimits));
-
+    fetchConfig();
     testConnections();
     fetchPlans();
   }, []);
+
+  const fetchConfig = async () => {
+    try {
+      const res = await api.get('/admin/config/');
+      if (res.data.success && res.data.data) {
+        setPlatformConfig(prev => ({ ...prev, ...res.data.data }));
+      }
+    } catch (err) {
+      console.error('Failed to fetch platform config');
+    }
+  };
 
   const fetchPlans = async () => {
     try {
@@ -77,10 +82,14 @@ export default function AdminSettingsPage() {
 
   const savePlatformConfig = async () => {
     setSavingSection('platform');
-    await new Promise(r => setTimeout(r, 600));
-    localStorage.setItem('clouddesk_platform_config', JSON.stringify(platformConfig));
-    toast.success('Platform configuration saved');
-    setSavingSection(null);
+    try {
+      await api.put('/admin/config/', platformConfig);
+      toast.success('Platform configuration saved');
+    } catch (err) {
+      toast.error('Failed to save platform configuration');
+    } finally {
+      setSavingSection(null);
+    }
   };
 
   const saveResourceLimits = async () => {

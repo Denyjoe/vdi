@@ -1,56 +1,53 @@
 import { useState, useEffect } from 'react'
-import { Monitor, Plus, Play, Square,
-  Cpu, HardDrive, Search, X,
-  CheckCircle, Zap, Clock,
-  Code2, Compass, Terminal, Palette,
-  Network, Database, Shield, Globe,
-  Film, Smartphone } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { 
+  Monitor, Plus, Cpu, MemoryStick, HardDrive, 
+  Search, Globe, Copy, Power, MonitorPlay, 
+  AlertCircle, Trash2, Loader2, Database, X 
+} from 'lucide-react'
 import api from '../../services/api'
 import useAuthStore from '../../store/authStore'
 import useUIStore from '../../store/uiStore'
 
-/** Maps backend icon name → lucide-react component. */
-const TEMPLATE_ICONS = {
-  Code2, Compass, Terminal, Palette,
-  Network, Database, Shield, Cpu,
-  Monitor, Globe, Film, Smartphone,
-  HardDrive,
+// Maps backend icon name → lucide-react component
+const iconMap = {
+  'Monitor': Monitor,
+  'Cpu': Cpu,
+  'Database': Database,
+  'HardDrive': HardDrive
 }
 
-/**
- * Resolve a template's icon field to a React component.
- * Falls back to Monitor if the icon name is unknown.
- */
-const getTemplateIcon = (iconName) => TEMPLATE_ICONS[iconName] || Monitor
+const getTemplateIcon = (iconName) => iconMap[iconName] || Monitor
 
 export default function WorkspacesPage() {
   const [workspaces, setWorkspaces] = useState([])
   const [templates, setTemplates] = useState([])
   const [loading, setLoading] = useState(true)
+  
   const [showCreate, setShowCreate] = useState(false)
   const [creating, setCreating] = useState(false)
   const [launchingId, setLaunchingId] = useState(null)
+  
   const [selectedTemplate, setSelectedTemplate] = useState(null)
   const [wsName, setWsName] = useState('')
+  const [templateTab, setTemplateTab] = useState('Desktops')
+  
   const [search, setSearch] = useState('')
-  const [showLimitModal, setShowLimitModal] = useState(false)
+  const [activeFilter, setFilter] = useState('All Nodes')
+  const [sortBy, setSortBy] = useState('Sort: Recent')
+  const [wsStats, setWsStats] = useState({})
+  
   const navigate = useNavigate()
   const { user } = useAuthStore()
-  const { openUpgradeModal } = useUIStore()
 
-  const subscription = user?.subscription || {}
-  const hoursUsed = subscription?.compute_hours_used || 0
-  const hoursTotal = subscription?.compute_hours_per_month || 5
-  const hoursRemaining = Math.max(0, hoursTotal - hoursUsed).toFixed(1)
-  const usagePct = Math.min(100, (hoursUsed / hoursTotal) * 100)
-
-  useEffect(() => { fetchWorkspaces() }, [])
+  useEffect(() => { 
+    fetchWorkspaces() 
+  }, [])
 
   const fetchWorkspaces = async () => {
     try {
       const res = await api.get('/workspaces/')
-      setWorkspaces(res.data?.data || [])
+      setWorkspaces(Array.isArray(res.data) ? res.data : res.data?.data || [])
     } catch(e) { 
       console.error(e) 
     } finally { 
@@ -67,19 +64,27 @@ export default function WorkspacesPage() {
     }
   }
 
-  const openCreate = async () => {
-    // Check subscription limits
-    const plan = user?.subscription?.plan_name || 'free'
-    const maxWorkspaces = 
-      plan === 'free' ? 1 :
-      plan === 'personal_host' ? 3 :
-      plan === 'pro_host' ? 10 : -1
-    
-    if (maxWorkspaces !== -1 && workspaces.length >= maxWorkspaces) {
-      setShowLimitModal(true)
-      return
+  useEffect(() => {
+    const fetchStats = async () => {
+      const running = workspaces.filter(
+        w => w.status === 'active' || w.status === 'running'
+      )
+      for (const ws of running) {
+        try {
+          const res = await api.get(`/workspaces/${ws.id}/stats/`)
+          setWsStats(prev => ({
+            ...prev,
+            [ws.id]: res.data
+          }))
+        } catch(e) {}
+      }
     }
-    
+    fetchStats()
+    const interval = setInterval(fetchStats, 10000)
+    return () => clearInterval(interval)
+  }, [workspaces])
+
+  const openCreateModal = async () => {
     fetchTemplates()
     setShowCreate(true)
     setSelectedTemplate(null)
@@ -87,40 +92,39 @@ export default function WorkspacesPage() {
   }
 
   const handleCreate = async () => {
-    if (!selectedTemplate || !wsName.trim()) return
-    setCreating(true)
+    if (!selectedTemplate || !wsName.trim()) return;
     try {
+      setCreating(true);
       const res = await api.post('/workspaces/create/', {
+        vm_template: selectedTemplate.id,
         name: wsName.trim(),
-        vm_template: selectedTemplate.id
-      })
-      const newWs = res.data.data
-      setWorkspaces(prev => [newWs, ...prev])
-      setShowCreate(false)
-      // Auto-launch after creation
-      if (newWs?.id) {
-        setLaunchingId(newWs.id)
+      });
+      const wsData = res.data?.data || res.data;
+      const wsId = wsData?.id;
+      if (wsId) {
         try {
-          await api.post(`/workspaces/${newWs.id}/launch/`)
-          navigate(`/session/${newWs.id}?type=workspace`)
-        } catch (launchErr) {
-          console.error('Auto-launch failed:', launchErr)
-        } finally {
-          setLaunchingId(null)
+          await api.post(`/workspaces/${wsId}/launch/`);
+        } catch(e) {
+          console.error('Launch failed:', e);
         }
       }
+      setShowCreate(false);
+      setWsName('');
+      setSelectedTemplate(null);
+      fetchWorkspaces();
     } catch(e) {
-      console.error(e)
+      console.error('Create failed:', e);
+      alert('Failed to create workspace: ' + (e.response?.data?.message || e.message));
     } finally {
-      setCreating(false)
+      setCreating(false);
     }
-  }
+  };
 
   const handleLaunch = async (ws) => {
     try {
       setLaunchingId(ws.id)
       await api.post(`/workspaces/${ws.id}/launch/`)
-      navigate(`/session/${ws.id}?type=workspace`)
+      fetchWorkspaces()
     } catch(e) {
       console.error(e)
     } finally {
@@ -132,783 +136,528 @@ export default function WorkspacesPage() {
     try {
       await api.post(`/workspaces/${ws.id}/stop/`)
       fetchWorkspaces()
-    } catch(e) { console.error(e) }
+    } catch(e) { 
+      console.error(e) 
+    }
   }
 
-  const osGradient = (os) => {
-    if (os?.includes('Windows')) 
-      return 'linear-gradient(135deg, #1e3a5f, #1a3a8f)'
-    if (os?.includes('Kali')) 
-      return 'linear-gradient(135deg, #2d1b69, #1a0533)'
-    return 'linear-gradient(135deg, #1a3a2a, #0f3460)'
+  const handleDelete = async (ws) => {
+    if (!window.confirm('Delete this workspace? This cannot be undone.')) return
+    try {
+      await api.post(`/workspaces/${ws.id}/delete/`)
+      fetchWorkspaces()
+    } catch(e) {
+      console.error(e)
+    }
   }
 
-  const filtered = workspaces.filter(w =>
-    w.name.toLowerCase().includes(search.toLowerCase()))
+  const copyToClipboard = (text) => {
+    if (text) navigator.clipboard.writeText(text)
+  }
+
+  const getCountForFilter = (filter) => {
+    if (filter === 'All Nodes') return workspaces.length
+    if (filter === 'Online') return workspaces.filter(w => w.status === 'active' || w.status === 'running').length
+    if (filter === 'Offline') return workspaces.filter(w => w.status === 'stopped').length
+    if (filter === 'Provisioning') return workspaces.filter(w => w.status === 'provisioning').length
+    return 0
+  }
+
+  // Derive top stats
+  const totalCount = workspaces.length
+  const onlineCount = workspaces.filter(w => w.status === 'active' || w.status === 'running').length
+  const totalCores = workspaces.reduce((sum, w) => sum + (w.vm_template_details?.cpu_cores || 0), 0)
+  const totalRam = workspaces.reduce((sum, w) => sum + (w.vm_template_details?.ram_gb || 0), 0)
+
+  // Filter list
+  let filtered = workspaces.filter(w => w.name.toLowerCase().includes(search.toLowerCase()))
+  if (activeFilter === 'Online') {
+    filtered = filtered.filter(w => w.status === 'active' || w.status === 'running')
+  } else if (activeFilter === 'Offline') {
+    filtered = filtered.filter(w => w.status === 'stopped')
+  } else if (activeFilter === 'Provisioning') {
+    filtered = filtered.filter(w => w.status === 'provisioning')
+  }
+  
+  if (sortBy === 'Sort: Name') {
+    filtered.sort((a, b) => a.name.localeCompare(b.name))
+  } else if (sortBy === 'Sort: Status') {
+    filtered.sort((a, b) => a.status.localeCompare(b.status))
+  }
+
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center h-[60vh] gap-4 bg-[#080B10]">
+      <Loader2 className="w-10 h-10 text-[#00A3FF] animate-spin" />
+      <p className="text-slate-500 text-sm">Loading infrastructure...</p>
+    </div>
+  )
 
   return (
-    <div style={{padding: '32px', maxWidth: '1200px', margin: '0 auto'}}>
+    <div className="min-h-screen bg-[#080B10] p-8 text-slate-200 selection:bg-[#0066FF]/30">
+      <style>{`
+        @keyframes ledFlow {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        @keyframes pulseSubtle {
+          0%, 100% { opacity: 1; border-color: rgba(0,163,255,0.4); }
+          50% { opacity: 0.8; border-color: rgba(0,163,255,0.1); }
+        }
+        .led-strip-animation {
+          background: linear-gradient(
+            90deg, 
+            #00FF87, #00A3FF, #6C63FF, 
+            #FF6B00, #00FF87
+          );
+          background-size: 300% 100%;
+          animation: ledFlow 4s linear infinite;
+        }
+        .animate-pulse-subtle {
+          animation: pulseSubtle 2s ease-in-out infinite;
+        }
+      `}</style>
 
-      {/* Header */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: '32px'
-      }}>
-        <div>
-          <h1 style={{color: 'white', fontSize: '26px', fontWeight: 700, margin: 0}}>
-            My Workspaces
-          </h1>
-          <p style={{color: '#475569', fontSize: '14px', margin: '4px 0 0'}}>
-            Your persistent cloud desktop environments
-          </p>
+      <div className="max-w-[1200px] mx-auto">
+        
+        {/* SECTION 1 — PAGE HEADER */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-100 tracking-tight">
+              My Workspaces
+            </h1>
+            <p className="text-sm text-slate-500 mt-1">
+              Manage your cloud desktops and servers
+            </p>
+          </div>
+          <button 
+            onClick={openCreateModal}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0066FF] text-white text-sm font-semibold hover:bg-[#0052CC] active:scale-95 transition-all duration-200 shadow-lg shadow-blue-500/20">
+            <Plus size={18} />
+            New Workspace
+          </button>
         </div>
-        <button onClick={openCreate}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '12px 20px',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-            color: 'white',
-            fontWeight: 600,
-            fontSize: '14px',
-            border: 'none',
-            cursor: 'pointer',
-            boxShadow: '0 4px 15px rgba(99,102,241,0.3)'
-          }}>
-          <Plus size={18} />
-          New Workspace
-        </button>
-      </div>
 
-      {hoursTotal !== -1 && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px',
-          padding: '12px 16px',
-          borderRadius: '12px',
-          background: usagePct > 80
-            ? 'rgba(239,68,68,0.08)'
-            : 'rgba(99,102,241,0.06)',
-          border: `1px solid ${usagePct > 80
-            ? 'rgba(239,68,68,0.2)'
-            : 'rgba(99,102,241,0.15)'}`,
-          marginBottom: '24px'
-        }}>
-          <Clock size={16} color={
-            usagePct > 80 ? '#ef4444' : '#6366f1'
-          } />
-          
-          <div style={{flex: 1}}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              marginBottom: '4px'
-            }}>
-              <span style={{
-                color: 'var(--text-secondary)', fontSize: '13px'
-              }}>
-                Free plan: {hoursRemaining}h 
-                remaining this month
-              </span>
-              <span style={{
-                color: usagePct > 80 
-                  ? '#ef4444' : '#6366f1',
-                fontSize: '13px',
-                fontWeight: 600
-              }}>
-                {hoursUsed.toFixed(1)} / 
-                {hoursTotal}h used
-              </span>
+        {/* SECTION 2 — TOP STATS HEADER BAR */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="bg-[#0F131A]/70 backdrop-blur-sm border border-slate-800/50 rounded-xl p-4 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-lg bg-[#00A3FF]/10 flex items-center justify-center">
+              <Monitor size={20} className="text-[#00A3FF]" />
             </div>
-            <div style={{
-              height: '4px',
-              background: 'rgba(255,255,255,0.06)',
-              borderRadius: '2px',
-              overflow: 'hidden'
-            }}>
-              <div style={{
-                height: '100%',
-                width: `${usagePct}%`,
-                borderRadius: '2px',
-                background: usagePct > 80
-                  ? 'linear-gradient(to right, #ef4444, #dc2626)'
-                  : 'linear-gradient(to right, #6366f1, #06b6d4)',
-                transition: 'width 0.5s ease'
-              }} />
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-slate-500 font-medium">TOTAL WORKSTATIONS</p>
+              <p className="text-xl font-bold text-white mt-0.5">{totalCount}</p>
             </div>
           </div>
-          
-          {usagePct > 60 && (
-            <button
-              onClick={() => openUpgradeModal()}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '8px',
-                background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                color: 'white',
-                fontSize: '12px',
-                fontWeight: 600,
-                border: 'none',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap'
-              }}>
-              Get More Hours
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Search (only if has workspaces) */}
-      {workspaces.length > 0 && (
-        <div style={{
-          position: 'relative',
-          marginBottom: '24px',
-          maxWidth: '400px'
-        }}>
-          <Search size={16} 
-            color="#475569"
-            style={{
-              position: 'absolute',
-              left: '14px', top: '50%',
-              transform: 'translateY(-50%)'
-            }} />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search workspaces..."
-            style={{
-              width: '100%',
-              padding: '11px 14px 11px 40px',
-              borderRadius: '12px',
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid #1e293b',
-              color: 'white',
-              fontSize: '14px',
-              outline: 'none'
-            }} />
-        </div>
-      )}
-
-      {/* Loading */}
-      {loading ? (
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          padding: '80px'
-        }}>
-          <div style={{
-            width: '36px', height: '36px',
-            border: '3px solid rgba(99,102,241,0.2)',
-            borderTopColor: '#6366f1',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite'
-          }} />
-        </div>
-      ) : filtered.length === 0 ? (
-        /* Empty State */
-        <div style={{
-          textAlign: 'center',
-          padding: '80px 24px',
-          background: '#111827',
-          border: '1px solid #1e293b',
-          borderRadius: '20px'
-        }}>
-          <div style={{
-            width: '72px', height: '72px',
-            borderRadius: '18px',
-            background: 'rgba(99,102,241,0.1)',
-            border: '1px solid rgba(99,102,241,0.2)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 20px'
-          }}>
-            <Monitor size={32} color="#6366f1" />
-          </div>
-          <h2 style={{
-            color: 'white', fontSize: '20px',
-            fontWeight: 700, margin: '0 0 8px'
-          }}>
-            No workspaces yet
-          </h2>
-          <p style={{
-            color: '#475569', fontSize: '14px',
-            maxWidth: '380px', 
-            margin: '0 auto',
-            lineHeight: 1.6
-          }}>
-            Click "+ New Workspace" above to 
-            launch AutoCAD, MATLAB, VS Code 
-            and 12+ professional tools instantly 
-            in your browser. No installation needed.
-          </p>
-        </div>
-      ) : (
-        /* Workspace Grid */
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-          gap: '20px'
-        }}>
-          {filtered.map(ws => (
-            <div key={ws.id} style={{
-              borderRadius: '18px',
-              overflow: 'hidden',
-              border: '1px solid #1e293b',
-              background: '#111827',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.borderColor = 'rgba(99,102,241,0.3)'
-              e.currentTarget.style.transform = 'translateY(-3px)'
-              e.currentTarget.style.boxShadow = '0 12px 30px rgba(0,0,0,0.3)'
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.borderColor = '#1e293b'
-              e.currentTarget.style.transform = 'translateY(0)'
-              e.currentTarget.style.boxShadow = 'none'
-            }}>
-
-              {/* Card Header */}
-              <div style={{
-                height: '120px',
-                background: osGradient(ws.vm_template_details?.os),
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                position: 'relative'
-              }}>
-                {(() => { const Icon = getTemplateIcon(ws.vm_template_details?.icon); return <Icon size={44} color="rgba(255,255,255,0.7)" />; })()}
-                
-                {/* Status */}
-                <div style={{
-                  position: 'absolute',
-                  top: '12px', right: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '4px 10px',
-                  borderRadius: '20px',
-                  background: 'rgba(0,0,0,0.4)',
-                  backdropFilter: 'blur(8px)'
-                }}>
-                  <div style={{
-                    width: '6px', height: '6px',
-                    borderRadius: '50%',
-                    background: ws.status === 'active' ? '#10b981' : '#475569'
-                  }} />
-                  <span style={{
-                    color: ws.status === 'active' ? '#34d399' : '#94a3b8',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    textTransform: 'capitalize'
-                  }}>
-                    {ws.status}
-                  </span>
-                </div>
-              </div>
-
-              {/* Card Body */}
-              <div style={{padding: '20px'}}>
-                <h3 style={{
-                  color: 'white',
-                  fontSize: '16px',
-                  fontWeight: 600,
-                  margin: '0 0 4px',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
-                }}>
-                  {ws.name}
-                </h3>
-                <p style={{
-                  color: '#475569',
-                  fontSize: '13px',
-                  margin: '0 0 16px'
-                }}>
-                  {ws.vm_template_details?.name || 'Unknown'} · {ws.vm_template_details?.os || ''}
-                </p>
-
-                {/* Specs */}
-                <div style={{
-                  display: 'flex',
-                  gap: '16px',
-                  marginBottom: '18px'
-                }}>
-                  {[
-                    { icon: Cpu, text: `${ws.vm_template_details?.cpu_cores || '?'} Cores` },
-                    { icon: HardDrive, text: `${ws.vm_template_details?.ram_gb || '?'}GB RAM` },
-                  ].map((spec, i) => (
-                    <div key={i} style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      color: 'var(--text-muted)',
-                      fontSize: '12px'
-                    }}>
-                      <spec.icon size={13} />
-                      {spec.text}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Action Button */}
-                {ws.status === 'active' ? (
-                  <div style={{display: 'flex', gap: '8px'}}>
-                    <button
-                      onClick={() => navigate(`/session/${ws.id}?type=workspace`)}
-                      style={{
-                        flex: 1, padding: '10px',
-                        borderRadius: '10px',
-                        background: 'rgba(16,185,129,0.15)',
-                        border: '1px solid rgba(16,185,129,0.3)',
-                        color: '#34d399',
-                        fontWeight: 600,
-                        fontSize: '13px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px'
-                      }}>
-                      <Monitor size={15} />
-                      Connect
-                    </button>
-                    <button
-                      onClick={() => handleStop(ws)}
-                      style={{
-                        padding: '10px 14px',
-                        borderRadius: '10px',
-                        background: 'rgba(239,68,68,0.1)',
-                        border: '1px solid rgba(239,68,68,0.2)',
-                        color: '#f87171',
-                        cursor: 'pointer'
-                      }}>
-                      <Square size={15} />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => handleLaunch(ws)}
-                    disabled={launchingId === ws.id}
-                    style={{
-                      width: '100%',
-                      padding: '11px',
-                      borderRadius: '10px',
-                      background: launchingId === ws.id
-                        ? '#1e293b'
-                        : 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                      color: 'white',
-                      fontWeight: 600,
-                      fontSize: '13px',
-                      border: 'none',
-                      cursor: launchingId === ws.id ? 'wait' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px'
-                    }}>
-                    {launchingId === ws.id ? (
-                      <>
-                        <div style={{
-                          width: '15px', height: '15px',
-                          border: '2px solid rgba(255,255,255,0.3)',
-                          borderTopColor: 'white',
-                          borderRadius: '50%',
-                          animation: 'spin 1s linear infinite'
-                        }} />
-                        Launching...
-                      </>
-                    ) : (
-                      <>
-                        <Play size={15} />
-                        Launch Workspace
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
+          <div className="bg-[#0F131A]/70 backdrop-blur-sm border border-slate-800/50 rounded-xl p-4 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-lg bg-[#00FF87]/10 flex items-center justify-center">
+              <Power size={20} className="text-[#00FF87]" />
             </div>
-          ))}
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-slate-500 font-medium">NODES ONLINE</p>
+              <p className="text-xl font-bold text-white mt-0.5">{onlineCount}</p>
+            </div>
+          </div>
+          <div className="bg-[#0F131A]/70 backdrop-blur-sm border border-slate-800/50 rounded-xl p-4 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-lg bg-[#6C63FF]/10 flex items-center justify-center">
+              <Cpu size={20} className="text-[#6C63FF]" />
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-slate-500 font-medium">TOTAL VIRTUAL CORES</p>
+              <p className="text-xl font-bold text-white mt-0.5">{totalCores}</p>
+            </div>
+          </div>
+          <div className="bg-[#0F131A]/70 backdrop-blur-sm border border-slate-800/50 rounded-xl p-4 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-lg bg-[#FF6B00]/10 flex items-center justify-center">
+              <Database size={20} className="text-[#FF6B00]" />
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-slate-500 font-medium">DEDICATED MEMORY</p>
+              <p className="text-xl font-bold text-white mt-0.5">{totalRam} GB</p>
+            </div>
+          </div>
         </div>
-      )}
 
-      {/* CREATE WORKSPACE MODAL */}
-      {showCreate && (
-        <div style={{
-          position: 'fixed', inset: 0,
-          background: 'rgba(0,0,0,0.85)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '20px'
-        }}>
-          <div style={{
-            background: '#0d1526',
-            border: '1px solid #1e293b',
-            borderRadius: '24px',
-            padding: '32px',
-            width: '100%',
-            maxWidth: '680px',
-            maxHeight: '85vh',
-            overflow: 'auto'
-          }}>
-            {/* Modal Header */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '24px'
-            }}>
-              <div>
-                <h2 style={{
-                  color: 'white', fontSize: '20px',
-                  fontWeight: 700, margin: 0
-                }}>
-                  New Workspace
-                </h2>
-                <p style={{
-                  color: '#475569', fontSize: '13px', margin: '4px 0 0'
-                }}>
-                  Choose a template and name your workspace
-                </p>
-              </div>
-              <button onClick={() => setShowCreate(false)}
-                style={{
-                  width: '36px', height: '36px',
-                  borderRadius: '10px',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid #1e293b',
-                  color: 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                <X size={18} />
+        {/* SECTION 3 — FILTER & SEARCH BAR */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+          <div className="flex flex-wrap gap-2">
+            {['All Nodes', 'Online', 'Offline', 'Provisioning'].map(tab => (
+              <button
+                key={tab}
+                onClick={() => setFilter(tab)}
+                className={`px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 active:scale-95 ${
+                  activeFilter === tab
+                    ? 'bg-[#0066FF] text-white shadow-lg shadow-blue-500/30'
+                    : 'bg-[#0F131A] text-slate-400 border border-slate-800/50 hover:border-slate-600 hover:text-slate-200'
+                }`}
+              >
+                {tab}
+                <span className="ml-1.5 text-[10px] opacity-60">({getCountForFilter(tab)})</span>
               </button>
-            </div>
-
-            {/* Workspace Name */}
-            <div style={{marginBottom: '24px'}}>
-              <label style={{
-                color: 'var(--text-secondary)', fontSize: '13px',
-                fontWeight: 500, display: 'block', marginBottom: '8px'
-              }}>
-                Workspace Name
-              </label>
+            ))}
+          </div>
+          
+          <div className="flex gap-3 w-full md:w-auto">
+            <div className="relative flex-1 md:flex-none">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" />
               <input
-                value={wsName}
-                onChange={e => setWsName(e.target.value)}
-                placeholder="e.g. My AutoCAD Project"
-                style={{
-                  width: '100%',
-                  padding: '13px 16px',
-                  borderRadius: '12px',
-                  background: 'rgba(255,255,255,0.04)',
-                  border: `1px solid ${wsName ? 'rgba(99,102,241,0.5)' : '#1e293b'}`,
-                  color: 'white',
-                  fontSize: '15px',
-                  outline: 'none',
-                  boxSizing: 'border-box'
-                }} />
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search workspace..."
+                className="bg-[#0F131A] border border-slate-800/50 rounded-xl pl-9 pr-4 py-2 text-sm text-slate-300 placeholder-slate-600 outline-none focus:border-[#0066FF]/50 transition-colors w-full md:w-56"
+              />
             </div>
+            <select 
+              value={sortBy} 
+              onChange={e => setSortBy(e.target.value)} 
+              className="bg-[#0F131A] border border-slate-800/50 rounded-xl px-3 py-2 text-sm text-slate-400 outline-none"
+            >
+              <option>Sort: Recent</option>
+              <option>Sort: Name</option>
+              <option>Sort: Status</option>
+            </select>
+          </div>
+        </div>
 
-            {/* Template Selection */}
-            <div style={{marginBottom: '28px'}}>
-              <label style={{
-                color: 'var(--text-secondary)', fontSize: '13px',
-                fontWeight: 500, display: 'block', marginBottom: '12px'
-              }}>
-                Choose VM Template
-              </label>
+        {/* SECTION 4 — WORKSPACE CARDS GRID */}
+        {workspaces.length === 0 ? (
+          /* SECTION 5 — EMPTY STATE */
+          <div className="flex flex-col items-center justify-center py-20 border border-slate-800/50 rounded-2xl bg-[#0F131A]">
+            <div className="w-16 h-16 rounded-2xl bg-slate-800/50 flex items-center justify-center mb-4">
+              <Monitor size={28} className="text-slate-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-slate-300 mb-2">
+              No workspaces yet
+            </h3>
+            <p className="text-sm text-slate-500 text-center max-w-md mb-6">
+              Launch your first cloud desktop or server. Choose from pre-configured templates with professional tools pre-installed.
+            </p>
+            <button
+              onClick={openCreateModal}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-[#0066FF] text-white text-sm font-semibold hover:bg-[#0052CC] active:scale-95 transition-all shadow-lg shadow-blue-500/20">
+              <Plus size={18} />
+              Create First Workspace
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filtered.map(ws => {
+              const isRunning = ws.status === 'active' || ws.status === 'running'
+              const isProvisioning = ws.status === 'provisioning'
+              const isOffline = ws.status === 'stopped'
               
-              {templates.length === 0 ? (
-                <div style={{
-                  textAlign: 'center', padding: '40px', color: '#475569'
-                }}>
-                  <div style={{
-                    width: '32px', height: '32px',
-                    border: '3px solid rgba(99,102,241,0.2)',
-                    borderTopColor: '#6366f1',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite',
-                    margin: '0 auto 12px'
-                  }} />
-                  Loading templates...
-                </div>
-              ) : (
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
-                  gap: '10px'
-                }}>
-                  {templates.map(t => (
-                    <div key={t.id}
-                      onClick={() => {
-                        setSelectedTemplate(t)
-                        if (!wsName) setWsName(`My ${t.name}`)
-                      }}
-                      style={{
-                        padding: '14px',
-                        borderRadius: '12px',
-                        border: `2px solid ${selectedTemplate?.id === t.id ? '#6366f1' : '#1e293b'}`,
-                        background: selectedTemplate?.id === t.id
-                          ? 'rgba(99,102,241,0.1)'
-                          : 'rgba(255,255,255,0.02)',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease',
-                        position: 'relative'
-                      }}>
+              if (isRunning) {
+                const cpuUsage = wsStats[ws.id]?.cpu_usage || 0
+                const ramUsage = wsStats[ws.id]?.ram_total_mb ? Math.round((wsStats[ws.id].ram_used_mb / wsStats[ws.id].ram_total_mb) * 100) : 0
+                
+                return (
+                  <div key={ws.id} className="relative group overflow-hidden rounded-2xl">
+                    <div className="absolute inset-0 rounded-2xl p-[1px] led-strip-animation"></div>
+                    <div className="relative bg-[#0F131A] rounded-2xl p-5 m-[1px] h-full flex flex-col">
                       
-                      {selectedTemplate?.id === t.id && (
-                        <CheckCircle 
-                          size={16}
-                          color="#6366f1"
-                          style={{position: 'absolute', top: '10px', right: '10px'}} />
-                      )}
-                      
-                      <p style={{
-                        color: 'white', fontWeight: 600, fontSize: '13px',
-                        margin: '0 0 4px', paddingRight: '20px'
-                      }}>
-                        {t.name}
-                      </p>
-                      <p style={{
-                        color: 'var(--text-muted)', fontSize: '11px', margin: '0 0 8px'
-                      }}>
-                        {t.os}
-                      </p>
-                      <div style={{display: 'flex', gap: '10px'}}>
-                        {[`${t.cpu_cores} CPU`, `${t.ram_gb}GB RAM`].map(s => (
-                          <span key={s} style={{
-                            fontSize: '10px', color: '#475569',
-                            background: 'rgba(255,255,255,0.05)',
-                            padding: '2px 7px', borderRadius: '6px'
-                          }}>
-                            {s}
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-[#00FF87]/10 flex items-center justify-center shrink-0">
+                            <Monitor size={20} className="text-[#00FF87]" />
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="text-sm font-bold text-white uppercase tracking-wide truncate">
+                              {ws.name}
+                            </h3>
+                            <p className="text-xs text-slate-500 mt-0.5 truncate">
+                              {ws.vm_template_details?.os || 'Unknown OS'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <div className="w-2 h-2 rounded-full bg-[#00FF87] animate-pulse shadow-lg shadow-green-500/50" />
+                          <span className="text-[10px] font-semibold text-[#00FF87] uppercase tracking-wider">
+                            Online
                           </span>
-                        ))}
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 mb-4 px-3 py-1.5 bg-slate-900/50 rounded-lg w-fit">
+                        <Globe size={12} className="text-slate-500" />
+                        <span className="text-xs font-mono text-slate-400">
+                          {ws.vm_details?.ip_address || '0.0.0.0'}
+                        </span>
+                        <button onClick={() => copyToClipboard(ws.vm_details?.ip_address)} className="text-slate-600 hover:text-slate-300 active:scale-90 transition-all">
+                          <Copy size={11} />
+                        </button>
+                      </div>
+                      
+                      <div className="grid grid-cols-3 gap-3 mb-4">
+                        <div className="bg-slate-900/30 rounded-lg p-2.5 text-center">
+                          <Cpu size={14} className="text-[#00A3FF] mx-auto mb-1" />
+                          <p className="text-xs font-bold text-white">{ws.vm_template_details?.cpu_cores || 0}</p>
+                          <p className="text-[9px] text-slate-600 uppercase">vCPU</p>
+                        </div>
+                        <div className="bg-slate-900/30 rounded-lg p-2.5 text-center">
+                          <MemoryStick size={14} className="text-[#6C63FF] mx-auto mb-1" />
+                          <p className="text-xs font-bold text-white">{ws.vm_template_details?.ram_gb || 0} GB</p>
+                          <p className="text-[9px] text-slate-600 uppercase">RAM</p>
+                        </div>
+                        <div className="bg-slate-900/30 rounded-lg p-2.5 text-center">
+                          <HardDrive size={14} className="text-[#FF6B00] mx-auto mb-1" />
+                          <p className="text-xs font-bold text-white">{ws.vm_template_details?.storage_gb || 0} GB</p>
+                          <p className="text-[9px] text-slate-600 uppercase">SSD</p>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-3 mb-5 flex-1">
+                        <div>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-[10px] uppercase tracking-wider text-slate-500 font-medium">CPU Utilization</span>
+                            <span className="text-[10px] font-bold text-[#00A3FF]">{cpuUsage}%</span>
+                          </div>
+                          <div className="h-1.5 bg-slate-800/50 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${cpuUsage}%`, background: 'linear-gradient(90deg, #00A3FF, #00FF87)' }} />
+                          </div>
+                        </div>
+                        <div>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-[10px] uppercase tracking-wider text-slate-500 font-medium">RAM Footprint</span>
+                            <span className="text-[10px] font-bold text-[#6C63FF]">{ramUsage}%</span>
+                          </div>
+                          <div className="h-1.5 bg-slate-800/50 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${ramUsage}%`, background: 'linear-gradient(90deg, #6C63FF, #00FF87)' }} />
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-2 mt-auto">
+                        <button onClick={() => handleStop(ws)} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold hover:bg-red-500/20 active:scale-95 transition-all duration-200">
+                          <Power size={14} /> Shut down
+                        </button>
+                        <button onClick={() => navigate(`/session/${ws.id}?type=workspace`)} className="flex-[2] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#0066FF] text-white text-xs font-semibold hover:bg-[#0052CC] active:scale-95 transition-all duration-200 shadow-lg shadow-blue-500/20">
+                          <MonitorPlay size={14} /> Stream Desktop
+                        </button>
                       </div>
                     </div>
+                  </div>
+                )
+              }
+              
+              if (isProvisioning) {
+                return (
+                  <div key={ws.id} className="bg-[#0F131A] border border-[#00A3FF]/40 rounded-2xl p-5 flex flex-col animate-pulse-subtle">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-[#00A3FF]/10 flex items-center justify-center shrink-0">
+                          <Monitor size={20} className="text-[#00A3FF]" />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-bold text-white uppercase tracking-wide truncate">{ws.name}</h3>
+                          <p className="text-xs text-slate-500 mt-0.5 truncate">{ws.vm_template_details?.os}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <div className="w-2 h-2 rounded-full bg-[#00A3FF] animate-pulse" />
+                        <span className="text-[10px] font-semibold text-[#00A3FF] uppercase tracking-wider">Provisioning</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 mb-4 px-3 py-1.5 bg-slate-900/50 rounded-lg w-fit">
+                      <Globe size={12} className="text-slate-600" />
+                      <span className="text-xs font-mono text-slate-500">—.—.—.—</span>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-3 mb-4">
+                      <div className="bg-slate-900/30 rounded-lg p-2.5 text-center opacity-70">
+                        <Cpu size={14} className="text-slate-500 mx-auto mb-1" />
+                        <p className="text-xs font-bold text-slate-300">{ws.vm_template_details?.cpu_cores}</p>
+                        <p className="text-[9px] text-slate-600 uppercase">vCPU</p>
+                      </div>
+                      <div className="bg-slate-900/30 rounded-lg p-2.5 text-center opacity-70">
+                        <MemoryStick size={14} className="text-slate-500 mx-auto mb-1" />
+                        <p className="text-xs font-bold text-slate-300">{ws.vm_template_details?.ram_gb} GB</p>
+                        <p className="text-[9px] text-slate-600 uppercase">RAM</p>
+                      </div>
+                      <div className="bg-slate-900/30 rounded-lg p-2.5 text-center opacity-70">
+                        <HardDrive size={14} className="text-slate-500 mx-auto mb-1" />
+                        <p className="text-xs font-bold text-slate-300">{ws.vm_template_details?.storage_gb} GB</p>
+                        <p className="text-[9px] text-slate-600 uppercase">SSD</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex-1 flex flex-col justify-center items-center py-6 mt-auto">
+                      <Loader2 className="w-8 h-8 text-[#00A3FF] animate-spin mb-3" />
+                      <p className="text-xs text-[#00A3FF] font-medium tracking-wide">Starting virtual machine...</p>
+                    </div>
+                  </div>
+                )
+              }
+              
+              // OFFLINE
+              return (
+                <div key={ws.id} className="bg-[#0F131A] border border-slate-800/50 rounded-2xl p-5 flex flex-col">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-[#FF6B00]/10 flex items-center justify-center shrink-0">
+                        <Monitor size={20} className="text-[#FF6B00]" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="text-sm font-bold text-white uppercase tracking-wide truncate">{ws.name}</h3>
+                        <p className="text-xs text-slate-500 mt-0.5 truncate">{ws.vm_template_details?.os}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <div className="w-2 h-2 rounded-full bg-[#FF6B00]" />
+                      <span className="text-[10px] font-semibold text-[#FF6B00] uppercase tracking-wider">Offline</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 mb-4 px-3 py-1.5 bg-slate-900/50 rounded-lg w-fit">
+                    <Globe size={12} className="text-slate-600" />
+                    <span className="text-xs font-mono text-slate-500">{ws.vm_details?.ip_address || '—.—.—.—'}</span>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-3 mb-4">
+                    <div className="bg-slate-900/30 rounded-lg p-2.5 text-center opacity-70">
+                      <Cpu size={14} className="text-slate-500 mx-auto mb-1" />
+                      <p className="text-xs font-bold text-slate-300">{ws.vm_template_details?.cpu_cores}</p>
+                      <p className="text-[9px] text-slate-600 uppercase">vCPU</p>
+                    </div>
+                    <div className="bg-slate-900/30 rounded-lg p-2.5 text-center opacity-70">
+                      <MemoryStick size={14} className="text-slate-500 mx-auto mb-1" />
+                      <p className="text-xs font-bold text-slate-300">{ws.vm_template_details?.ram_gb} GB</p>
+                      <p className="text-[9px] text-slate-600 uppercase">RAM</p>
+                    </div>
+                    <div className="bg-slate-900/30 rounded-lg p-2.5 text-center opacity-70">
+                      <HardDrive size={14} className="text-slate-500 mx-auto mb-1" />
+                      <p className="text-xs font-bold text-slate-300">{ws.vm_template_details?.storage_gb} GB</p>
+                      <p className="text-[9px] text-slate-600 uppercase">SSD</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 px-3 py-2 bg-slate-900/30 rounded-lg mb-4 flex-1">
+                    <AlertCircle size={13} className="text-slate-600" />
+                    <span className="text-[10px] uppercase tracking-wider text-slate-600 font-medium">Hypervisor Suspended</span>
+                  </div>
+                  
+                  <div className="flex gap-2 mt-auto">
+                    <button onClick={() => handleDelete(ws)} className="px-4 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-500 hover:text-red-400 hover:border-red-500/30 active:scale-95 transition-all duration-200">
+                      <Trash2 size={14} />
+                    </button>
+                    <button onClick={() => handleLaunch(ws)} disabled={launchingId === ws.id} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#FF6B00]/10 border border-[#FF6B00]/20 text-[#FF6B00] text-xs font-semibold hover:bg-[#FF6B00]/20 active:scale-95 transition-all duration-200">
+                      {launchingId === ws.id ? <Loader2 size={14} className="animate-spin" /> : <Power size={14} />}
+                      Power up
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* SECTION 8 — CREATE WORKSPACE MODAL */}
+      {showCreate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-[#0F131A] border border-slate-800/50 rounded-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="flex justify-between items-center p-6 border-b border-slate-800/50">
+              <h2 className="text-xl font-bold text-white">Launch New Workspace</h2>
+              <button onClick={() => setShowCreate(false)} className="text-slate-500 hover:text-white transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto">
+              <div className="mb-6">
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Workspace Name</label>
+                <input
+                  type="text"
+                  value={wsName}
+                  onChange={e => setWsName(e.target.value)}
+                  placeholder="e.g. My Ubuntu Dev Machine"
+                  className="w-full bg-[#080B10] border border-slate-800/50 rounded-xl px-4 py-3 text-white placeholder-slate-600 outline-none focus:border-[#0066FF] transition-colors"
+                  maxLength={50}
+                />
+              </div>
+
+              <div className="mb-6">
+                <div className="flex gap-2 mb-4">
+                  {['Desktops', 'Servers'].map(tab => (
+                    <button 
+                      key={tab}
+                      onClick={() => setTemplateTab(tab)}
+                      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                        templateTab === tab ? 'bg-slate-800 text-white' : 'text-slate-500 hover:text-slate-300'
+                      }`}
+                    >
+                      {tab}
+                    </button>
                   ))}
                 </div>
-              )}
-            </div>
-
-            {/* Create Button */}
-            <button
-              onClick={handleCreate}
-              disabled={!selectedTemplate || !wsName.trim() || creating}
-              style={{
-                width: '100%',
-                padding: '14px',
-                borderRadius: '12px',
-                background: (!selectedTemplate || !wsName.trim())
-                  ? '#1e293b'
-                  : 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                color: (!selectedTemplate || !wsName.trim())
-                  ? '#475569' : 'white',
-                fontWeight: 700,
-                fontSize: '15px',
-                border: 'none',
-                cursor: (!selectedTemplate || !wsName.trim())
-                  ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                transition: 'all 0.2s ease',
-                boxShadow: (!selectedTemplate || !wsName.trim())
-                  ? 'none'
-                  : '0 4px 20px rgba(99,102,241,0.4)'
-              }}>
-              {creating ? (
-                <>
-                  <div style={{
-                    width: '18px', height: '18px',
-                    border: '2px solid rgba(255,255,255,0.3)',
-                    borderTopColor: 'white',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite'
-                  }} />
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <Plus size={18} />
-                  Create Workspace
-                  {selectedTemplate && wsName ? ` — ${selectedTemplate.name}` : ''}
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {showLimitModal && (
-        <div style={{
-          position: 'fixed', inset: 0,
-          background: 'rgba(0,0,0,0.85)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000, padding: '20px'
-        }}>
-          <div style={{
-            background: '#0d1526',
-            border: '1px solid #1e293b',
-            borderRadius: '24px',
-            padding: '40px 32px',
-            maxWidth: '440px',
-            width: '100%',
-            textAlign: 'center'
-          }}>
-            {/* Icon */}
-            <div style={{
-              width: '64px', height: '64px',
-              borderRadius: '16px',
-              background: 'rgba(99,102,241,0.15)',
-              border: '1px solid rgba(99,102,241,0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 20px'
-            }}>
-              <Zap size={28} color="#6366f1" />
-            </div>
-            
-            <h2 style={{
-              color: 'white', fontSize: '22px',
-              fontWeight: 700, margin: '0 0 8px'
-            }}>
-              Workspace Limit Reached
-            </h2>
-            
-            <p style={{
-              color: 'var(--text-muted)', fontSize: '14px',
-              lineHeight: 1.6, margin: '0 0 8px'
-            }}>
-              Free plan includes 1 workspace 
-              and 5 compute hours per month.
-            </p>
-            
-            <p style={{
-              color: 'var(--text-secondary)', fontSize: '14px',
-              margin: '0 0 28px'
-            }}>
-              Upgrade to get more workspaces, 
-              more hours, and the ability to 
-              host live sessions.
-            </p>
-            
-            {/* Plan comparison */}
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
-              marginBottom: '24px',
-              textAlign: 'left'
-            }}>
-              {[
-                { name: 'Personal Host',
-                  price: '$9/mo · TZS 23,000',
-                  workspaces: 3,
-                  hours: 20,
-                  plan: 'personal_host' },
-                { name: 'Pro Host',
-                  price: '$19/mo · TZS 49,000',
-                  workspaces: 10,
-                  hours: 80,
-                  plan: 'pro_host',
-                  recommended: true },
-              ].map(p => (
-                <div key={p.plan} style={{
-                  padding: '14px 16px',
-                  borderRadius: '12px',
-                  border: `1px solid ${p.recommended 
-                    ? 'rgba(99,102,241,0.4)' 
-                    : '#1e293b'}`,
-                  background: p.recommended
-                    ? 'rgba(99,102,241,0.08)'
-                    : 'rgba(255,255,255,0.02)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}
-                onClick={() => {
-                  openUpgradeModal()
-                  setShowLimitModal(false)
-                }}>
-                  <div>
-                    <p style={{
-                      color: 'white',
-                      fontWeight: 600,
-                      fontSize: '14px',
-                      margin: '0 0 2px'
-                    }}>
-                      {p.name}
-                      {p.recommended && (
-                        <span style={{
-                          marginLeft: '8px',
-                          fontSize: '10px',
-                          background: '#6366f1',
-                          color: 'white',
-                          padding: '2px 7px',
-                          borderRadius: '10px'
-                        }}>
-                          POPULAR
-                        </span>
-                      )}
-                    </p>
-                    <p style={{
-                      color: 'var(--text-muted)',
-                      fontSize: '12px',
-                      margin: 0
-                    }}>
-                      {p.workspaces} workspaces · 
-                      {p.hours}h/month
-                    </p>
-                  </div>
-                  <p style={{
-                    color: '#6366f1',
-                    fontWeight: 700,
-                    fontSize: '14px',
-                    margin: 0
-                  }}>
-                    {p.price.split('·')[0]}
-                  </p>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {templates.filter(t => t.template_type === (templateTab === 'Desktops' ? 'desktop' : 'server')).map(template => {
+                    const Icon = getTemplateIcon(template.icon)
+                    const isSelected = selectedTemplate?.id === template.id
+                    
+                    return (
+                      <div 
+                        key={template.id}
+                        onClick={() => template.is_real && setSelectedTemplate(template)}
+                        className={`p-4 rounded-xl border transition-all cursor-pointer relative overflow-hidden ${
+                          !template.is_real 
+                            ? 'bg-[#080B10] border-slate-800/30 opacity-60 cursor-not-allowed' 
+                            : isSelected 
+                              ? 'bg-[#0066FF]/10 border-[#0066FF]' 
+                              : 'bg-[#080B10] border-slate-800/50 hover:border-slate-600'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isSelected ? 'bg-[#0066FF]/20 text-[#00A3FF]' : 'bg-slate-800/50 text-slate-400'}`}>
+                            <Icon size={20} />
+                          </div>
+                          {!template.is_real && (
+                            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 bg-slate-900 px-2 py-1 rounded">Coming Soon</span>
+                          )}
+                        </div>
+                        <h4 className="font-bold text-white mb-1">{template.name}</h4>
+                        <p className="text-xs text-slate-400 mb-3">{template.cpu_cores} vCPU · {template.ram_gb}GB RAM · {template.storage_gb}GB</p>
+                        <div className="text-xs font-semibold text-slate-300">{template.hourly_cost_tzs > 0 ? `TZS ${template.hourly_cost_tzs}/hr` : 'Free'}</div>
+                        
+                        {isSelected && (
+                          <div className="absolute top-0 right-0 w-8 h-8 bg-[#0066FF] rounded-bl-xl flex items-center justify-center">
+                            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
-              ))}
+              </div>
             </div>
             
-            <button
-              onClick={() => 
-                setShowLimitModal(false)}
-              style={{
-                width: '100%',
-                padding: '12px',
-                borderRadius: '10px',
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid #1e293b',
-                color: 'var(--text-secondary)',
-                cursor: 'pointer',
-                fontSize: '14px'
-              }}>
-              Stay on Free Plan
-            </button>
+            <div className="p-6 border-t border-slate-800/50 flex justify-end gap-3 bg-black/20">
+              <button 
+                onClick={() => setShowCreate(false)}
+                className="px-5 py-2.5 rounded-xl text-slate-400 text-sm font-semibold hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleCreate}
+                disabled={!selectedTemplate || !wsName.trim() || creating}
+                className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg ${
+                  (!selectedTemplate || !wsName.trim() || creating)
+                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed shadow-none'
+                    : 'bg-[#0066FF] text-white hover:bg-[#0052CC] active:scale-95 shadow-blue-500/20'
+                }`}
+              >
+                {creating ? <Loader2 size={16} className="animate-spin" /> : <MonitorPlay size={16} />}
+                Create & Launch
+              </button>
+            </div>
           </div>
         </div>
       )}
+
     </div>
   )
 }
