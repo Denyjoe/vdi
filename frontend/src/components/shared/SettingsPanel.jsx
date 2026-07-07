@@ -3,13 +3,56 @@ import {
   X, User, Lock, Bell, Palette, Code, 
   AlertTriangle, Camera, Shield, Key, 
   RefreshCw, Trash2, Check, Copy,
-  ChevronRight, Eye, EyeOff
+  ChevronDown, Search, Eye, EyeOff
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import useSettingsStore from '../../store/settingsStore';
 import useAuthStore from '../../store/authStore';
 import useThemeStore from '../../store/themeStore';
+
+const COUNTRIES = [
+  { code: 'TZ', name: 'Tanzania', timezone: 'Africa/Dar_es_Salaam' },
+  { code: 'KE', name: 'Kenya', timezone: 'Africa/Nairobi' },
+  { code: 'UG', name: 'Uganda', timezone: 'Africa/Kampala' },
+  { code: 'RW', name: 'Rwanda', timezone: 'Africa/Kigali' },
+  { code: 'NG', name: 'Nigeria', timezone: 'Africa/Lagos' },
+  { code: 'GH', name: 'Ghana', timezone: 'Africa/Accra' },
+  { code: 'ZA', name: 'South Africa', timezone: 'Africa/Johannesburg' },
+  { code: 'ET', name: 'Ethiopia', timezone: 'Africa/Addis_Ababa' },
+  { code: 'EG', name: 'Egypt', timezone: 'Africa/Cairo' },
+  { code: 'MA', name: 'Morocco', timezone: 'Africa/Casablanca' },
+  { code: 'US', name: 'United States', timezone: 'America/New_York' },
+  { code: 'GB', name: 'United Kingdom', timezone: 'Europe/London' },
+  { code: 'DE', name: 'Germany', timezone: 'Europe/Berlin' },
+  { code: 'FR', name: 'France', timezone: 'Europe/Paris' },
+  { code: 'IN', name: 'India', timezone: 'Asia/Kolkata' },
+  { code: 'CN', name: 'China', timezone: 'Asia/Shanghai' },
+  { code: 'JP', name: 'Japan', timezone: 'Asia/Tokyo' },
+  { code: 'AE', name: 'United Arab Emirates', timezone: 'Asia/Dubai' },
+  { code: 'SA', name: 'Saudi Arabia', timezone: 'Asia/Riyadh' },
+  { code: 'BR', name: 'Brazil', timezone: 'America/Sao_Paulo' },
+  { code: 'CA', name: 'Canada', timezone: 'America/Toronto' },
+  { code: 'AU', name: 'Australia', timezone: 'Australia/Sydney' },
+  { code: 'SG', name: 'Singapore', timezone: 'Asia/Singapore' },
+  { code: 'MY', name: 'Malaysia', timezone: 'Asia/Kuala_Lumpur' },
+  { code: 'ID', name: 'Indonesia', timezone: 'Asia/Jakarta' },
+  { code: 'PK', name: 'Pakistan', timezone: 'Asia/Karachi' },
+  { code: 'BD', name: 'Bangladesh', timezone: 'Asia/Dhaka' },
+  { code: 'MW', name: 'Malawi', timezone: 'Africa/Blantyre' },
+  { code: 'MZ', name: 'Mozambique', timezone: 'Africa/Maputo' },
+  { code: 'ZM', name: 'Zambia', timezone: 'Africa/Lusaka' },
+  { code: 'ZW', name: 'Zimbabwe', timezone: 'Africa/Harare' },
+  { code: 'CD', name: 'DR Congo', timezone: 'Africa/Kinshasa' },
+  { code: 'CM', name: 'Cameroon', timezone: 'Africa/Douala' },
+  { code: 'CI', name: 'Ivory Coast', timezone: 'Africa/Abidjan' },
+  { code: 'SN', name: 'Senegal', timezone: 'Africa/Dakar' },
+  { code: 'BW', name: 'Botswana', timezone: 'Africa/Gaborone' },
+  { code: 'NA', name: 'Namibia', timezone: 'Africa/Windhoek' },
+  { code: 'SO', name: 'Somalia', timezone: 'Africa/Mogadishu' },
+  { code: 'SD', name: 'Sudan', timezone: 'Africa/Khartoum' },
+  { code: 'BI', name: 'Burundi', timezone: 'Africa/Bujumbura' },
+].sort((a, b) => a.name.localeCompare(b.name));
 
 export default function SettingsPanel() {
   const { isOpen, activeTab, closeSettings, setTab } = useSettingsStore();
@@ -45,7 +88,7 @@ export default function SettingsPanel() {
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'appearance', label: 'Appearance', icon: Palette },
     { id: 'developer', label: 'Developer', icon: Code },
-    { id: 'danger', label: 'Danger Zone', icon: AlertTriangle },
+    { id: 'danger', label: 'Account Removal', icon: AlertTriangle },
   ];
 
   return (
@@ -57,12 +100,13 @@ export default function SettingsPanel() {
         style={{ animation: 'fadeIn 0.2s ease-out' }}
       />
       
-      {/* Panel — slides from right */}
-      <div 
-        ref={panelRef}
-        className="fixed top-0 right-0 bottom-0 z-[61] w-[720px] max-w-[90vw] bg-[#0A0E14] border-l border-slate-800/50 shadow-2xl shadow-black/50 flex overflow-hidden"
-        style={{ animation: 'slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}
-      >
+      {/* Panel — Centered Modal */}
+      <div className="fixed inset-0 z-[61] flex items-center justify-center pointer-events-none">
+        <div 
+          ref={panelRef}
+          className="bg-[#0A0E14] border border-slate-800/50 rounded-2xl shadow-2xl shadow-black/50 w-[700px] max-w-[90vw] h-[550px] max-h-[80vh] flex overflow-hidden pointer-events-auto"
+          style={{ animation: 'scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)' }}
+        >
         {/* Left sidebar — tabs */}
         <div className="w-[180px] flex-shrink-0 bg-[#080B10] border-r border-slate-800/30 flex flex-col">
           
@@ -94,7 +138,16 @@ export default function SettingsPanel() {
           {/* User info at bottom */}
           <div className="px-4 py-4 border-t border-slate-800/30">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-[#6C63FF]/20 flex items-center justify-center text-[11px] font-bold text-[#6C63FF]">
+              {user?.avatar ? (
+                <img src={user.avatar} 
+                  className="w-8 h-8 rounded-full object-cover" 
+                  alt=""
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                  }} />
+              ) : null}
+              <div className={`w-8 h-8 rounded-full bg-[#6C63FF]/20 items-center justify-center text-[11px] font-bold text-[#6C63FF] ${user?.avatar ? 'hidden' : 'flex'}`}>
                 {user?.first_name?.[0]}
                 {user?.last_name?.[0]}
               </div>
@@ -135,16 +188,17 @@ export default function SettingsPanel() {
           </div>
         </div>
       </div>
+    </div>
       
-      {/* CSS Animations */}
+    {/* CSS Animations */}
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
         }
-        @keyframes slideIn {
-          from { transform: translateX(100%); }
-          to { transform: translateX(0); }
+        @keyframes scaleIn {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
         }
         .custom-scrollbar::-webkit-scrollbar {
           width: 4px;
@@ -166,16 +220,62 @@ function ProfileTab({ user }) {
     first_name: user?.first_name || '',
     last_name: user?.last_name || '',
     country: user?.country || '',
+    timezone: user?.timezone_preference || '',
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const fileRef = useRef(null);
 
+  const [countrySearch, setCountrySearch] = useState('');
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  const countryRef = useRef(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (countryRef.current && !countryRef.current.contains(e.target)) {
+        setShowCountryDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const filteredCountries = COUNTRIES.filter(c => 
+    c.name.toLowerCase().includes(countrySearch.toLowerCase())
+  );
+
   const handleSave = async () => {
     try {
       setSaving(true);
-      await api.put('/auth/profile/', form);
+      await api.put('/auth/profile/', {
+        first_name: form.first_name,
+        last_name: form.last_name,
+        country: form.country,
+        timezone: form.timezone,
+      });
+      
+      // Update auth store immediately
+      const authStore = useAuthStore.getState();
+      if (authStore.setUser) {
+        authStore.setUser({
+          ...authStore.user,
+          first_name: form.first_name,
+          last_name: form.last_name,
+          country: form.country,
+          timezone_preference: form.timezone,
+        });
+      }
+      // Refresh user data from API
+      try {
+        const meRes = await api.get('/auth/me/');
+        const userData = meRes.data?.data || meRes.data;
+        if (authStore.setUser) {
+          authStore.setUser(userData);
+        }
+      } catch {}
+      
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch(e) {
@@ -188,16 +288,46 @@ function ProfileTab({ user }) {
   const handleAvatarUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File too large. Max 5MB.');
+      return;
+    }
+    
     try {
       setAvatarUploading(true);
       const formData = new FormData();
       formData.append('avatar', file);
-      await api.post('/auth/avatar/', formData, {
+      
+      const res = await api.post('/auth/avatar/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      window.location.reload();
+      
+      // Update auth store with new avatar
+      const avatarUrl = res.data?.avatar_url;
+      if (avatarUrl) {
+        const authStore = useAuthStore.getState();
+        if (authStore.setUser) {
+          authStore.setUser({
+            ...authStore.user,
+            avatar: avatarUrl,
+          });
+        }
+      }
+      
+      // Also refresh user data
+      try {
+        const meRes = await api.get('/auth/me/');
+        const userData = meRes.data?.data || meRes.data;
+        const authStore = useAuthStore.getState();
+        if (authStore.setUser) {
+          authStore.setUser(userData);
+        }
+      } catch {}
+      
     } catch(e) {
-      console.error(e);
+      console.error('Avatar upload failed:', e);
+      alert('Failed to upload. ' + (e.response?.data?.message || ''));
     } finally {
       setAvatarUploading(false);
     }
@@ -210,10 +340,15 @@ function ProfileTab({ user }) {
         <div className="relative group">
           <div className="w-20 h-20 rounded-2xl bg-[#6C63FF]/15 flex items-center justify-center text-2xl font-bold text-[#6C63FF] ring-2 ring-slate-700 overflow-hidden">
             {user?.avatar ? (
-              <img src={user.avatar} className="w-full h-full object-cover" alt="" />
-            ) : (
-              <>{user?.first_name?.[0]}{user?.last_name?.[0]}</>
-            )}
+              <img src={user.avatar} className="w-full h-full object-cover" alt="" 
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                }} />
+            ) : null}
+            <div className={`w-full h-full items-center justify-center ${user?.avatar ? 'hidden' : 'flex'}`}>
+              {user?.first_name?.[0]}{user?.last_name?.[0]}
+            </div>
           </div>
           <button onClick={() => fileRef.current?.click()}
             className="absolute -bottom-1 -right-1 w-7 h-7 rounded-lg bg-[#0066FF] flex items-center justify-center text-white shadow-lg active:scale-95 transition-all">
@@ -250,13 +385,66 @@ function ProfileTab({ user }) {
           className="w-full bg-[#0F131A]/50 border border-slate-800/30 rounded-xl px-4 py-2.5 text-sm text-slate-500 cursor-not-allowed" />
       </div>
 
-      {/* Country */}
-      <div>
+      {/* Country searchable dropdown */}
+      <div ref={countryRef} className="relative">
         <label className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold block mb-2">Country</label>
-        <input value={form.country}
-          onChange={e => setForm(f => ({ ...f, country: e.target.value }))}
-          placeholder="e.g. Tanzania"
-          className="w-full bg-[#0F131A] border border-slate-800/50 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#0066FF]/50 transition-colors" />
+        
+        <button onClick={() => setShowCountryDropdown(!showCountryDropdown)}
+          className="w-full bg-[#0F131A] border border-slate-800/50 rounded-xl px-4 py-2.5 text-sm text-left flex items-center justify-between focus:border-[#0066FF]/50 transition-colors"
+          style={{ color: form.country ? '#E2E8F0' : '#64748B' }}>
+          <span>{form.country || 'Select your country'}</span>
+          <ChevronDown size={14} className="text-slate-500" />
+        </button>
+        
+        {showCountryDropdown && (
+          <div className="absolute top-full left-0 right-0 mt-2 bg-[#0F131A] border border-slate-800/50 rounded-xl shadow-2xl shadow-black/50 z-50 overflow-hidden max-h-[280px] flex flex-col">
+            
+            {/* Search input */}
+            <div className="p-2 border-b border-slate-800/30 flex-shrink-0">
+              <div className="relative">
+                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" />
+                <input
+                  value={countrySearch}
+                  onChange={e => setCountrySearch(e.target.value)}
+                  placeholder="Search countries..."
+                  autoFocus
+                  className="w-full bg-[#0A0E14] border border-slate-800/50 rounded-lg pl-8 pr-3 py-2 text-xs text-white placeholder-slate-600 outline-none focus:border-[#0066FF]/50"
+                />
+              </div>
+            </div>
+            
+            {/* Country list */}
+            <div className="overflow-y-auto flex-1 custom-scrollbar">
+              {filteredCountries.map(c => (
+                <button key={c.code}
+                  onClick={() => {
+                    setForm(f => ({
+                      ...f, 
+                      country: c.name,
+                      timezone: c.timezone
+                    }));
+                    setShowCountryDropdown(false);
+                    setCountrySearch('');
+                  }}
+                  className={`w-full text-left px-4 py-2.5 text-xs transition-colors flex items-center justify-between
+                    ${form.country === c.name
+                      ? 'bg-[#0066FF]/10 text-[#0066FF]'
+                      : 'text-slate-300 hover:bg-slate-800/40'
+                    }`}>
+                  <span>{c.name}</span>
+                  {form.country === c.name && (
+                    <Check size={13} className="text-[#0066FF]" />
+                  )}
+                </button>
+              ))}
+              {filteredCountries.length === 0 && (
+                <p className="px-4 py-6 text-xs text-slate-500 text-center">
+                  No countries found
+                </p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Save button */}
@@ -524,13 +712,27 @@ function DeveloperTab() {
   }, []);
 
   const handleGenerate = async () => {
+    console.log('handleGenerate called');
     try {
       setGenerating(true);
+      console.log('Calling API...');
       const res = await api.post('/auth/api-token/generate/');
-      setNewKey(res.data.key);
-      setTokenInfo({ ...res.data, exists: true });
+      console.log('API response:', res.data);
+      const data = res.data;
+      if (data.key) {
+        setNewKey(data.key);
+        setTokenInfo({ ...data, exists: true });
+      } else if (data.data?.key) {
+        // Just in case it's wrapped in data: { key: ... }
+        setNewKey(data.data.key);
+        setTokenInfo({ ...data.data, exists: true });
+      }
     } catch(e) {
-      console.error(e);
+      console.error('Full error:', e);
+      console.error('Response status:', e.response?.status);
+      console.error('Response data:', e.response?.data);
+      alert('Failed to generate token: ' + 
+        (e.response?.data?.message || e.response?.data?.detail || e.message));
     } finally {
       setGenerating(false);
     }
@@ -621,7 +823,10 @@ function DeveloperTab() {
             
             {/* Actions */}
             <div className="flex gap-3">
-              <button onClick={handleGenerate} disabled={generating}
+              <button onClick={() => {
+                console.log('Generate clicked');
+                handleGenerate();
+              }} disabled={generating}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#FF6B00]/10 border border-[#FF6B00]/20 text-[#FF6B00] text-xs font-semibold hover:bg-[#FF6B00]/20 active:scale-95 transition-all">
                 <RefreshCw size={13} />
                 Regenerate Token
@@ -640,7 +845,10 @@ function DeveloperTab() {
             <p className="text-xs text-slate-500 mb-5 max-w-sm mx-auto">
               Generate a token to access CloudDesk API from scripts, integrations, or custom tools.
             </p>
-            <button onClick={handleGenerate} disabled={generating}
+            <button onClick={() => {
+                console.log('Generate clicked');
+                handleGenerate();
+              }} disabled={generating}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0066FF] text-white text-sm font-semibold hover:bg-[#0052CC] active:scale-95 transition-all shadow-lg shadow-blue-500/20">
               <Key size={15} />
               {generating ? 'Generating...' : 'Generate API Token'}
@@ -713,9 +921,9 @@ function DangerTab() {
         <div className="flex items-start gap-3 mb-4">
           <AlertTriangle size={20} className="text-red-400 flex-shrink-0 mt-0.5" />
           <div>
-            <h3 className="text-sm font-bold text-red-400">Delete Account</h3>
+            <h3 className="text-sm font-bold text-red-400">Delete Your Account</h3>
             <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-              Permanently delete your CloudDesk account, all workspaces, session history, billing records, and associated data. This action cannot be undone.
+              If you no longer need your CloudDesk account, you can permanently remove it here. All your workspaces, session history, and billing data will be deleted.
             </p>
           </div>
         </div>
@@ -724,7 +932,7 @@ function DangerTab() {
           <button onClick={() => setConfirm(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold hover:bg-red-500/20 active:scale-95 transition-all">
             <Trash2 size={14} />
-            I want to delete my account
+            Request Account Deletion
           </button>
         ) : (
           <div className="mt-4 pt-4 border-t border-red-500/10">
@@ -738,7 +946,7 @@ function DangerTab() {
               </button>
               <button onClick={handleDelete} disabled={!password || deleting}
                 className="px-4 py-2.5 rounded-xl bg-red-500 text-white text-xs font-bold active:scale-95 transition-all disabled:opacity-30">
-                {deleting ? 'Deleting...' : 'Permanently Delete'}
+                {deleting ? 'Deleting...' : 'Request Account Deletion'}
               </button>
             </div>
           </div>
