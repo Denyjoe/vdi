@@ -92,6 +92,14 @@ class User(AbstractUser):
     notification_email = models.BooleanField(default=True)
     notification_session = models.BooleanField(default=True)
     notification_usage = models.BooleanField(default=True)
+    
+    # New Notification Preferences
+    notify_workspace_ready = models.BooleanField(default=True)
+    notify_hours_low = models.BooleanField(default=True)
+    notify_payment = models.BooleanField(default=True)
+    notify_session_invite = models.BooleanField(default=True)
+    notify_announcements = models.BooleanField(default=True)
+    
     created_at = models.DateTimeField(
         auto_now_add=True,
         help_text="Timestamp when the account was first created.",
@@ -123,6 +131,71 @@ class User(AbstractUser):
             return self.subscription.plan.name
         except:
             return 'free'
+
+import secrets
+import hashlib
+from django.utils import timezone
+
+class APIToken(models.Model):
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE,
+        related_name='api_token')
+    
+    key_hash = models.CharField(max_length=128, unique=True)
+    key_prefix = models.CharField(max_length=10, help_text="First 8 chars for identification")
+    
+    name = models.CharField(max_length=100, default='Default')
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+    last_used_ip = models.CharField(max_length=45, blank=True, default='')
+    
+    calls_today = models.IntegerField(default=0)
+    calls_reset_at = models.DateTimeField(null=True, blank=True)
+    
+    can_read = models.BooleanField(default=True)
+    can_write = models.BooleanField(default=True)
+    can_delete = models.BooleanField(default=False)
+    
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        verbose_name = 'API Token'
+    
+    def __str__(self):
+        return f"API Token for {self.user.email} ({self.key_prefix}...)"
+    
+    @classmethod
+    def generate_for_user(cls, user):
+        cls.objects.filter(user=user).delete()
+        plain_key = 'sk-cd-' + secrets.token_hex(24)
+        key_hash = hashlib.sha256(plain_key.encode()).hexdigest()
+        key_prefix = plain_key[:14]
+        token = cls.objects.create(
+            user=user,
+            key_hash=key_hash,
+            key_prefix=key_prefix,
+        )
+        return plain_key, token
+    
+    @classmethod
+    def authenticate(cls, plain_key):
+        if not plain_key or not plain_key.startswith('sk-cd-'):
+            return None
+        key_hash = hashlib.sha256(plain_key.encode()).hexdigest()
+        try:
+            token = cls.objects.get(key_hash=key_hash, is_active=True)
+            now = timezone.now()
+            if not token.calls_reset_at or token.calls_reset_at.date() < now.date():
+                token.calls_today = 0
+                token.calls_reset_at = now
+            if token.calls_today >= 1000:
+                return None
+            token.calls_today += 1
+            token.last_used_at = now
+            token.save(update_fields=['last_used_at', 'calls_today', 'calls_reset_at'])
+            return token.user
+        except cls.DoesNotExist:
+            return None
 
 
 class SystemConfig(models.Model):

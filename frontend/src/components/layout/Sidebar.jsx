@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -16,16 +16,37 @@ import {
   Cpu,
   FileText,
   LayoutTemplate,
-  Radio
+  Radio,
+  Receipt,
+  Moon,
+  Sun,
+  ChevronUp
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import useUIStore from '../../store/uiStore';
+import useSettingsStore from '../../store/settingsStore';
 import useLiveSession from '../../hooks/useLiveSession';
 import { toast } from 'react-hot-toast';
 
 export default function Sidebar() {
   const { user, logout } = useAuthStore();
+  const { theme, toggleTheme } = useUIStore();
   const navigate = useNavigate();
+  
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target))
+        setShowUserMenu(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+  
+  const liveSession = useLiveSession(user);
+  const { openSettings } = useSettingsStore();
 
   const handleLogout = () => {
     logout();
@@ -132,7 +153,6 @@ export default function Sidebar() {
                 </button>
               )}
 
-              <NavItem to="/host/analytics" icon={BarChart2}>Analytics</NavItem>
             </div>
           </div>
         )}
@@ -150,19 +170,6 @@ export default function Sidebar() {
               <NavItem to="/admin/templates" icon={LayoutTemplate}>Templates</NavItem>
               <NavItem to="/admin/analytics" icon={BarChart3}>Analytics</NavItem>
               <NavItem to="/admin/settings" icon={Settings}>Settings</NavItem>
-            </div>
-          </div>
-        )}
-
-        {/* ACCOUNT SECTION */}
-        {user?.role !== 'admin' && (
-          <div>
-            <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">
-              Account
-            </p>
-            <div className="space-y-1">
-              <NavItem to="/profile" icon={UserCircle}>My Profile</NavItem>
-              <NavItem to="/settings" icon={Settings}>Settings</NavItem>
             </div>
           </div>
         )}
@@ -201,41 +208,125 @@ export default function Sidebar() {
         </div>
       )}
 
-      {/* USER PROFILE CARD */}
-      <div className="p-4 border-t border-slate-700/50 shrink-0">
-        <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/50">
-          {user?.avatar ? (
-            <img 
-              src={user.avatar} 
-              alt="Profile" 
-              className="w-10 h-10 rounded-lg object-cover"
-            />
+      {/* USER PROFILE AVATAR POPUP */}
+      <div className="relative mt-auto border-t border-slate-800/30 pt-3" ref={menuRef}>
+        
+        {/* Popup menu — appears above avatar */}
+        {showUserMenu && (
+          <div className="absolute bottom-full left-0 right-0 mb-2 mx-2 bg-[#0F131A] border border-slate-800/50 rounded-2xl overflow-hidden shadow-2xl shadow-black/50 z-50"
+            style={{
+              animation: 'slideUp 0.2s ease-out',
+            }}>
+            
+            {/* User info */}
+            <div className="px-4 py-3.5 border-b border-slate-800/30">
+              <div className="flex items-center gap-3">
+                {user.avatar ? (
+                  <img src={user.avatar} 
+                    className="w-10 h-10 rounded-full object-cover" 
+                    alt="" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-[#6C63FF]/20 flex items-center justify-center text-sm font-bold text-[#6C63FF]">
+                    {user.first_name?.[0]}
+                    {user.last_name?.[0]}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-white truncate">
+                    {user.first_name} {user.last_name}
+                  </p>
+                  <p className="text-[11px] text-slate-500 truncate">
+                    {user.email}
+                  </p>
+                </div>
+              </div>
+              {user.is_host && (
+                <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#6C63FF]/10 text-[9px] font-bold text-[#6C63FF] uppercase tracking-wider">
+                  HOST
+                </div>
+              )}
+            </div>
+            
+            {/* Theme toggle */}
+            <div className="px-4 py-2.5 flex items-center justify-between border-b border-slate-800/30">
+              <div className="flex items-center gap-2">
+                {theme === 'dark' ? (
+                  <Moon size={14} className="text-slate-400" />
+                ) : (
+                  <Sun size={14} className="text-slate-400" />
+                )}
+                <span className="text-xs text-slate-400">
+                  {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
+                </span>
+              </div>
+              <button
+                onClick={toggleTheme}
+                className={`relative w-9 h-5 rounded-full transition-all duration-300 active:scale-95
+                  ${theme === 'dark' ? 'bg-[#6C63FF]' : 'bg-slate-600'}`}>
+                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300
+                  ${theme === 'dark' ? 'left-[18px]' : 'left-0.5'}`} />
+              </button>
+            </div>
+            
+            {/* Menu items */}
+            <div className="py-1">
+              <button onClick={() => {
+                openSettings('profile');
+                setShowUserMenu(false);
+              }} className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-800/50 transition-colors">
+                <Settings size={14} className="text-slate-500" />
+                Account Settings
+              </button>
+              <button onClick={() => {
+                navigate('/billing');
+                setShowUserMenu(false);
+              }} className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-800/50 transition-colors">
+                <Receipt size={14} className="text-slate-500" />
+                Billing & Usage
+              </button>
+            </div>
+            
+            {/* Sign out */}
+            <div className="border-t border-slate-800/30 py-1">
+              <button onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-red-400 hover:bg-red-500/5 transition-colors">
+                <LogOut size={14} />
+                Sign Out
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {/* Avatar button — always visible */}
+        <button 
+          onClick={() => setShowUserMenu(!showUserMenu)}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-800/30 transition-all active:scale-[0.98] group">
+          {user.avatar ? (
+            <img src={user.avatar} 
+              className="w-9 h-9 rounded-full object-cover ring-2 ring-slate-700 group-hover:ring-slate-500 transition-all" alt="" />
           ) : (
-            <div className="w-10 h-10 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-lg">
-              {user?.first_name?.charAt(0) || user?.email?.charAt(0) || '?'}
+            <div className="w-9 h-9 rounded-full bg-[#6C63FF]/20 flex items-center justify-center text-xs font-bold text-[#6C63FF] ring-2 ring-slate-700 group-hover:ring-slate-500 transition-all">
+              {user.first_name?.[0]}
+              {user.last_name?.[0]}
             </div>
           )}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-slate-200 truncate">
-              {user?.first_name} {user?.last_name}
+          <div className="flex-1 text-left min-w-0">
+            <p className="text-xs font-semibold text-slate-200 truncate">
+              {user.first_name} {user.last_name}
             </p>
-            {user?.role === 'admin' ? (
-              <span className="text-xs text-purple-400 font-semibold tracking-wider truncate px-2 py-0.5 bg-purple-500/20 rounded-md border border-purple-500/30">ADMIN</span>
-            ) : user?.is_host ? (
-              <span className="text-xs text-blue-400 font-semibold tracking-wider truncate px-2 py-0.5 bg-blue-500/20 rounded-md border border-blue-500/30">HOST</span>
-            ) : (
-              <span className="text-xs text-slate-400 font-semibold tracking-wider truncate px-2 py-0.5 bg-slate-800/50 rounded-md border border-slate-600/50">FREE</span>
-            )}
           </div>
-          <button 
-            onClick={handleLogout}
-            className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
-            title="Log out"
-          >
-            <LogOut size={18} />
-          </button>
-        </div>
+          <ChevronUp size={14} 
+            className={`text-slate-600 transition-transform duration-200
+            ${showUserMenu ? '' : 'rotate-180'}`} />
+        </button>
       </div>
+
+      <style>{`
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </aside>
   );
 }

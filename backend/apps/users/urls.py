@@ -17,4 +17,14 @@ urlpatterns = [
     path('password-reset/confirm/', views.PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
     path('verify-email/', views.VerifyEmailView.as_view(), name='verify-email'),
     path('resend-verification/', views.ResendVerificationView.as_view(), name='resend-verification'),
+    
+    # Account Settings Endpoints
+    path('profile/', views.ProfileUpdateView.as_view(), name='profile-update'),
+    path('avatar/', views.AvatarUploadView.as_view(), name='avatar-upload'),
+    path('change-password/', views.ChangePasswordView.as_view(), name='change-password-new'),
+    path('notification-preferences/', views.NotificationPreferencesView.as_view(), name='notification-preferences'),
+    path('api-token/', views.APITokenView.as_view(), name='api-token'),
+    path('api-token/generate/', views.APITokenGenerateView.as_view(), name='api-token-generate'),
+    path('api-token/revoke/', views.APITokenRevokeView.as_view(), name='api-token-revoke'),
+    path('delete-account/', views.DeleteAccountView.as_view(), name='delete-account'),
 ]

@@ -88,9 +88,9 @@ import WorkspacesPage from "./pages/member/WorkspacesPage";
 import MemberSessionsPage from "./pages/member/MemberSessionsPage";
 import SessionHistoryPage from "./pages/member/SessionHistoryPage";
 import DesktopSessionPage from "./pages/member/DesktopSessionPage";
-import SettingsPage from "./pages/SettingsPage";
 import HostSessionPage from "./pages/HostSessionPage";
 import HostAnalyticsPage from "./pages/HostAnalyticsPage";
+import BillingPage from "./pages/member/BillingPage";
 
 // Layout & guards
 import Layout from "./components/layout/Layout";
@@ -147,12 +147,13 @@ export default function App() {
           <Route path="/workspaces" element={<WorkspacesPage />} />
           <Route path="/sessions/my" element={<MemberSessionsPage />} />
           <Route path="/sessions/history" element={<SessionHistoryPage />} />
-          <Route path="/host/analytics" element={<HostAnalyticsPage />} />
+          <Route path="/billing" element={<BillingPage />} />
           
           <Route path="/sessions" element={<SessionsPage />} />
-          <Route path="/profile" element={<Navigate to="/settings" replace />} />
+          <Route path="/profile" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/settings" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/account" element={<Navigate to="/dashboard" replace />} />
           <Route path="/notifications" element={<NotificationsPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
 
           {/* ── Admin Area ────────────────────────────────────────── */}
           <Route path="/admin">

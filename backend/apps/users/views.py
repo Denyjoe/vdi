@@ -378,6 +378,8 @@ class GoogleAuthView(APIView):
                 user.save()
 
                 from apps.users.models import SubscriptionPlan, UserSubscription, ActivityLog
+
+
                 free_plan = SubscriptionPlan.objects.get(name='free')
                 UserSubscription.objects.create(user=user, plan=free_plan, status='active')
 
@@ -401,3 +403,150 @@ class GoogleAuthView(APIView):
 
         except Exception as e:
             return Response({'success': False, 'message': str(e)}, status=500)
+
+class ProfileUpdateView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        user = request.user
+        return Response({
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'email': user.email,
+            'country': getattr(user, 'country', ''),
+            'avatar': (user.avatar.url if hasattr(user, 'avatar') and user.avatar else None),
+        })
+    
+    def put(self, request):
+        user = request.user
+        changed = []
+        
+        for field in ['first_name', 'last_name', 'country']:
+            if field in request.data:
+                setattr(user, field, request.data[field])
+                changed.append(field)
+        
+        if changed:
+            user.save(update_fields=changed)
+        
+        return Response({
+            'success': True,
+            'message': 'Profile updated'
+        })
+
+class NotificationPreferencesView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        user = request.user
+        return Response({
+            'workspace_ready': getattr(user, 'notify_workspace_ready', True),
+            'hours_low': getattr(user, 'notify_hours_low', True),
+            'payment': getattr(user, 'notify_payment', True),
+            'session_invite': getattr(user, 'notify_session_invite', True),
+            'announcements': getattr(user, 'notify_announcements', True),
+        })
+    
+    def put(self, request):
+        user = request.user
+        fields = {
+            'workspace_ready': 'notify_workspace_ready',
+            'hours_low': 'notify_hours_low',
+            'payment': 'notify_payment',
+            'session_invite': 'notify_session_invite',
+            'announcements': 'notify_announcements',
+        }
+        
+        updated = []
+        for key, field in fields.items():
+            if key in request.data:
+                if hasattr(user, field):
+                    setattr(user, field, bool(request.data[key]))
+                    updated.append(field)
+        
+        if updated:
+            user.save(update_fields=updated)
+        
+        return Response({
+            'success': True,
+            'message': 'Preferences saved'
+        })
+
+class APITokenView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        try:
+            token = request.user.api_token
+            return Response({
+                'exists': True,
+                'prefix': token.key_prefix,
+                'name': token.name,
+                'created_at': token.created_at.isoformat(),
+                'last_used_at': (token.last_used_at.isoformat() if token.last_used_at else None),
+                'last_used_ip': token.last_used_ip or None,
+                'calls_today': token.calls_today,
+                'is_active': token.is_active,
+                'permissions': {
+                    'read': token.can_read,
+                    'write': token.can_write,
+                    'delete': token.can_delete,
+                },
+            })
+        except Exception:
+            return Response({'exists': False})
+
+class APITokenGenerateView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        from apps.users.models import APIToken
+        plain_key, token = APIToken.generate_for_user(request.user)
+        return Response({
+            'success': True,
+            'key': plain_key,
+            'message': 'Copy this key now. It will not be shown again.',
+            'prefix': token.key_prefix,
+            'created_at': token.created_at.isoformat(),
+        })
+
+class APITokenRevokeView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        from apps.users.models import APIToken
+        deleted, _ = APIToken.objects.filter(user=request.user).delete()
+        return Response({
+            'success': True,
+            'message': 'API token revoked' if deleted else 'No token to revoke'
+        })
+
+class DeleteAccountView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        password = request.data.get('password')
+        if not password:
+            return Response({'success': False, 'message': 'Password required'}, status=400)
+        
+        user = request.user
+        if not user.check_password(password):
+            return Response({'success': False, 'message': 'Incorrect password'}, status=400)
+        
+        try:
+            from apps.vms.models import Workspace, VirtualMachine
+            from apps.vms.services.pool_service import VMPoolService
+            pool = VMPoolService()
+            for ws in Workspace.objects.filter(owner=user):
+                if ws.vm:
+                    try:
+                        pool.release_vm(ws.vm)
+                    except Exception:
+                        pass
+            Workspace.objects.filter(owner=user).delete()
+            VirtualMachine.objects.filter(owner=user).delete()
+        except Exception:
+            pass
+        
+        user.delete()
+        return Response({'success': True, 'message': 'Account deleted'})

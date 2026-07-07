@@ -1,0 +1,749 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  X, User, Lock, Bell, Palette, Code, 
+  AlertTriangle, Camera, Shield, Key, 
+  RefreshCw, Trash2, Check, Copy,
+  ChevronRight, Eye, EyeOff
+} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import api from '../../services/api';
+import useSettingsStore from '../../store/settingsStore';
+import useAuthStore from '../../store/authStore';
+import useThemeStore from '../../store/themeStore';
+
+export default function SettingsPanel() {
+  const { isOpen, activeTab, closeSettings, setTab } = useSettingsStore();
+  const user = useAuthStore(s => s.user);
+  const panelRef = useRef(null);
+
+  // Close on Escape key
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === 'Escape') closeSettings();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [closeSettings]);
+
+  // Prevent body scroll when open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { 
+      document.body.style.overflow = ''; 
+    };
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const tabs = [
+    { id: 'profile', label: 'Profile', icon: User },
+    { id: 'security', label: 'Security', icon: Lock },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'appearance', label: 'Appearance', icon: Palette },
+    { id: 'developer', label: 'Developer', icon: Code },
+    { id: 'danger', label: 'Danger Zone', icon: AlertTriangle },
+  ];
+
+  return (
+    <>
+      {/* Backdrop — blurred background */}
+      <div 
+        className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
+        onClick={closeSettings}
+        style={{ animation: 'fadeIn 0.2s ease-out' }}
+      />
+      
+      {/* Panel — slides from right */}
+      <div 
+        ref={panelRef}
+        className="fixed top-0 right-0 bottom-0 z-[61] w-[720px] max-w-[90vw] bg-[#0A0E14] border-l border-slate-800/50 shadow-2xl shadow-black/50 flex overflow-hidden"
+        style={{ animation: 'slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}
+      >
+        {/* Left sidebar — tabs */}
+        <div className="w-[180px] flex-shrink-0 bg-[#080B10] border-r border-slate-800/30 flex flex-col">
+          
+          {/* Panel header */}
+          <div className="px-4 py-5 border-b border-slate-800/30">
+            <h2 className="text-sm font-bold text-white tracking-tight">
+              Settings
+            </h2>
+          </div>
+          
+          {/* Tab navigation */}
+          <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
+            {tabs.map(tab => (
+              <button key={tab.id}
+                onClick={() => setTab(tab.id)}
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-200 active:scale-[0.97]
+                  ${activeTab === tab.id
+                    ? 'bg-[#0066FF]/10 text-[#0066FF]'
+                    : tab.id === 'danger'
+                      ? 'text-red-400/60 hover:text-red-400 hover:bg-red-500/5'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                  }`}>
+                <tab.icon size={15} />
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+          
+          {/* User info at bottom */}
+          <div className="px-4 py-4 border-t border-slate-800/30">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-[#6C63FF]/20 flex items-center justify-center text-[11px] font-bold text-[#6C63FF]">
+                {user?.first_name?.[0]}
+                {user?.last_name?.[0]}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold text-slate-200 truncate">
+                  {user?.first_name} {user?.last_name}
+                </p>
+                <p className="text-[9px] text-slate-500 truncate">
+                  {user?.email}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Right content area */}
+        <div className="flex-1 flex flex-col min-w-0">
+          
+          {/* Content header with close */}
+          <div className="h-14 px-6 flex items-center justify-between border-b border-slate-800/30 flex-shrink-0">
+            <h3 className="text-base font-bold text-white">
+              {tabs.find(t => t.id === activeTab)?.label}
+            </h3>
+            <button onClick={closeSettings}
+              className="p-1.5 rounded-lg hover:bg-slate-800/50 text-slate-400 hover:text-white active:scale-95 transition-all">
+              <X size={18} />
+            </button>
+          </div>
+          
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+            {activeTab === 'profile' && <ProfileTab user={user} />}
+            {activeTab === 'security' && <SecurityTab />}
+            {activeTab === 'notifications' && <NotificationsTab user={user} />}
+            {activeTab === 'appearance' && <AppearanceTab />}
+            {activeTab === 'developer' && <DeveloperTab />}
+            {activeTab === 'danger' && <DangerTab />}
+          </div>
+        </div>
+      </div>
+      
+      {/* CSS Animations */}
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideIn {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #1e293b;
+          border-radius: 4px;
+        }
+      `}</style>
+    </>
+  );
+}
+
+function ProfileTab({ user }) {
+  const [form, setForm] = useState({
+    first_name: user?.first_name || '',
+    last_name: user?.last_name || '',
+    country: user?.country || '',
+  });
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const fileRef = useRef(null);
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      await api.put('/auth/profile/', form);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch(e) {
+      console.error(e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setAvatarUploading(true);
+      const formData = new FormData();
+      formData.append('avatar', file);
+      await api.post('/auth/avatar/', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      window.location.reload();
+    } catch(e) {
+      console.error(e);
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Avatar section */}
+      <div className="flex items-center gap-5 pb-6 border-b border-slate-800/30">
+        <div className="relative group">
+          <div className="w-20 h-20 rounded-2xl bg-[#6C63FF]/15 flex items-center justify-center text-2xl font-bold text-[#6C63FF] ring-2 ring-slate-700 overflow-hidden">
+            {user?.avatar ? (
+              <img src={user.avatar} className="w-full h-full object-cover" alt="" />
+            ) : (
+              <>{user?.first_name?.[0]}{user?.last_name?.[0]}</>
+            )}
+          </div>
+          <button onClick={() => fileRef.current?.click()}
+            className="absolute -bottom-1 -right-1 w-7 h-7 rounded-lg bg-[#0066FF] flex items-center justify-center text-white shadow-lg active:scale-95 transition-all">
+            <Camera size={13} />
+          </button>
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-white">Profile Photo</p>
+          <p className="text-[11px] text-slate-500 mt-1">JPEG, PNG or WebP. Max 5MB.</p>
+        </div>
+      </div>
+
+      {/* Name fields */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold block mb-2">First Name</label>
+          <input value={form.first_name}
+            onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))}
+            className="w-full bg-[#0F131A] border border-slate-800/50 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#0066FF]/50 transition-colors" />
+        </div>
+        <div>
+          <label className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold block mb-2">Last Name</label>
+          <input value={form.last_name}
+            onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))}
+            className="w-full bg-[#0F131A] border border-slate-800/50 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#0066FF]/50 transition-colors" />
+        </div>
+      </div>
+
+      {/* Email */}
+      <div>
+        <label className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold block mb-2">Email Address</label>
+        <input value={user?.email || ''} disabled
+          className="w-full bg-[#0F131A]/50 border border-slate-800/30 rounded-xl px-4 py-2.5 text-sm text-slate-500 cursor-not-allowed" />
+      </div>
+
+      {/* Country */}
+      <div>
+        <label className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold block mb-2">Country</label>
+        <input value={form.country}
+          onChange={e => setForm(f => ({ ...f, country: e.target.value }))}
+          placeholder="e.g. Tanzania"
+          className="w-full bg-[#0F131A] border border-slate-800/50 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#0066FF]/50 transition-colors" />
+      </div>
+
+      {/* Save button */}
+      <button onClick={handleSave} disabled={saving}
+        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold active:scale-95 transition-all
+          ${saved ? 'bg-[#00FF87]/10 border border-[#00FF87]/20 text-[#00FF87]' : 'bg-[#0066FF] text-white hover:bg-[#0052CC] shadow-lg shadow-blue-500/20'}`}>
+        {saved ? <><Check size={15} /> Saved</> : saving ? 'Saving...' : 'Save Changes'}
+      </button>
+    </div>
+  );
+}
+
+function SecurityTab() {
+  const [form, setForm] = useState({
+    current_password: '',
+    new_password: '',
+    confirm_password: '',
+  });
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState(null);
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+
+  const handleSubmit = async () => {
+    if (form.new_password !== form.confirm_password) {
+      setMessage({ type: 'error', text: 'Passwords do not match' });
+      return;
+    }
+    if (form.new_password.length < 8) {
+      setMessage({ type: 'error', text: 'Password must be at least 8 characters' });
+      return;
+    }
+    try {
+      setSaving(true);
+      await api.post('/auth/change-password/', form);
+      setMessage({ type: 'success', text: 'Password updated' });
+      setForm({ current_password: '', new_password: '', confirm_password: '' });
+    } catch(e) {
+      setMessage({ type: 'error', text: e.response?.data?.message || 'Failed to update password' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-sm font-bold text-white mb-1">Change Password</h3>
+        <p className="text-xs text-slate-500">Update your password to keep your account secure</p>
+      </div>
+
+      {message && (
+        <div className={`px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2
+          ${message.type === 'success' ? 'bg-[#00FF87]/10 border border-[#00FF87]/20 text-[#00FF87]' : 'bg-red-500/10 border border-red-500/20 text-red-400'}`}>
+          {message.type === 'success' ? <Check size={14} /> : <AlertTriangle size={14} />}
+          {message.text}
+        </div>
+      )}
+
+      <div>
+        <label className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold block mb-2">Current Password</label>
+        <div className="relative">
+          <input type={showCurrent ? 'text' : 'password'}
+            value={form.current_password}
+            onChange={e => setForm(f => ({ ...f, current_password: e.target.value }))}
+            className="w-full bg-[#0F131A] border border-slate-800/50 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#0066FF]/50 transition-colors pr-10" />
+          <button onClick={() => setShowCurrent(!showCurrent)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
+            {showCurrent ? <EyeOff size={15} /> : <Eye size={15} />}
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <label className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold block mb-2">New Password</label>
+        <div className="relative">
+          <input type={showNew ? 'text' : 'password'}
+            value={form.new_password}
+            onChange={e => setForm(f => ({ ...f, new_password: e.target.value }))}
+            className="w-full bg-[#0F131A] border border-slate-800/50 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#0066FF]/50 transition-colors pr-10" />
+          <button onClick={() => setShowNew(!showNew)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
+            {showNew ? <EyeOff size={15} /> : <Eye size={15} />}
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <label className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold block mb-2">Confirm New Password</label>
+        <input type="password" value={form.confirm_password}
+          onChange={e => setForm(f => ({ ...f, confirm_password: e.target.value }))}
+          className="w-full bg-[#0F131A] border border-slate-800/50 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#0066FF]/50 transition-colors" />
+      </div>
+
+      <button onClick={handleSubmit} disabled={saving || !form.current_password || !form.new_password}
+        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0066FF] text-white text-sm font-semibold hover:bg-[#0052CC] active:scale-95 transition-all shadow-lg shadow-blue-500/20 disabled:opacity-30">
+        {saving ? 'Updating...' : 'Update Password'}
+      </button>
+    </div>
+  );
+}
+
+function NotificationsTab() {
+  const [prefs, setPrefs] = useState({
+    workspace_ready: true,
+    hours_low: true,
+    payment: true,
+    session_invite: true,
+    announcements: true,
+  });
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    api.get('/auth/notification-preferences/')
+      .then(res => setPrefs(res.data))
+      .catch(() => {});
+  }, []);
+
+  const handleToggle = (key) => {
+    setPrefs(p => ({ ...p, [key]: !p[key] }));
+    setSaved(false);
+  };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      await api.put('/auth/notification-preferences/', prefs);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch(e) {
+      console.error(e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const items = [
+    { key: 'workspace_ready', label: 'Workspace Ready', desc: 'When your virtual machine finishes provisioning' },
+    { key: 'hours_low', label: 'Free Hours Running Low', desc: 'When you have less than 1 hour remaining' },
+    { key: 'payment', label: 'Payment Confirmed', desc: 'When a payment is successfully processed' },
+    { key: 'session_invite', label: 'Session Invitations', desc: 'When you receive a session invite' },
+    { key: 'announcements', label: 'System Announcements', desc: 'Platform updates and maintenance notices' },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-sm font-bold text-white mb-1">Notification Preferences</h3>
+        <p className="text-xs text-slate-500">Choose what you want to be notified about</p>
+      </div>
+
+      <div className="space-y-2">
+        {items.map(item => (
+          <div key={item.key}
+            className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-300
+              ${prefs[item.key] ? 'bg-[#00FF87]/5 border-[#00FF87]/10' : 'bg-[#0F131A] border-slate-800/50'}`}>
+            <div>
+              <p className="text-sm font-medium text-white">{item.label}</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">{item.desc}</p>
+            </div>
+            <button onClick={() => handleToggle(item.key)}
+              className={`relative w-11 h-6 rounded-full transition-all duration-300 active:scale-95 ${prefs[item.key] ? 'bg-[#00FF87]' : 'bg-slate-700'}`}>
+              <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-all duration-300 ${prefs[item.key] ? 'left-[22px]' : 'left-0.5'}`} />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <button onClick={handleSave}
+        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold active:scale-95 transition-all
+          ${saved ? 'bg-[#00FF87]/10 border border-[#00FF87]/20 text-[#00FF87]' : 'bg-[#0066FF] text-white hover:bg-[#0052CC]'}`}>
+        {saved ? <><Check size={15} /> Saved</> : 'Save Preferences'}
+      </button>
+    </div>
+  );
+}
+
+function AppearanceTab() {
+  const theme = useThemeStore(s => s.theme);
+  const setTheme = useThemeStore(s => s.setTheme) || useThemeStore(s => s.toggleTheme);
+  
+  const applyTheme = (newTheme) => {
+    if (typeof setTheme === 'function') {
+      try {
+        setTheme(newTheme);
+      } catch {
+        if (theme !== newTheme) {
+          setTheme();
+        }
+      }
+    }
+    document.documentElement.setAttribute('data-theme', newTheme);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-sm font-bold text-white mb-1">Appearance</h3>
+        <p className="text-xs text-slate-500">Customize how CloudDesk looks</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        {/* Dark mode card */}
+        <button onClick={() => applyTheme('dark')}
+          className={`p-5 rounded-2xl border-2 transition-all duration-300 active:scale-[0.97]
+            ${theme === 'dark' ? 'border-[#0066FF] bg-[#0066FF]/5' : 'border-slate-800/50 hover:border-slate-600'}`}>
+          <div className="bg-[#080B10] rounded-xl p-3 mb-4 border border-slate-800/30 h-20 flex flex-col justify-center">
+            <div className="h-1.5 w-10 bg-slate-700 rounded mb-2" />
+            <div className="h-1.5 w-16 bg-slate-800 rounded mb-2" />
+            <div className="h-1.5 w-12 bg-slate-800 rounded" />
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-white text-left">Dark</p>
+              <p className="text-[10px] text-slate-500 mt-0.5 text-left">Easier on the eyes</p>
+            </div>
+            {theme === 'dark' && (
+              <div className="w-5 h-5 rounded-full bg-[#0066FF] flex items-center justify-center">
+                <Check size={12} color="white" />
+              </div>
+            )}
+          </div>
+        </button>
+
+        {/* Light mode card */}
+        <button onClick={() => applyTheme('light')}
+          className={`p-5 rounded-2xl border-2 transition-all duration-300 active:scale-[0.97]
+            ${theme === 'light' ? 'border-[#0066FF] bg-[#0066FF]/5' : 'border-slate-800/50 hover:border-slate-600'}`}>
+          <div className="bg-white rounded-xl p-3 mb-4 border border-gray-200 h-20 flex flex-col justify-center">
+            <div className="h-1.5 w-10 bg-gray-300 rounded mb-2" />
+            <div className="h-1.5 w-16 bg-gray-200 rounded mb-2" />
+            <div className="h-1.5 w-12 bg-gray-200 rounded" />
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-white text-left">Light</p>
+              <p className="text-[10px] text-slate-500 mt-0.5 text-left">Classic bright interface</p>
+            </div>
+            {theme === 'light' && (
+              <div className="w-5 h-5 rounded-full bg-[#0066FF] flex items-center justify-center">
+                <Check size={12} color="white" />
+              </div>
+            )}
+          </div>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function DeveloperTab() {
+  const [tokenInfo, setTokenInfo] = useState(null);
+  const [newKey, setNewKey] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [showRevokeConfirm, setShowRevokeConfirm] = useState(false);
+
+  useEffect(() => {
+    api.get('/auth/api-token/')
+      .then(res => setTokenInfo(res.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleGenerate = async () => {
+    try {
+      setGenerating(true);
+      const res = await api.post('/auth/api-token/generate/');
+      setNewKey(res.data.key);
+      setTokenInfo({ ...res.data, exists: true });
+    } catch(e) {
+      console.error(e);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleRevoke = async () => {
+    try {
+      await api.post('/auth/api-token/revoke/');
+      setTokenInfo({ exists: false });
+      setNewKey(null);
+      setShowRevokeConfirm(false);
+    } catch(e) {
+      console.error(e);
+    }
+  };
+
+  const copyKey = () => {
+    navigator.clipboard.writeText(newKey);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  if (loading) return <div className="text-slate-400 text-sm">Loading API Info...</div>;
+
+  return (
+    <div className="space-y-6">
+      
+      {/* Info banner */}
+      <div className="bg-[#0F131A] rounded-2xl border border-slate-800/50 p-6">
+        
+        <h2 className="text-base font-bold text-white mb-1">API Access</h2>
+        <p className="text-xs text-slate-500 mb-6">
+          Use API tokens to access CloudDesk programmatically. Integrate with your tools, automate workspace provisioning, or build custom workflows.
+        </p>
+        
+        {/* Security warning */}
+        <div className="flex gap-3 px-4 py-3 bg-[#FF6B00]/5 border border-[#FF6B00]/15 rounded-xl mb-6">
+          <Shield size={16} className="text-[#FF6B00] flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-xs font-semibold text-[#FF6B00]">Security Notice</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Your API token has the same access as your account. Never share it publicly, commit it to code repositories, or expose it in client-side code. Treat it like a password.
+            </p>
+          </div>
+        </div>
+        
+        {/* New key display */}
+        {newKey && (
+          <div className="mb-6 p-4 bg-[#00FF87]/5 border border-[#00FF87]/20 rounded-xl">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertTriangle size={14} className="text-[#00FF87]" />
+              <p className="text-xs font-bold text-[#00FF87]">Copy your token now — it will not be shown again</p>
+            </div>
+            <div className="flex items-center gap-2 mt-3">
+              <code className="flex-1 bg-[#0A0E14] px-4 py-3 rounded-xl text-xs font-mono text-white border border-slate-800/50 select-all break-all">
+                {newKey}
+              </code>
+              <button onClick={copyKey}
+                className={`px-4 py-3 rounded-xl text-xs font-semibold transition-all active:scale-95 flex-shrink-0
+                ${copied ? 'bg-[#00FF87]/10 border border-[#00FF87]/20 text-[#00FF87]' : 'bg-[#0066FF] text-white'}`}>
+                {copied ? 'Copied' : 'Copy'}
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {/* Token info or generate */}
+        {tokenInfo?.exists ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-[#0A0E14] rounded-xl p-4 border border-slate-800/30">
+                <p className="text-[9px] uppercase tracking-widest text-slate-500 font-semibold mb-1">Token</p>
+                <p className="text-sm font-mono text-white">{tokenInfo.prefix}••••••••••••</p>
+              </div>
+              <div className="bg-[#0A0E14] rounded-xl p-4 border border-slate-800/30">
+                <p className="text-[9px] uppercase tracking-widest text-slate-500 font-semibold mb-1">Created</p>
+                <p className="text-sm text-white">{new Date(tokenInfo.created_at).toLocaleDateString()}</p>
+              </div>
+              <div className="bg-[#0A0E14] rounded-xl p-4 border border-slate-800/30">
+                <p className="text-[9px] uppercase tracking-widest text-slate-500 font-semibold mb-1">Last Used</p>
+                <p className="text-sm text-white">{tokenInfo.last_used_at ? new Date(tokenInfo.last_used_at).toLocaleDateString() : 'Never'}</p>
+              </div>
+              <div className="bg-[#0A0E14] rounded-xl p-4 border border-slate-800/30">
+                <p className="text-[9px] uppercase tracking-widest text-slate-500 font-semibold mb-1">Calls Today</p>
+                <p className="text-sm text-white">{tokenInfo.calls_today} <span className="text-slate-500 text-xs"> / 1,000</span></p>
+              </div>
+            </div>
+            
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button onClick={handleGenerate} disabled={generating}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#FF6B00]/10 border border-[#FF6B00]/20 text-[#FF6B00] text-xs font-semibold hover:bg-[#FF6B00]/20 active:scale-95 transition-all">
+                <RefreshCw size={13} />
+                Regenerate Token
+              </button>
+              <button onClick={() => setShowRevokeConfirm(true)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold hover:bg-red-500/20 active:scale-95 transition-all">
+                <Trash2 size={13} />
+                Revoke Token
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8 border border-dashed border-slate-800/50 rounded-xl bg-[#0A0E14]">
+            <Code size={32} className="text-slate-600 mx-auto mb-3" />
+            <p className="text-sm text-slate-300 mb-1">No API token generated</p>
+            <p className="text-xs text-slate-500 mb-5 max-w-sm mx-auto">
+              Generate a token to access CloudDesk API from scripts, integrations, or custom tools.
+            </p>
+            <button onClick={handleGenerate} disabled={generating}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0066FF] text-white text-sm font-semibold hover:bg-[#0052CC] active:scale-95 transition-all shadow-lg shadow-blue-500/20">
+              <Key size={15} />
+              {generating ? 'Generating...' : 'Generate API Token'}
+            </button>
+          </div>
+        )}
+        
+        {/* Usage example */}
+        <div className="mt-6 pt-6 border-t border-slate-800/30">
+          <p className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold mb-3">Usage Example</p>
+          <div className="bg-[#0A0E14] rounded-xl p-4 border border-slate-800/30 overflow-x-auto">
+            <code className="text-[11px] font-mono text-slate-300 leading-relaxed whitespace-pre-wrap">
+{`curl -X GET \\
+  https://clouddesk.io/api/workspaces/ \\
+  -H "X-API-Key: sk-cd-your-token-here"`}
+            </code>
+          </div>
+          <p className="text-[10px] text-slate-600 mt-2">Rate limit: 1,000 requests/day</p>
+        </div>
+      </div>
+      
+      {/* Revoke confirmation modal */}
+      {showRevokeConfirm && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#0F131A] border border-slate-800/50 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <h3 className="text-base font-bold text-white mb-2">Revoke API Token?</h3>
+            <p className="text-xs text-slate-400 mb-5">
+              This immediately invalidates your token. Any scripts or integrations using it will stop working.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setShowRevokeConfirm(false)}
+                className="px-4 py-2 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-300 text-xs font-semibold active:scale-95 transition-all">
+                Cancel
+              </button>
+              <button onClick={handleRevoke}
+                className="px-4 py-2 rounded-xl bg-red-500 text-white text-xs font-semibold active:scale-95 transition-all">
+                Revoke Token
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DangerTab() {
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const navigate = useNavigate();
+  const logout = useAuthStore(s => s.logout);
+
+  const handleDelete = async () => {
+    try {
+      setDeleting(true);
+      await api.post('/auth/delete-account/', { password });
+      logout();
+      navigate('/login');
+    } catch(e) {
+      alert(e.response?.data?.message || 'Failed to delete account');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="p-5 rounded-2xl border-2 border-red-500/20 bg-red-500/5">
+        <div className="flex items-start gap-3 mb-4">
+          <AlertTriangle size={20} className="text-red-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="text-sm font-bold text-red-400">Delete Account</h3>
+            <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+              Permanently delete your CloudDesk account, all workspaces, session history, billing records, and associated data. This action cannot be undone.
+            </p>
+          </div>
+        </div>
+
+        {!confirm ? (
+          <button onClick={() => setConfirm(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold hover:bg-red-500/20 active:scale-95 transition-all">
+            <Trash2 size={14} />
+            I want to delete my account
+          </button>
+        ) : (
+          <div className="mt-4 pt-4 border-t border-red-500/10">
+            <p className="text-xs text-slate-400 mb-3">Enter your password to confirm:</p>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Your password"
+              className="w-full bg-[#0A0E14] border border-red-500/20 rounded-xl px-4 py-2.5 text-sm text-white outline-none mb-3 focus:border-red-500/50" />
+            <div className="flex gap-3">
+              <button onClick={() => { setConfirm(false); setPassword(''); }}
+                className="px-4 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-300 text-xs font-semibold active:scale-95 transition-all">
+                Cancel
+              </button>
+              <button onClick={handleDelete} disabled={!password || deleting}
+                className="px-4 py-2.5 rounded-xl bg-red-500 text-white text-xs font-bold active:scale-95 transition-all disabled:opacity-30">
+                {deleting ? 'Deleting...' : 'Permanently Delete'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

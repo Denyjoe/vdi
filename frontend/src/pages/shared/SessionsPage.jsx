@@ -40,10 +40,12 @@ export default function SessionsPage() {
         setIsJoinOpen(true);
     };
 
-    const filteredSessions = sessions.filter(s => 
-        s.name.toLowerCase().includes(search.toLowerCase()) || 
-        s.description.toLowerCase().includes(search.toLowerCase())
-    );
+    const filteredSessions = sessions.filter(s => {
+        const name = s.name || '';
+        const desc = s.description || '';
+        return name.toLowerCase().includes(search.toLowerCase()) || 
+               desc.toLowerCase().includes(search.toLowerCase());
+    });
 
     return (
         <div className="max-w-7xl mx-auto space-y-8 animate-[fadeIn_0.3s_ease-out]">

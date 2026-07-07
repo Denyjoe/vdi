@@ -20,8 +20,10 @@ import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 import { NotificationProvider } from "../../context/NotificationContext";
 import useUIStore from "../../store/uiStore";
+import useSettingsStore from "../../store/settingsStore";
 import UpgradeModal from "../shared/UpgradeModal";
 import CreateSessionModal from "../shared/CreateSessionModal";
+import SettingsPanel from "../shared/SettingsPanel";
 import { useNavigate } from "react-router-dom";
 
 export default function Layout({ children }) {
@@ -86,6 +88,7 @@ export default function Layout({ children }) {
           }}
         />
       )}
+      {useSettingsStore(s => s.isOpen) && <SettingsPanel />}
     </NotificationProvider>
   );
 }

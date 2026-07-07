@@ -41,6 +41,7 @@ urlpatterns = [
     path("api/subscriptions/", include("apps.users.subscription_urls")),
     path("api/payments/admin/", include("apps.users.admin_payment_urls")),
     path("api/payments/", include("apps.users.payment_urls")),
+    path("api/billing/", include("apps.billing.urls")),
     path("api/pricing/", apps.users.views.PricingView.as_view(), name="public-pricing"),
 ]
 

@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'apps.sessions',
     'apps.vms',
     'apps.notifications',
+    'apps.billing',
 ]
 
 
@@ -187,6 +188,7 @@ CORS_ALLOWED_ORIGINS = config("CORS_ALLOWED_ORIGINS", cast=Csv())
 REST_FRAMEWORK = {
     # Use JWT for all API endpoints by default
     "DEFAULT_AUTHENTICATION_CLASSES": (
+        "apps.users.api_auth.APIKeyAuthentication",
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     # Require authentication by default; override per-view where needed

@@ -2,13 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 import NotificationBell from '../shared/NotificationBell';
-import { Monitor, Menu, Sun, Moon, Bell, Clock, Wifi, HelpCircle } from 'lucide-react';
-import useThemeStore from '../../store/themeStore';
+import { Monitor, Menu, Bell, Clock, Wifi, HelpCircle } from 'lucide-react';
 import useLiveSession from '../../hooks/useLiveSession';
 
 export default function Navbar({ onMenuClick }) {
   const { user, logout } = useAuthStore();
-  const { theme, toggleTheme } = useThemeStore();
   const navigate = useNavigate();
   const location = useLocation();
   const liveSession = useLiveSession(user);
@@ -43,6 +41,7 @@ export default function Navbar({ onMenuClick }) {
     if (path.startsWith('/admin/analytics')) return 'ANALYTICS MATRIX';
     if (path.startsWith('/admin/settings')) return 'SYSTEM CONFIG';
     if (path.startsWith('/host/session')) return 'SESSION MONITOR';
+    if (path.startsWith('/billing')) return 'BILLING & USAGE';
     return 'DASHBOARD';
   };
 
@@ -150,22 +149,6 @@ export default function Navbar({ onMenuClick }) {
 
         <NotificationBell />
 
-        <button 
-          onClick={toggleTheme}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--text-secondary)',
-            cursor: 'pointer',
-            padding: '8px',
-            borderRadius: '8px',
-            display: 'flex',
-            alignItems: 'center',
-          }}
-          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-        >
-          {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-        </button>
 
         <div className="hidden sm:flex flex-col items-end">
           <p className="text-sm font-semibold text-[var(--text-primary)]">
