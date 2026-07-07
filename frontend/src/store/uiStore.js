@@ -1,12 +1,20 @@
-import { create } from 'zustand'
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
-const useUIStore = create((set) => ({
-  showUpgradeModal: false,
-  showCreateSessionModal: false,
-  openUpgradeModal: () => set({ showUpgradeModal: true }),
-  closeUpgradeModal: () => set({ showUpgradeModal: false }),
-  openCreateSessionModal: () => set({ showCreateSessionModal: true }),
-  closeCreateSessionModal: () => set({ showCreateSessionModal: false }),
-}))
+const useUIStore = create(
+  persist(
+    (set) => ({
+      showUpgradeModal: false,
+      showCreateSessionModal: false,
+      sidebarCollapsed: false,
+      openUpgradeModal: () => set({ showUpgradeModal: true }),
+      closeUpgradeModal: () => set({ showUpgradeModal: false }),
+      openCreateSessionModal: () => set({ showCreateSessionModal: true }),
+      closeCreateSessionModal: () => set({ showCreateSessionModal: false }),
+      toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
+    }),
+    { name: 'clouddesk-ui' }
+  )
+);
 
-export default useUIStore
+export default useUIStore;
