@@ -142,7 +142,7 @@ class APIToken(models.Model):
         related_name='api_token')
     
     key_hash = models.CharField(max_length=128, unique=True)
-    key_prefix = models.CharField(max_length=10, help_text="First 8 chars for identification")
+    key_prefix = models.CharField(max_length=20, help_text="First 8 chars for identification")
     
     name = models.CharField(max_length=100, default='Default')
     created_at = models.DateTimeField(auto_now_add=True)
