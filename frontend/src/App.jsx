@@ -141,7 +141,7 @@ export default function App() {
         <Route path="/session/:id" element={<ProtectedRoute><ErrorBoundary><DesktopSessionPage /></ErrorBoundary></ProtectedRoute>} />
 
         {/* ── Protected routes (with layout) ──────────────────────── */}
-        <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+        <Route element={<ProtectedRoute><ErrorBoundary><Layout /></ErrorBoundary></ProtectedRoute>}>
           
           <Route path="/dashboard" element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
           <Route path="/workspaces" element={<WorkspacesPage />} />
@@ -153,7 +153,7 @@ export default function App() {
           <Route path="/profile" element={<Navigate to="/dashboard" replace />} />
           <Route path="/settings" element={<Navigate to="/dashboard" replace />} />
           <Route path="/account" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/notifications" element={<Navigate to="/dashboard" replace />} />
 
           {/* ── Admin Area ────────────────────────────────────────── */}
           <Route path="/admin">

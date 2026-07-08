@@ -8,6 +8,7 @@ const useUIStore = create(
       showCreateSessionModal: false,
       sidebarCollapsed: false,
       showBilling: false,
+      showNotifications: false,
       openUpgradeModal: () => set({ showUpgradeModal: true }),
       closeUpgradeModal: () => set({ showUpgradeModal: false }),
       openCreateSessionModal: () => set({ showCreateSessionModal: true }),
@@ -15,6 +16,8 @@ const useUIStore = create(
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
       openBilling: () => set({ showBilling: true }),
       closeBilling: () => set({ showBilling: false }),
+      openNotifications: () => set({ showNotifications: true }),
+      closeNotifications: () => set({ showNotifications: false }),
     }),
     { name: 'clouddesk-ui' }
   )

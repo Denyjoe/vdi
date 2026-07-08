@@ -26,6 +26,7 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     subscription = UserSubscriptionSerializer(read_only=True)
+    avatar = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -35,6 +36,14 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'notification_email', 'notification_session', 'notification_usage',
             'created_at', 'subscription'
         ]
+
+    def get_avatar(self, obj):
+        if obj.avatar:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.avatar.url)
+            return obj.avatar.url
+        return None
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)

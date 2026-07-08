@@ -17,7 +17,7 @@ export default function BillingPanel({ isOpen, onClose }) {
   const [receiptData, setReceiptData] = useState(null);
   const [receiptUrl, setReceiptUrl] = useState(null);
 
-  const navigate = useNavigate();
+
 
   useEffect(() => {
     const fetchAll = async () => {

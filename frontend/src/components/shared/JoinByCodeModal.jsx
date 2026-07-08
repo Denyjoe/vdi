@@ -1,37 +1,30 @@
 import React, { useState } from 'react';
-import { X, CheckCircle, Lock } from 'lucide-react';
+import { X, Users, AlertCircle, CheckCircle, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 
 export default function JoinByCodeModal({ onClose, onJoined }) {
     const navigate = useNavigate();
-    const [code, setCode] = useState('');
+    const [joinCode, setJoinCode] = useState('');
     const [password, setPassword] = useState('');
     const [requiresPassword, setRequiresPassword] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState('');
+    const [joining, setJoining] = useState(false);
+    const [joinError, setJoinError] = useState('');
     const [successData, setSuccessData] = useState(null);
 
-    const handleCodeChange = (e) => {
-        let val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-        if (val.length <= 8) setCode(val);
-        setError('');
-        setRequiresPassword(false);
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError('');
+    const handleJoinSession = async (e) => {
+        if (e) e.preventDefault();
+        setJoinError('');
         
-        if (code.length !== 8) {
-            setError('Code must be exactly 8 characters');
+        if (joinCode.length !== 8) {
+            setJoinError('Code must be exactly 8 characters');
             return;
         }
 
-        setIsLoading(true);
+        setJoining(true);
 
         try {
-            const payload = { invite_code: code };
+            const payload = { invite_code: joinCode };
             if (requiresPassword) {
                 payload.password = password;
             }
@@ -48,116 +41,179 @@ export default function JoinByCodeModal({ onClose, onJoined }) {
             
             if (isPasswordRequired) {
                 setRequiresPassword(true);
-                setError('This session requires a password');
+                setJoinError('This session requires a password');
             } else if (errorMsg.includes('Already joined')) {
-                // If they already joined, let's treat it as success for UI flow
                 api.get('/sessions/live/').then(res => {
                     const joined = res.data?.data?.joined || [];
-                    const session = joined.find(s => s.invite_code === code);
+                    const session = joined.find(s => s.invite_code === joinCode);
                     if (session) {
                         setSuccessData(session);
                         if (onJoined) onJoined();
                     } else {
-                        setError('You are already joined but session details could not be loaded.');
+                        setJoinError('You are already joined but session details could not be loaded.');
                     }
                 });
             } else {
-                setError(errorMsg || 'Invalid code or join failed.');
+                setJoinError(errorMsg || 'Invalid code or join failed.');
             }
         } finally {
-            setIsLoading(false);
+            setJoining(false);
         }
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-[var(--bg-primary)]/80 backdrop-blur-sm" onClick={onClose}></div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+            onClick={(e) => {
+                if (e.target === e.currentTarget) onClose();
+            }}>
             
-            <div className="relative bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-fade-in">
+            <div className="bg-[#0A0E14] border border-slate-800/50 rounded-2xl w-[420px] max-w-[90vw] overflow-hidden shadow-2xl shadow-black/50"
+                style={{
+                    animation: 'scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                }}>
+                
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-[var(--border-color)]">
-                    <h3 className="text-xl font-bold text-[var(--text-primary)]">Join a Session</h3>
-                    <button onClick={onClose} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
-                        <X size={24} />
-                    </button>
-                </div>
-
-                {/* Body */}
-                <div className="p-8">
-                    {successData ? (
-                        <div className="text-center animate-fade-in">
-                            <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
-                                <CheckCircle size={40} className="text-emerald-400" />
+                <div className="px-6 py-5 border-b border-slate-800/30">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-[#00A3FF]/10 flex items-center justify-center">
+                                <Users size={18} className="text-[#00A3FF]" />
                             </div>
-                            <h4 className="text-xl font-bold text-[var(--text-primary)] mb-2">{successData.name}</h4>
-                            <p className="text-[var(--text-secondary)] mb-8">You've successfully joined this session!</p>
+                            <div>
+                                <h2 className="text-base font-bold text-white">
+                                    Join a Session
+                                </h2>
+                                <p className="text-[11px] text-slate-500 mt-0.5">
+                                    Enter the invite code from your host
+                                </p>
+                            </div>
+                        </div>
+                        <button onClick={onClose}
+                            className="p-1.5 rounded-lg hover:bg-slate-800/50 text-slate-400 hover:text-white active:scale-95 transition-all">
+                            <X size={16} />
+                        </button>
+                    </div>
+                </div>
+                
+                {/* Content */}
+                <div className="px-6 py-6">
+                    {successData ? (
+                        <div className="text-center" style={{ animation: 'scaleIn 0.3s ease-out' }}>
+                            <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-4">
+                                <CheckCircle size={32} className="text-emerald-400" />
+                            </div>
+                            <h4 className="text-lg font-bold text-white mb-1">{successData.name}</h4>
+                            <p className="text-xs text-slate-400 mb-6">You've successfully joined this session!</p>
                             
                             {successData.status === 'active' ? (
-                                <button onClick={() => { onClose(); navigate(`/session/${successData.id}`); }} className="w-full py-3 bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 text-[var(--text-primary)] rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/25">
-                                    Enter Session Now →
+                                <button onClick={() => { onClose(); navigate(`/session/${successData.id}`); }} 
+                                    className="w-full py-3 bg-[#0066FF] hover:bg-[#0052CC] text-white rounded-xl text-sm font-semibold transition-all shadow-lg shadow-blue-500/20 active:scale-[0.98]">
+                                    Enter Session Now
                                 </button>
                             ) : (
-                                <button onClick={() => { onClose(); navigate('/sessions/my'); }} className="w-full py-3 bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] text-[var(--text-primary)] rounded-xl font-medium transition-colors border border-[var(--border-color)]">
+                                <button onClick={() => { onClose(); navigate('/sessions/my'); }} 
+                                    className="w-full py-3 bg-[#1E293B] border border-slate-700/50 hover:bg-slate-800 text-slate-300 rounded-xl text-sm font-semibold transition-all active:scale-[0.98]">
                                     View My Sessions
                                 </button>
                             )}
                         </div>
                     ) : (
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                            <div className="text-center mb-8">
-                                <p className="text-[var(--text-secondary)]">Enter the 8-character invite code provided by the session host.</p>
-                            </div>
-
-                            <div>
-                                <div className="relative">
-                                    <input 
-                                        type="text" 
-                                        value={code}
-                                        onChange={handleCodeChange}
-                                        placeholder="e.g. A1B2C3D4"
-                                        className="w-full bg-[var(--bg-card)]/50 border border-[var(--border-color)] focus:border-indigo-500 rounded-xl px-4 py-4 text-center text-3xl tracking-[0.5em] font-mono text-[var(--text-primary)] placeholder-slate-600 transition-colors outline-none"
-                                        autoFocus
-                                        required
-                                        disabled={requiresPassword}
-                                    />
-                                </div>
-                                {error && !requiresPassword && <p className="text-red-400 text-sm mt-3 text-center bg-red-400/10 py-2 rounded-lg">{error}</p>}
+                        <form onSubmit={handleJoinSession}>
+                            {/* Code input */}
+                            <div className="mb-5">
+                                <label className="text-[10px] uppercase tracking-[2px] text-slate-500 font-semibold block mb-3">
+                                    Invite Code
+                                </label>
+                                <input
+                                    value={joinCode}
+                                    onChange={e => {
+                                        setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''));
+                                        setJoinError('');
+                                        setRequiresPassword(false);
+                                    }}
+                                    placeholder="e.g. TYVDX0X2"
+                                    maxLength={8}
+                                    className="w-full bg-[#0F131A] border-2 border-slate-800/50 rounded-xl px-5 py-4 text-center text-2xl font-mono font-bold text-white tracking-[0.5em] placeholder-slate-700 outline-none focus:border-[#00A3FF]/50 transition-all uppercase"
+                                    autoFocus
+                                    disabled={requiresPassword}
+                                />
+                                {!requiresPassword && (
+                                    <p className="text-[11px] text-slate-600 mt-2 text-center">
+                                        8-character code from your host
+                                    </p>
+                                )}
                             </div>
 
                             {requiresPassword && (
-                                <div className="animate-fade-in">
+                                <div className="mb-5" style={{ animation: 'scaleIn 0.2s ease-out' }}>
+                                    <label className="text-[10px] uppercase tracking-[2px] text-slate-500 font-semibold block mb-3">
+                                        Session Password
+                                    </label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                            <Lock size={18} className="text-[var(--text-secondary)]" />
+                                            <Lock size={16} className="text-slate-500" />
                                         </div>
                                         <input 
                                             type="password" 
                                             value={password}
                                             onChange={(e) => {
                                                 setPassword(e.target.value);
-                                                setError('');
+                                                setJoinError('');
                                             }}
-                                            placeholder="Enter session password"
-                                            className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] focus:border-indigo-500 rounded-xl pl-11 pr-4 py-3 text-[var(--text-primary)] transition-colors outline-none"
+                                            placeholder="Enter password"
+                                            className="w-full bg-[#0F131A] border-2 border-slate-800/50 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-600 outline-none focus:border-[#00A3FF]/50 transition-all"
                                             autoFocus
                                             required
                                         />
                                     </div>
-                                    {error && <p className="text-red-400 text-sm mt-3 text-center bg-red-400/10 py-2 rounded-lg">{error}</p>}
                                 </div>
                             )}
-
-                            <button 
-                                type="submit" 
-                                disabled={isLoading || code.length !== 8 || (requiresPassword && !password)}
-                                className="w-full py-3.5 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold transition-colors"
-                            >
-                                {isLoading ? 'Joining...' : 'Join Session'}
+                            
+                            {/* Error message */}
+                            {joinError && (
+                                <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 mb-4">
+                                    <AlertCircle size={14} className="text-red-400 flex-shrink-0" />
+                                    <p className="text-xs text-red-400">{joinError}</p>
+                                </div>
+                            )}
+                            
+                            {/* Join button */}
+                            <button
+                                type="submit"
+                                disabled={joinCode.length < 6 || joining || (requiresPassword && !password)}
+                                className="w-full py-3 rounded-xl bg-[#0066FF] text-white text-sm font-semibold hover:bg-[#0052CC] active:scale-[0.98] transition-all shadow-lg shadow-blue-500/20 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                                {joining ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Joining...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Users size={15} />
+                                        Join Session
+                                    </>
+                                )}
                             </button>
                         </form>
                     )}
                 </div>
+                
+                {/* Footer note */}
+                {!successData && (
+                    <div className="px-6 py-4 border-t border-slate-800/30 bg-[#080B10]">
+                        <p className="text-[11px] text-slate-600 text-center">
+                            Joining is always free. You will get your own isolated desktop.
+                        </p>
+                    </div>
+                )}
             </div>
+            
+            <style>{`
+                @keyframes scaleIn {
+                    from { opacity: 0; transform: scale(0.95); }
+                    to { opacity: 1; transform: scale(1); }
+                }
+            `}</style>
         </div>
     );
 }

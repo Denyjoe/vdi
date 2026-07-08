@@ -24,6 +24,7 @@ import useSettingsStore from "../../store/settingsStore";
 import UpgradeModal from "../shared/UpgradeModal";
 import SettingsPanel from "../shared/SettingsPanel";
 import BillingPanel from "../shared/BillingPanel";
+import NotificationsDrawer from "../shared/NotificationsDrawer";
 import { useNavigate } from "react-router-dom";
 
 export default function Layout({ children }) {
@@ -35,7 +36,9 @@ export default function Layout({ children }) {
     showCreateSessionModal,
     closeCreateSessionModal,
     showBilling,
-    closeBilling
+    closeBilling,
+    showNotifications,
+    closeNotifications
   } = useUIStore();
 
   return (
@@ -78,6 +81,7 @@ export default function Layout({ children }) {
       )}
       {useSettingsStore(s => s.isOpen) && <SettingsPanel />}
       <BillingPanel isOpen={showBilling} onClose={closeBilling} />
+      <NotificationsDrawer isOpen={showNotifications} onClose={closeNotifications} />
     </NotificationProvider>
   );
 }

@@ -223,7 +223,7 @@ class MeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        serializer = UserProfileSerializer(request.user)
+        serializer = UserProfileSerializer(request.user, context={'request': request})
         return Response({
             "success": True,
             "data": serializer.data
@@ -248,7 +248,8 @@ class AvatarUploadView(APIView):
         user.save()
         return Response({
             "success": True,
-            "data": UserProfileSerializer(user).data
+            "data": UserProfileSerializer(user, context={'request': request}).data,
+            "avatar_url": request.build_absolute_uri(user.avatar.url)
         })
 
 class PricingView(APIView):
@@ -425,13 +426,18 @@ class ProfileUpdateView(APIView):
             if field in request.data:
                 setattr(user, field, request.data[field])
                 changed.append(field)
-        
+                
+        if 'timezone' in request.data:
+            user.timezone_preference = request.data['timezone']
+            changed.append('timezone_preference')
+            
         if changed:
             user.save(update_fields=changed)
-        
+            
         return Response({
             'success': True,
-            'message': 'Profile updated'
+            'message': 'Profile updated',
+            'data': UserProfileSerializer(user, context={'request': request}).data
         })
 
 class NotificationPreferencesView(APIView):
