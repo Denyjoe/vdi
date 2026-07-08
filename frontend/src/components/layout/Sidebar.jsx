@@ -67,7 +67,7 @@ function NavItem({ icon: Icon, label, path, onClick, collapsed, active, accent }
 
 export default function Sidebar() {
   const { user, logout } = useAuthStore();
-  const { sidebarCollapsed, toggleSidebar, openCreateSessionModal } = useUIStore();
+  const { sidebarCollapsed, toggleSidebar, openBilling } = useUIStore();
   const collapsed = sidebarCollapsed;
   const navigate = useNavigate();
   const location = useLocation();
@@ -156,7 +156,7 @@ export default function Sidebar() {
             )}
             
             <div className={`space-y-1 ${collapsed ? 'px-2' : 'px-3'}`}>
-              <NavItem icon={Plus} label="Create Session" onClick={openCreateSessionModal} collapsed={collapsed} accent />
+              <NavItem icon={Plus} label="Create Session" path="/create-session" collapsed={collapsed} active={location.pathname === '/create-session'} />
               
               {/* Live session indicator */}
               {liveSession && (
@@ -237,7 +237,7 @@ export default function Sidebar() {
                 <Settings size={14} className="text-slate-500" />
                 Account Settings
               </button>
-              <button onClick={() => { navigate('/billing'); setShowUserMenu(false); }}
+              <button onClick={() => { openBilling(); setShowUserMenu(false); }}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-800/40 transition-colors">
                 <Receipt size={14} className="text-slate-500" />
                 Billing & Usage

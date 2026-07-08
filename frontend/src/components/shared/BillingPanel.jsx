@@ -1,16 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Receipt, Clock, CreditCard, Download,
-  ArrowUpRight, ArrowDownRight, 
   CheckCircle, AlertCircle, XCircle,
-  Monitor, Server, Calendar, Wallet,
-  FileText, ExternalLink, ChevronRight,
-  Filter, X
+  Monitor, Wallet, FileText, X
 } from 'lucide-react';
 import api from '../../services/api';
 
-export default function BillingPage() {
+export default function BillingPanel({ isOpen, onClose }) {
+
   const [overview, setOverview] = useState(null);
   const [usage, setUsage] = useState([]);
   const [payments, setPayments] = useState([]);
@@ -68,56 +65,58 @@ export default function BillingPage() {
     return `${m}m`;
   };
 
+  if (!isOpen) return null;
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-[#0066FF]/30 border-t-[#0066FF] rounded-full animate-spin" />
-      </div>
+      <>
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm" onClick={onClose} />
+        <div className="fixed inset-0 z-[61] flex items-center justify-center pointer-events-none">
+          <div className="w-8 h-8 border-2 border-[#0066FF]/30 border-t-[#0066FF] rounded-full animate-spin" />
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="max-w-[1200px] mx-auto px-6 py-6 animate-[fadeIn_0.3s_ease-out]">
-      <style>{`
-        .billing-row:hover {
-          background: rgba(255,255,255,0.02);
-        }
-        @keyframes downloadPulse {
-          0% { transform: scale(1); }
-          50% { transform: scale(1.1); }
-          100% { transform: scale(1); }
-        }
-      `}</style>
-      
-      <style>{`
-        @media print {
-          body > *:not(.fixed) { 
-            display: none !important; 
-          }
-          .fixed { 
-            position: static !important;
-            background: white !important;
-          }
-          #receipt-container {
-            box-shadow: none !important;
-          }
-        }
-      `}</style>
-
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-1">
-          <div className="w-9 h-9 rounded-xl bg-[#6C63FF]/10 flex items-center justify-center">
-            <Receipt size={18} className="text-[#6C63FF]" />
+    <>
+      <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed inset-0 z-[61] flex items-center justify-center pointer-events-none">
+        <div className="bg-[#0A0E14] border border-slate-800/50 rounded-2xl shadow-2xl shadow-black/50 w-[800px] max-w-[90vw] h-[600px] max-h-[85vh] flex flex-col overflow-hidden pointer-events-auto" style={{ animation: 'scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+          
+          {/* Header */}
+          <div className="h-14 px-6 flex items-center justify-between border-b border-slate-800/30 flex-shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-[#6C63FF]/10 flex items-center justify-center">
+                <Receipt size={16} className="text-[#6C63FF]" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-white">Billing & Usage</h2>
+                <p className="text-[10px] text-slate-500">
+                  {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                </p>
+              </div>
+            </div>
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-800/50 text-slate-400 hover:text-white active:scale-95 transition-all">
+              <X size={18} />
+            </button>
           </div>
-          <h1 className="text-2xl font-bold text-slate-100 tracking-tight">
-            Billing & Usage
-          </h1>
-        </div>
-        <p className="text-sm text-slate-500 ml-12">
-          {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} billing period
-        </p>
-      </div>
+
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+            <style>{`
+              .billing-row:hover { background: rgba(255,255,255,0.02); }
+              @keyframes downloadPulse {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.1); }
+                100% { transform: scale(1); }
+              }
+              @media print {
+                body > *:not(.fixed) { display: none !important; }
+                .fixed { position: static !important; background: white !important; }
+                #receipt-container { box-shadow: none !important; }
+              }
+            `}</style>
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
@@ -830,6 +829,16 @@ export default function BillingPage() {
           </div>
         </div>
       )}
-    </div>
+
+          </div>
+        </div>
+      </div>
+      <style>{`
+        @keyframes scaleIn {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
+    </>
   );
 }

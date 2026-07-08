@@ -22,8 +22,8 @@ import { NotificationProvider } from "../../context/NotificationContext";
 import useUIStore from "../../store/uiStore";
 import useSettingsStore from "../../store/settingsStore";
 import UpgradeModal from "../shared/UpgradeModal";
-import CreateSessionModal from "../shared/CreateSessionModal";
 import SettingsPanel from "../shared/SettingsPanel";
+import BillingPanel from "../shared/BillingPanel";
 import { useNavigate } from "react-router-dom";
 
 export default function Layout({ children }) {
@@ -33,7 +33,9 @@ export default function Layout({ children }) {
     showUpgradeModal, 
     closeUpgradeModal,
     showCreateSessionModal,
-    closeCreateSessionModal
+    closeCreateSessionModal,
+    showBilling,
+    closeBilling
   } = useUIStore();
 
   return (
@@ -74,21 +76,8 @@ export default function Layout({ children }) {
           }}
         />
       )}
-      {showCreateSessionModal && (
-        <CreateSessionModal
-          onClose={closeCreateSessionModal}
-          onCreated={(session) => {
-            closeCreateSessionModal()
-            console.log('Navigating to session:', session?.id)
-            if (session?.id) {
-              navigate(`/host/session/${session.id}`, { state: { session } })
-            } else {
-              console.error('No session ID!')
-            }
-          }}
-        />
-      )}
       {useSettingsStore(s => s.isOpen) && <SettingsPanel />}
+      <BillingPanel isOpen={showBilling} onClose={closeBilling} />
     </NotificationProvider>
   );
 }

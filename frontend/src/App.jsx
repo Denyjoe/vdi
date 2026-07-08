@@ -90,7 +90,7 @@ import SessionHistoryPage from "./pages/member/SessionHistoryPage";
 import DesktopSessionPage from "./pages/member/DesktopSessionPage";
 import HostSessionPage from "./pages/HostSessionPage";
 import HostAnalyticsPage from "./pages/HostAnalyticsPage";
-import BillingPage from "./pages/member/BillingPage";
+import CreateSessionPage from "./pages/member/CreateSessionPage";
 
 // Layout & guards
 import Layout from "./components/layout/Layout";
@@ -147,7 +147,7 @@ export default function App() {
           <Route path="/workspaces" element={<WorkspacesPage />} />
           <Route path="/sessions/my" element={<MemberSessionsPage />} />
           <Route path="/sessions/history" element={<SessionHistoryPage />} />
-          <Route path="/billing" element={<BillingPage />} />
+          <Route path="/create-session" element={<CreateSessionPage />} />
           
           <Route path="/sessions" element={<SessionsPage />} />
           <Route path="/profile" element={<Navigate to="/dashboard" replace />} />

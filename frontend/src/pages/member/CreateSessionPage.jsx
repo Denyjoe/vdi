@@ -31,7 +31,7 @@ const ControlToggle = ({ label, description, icon: Icon, value, onChange, onColo
   </div>
 );
 
-export default function CreateSessionModal({ onClose, onCreated }) {
+export default function CreateSessionPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [sessionName, setSessionName] = useState('');
@@ -113,11 +113,8 @@ export default function CreateSessionModal({ onClose, onCreated }) {
       }
       const res = await api.post('/sessions/live/create/', payload);
       const data = res.data?.data || res.data;
-      if (onCreated) {
-        onCreated(data);
-      } else {
-        onClose();
-        if (data?.id) navigate(`/host/session/${data.id}`);
+      if (data?.id) {
+        navigate(`/host/session/${data.id}`, { state: { session: data } });
       }
     } catch(e) {
       console.error('Create failed:', e);
@@ -307,52 +304,83 @@ export default function CreateSessionModal({ onClose, onCreated }) {
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-      <div className="bg-[#0A0E14] border border-slate-800/50 rounded-2xl w-[680px] max-h-[85vh] overflow-hidden shadow-2xl shadow-black/50 flex flex-col">
-        <div className="px-6 py-4 border-b border-slate-800/30 flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#0066FF]/10 flex items-center justify-center">
-              <Radio size={18} className="text-[#0066FF]" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-white">Create Session</h2>
-              <p className="text-[11px] text-slate-500">Step {step} of 4</p>
-            </div>
+    <div className="max-w-[900px] mx-auto px-6 py-6">
+      
+      {/* Page header */}
+      <div className="mb-6">
+        <div className="flex items-center gap-3 mb-1">
+          <div className="w-9 h-9 rounded-xl bg-[#0066FF]/10 flex items-center justify-center">
+            <Radio size={18} className="text-[#0066FF]" />
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-500 hover:text-white active:scale-95 transition-all"><X size={18} /></button>
+          <h1 className="text-2xl font-bold text-slate-100 tracking-tight">
+            Create Session
+          </h1>
         </div>
-        <div className="px-6 py-3 border-b border-slate-800/20 flex-shrink-0">
-          <div className="flex gap-2">
-            {['Details', 'Environment', 'Controls', 'Review'].map((s, i) => (
-              <div key={s} className="flex-1">
-                <div className={`h-1 rounded-full transition-all duration-500 ${i + 1 <= step ? 'bg-[#0066FF]' : 'bg-slate-800/50'}`} />
-                <p className={`text-[9px] mt-1.5 font-medium uppercase tracking-wider ${i + 1 === step ? 'text-[#0066FF]' : i + 1 < step ? 'text-slate-400' : 'text-slate-600'}`}>{s}</p>
-              </div>
-            ))}
-          </div>
+        <p className="text-sm text-slate-500 ml-12">
+          Set up a live session for participants
+        </p>
+      </div>
+      
+      {/* Step progress bar */}
+      <div className="bg-[#0F131A]/70 backdrop-blur-sm border border-slate-800/50 rounded-2xl p-6 mb-6">
+        <div className="flex gap-2 mb-1">
+          {['Details', 'Environment', 'Controls', 'Review'].map((s, i) => (
+            <div key={s} className="flex-1">
+              <div className={`h-1.5 rounded-full transition-all duration-500 ${i + 1 <= step ? 'bg-[#0066FF]' : 'bg-slate-800/50'}`} />
+              <p className={`text-[10px] mt-2 font-semibold uppercase tracking-wider ${i + 1 === step ? 'text-[#0066FF]' : i + 1 < step ? 'text-slate-400' : 'text-slate-600'}`}>
+                {s}
+              </p>
+            </div>
+          ))}
         </div>
-        <div className="flex-1 overflow-y-auto px-6 py-5 custom-scrollbar">
-          {step === 1 && renderStepDetails()}
-          {step === 2 && renderStepEnvironment()}
-          {step === 3 && renderStepControls()}
-          {step === 4 && renderStepReview()}
-        </div>
-        <div className="px-6 py-4 border-t border-slate-800/30 flex justify-between flex-shrink-0">
-          {step > 1 ? (
-            <button onClick={() => setStep(s => s - 1)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-300 text-sm font-medium hover:border-slate-500 active:scale-95 transition-all"><ArrowLeft size={15} /> Back</button>
-          ) : <div />}
-          {step < 4 ? (
-            <button onClick={() => setStep(s => s + 1)} disabled={!canProceed()} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0066FF] text-white text-sm font-semibold hover:bg-[#0052CC] active:scale-95 transition-all shadow-lg shadow-blue-500/20 disabled:opacity-30 disabled:cursor-not-allowed">Continue <ArrowRight size={15} /></button>
-          ) : (
-            <button onClick={handleLaunch} disabled={launching} className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#0066FF] to-[#6C63FF] text-white text-sm font-semibold active:scale-95 transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50">
-              {launching ? (
-                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Launching...</>
-              ) : (
-                <><Rocket size={15} /> Launch Session</>
-              )}
-            </button>
-          )}
-        </div>
+      </div>
+      
+      {/* Step content */}
+      <div className="bg-[#0F131A]/70 backdrop-blur-sm border border-slate-800/50 rounded-2xl p-6 mb-6">
+        {step === 1 && renderStepDetails()}
+        {step === 2 && renderStepEnvironment()}
+        {step === 3 && renderStepControls()}
+        {step === 4 && renderStepReview()}
+      </div>
+      
+      {/* Navigation buttons */}
+      <div className="flex justify-between">
+        {step > 1 ? (
+          <button onClick={() => setStep(s => s - 1)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-300 text-sm font-medium hover:border-slate-500 active:scale-95 transition-all">
+            <ArrowLeft size={15} />
+            Back
+          </button>
+        ) : (
+          <button onClick={() => navigate(-1)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-300 text-sm font-medium hover:border-slate-500 active:scale-95 transition-all">
+            <ArrowLeft size={15} />
+            Cancel
+          </button>
+        )}
+        
+        {step < 4 ? (
+          <button onClick={() => setStep(s => s + 1)} disabled={!canProceed()}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#0066FF] text-white text-sm font-semibold hover:bg-[#0052CC] active:scale-95 transition-all shadow-lg shadow-blue-500/20 disabled:opacity-30 disabled:cursor-not-allowed">
+            Continue
+            <ArrowRight size={15} />
+          </button>
+        ) : (
+          <button onClick={handleLaunch} disabled={launching}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#0066FF] to-[#6C63FF] text-white text-sm font-semibold active:scale-95 transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50">
+            {launching ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Launching...
+              </>
+            ) : (
+              <>
+                <Rocket size={15} />
+                Launch Session
+              </>
+            )}
+          </button>
+        )}
       </div>
     </div>
   );
