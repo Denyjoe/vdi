@@ -129,3 +129,213 @@ class AnalyticsAssignmentsView(APIView):
                 ]
             }
         })
+
+class SessionsDailyView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+    
+    def get(self, request):
+        from django.utils import timezone
+        from datetime import timedelta
+        from django.db.models import Count
+        from django.db.models.functions import TruncDate
+        
+        try:
+            from apps.sessions.models import LiveSession
+            
+            week_ago = timezone.now() - timedelta(days=7)
+            
+            daily = LiveSession.objects.filter(created_at__gte=week_ago).annotate(day=TruncDate('created_at')).values('day').annotate(count=Count('id')).order_by('day')
+            
+            result = []
+            for i in range(7):
+                day = (timezone.now() - timedelta(days=6-i)).date()
+                found = next((d for d in daily if d['day'] == day), None)
+                result.append({
+                    'date': day.isoformat(),
+                    'day_label': day.strftime('%a'),
+                    'count': found['count'] if found else 0,
+                })
+            
+            return Response({'sessions': result})
+        except Exception as e:
+            return Response({'sessions': [], 'error': str(e)})
+
+class RevenueMonthlyView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+    
+    def get(self, request):
+        from django.utils import timezone
+        from datetime import timedelta
+        from django.db.models import Sum
+        from django.db.models.functions import TruncMonth
+        import calendar
+        
+        try:
+            from apps.users.models import Payment
+            
+            six_months_ago = timezone.now() - timedelta(days=180)
+            
+            monthly = Payment.objects.filter(status='completed', created_at__gte=six_months_ago).annotate(month=TruncMonth('created_at')).values('month').annotate(total=Sum('amount')).order_by('month')
+            
+            result = []
+            now = timezone.now()
+            for i in range(5, -1, -1):
+                target_month = (now.month - i - 1) % 12 + 1
+                target_year = now.year + ((now.month - i - 1) // 12)
+                
+                found = next((m for m in monthly if m['month'].month == target_month and m['month'].year == target_year), None)
+                
+                result.append({
+                    'month': calendar.month_abbr[target_month],
+                    'revenue': float(found['total']) if found else 0,
+                })
+            
+            return Response({
+                'revenue': result,
+                'total_all_time': float(Payment.objects.filter(status='completed').aggregate(t=Sum('amount'))['t'] or 0)
+            })
+        except Exception as e:
+            return Response({'revenue': [], 'error': str(e)})
+
+class UserGrowthView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+    
+    def get(self, request):
+        from django.utils import timezone
+        from django.db.models.functions import TruncMonth
+        from django.db.models import Count
+        import calendar
+        
+        try:
+            from apps.users.models import User
+            
+            monthly = User.objects.annotate(month=TruncMonth('date_joined')).values('month').annotate(count=Count('id')).order_by('month')
+            
+            result = []
+            now = timezone.now()
+            cumulative = 0
+            
+            for i in range(5, -1, -1):
+                target_month = (now.month - i - 1) % 12 + 1
+                target_year = now.year + ((now.month - i - 1) // 12)
+                
+                found = next((m for m in monthly if m['month'].month == target_month and m['month'].year == target_year), None)
+                
+                new_users = found['count'] if found else 0
+                cumulative += new_users
+                
+                result.append({
+                    'month': calendar.month_abbr[target_month],
+                    'new_users': new_users,
+                    'total_users': cumulative,
+                })
+            
+            return Response({'growth': result})
+        except Exception as e:
+            return Response({'growth': [], 'error': str(e)})
+
+class RevenueBreakdownView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+    
+    def get(self, request):
+        from django.db.models import Sum
+        
+        try:
+            from apps.users.models import Payment
+            
+            all_payments = Payment.objects.filter(status='completed')
+            total = float(all_payments.aggregate(t=Sum('amount'))['t'] or 0)
+            
+            workspace_revenue = float(all_payments.filter(description__icontains='Desktop').aggregate(t=Sum('amount'))['t'] or 0) if hasattr(Payment, 'description') else 0
+            host_plan_revenue = float(all_payments.filter(description__icontains='Host').aggregate(t=Sum('amount'))['t'] or 0) if hasattr(Payment, 'description') else 0
+            other_revenue = max(0, total - workspace_revenue - host_plan_revenue)
+            
+            return Response({
+                'total': total,
+                'breakdown': [
+                    {'label': 'Workspace Usage', 'amount': workspace_revenue},
+                    {'label': 'Host Subscriptions', 'amount': host_plan_revenue},
+                    {'label': 'Other', 'amount': other_revenue},
+                ]
+            })
+        except Exception as e:
+            return Response({'total': 0, 'breakdown': [], 'error': str(e)})
+
+class PlatformStatsView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+    
+    def get(self, request):
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        week_ago = timezone.now() - timedelta(days=7)
+        
+        from apps.users.models import User, Payment
+        from apps.vms.models import VirtualMachine, Workspace
+        
+        total_users = User.objects.count()
+        new_users_week = User.objects.filter(date_joined__gte=week_ago).count()
+        
+        total_vms = VirtualMachine.objects.count()
+        
+        try:
+            from apps.sessions.models import LiveSession
+            total_sessions = LiveSession.objects.count()
+            sessions_week = LiveSession.objects.filter(created_at__gte=week_ago).count()
+        except Exception:
+            total_sessions = 0
+            sessions_week = 0
+        
+        from django.db.models import Sum
+        total_revenue = float(Payment.objects.filter(status='completed').aggregate(t=Sum('amount'))['t'] or 0)
+        revenue_week = float(Payment.objects.filter(status='completed', created_at__gte=week_ago).aggregate(t=Sum('amount'))['t'] or 0)
+        
+        return Response({
+            'success': True,
+            'data': {
+                'total_users': total_users,
+                'new_users_week': new_users_week,
+                'total_vms': total_vms,
+                'total_sessions': total_sessions,
+                'sessions_week': sessions_week,
+                'total_revenue_tzs': total_revenue,
+                'revenue_week': revenue_week,
+            }
+        })
+
+class AdminAnalyticsExportView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+    
+    def get(self, request):
+        import csv
+        from django.http import HttpResponse
+        from django.db.models import Count, Sum
+        
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="clouddesk_analytics_report.csv"'
+        
+        writer = csv.writer(response)
+        
+        from apps.users.models import User, Payment
+        from apps.vms.models import VirtualMachine, Workspace
+        
+        writer.writerow(['CloudDesk Analytics Report'])
+        writer.writerow([])
+        writer.writerow(['Metric', 'Value'])
+        writer.writerow(['Total Users', User.objects.count()])
+        writer.writerow(['Total VMs', VirtualMachine.objects.count()])
+        writer.writerow(['Total Workspaces', Workspace.objects.count()])
+        
+        total_revenue = float(Payment.objects.filter(status='completed').aggregate(t=Sum('amount'))['t'] or 0)
+        writer.writerow(['Total Revenue (TZS)', total_revenue])
+        
+        writer.writerow([])
+        writer.writerow(['Template Launches'])
+        writer.writerow(['Template', 'Launch Count'])
+        
+        template_data = Workspace.objects.exclude(vm_template__isnull=True).values('vm_template__name').annotate(count=Count('id')).order_by('-count')
+        
+        for t in template_data:
+            writer.writerow([t['vm_template__name'], t['count']])
+        
+        return response

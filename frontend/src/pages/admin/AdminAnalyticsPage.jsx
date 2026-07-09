@@ -1,78 +1,103 @@
 import { useState, useEffect } from 'react';
-import { Users, Monitor, Activity, DollarSign, Wifi, TrendingUp, Clock, Server } from 'lucide-react';
+import { Users, Monitor, Activity, DollarSign, Wifi, TrendingUp, Clock, Server, Video, Wallet, Download } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, LineChart, Line, Cell } from 'recharts';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+
+function EmptyChartState({ icon: Icon, message, submessage }) {
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100%',
+      minHeight: '200px',
+      gap: '10px',
+    }}>
+      <div style={{
+        width: '44px', height: '44px',
+        borderRadius: '12px',
+        background: 'var(--bg-input)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <Icon size={20} style={{ color: 'var(--text-faint)' }} />
+      </div>
+      <p style={{
+        fontSize: '13px',
+        fontWeight: 600,
+        color: 'var(--text-secondary)',
+      }}>{message}</p>
+      {submessage && (
+        <p style={{
+          fontSize: '11px',
+          color: 'var(--text-faint)',
+          textAlign: 'center',
+          maxWidth: '260px',
+        }}>{submessage}</p>
+      )}
+    </div>
+  );
+}
 
 export default function AdminAnalyticsPage() {
   const getVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
-    totalUsers: 0,
-    totalVms: 0,
-    totalSessions: 0,
-    revenue: 0,
+    total_users: 0,
+    new_users_week: 0,
+    total_vms: 0,
+    total_sessions: 0,
+    sessions_week: 0,
+    total_revenue_tzs: 0,
+    revenue_week: 0,
   });
+
+  const [sessionsDaily, setSessionsDaily] = useState([]);
+  const [revenueMonthly, setRevenueMonthly] = useState([]);
+  const [userGrowth, setUserGrowth] = useState([]);
+  const [revenueBreakdown, setRevenueBreakdown] = useState({ total: 0, breakdown: [] });
   const [vmTemplates, setVmTemplates] = useState([]);
   const [topUsers, setTopUsers] = useState([]);
-
-  // Flat lines for honest empty data
-  const sessionTrends = [
-    { day: 'Mon', sessions: 0, unique_users: 0 },
-    { day: 'Tue', sessions: 0, unique_users: 0 },
-    { day: 'Wed', sessions: 0, unique_users: 0 },
-    { day: 'Thu', sessions: 0, unique_users: 0 },
-    { day: 'Fri', sessions: 0, unique_users: 0 },
-    { day: 'Sat', sessions: 0, unique_users: 0 },
-    { day: 'Sun', sessions: 0, unique_users: 0 },
-  ];
-
-  const userGrowth = [
-    { month: 'Jan', users: 0 },
-    { month: 'Feb', users: 0 },
-    { month: 'Mar', users: 0 },
-    { month: 'Apr', users: 0 },
-    { month: 'May', users: 0 },
-    { month: 'Jun', users: 0 },
-  ];
-
-  const revenueData = [
-    { month: 'Jan', revenue: 0 },
-    { month: 'Feb', revenue: 0 },
-    { month: 'Mar', revenue: 0 },
-    { month: 'Apr', revenue: 0 },
-    { month: 'May', revenue: 0 },
-    { month: 'Jun', revenue: 0 },
-  ];
-
-  const peakHours = [
-    { hour: '00:00', sessions: 0 },
-    { hour: '04:00', sessions: 0 },
-    { hour: '08:00', sessions: 0 },
-    { hour: '12:00', sessions: 0 },
-    { hour: '16:00', sessions: 0 },
-    { hour: '20:00', sessions: 0 },
-  ];
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [usersRes, sessionsRes, paymentsRes, sysRes, templatesRes, usersListRes] = await Promise.allSettled([
-          api.get('/users/admin/stats/'),
-          api.get('/sessions/admin/stats/'),
-          api.get('/payments/admin/stats/'),
-          api.get('/vms/admin/system-stats/'),
+        const [statsRes, sessionsRes, revenueRes, growthRes, breakdownRes, templatesRes, usersListRes] = await Promise.allSettled([
+          api.get('/users/admin/platform-stats/'),
+          api.get('/users/admin/analytics/sessions-daily/'),
+          api.get('/users/admin/analytics/revenue-monthly/'),
+          api.get('/users/admin/analytics/user-growth/'),
+          api.get('/users/admin/analytics/revenue-breakdown/'),
           api.get('/users/admin/analytics/vm-usage/'),
           api.get('/users/admin/list/')
         ]);
 
-        setStats({
-          totalUsers: usersRes.status === 'fulfilled' && usersRes.value.data.success ? usersRes.value.data.data.total_users : 0,
-          totalVms: sysRes.status === 'fulfilled' ? (sysRes.value.data.vms?.total || 0) : 0,
-          totalSessions: sessionsRes.status === 'fulfilled' && sessionsRes.value.data.success ? sessionsRes.value.data.data.total_sessions : 0,
-          revenue: paymentsRes.status === 'fulfilled' && paymentsRes.value.data.success ? paymentsRes.value.data.data.total_revenue_tzs : 0,
-        });
+        if (statsRes.status === 'fulfilled' && statsRes.value.data.success) {
+          setStats(statsRes.value.data.data);
+        }
+
+        if (sessionsRes.status === 'fulfilled' && sessionsRes.value.data.sessions) {
+          setSessionsDaily(sessionsRes.value.data.sessions);
+        }
+
+        if (revenueRes.status === 'fulfilled' && revenueRes.value.data.revenue) {
+          setRevenueMonthly(revenueRes.value.data.revenue);
+        }
+
+        if (growthRes.status === 'fulfilled' && growthRes.value.data.growth) {
+          setUserGrowth(growthRes.value.data.growth);
+        }
+
+        if (breakdownRes.status === 'fulfilled' && breakdownRes.value.data.breakdown) {
+          setRevenueBreakdown({
+            total: breakdownRes.value.data.total,
+            breakdown: breakdownRes.value.data.breakdown
+          });
+        }
 
         if (templatesRes.status === 'fulfilled' && templatesRes.value.data.success) {
           const templates = templatesRes.value.data.data.by_template.map(t => ({
@@ -83,7 +108,6 @@ export default function AdminAnalyticsPage() {
         }
 
         if (usersListRes.status === 'fulfilled' && usersListRes.value.data.success) {
-          // just taking the top 5 recently joined as active users for now (since we don't have usage hours in user list)
           const usersList = usersListRes.value.data.data.slice(0, 5).map(u => ({
             name: `${u.first_name} ${u.last_name}`,
             email: u.email,
@@ -92,73 +116,211 @@ export default function AdminAnalyticsPage() {
           }));
           setTopUsers(usersList);
         }
-
       } catch (err) {
-        console.error("Failed to fetch analytics:", err);
+        console.error('Failed to load analytics', err);
+        toast.error('Failed to load some analytics data');
       } finally {
         setLoading(false);
       }
     };
+
     fetchData();
   }, []);
 
+  const handleExportReport = async () => {
+    try {
+      const token = localStorage.getItem('dit_access_token');
+      const response = await fetch('/api/users/admin/analytics/export/', {
+        headers: {
+          'Authorization': Bearer 
+        }
+      });
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = clouddesk_analytics_.csv;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch(e) {
+      console.error(e);
+      alert('Export failed: ' + e.message);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[80vh]">
-        <Activity className="w-12 h-12 text-indigo-500 animate-spin" />
+      <div className="flex items-center justify-center h-[calc(100vh-200px)]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-[var(--accent-primary)] border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-[var(--text-secondary)] font-medium">Loading analytics...</p>
+        </div>
       </div>
     );
   }
 
-  const maxSessionsHour = Math.max(...peakHours.map(h => h.sessions), 1); // Avoid division by zero styling
+  const hasSessionData = sessionsDaily.some(d => d.count > 0);
+  const hasRevenueData = revenueMonthly.some(d => d.revenue > 0);
+  const hasUserGrowth = userGrowth.some(d => d.total_users > 0);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8 animate-fade-in pb-12">
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-[var(--text-primary)] font-inter">Platform Analytics</h2>
-        <p className="text-[var(--text-secondary)] mt-1">Real-time usage and revenue statistics</p>
+    <div className="space-y-6 max-w-[1600px] mx-auto pb-10">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">Analytics Overview</h1>
+          <p className="text-sm text-[var(--text-secondary)] mt-1">Platform performance and usage metrics</p>
+        </div>
+        <button onClick={handleExportReport}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '8px 16px',
+            borderRadius: '10px',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            color: 'var(--text-primary)',
+            fontSize: '13px',
+            fontWeight: 600,
+          }}>
+          <Download size={14} />
+          Export Report
+        </button>
       </div>
 
-      {/* Row 1: Quick Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-[var(--bg-card)] rounded-xl p-6 shadow-md border border-[var(--border-color)] flex items-center gap-4">
-          <div className="bg-indigo-500/20 p-4 rounded-lg">
-            <Users className="w-6 h-6 text-indigo-400" />
-          </div>
-          <div>
-            <p className="text-[var(--text-secondary)] text-sm font-medium">Total Users</p>
-            <p className="text-2xl font-bold text-[var(--text-primary)]">{stats.totalUsers.toLocaleString()}</p>
-          </div>
+      {/* Row 1: Stat Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total Users */}
+        <div style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '14px',
+          padding: '18px',
+          boxShadow: 'var(--shadow-sm)',
+        }}>
+          <p style={{
+            fontSize: '10px',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+            color: 'var(--text-muted)',
+            fontWeight: 600,
+          }}>Total Users</p>
+          <p style={{
+            fontSize: '26px',
+            fontWeight: 700,
+            color: 'var(--text-primary)',
+            marginTop: '6px',
+          }}>{stats.total_users}</p>
+          {stats.new_users_week > 0 && (
+            <p style={{
+              fontSize: '11px',
+              color: 'var(--status-online)',
+              marginTop: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}>
+              <TrendingUp size={11} />
+              +{stats.new_users_week} this week
+            </p>
+          )}
         </div>
 
-        <div className="bg-[var(--bg-card)] rounded-xl p-6 shadow-md border border-[var(--border-color)] flex items-center gap-4">
-          <div className="bg-purple-500/20 p-4 rounded-lg">
-            <Server className="w-6 h-6 text-purple-400" />
-          </div>
-          <div>
-            <p className="text-[var(--text-secondary)] text-sm font-medium">Total VMs</p>
-            <p className="text-2xl font-bold text-[var(--text-primary)]">{stats.totalVms.toLocaleString()}</p>
-          </div>
+        {/* Total VMs */}
+        <div style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '14px',
+          padding: '18px',
+          boxShadow: 'var(--shadow-sm)',
+        }}>
+          <p style={{
+            fontSize: '10px',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+            color: 'var(--text-muted)',
+            fontWeight: 600,
+          }}>Total VMs</p>
+          <p style={{
+            fontSize: '26px',
+            fontWeight: 700,
+            color: 'var(--text-primary)',
+            marginTop: '6px',
+          }}>{stats.total_vms}</p>
         </div>
 
-        <div className="bg-[var(--bg-card)] rounded-xl p-6 shadow-md border border-[var(--border-color)] flex items-center gap-4">
-          <div className="bg-emerald-500/20 p-4 rounded-lg">
-            <Activity className="w-6 h-6 text-emerald-400" />
-          </div>
-          <div>
-            <p className="text-[var(--text-secondary)] text-sm font-medium">Total Sessions</p>
-            <p className="text-2xl font-bold text-[var(--text-primary)]">{stats.totalSessions.toLocaleString()}</p>
-          </div>
+        {/* Total Sessions */}
+        <div style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '14px',
+          padding: '18px',
+          boxShadow: 'var(--shadow-sm)',
+        }}>
+          <p style={{
+            fontSize: '10px',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+            color: 'var(--text-muted)',
+            fontWeight: 600,
+          }}>Total Sessions</p>
+          <p style={{
+            fontSize: '26px',
+            fontWeight: 700,
+            color: 'var(--text-primary)',
+            marginTop: '6px',
+          }}>{stats.total_sessions}</p>
+          {stats.sessions_week > 0 && (
+            <p style={{
+              fontSize: '11px',
+              color: 'var(--status-online)',
+              marginTop: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}>
+              <TrendingUp size={11} />
+              +{stats.sessions_week} this week
+            </p>
+          )}
         </div>
 
-        <div className="bg-[var(--bg-card)] rounded-xl p-6 shadow-md border border-[var(--border-color)] flex items-center gap-4">
-          <div className="bg-green-500/20 p-4 rounded-lg">
-            <DollarSign className="w-6 h-6 text-green-400" />
-          </div>
-          <div>
-            <p className="text-[var(--text-secondary)] text-sm font-medium">Total Revenue</p>
-            <p className="text-2xl font-bold text-[var(--text-primary)]">TZS {stats.revenue.toLocaleString()}</p>
-          </div>
+        {/* Total Revenue */}
+        <div style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '14px',
+          padding: '18px',
+          boxShadow: 'var(--shadow-sm)',
+        }}>
+          <p style={{
+            fontSize: '10px',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+            color: 'var(--text-muted)',
+            fontWeight: 600,
+          }}>Total Revenue</p>
+          <p style={{
+            fontSize: '26px',
+            fontWeight: 700,
+            color: 'var(--text-primary)',
+            marginTop: '6px',
+          }}>TZS {stats.total_revenue_tzs?.toLocaleString()}</p>
+          {stats.revenue_week > 0 && (
+            <p style={{
+              fontSize: '11px',
+              color: 'var(--status-online)',
+              marginTop: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}>
+              <TrendingUp size={11} />
+              +TZS {stats.revenue_week.toLocaleString()} this week
+            </p>
+          )}
         </div>
       </div>
 
@@ -167,39 +329,57 @@ export default function AdminAnalyticsPage() {
         <div className="bg-[var(--bg-card)] rounded-xl shadow-md border border-[var(--border-color)] p-6">
           <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-6">Sessions (Last 7 Days)</h3>
           <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={sessionTrends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorSessions" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={getVar('--chart-line')} stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor={getVar('--chart-line')} stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke={getVar('--chart-grid')} vertical={false} />
-                <XAxis dataKey="day" stroke={getVar('--chart-text')} />
-                <YAxis stroke={getVar('--chart-text')} allowDecimals={false} />
-                <RechartsTooltip contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }} />
-                <Area type="monotone" dataKey="sessions" name="Total Sessions" stroke={getVar('--chart-line')} strokeWidth={3} fillOpacity={1} fill="url(#colorSessions)" />
-              </AreaChart>
-            </ResponsiveContainer>
+            {hasSessionData ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={sessionsDaily} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="sessionGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--accent-primary)" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="var(--accent-primary)" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="day_label" stroke="var(--text-faint)" fontSize={11} />
+                  <YAxis stroke="var(--text-faint)" fontSize={11} allowDecimals={false} />
+                  <RechartsTooltip contentStyle={{
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    color: 'var(--text-primary)',
+                  }} />
+                  <Area type="monotone" dataKey="count" stroke="var(--accent-primary)" fill="url(#sessionGrad)" strokeWidth={2} />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyChartState 
+                icon={Video}
+                message="No sessions yet this week"
+                submessage="Session activity will appear here once hosts start running sessions" />
+            )}
           </div>
         </div>
 
-        <div className="bg-[var(--bg-card)] rounded-xl shadow-md border border-[var(--border-color)] p-6">
+        <div className="bg-[var(--bg-card)] rounded-xl shadow-md border border-[var(--border-color)] p-6 flex flex-col">
           <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-6">Revenue Over Time</h3>
           <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={revenueData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={getVar('--chart-grid')} vertical={false} />
-                <XAxis dataKey="month" stroke={getVar('--chart-text')} />
-                <YAxis stroke={getVar('--chart-text')} allowDecimals={false} />
-                <RechartsTooltip 
-                  contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
-                  formatter={(value) => [`TZS ${value}`, "Revenue"]}
-                />
-                <Bar dataKey="revenue" fill={getVar('--chart-bar')} radius={[4, 4, 0, 0]} maxBarSize={40} />
-              </BarChart>
-            </ResponsiveContainer>
+            {hasRevenueData ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={revenueMonthly} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={getVar('--chart-grid')} vertical={false} />
+                  <XAxis dataKey="month" stroke="var(--text-faint)" fontSize={11} />
+                  <YAxis stroke="var(--text-faint)" fontSize={11} allowDecimals={false} tickFormatter={(v) => TZS } />
+                  <RechartsTooltip 
+                    contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
+                    formatter={(value) => [TZS , "Revenue"]}
+                  />
+                  <Bar dataKey="revenue" fill={getVar('--chart-bar')} radius={[4, 4, 0, 0]} maxBarSize={40} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyChartState 
+                icon={Wallet}
+                message="No revenue yet"
+                submessage="Revenue history will appear here once users make payments" />
+            )}
           </div>
         </div>
       </div>
@@ -209,15 +389,22 @@ export default function AdminAnalyticsPage() {
         <div className="bg-[var(--bg-card)] rounded-xl shadow-md border border-[var(--border-color)] p-6">
           <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-6">User Growth (6 Months)</h3>
           <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={userGrowth} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={getVar('--chart-grid')} vertical={false} />
-                <XAxis dataKey="month" stroke={getVar('--chart-text')} />
-                <YAxis stroke={getVar('--chart-text')} allowDecimals={false} />
-                <RechartsTooltip contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }} />
-                <Line type="monotone" dataKey="users" name="Total Users" stroke={getVar('--accent')} strokeWidth={3} dot={{ r: 4, fill: getVar('--accent'), strokeWidth: 2 }} />
-              </LineChart>
-            </ResponsiveContainer>
+            {hasUserGrowth ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={userGrowth} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={getVar('--chart-grid')} vertical={false} />
+                  <XAxis dataKey="month" stroke="var(--text-faint)" fontSize={11} />
+                  <YAxis stroke="var(--text-faint)" fontSize={11} allowDecimals={false} />
+                  <RechartsTooltip contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }} />
+                  <Line type="monotone" dataKey="total_users" name="Total Users" stroke={getVar('--accent')} strokeWidth={3} dot={{ r: 4, fill: getVar('--accent'), strokeWidth: 2 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <EmptyChartState 
+                icon={Users}
+                message="No users yet"
+                submessage="User growth will appear here as people join the platform" />
+            )}
           </div>
         </div>
 
@@ -231,7 +418,7 @@ export default function AdminAnalyticsPage() {
                   <XAxis type="number" stroke={getVar('--chart-text')} allowDecimals={false} />
                   <YAxis dataKey="name" type="category" stroke={getVar('--chart-text')} width={100} tick={{ fontSize: 11 }} />
                   <RechartsTooltip contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }} />
-                  <Bar dataKey="count" name="Pool Count" fill={getVar('--info')} radius={[0, 4, 4, 0]} maxBarSize={30}>
+                  <Bar dataKey="count" name="Launch Count" fill={getVar('--info')} radius={[0, 4, 4, 0]} maxBarSize={30}>
                     {vmTemplates.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={index === 0 ? getVar('--accent') : getVar('--info')} />
                     ))}
@@ -241,8 +428,8 @@ export default function AdminAnalyticsPage() {
             ) : (
               <div className="h-full flex items-center justify-center border-2 border-dashed border-[var(--border-color)] rounded-xl">
                 <div className="text-center text-[var(--text-secondary)]">
-                  <Monitor className="w-8 h-8 mx-auto mb-2 text-muted" />
-                  <p>No templates available</p>
+                  <Monitor className="w-8 h-8 mx-auto mb-2 text-[var(--text-muted)]" />
+                  <p>No template launches yet</p>
                 </div>
               </div>
             )}
@@ -250,28 +437,46 @@ export default function AdminAnalyticsPage() {
         </div>
       </div>
 
-      {/* Row 4: Peak Hours & Top Users */}
+      {/* Row 4: Revenue Breakdown & Recent Users */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-[var(--bg-card)] rounded-xl shadow-md border border-[var(--border-color)] p-6">
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-[var(--text-primary)]">Active Hours Heatmap</h3>
-            <p className="text-sm text-[var(--text-secondary)]">Peak platform usage times</p>
-          </div>
-          <div className="h-[250px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={peakHours} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={getVar('--chart-grid')} vertical={false} />
-                <XAxis dataKey="hour" stroke={getVar('--chart-text')} tick={{ fontSize: 11 }} interval={0} />
-                <YAxis stroke={getVar('--chart-text')} allowDecimals={false} />
-                <RechartsTooltip cursor={{ fill: 'var(--border-color)' }} contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }} />
-                <Bar dataKey="sessions" name="Active Sessions" radius={[4, 4, 0, 0]} maxBarSize={40}>
-                  {peakHours.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.sessions === maxSessionsHour && maxSessionsHour > 0 ? getVar('--warning') : getVar('--accent')} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+        <div style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '14px',
+          padding: '20px',
+        }}>
+          <h3 style={{
+            fontSize: '14px',
+            fontWeight: 700,
+            color: 'var(--text-primary)',
+            marginBottom: '16px',
+          }}>Revenue Breakdown</h3>
+          
+          {revenueBreakdown.total > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {revenueBreakdown.breakdown.map(item => {
+                const pct = revenueBreakdown.total > 0 ? Math.round((item.amount / revenueBreakdown.total) * 100) : 0;
+                return (
+                  <div key={item.label}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{item.label}</span>
+                      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        TZS {item.amount.toLocaleString()} ({pct}%)
+                      </span>
+                    </div>
+                    <div style={{ height: '6px', borderRadius: '3px', background: 'var(--bg-input)', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${pct}%`, background: 'var(--accent-primary)', borderRadius: '3px', transition: 'width 0.5s' }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <EmptyChartState 
+              icon={Wallet}
+              message="No revenue recorded yet"
+              submessage="Revenue breakdown by source will appear here once payments are processed" />
+          )}
         </div>
 
         <div className="bg-[var(--bg-card)] rounded-xl shadow-md border border-[var(--border-color)] overflow-hidden flex flex-col">
@@ -288,14 +493,14 @@ export default function AdminAnalyticsPage() {
                   <th className="px-6 py-4 font-medium text-right">Hours</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-700/50 text-[var(--text-primary)]">
+              <tbody className="divide-y divide-[var(--border-color)] text-[var(--text-primary)]">
                 {topUsers.length > 0 ? (
                   topUsers.map((user, idx) => (
-                    <tr key={idx} className="hover:bg-[var(--bg-card-hover)]/30 transition-colors">
-                      <td className="px-6 py-4 text-center font-bold text-muted">{idx + 1}</td>
+                    <tr key={idx} className="hover:bg-[var(--bg-primary)] transition-colors">
+                      <td className="px-6 py-4 text-center font-bold text-[var(--text-muted)]">{idx + 1}</td>
                       <td className="px-6 py-4">
                         <p className="font-medium text-[var(--text-primary)]">{user.name}</p>
-                        <p className="text-xs text-muted">{user.email}</p>
+                        <p className="text-xs text-[var(--text-secondary)]">{user.email}</p>
                       </td>
                       <td className="px-6 py-4 text-center text-[var(--text-primary)] font-medium">{user.vms}</td>
                       <td className="px-6 py-4 text-right text-indigo-400 font-medium">{user.hours}h</td>
@@ -303,7 +508,7 @@ export default function AdminAnalyticsPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="4" className="px-6 py-8 text-center text-muted">
+                    <td colSpan="4" className="px-6 py-8 text-center text-[var(--text-muted)]">
                       No activity recorded yet
                     </td>
                   </tr>
