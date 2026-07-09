@@ -98,40 +98,56 @@ class WorkspaceLaunchView(APIView):
             
         orchestrator = VMOrchestrator()
         
-        if not workspace.vm:
-            # Create a VirtualMachine record
-            vm = VirtualMachine.objects.create(
-                name=f"workspace-{workspace.id}-{request.user.username}",
-                owner=request.user,
-                template=workspace.vm_template,
-                status='provisioning'
-            )
-            workspace.vm = vm
-            workspace.status = 'active'
-            workspace.last_accessed_at = timezone.now()
-            workspace.save()
-            
-            # Start provisioning asynchronously
-            if workspace.vm_template.is_real:
-                import threading
-                thread = threading.Thread(target=orchestrator.provision_real_vm, args=(vm,))
-                thread.daemon = True
-                thread.start()
-            else:
-                orchestrator.provision_vm(vm)
+        try:
+            if not workspace.vm:
+                # Create a VirtualMachine record
+                vm = VirtualMachine.objects.create(
+                    name=f"workspace-{workspace.id}-{request.user.username}",
+                    owner=request.user,
+                    template=workspace.vm_template,
+                    status='provisioning'
+                )
+                workspace.vm = vm
+                workspace.status = 'active'
+                workspace.last_accessed_at = timezone.now()
+                workspace.save()
                 
-        else:
-            if workspace.vm.status != 'running' and workspace.vm.status != 'provisioning':
-                workspace.vm.status = 'provisioning'
-                workspace.vm.save()
-                
+                # Start provisioning asynchronously
                 if workspace.vm_template.is_real:
                     import threading
-                    thread = threading.Thread(target=orchestrator.provision_real_vm, args=(workspace.vm,))
+                    thread = threading.Thread(target=orchestrator.provision_real_vm, args=(vm,))
                     thread.daemon = True
                     thread.start()
                 else:
-                    orchestrator.start_vm(workspace.vm)
+                    orchestrator.provision_vm(vm)
+                    
+            else:
+                if workspace.vm.status != 'running' and workspace.vm.status != 'provisioning':
+                    workspace.vm.status = 'provisioning'
+                    workspace.vm.save()
+                    
+                    if workspace.vm_template.is_real:
+                        import threading
+                        thread = threading.Thread(target=orchestrator.provision_real_vm, args=(workspace.vm,))
+                        thread.daemon = True
+                        thread.start()
+                    else:
+                        orchestrator.start_vm(workspace.vm)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f'Proxmox provisioning failed: {str(e)}')
+            return Response({
+                'success': False,
+                'message': (
+                    'Unable to start your '
+                    'workspace right now. '
+                    'Our infrastructure team '
+                    'has been notified. '
+                    'Please try again in a '
+                    'few minutes.'
+                )
+            }, status=503)
             
             workspace.status = 'active'
             workspace.last_accessed_at = timezone.now()

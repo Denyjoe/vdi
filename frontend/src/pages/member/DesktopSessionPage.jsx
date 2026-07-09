@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { 
-  Monitor, Maximize2, LayoutGrid, Compass, BarChart2, AlertCircle, 
+  Monitor, Maximize2, Minimize2, LayoutGrid, Compass, BarChart2, AlertCircle, 
   Code2, Palette, Network, Box, Wifi, Battery, Volume2, 
   Menu, X, Check, PanelRightOpen, PanelRightClose, Power
 } from 'lucide-react';
@@ -22,6 +22,9 @@ export default function DesktopSessionPage() {
 
   const [sessionData, setSessionData] = useState(location.state?.sessionData || null);
   const [vmData, setVmData] = useState(location.state?.vmData || null);
+  
+  const containerRef = useRef(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   
   const [timer, setTimer] = useState(0);
   const [cpu, setCpu] = useState(5.0);
@@ -211,7 +214,7 @@ export default function DesktopSessionPage() {
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(err => {
+      containerRef.current?.requestFullscreen().catch(err => {
         console.error("Error attempting to enable full-screen mode:", err.message);
       });
     } else {
@@ -221,10 +224,18 @@ export default function DesktopSessionPage() {
     }
   };
 
+  useEffect(() => {
+    const handler = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handler);
+    return () => document.removeEventListener('fullscreenchange', handler);
+  }, []);
+
   // Keyboard shortcut: Ctrl+Shift+F for fullscreen
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.ctrlKey && e.shiftKey && e.key === 'F') {
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'f') {
         e.preventDefault();
         toggleFullscreen();
       }
@@ -262,7 +273,7 @@ export default function DesktopSessionPage() {
     
     if (workspace?.vm_details?.guacamole_url) {
       return (
-        <div className="relative w-screen h-screen overflow-hidden bg-black flex flex-col font-inter">
+        <div ref={containerRef} className="relative w-screen h-screen overflow-hidden bg-black flex flex-col font-inter">
           <div className="h-12 bg-[var(--bg-primary)] border-b border-[var(--border-color)] flex items-center justify-between px-4 shrink-0 shadow-md relative z-50">
             <div className="flex items-center gap-4">
               <Monitor className="w-5 h-5 text-indigo-400" />
@@ -281,14 +292,24 @@ export default function DesktopSessionPage() {
               </div>
             </div>
             
-            <button 
-              onClick={handleDisconnect} 
-              disabled={isDisconnecting}
-              className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors border border-red-500/20 flex items-center gap-2"
-            >
-              <Power className="w-4 h-4" />
-              {isDisconnecting ? 'Disconnecting...' : 'End Session'}
-            </button>
+            <div className="flex items-center gap-4">
+              <button 
+                onClick={toggleFullscreen}
+                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+              >
+                {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              </button>
+              
+              <button 
+                onClick={handleDisconnect} 
+                disabled={isDisconnecting}
+                className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors border border-red-500/20 flex items-center gap-2"
+              >
+                <Power className="w-4 h-4" />
+                {isDisconnecting ? 'Disconnecting...' : 'End Session'}
+              </button>
+            </div>
           </div>
           <iframe 
             src={workspace.vm_details.guacamole_url} 
@@ -318,7 +339,7 @@ export default function DesktopSessionPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-black font-inter select-none">
+    <div ref={containerRef} className="flex flex-col h-screen w-screen overflow-hidden bg-black font-inter select-none">
       {/* ── Top Bar ── */}
       <div className="h-12 bg-[var(--bg-primary)] border-b border-[var(--border-color)] flex items-center justify-between px-4 shrink-0 shadow-md relative z-50">
         <div className="flex items-center gap-4">
@@ -365,9 +386,9 @@ export default function DesktopSessionPage() {
           <button 
             onClick={toggleFullscreen}
             className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-            title="Fullscreen"
+            title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
           >
-            <Maximize2 className="w-4 h-4" />
+            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </button>
 
           <button
