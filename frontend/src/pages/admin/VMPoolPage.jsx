@@ -29,38 +29,64 @@ export default function VMPoolPage() {
 
   const [poolEntries, setPoolEntries] = useState([])
 
-  const fetchEntries = useCallback(async () => {
+  const [refreshing, setRefreshing] = useState(false)
+
+  const fetchPoolStats = async () => {
+    try {
+      const res = await api.get('/vms/admin/pool/status/')
+      setStats(res.data?.stats)
+    } catch(e) {
+      console.error(e)
+    }
+  }
+
+  const fetchTemplates = async () => {
+    try {
+      const res = await api.get('/vms/admin/templates/')
+      const data = Array.isArray(res.data) ? res.data : res.data?.data || []
+      setTemplates(data)
+    } catch(e) {
+      console.error(e)
+    }
+  }
+
+  const fetchPoolEntries = async () => {
     try {
       const res = await api.get('/vms/admin/pool/entries/')
       setPoolEntries(res.data.entries || [])
-    } catch(e) {}
-  }, [])
+    } catch(e) {
+      console.error(e)
+    }
+  }
 
-  const fetchData = useCallback(async () => {
+  const handleRefresh = async () => {
     try {
-      const [poolRes, templatesRes] = await Promise.all([
-        api.get('/vms/admin/pool/status/'),
-        api.get('/vms/admin/templates/'),
+      setRefreshing(true)
+      await Promise.all([
+        fetchPoolStats(),
+        fetchTemplates(),
+        fetchPoolEntries(),
       ])
-      if (poolRes.data?.stats) setStats(poolRes.data.stats)
-      if (templatesRes.data?.data) setTemplates(templatesRes.data.data)
-      fetchEntries()
-    } catch (err) {
-      console.error('Failed to fetch pool data:', err)
+    } catch(e) {
+      console.error('Refresh failed:', e)
     } finally {
+      setRefreshing(false)
       setLoading(false)
     }
-  }, [fetchEntries])
+  }
 
   useEffect(() => {
-    fetchData()
-  }, [fetchData])
+    handleRefresh()
+  }, [])
 
   useEffect(() => {
     if (!autoRefresh) return
-    const interval = setInterval(fetchData, AUTO_REFRESH_INTERVAL_MS)
+    const interval = setInterval(() => {
+      fetchPoolStats()
+      fetchPoolEntries()
+    }, AUTO_REFRESH_INTERVAL_MS)
     return () => clearInterval(interval)
-  }, [fetchData, autoRefresh])
+  }, [autoRefresh])
 
   const handlePreCloneClick = async () => {
     if (!createForm.template_id) {
@@ -89,7 +115,7 @@ export default function VMPoolPage() {
       toast.success(res.data?.message || 'VMs being created')
       setShowCreateModal(false)
       setCreateForm({ template_id: '', count: 1 })
-      fetchData()
+      handleRefresh()
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to create VMs')
     } finally {
@@ -101,7 +127,7 @@ export default function VMPoolPage() {
     try {
       const res = await api.post('/vms/admin/pool/cleanup/')
       toast.success(res.data?.message || 'Cleaned up')
-      fetchData()
+      handleRefresh()
     } catch (err) {
       toast.error('Cleanup failed')
     }
@@ -112,7 +138,7 @@ export default function VMPoolPage() {
     try {
       await api.delete(`/vms/admin/pool/${entryId}/`)
       toast.success('Pool entry deleted')
-      fetchData()
+      handleRefresh()
     } catch (err) {
       toast.error('Delete failed')
     }
@@ -121,7 +147,7 @@ export default function VMPoolPage() {
   const handlePoolConfigChange = async (templateId, field, value) => {
     try {
       await api.put(`/vms/admin/templates/${templateId}/pool-config/`, { [field]: value })
-      fetchData()
+      handleRefresh()
     } catch(e) {
       console.error(e)
     }
@@ -162,7 +188,7 @@ export default function VMPoolPage() {
       setLinkModalTemplate(null)
       setVmIdInput('')
       setTestResult(null)
-      fetchData()
+      handleRefresh()
     } catch(e) {
       console.error(e)
       toast.error('Link failed')
@@ -173,7 +199,7 @@ export default function VMPoolPage() {
     try {
       await api.post(`/vms/admin/templates/${templateId}/link/`, { proxmox_template_id: null })
       toast.success('Template unlinked')
-      fetchData()
+      handleRefresh()
     } catch { 
       toast.error('Unlink failed') 
     }
@@ -218,11 +244,32 @@ export default function VMPoolPage() {
             />
             Auto-refresh
           </label>
-          <button 
-            onClick={fetchData} 
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border-color)] hover:bg-white/10 text-[var(--text-primary)] transition-colors text-sm font-medium"
-          >
-            <RefreshCw size={16} /> Refresh
+          <button onClick={handleRefresh}
+            disabled={refreshing}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 16px',
+              borderRadius: '10px',
+              background: 'var(--bg-card)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-color)',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}>
+            <RefreshCw size={14} 
+              style={{
+                animation: refreshing ? 'spin 1s linear infinite' : 'none'
+              }} />
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+            <style>{`
+              @keyframes spin {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+              }
+            `}</style>
           </button>
           <button 
             onClick={handleCleanup}
