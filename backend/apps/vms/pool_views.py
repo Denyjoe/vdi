@@ -334,39 +334,57 @@ class SystemStatsView(APIView):
     
     def get(self, request):
         from apps.vms.services.proxmox_service import ProxmoxService
+        from apps.vms.services.guacamole_service import GuacamoleService
+        from decouple import config
+        
+        proxmox_status = 'offline'
+        proxmox_error = None
+        node_info = {}
+        vms_total = 0
+        vms_running = 0
+        
         try:
             ps = ProxmoxService()
             nodes = ps.proxmox.nodes.get()
-            node = nodes[0] if nodes else {}
-            
-            # Get VM count
+            node_info = nodes[0] if nodes else {}
             vms = ps.proxmox.nodes(ps.node).qemu.get()
-            running_vms = [v for v in vms if v.get('status') == 'running']
-            
-            return Response({
-                'proxmox': {
-                    'status': 'online',
-                    'node': node.get('node', 'pve'),
-                    'cpu_usage': round(node.get('cpu', 0) * 100, 1),
-                    'ram_used': round(node.get('mem', 0) / (1024**3), 1),
-                    'ram_total': round(node.get('maxmem', 0) / (1024**3), 1),
-                    'storage_used': round(ps.proxmox.nodes(ps.node).storage('local-lvm').status.get().get('used', 0) / (1024**3), 1) if 'local-lvm' in [s.get('storage') for s in ps.proxmox.nodes(ps.node).storage.get()] else 0,
-                    'storage_total': round(ps.proxmox.nodes(ps.node).storage('local-lvm').status.get().get('total', 0) / (1024**3), 1) if 'local-lvm' in [s.get('storage') for s in ps.proxmox.nodes(ps.node).storage.get()] else 0,
-                    'uptime_seconds': node.get('uptime', 0),
-                },
-                'vms': {
-                    'total': len(vms),
-                    'running': len(running_vms),
-                },
-                'guacamole': {
-                    'status': 'online'
-                }
-            })
+            vms_total = len(vms)
+            vms_running = len([v for v in vms if v.get('status') == 'running'])
+            proxmox_status = 'online'
         except Exception as e:
-            return Response({
-                'proxmox': {
-                    'status': 'offline',
-                    'error': str(e)
+            proxmox_error = str(e)
+            
+        guac_status = 'offline'
+        guac_error = None
+        try:
+            gs = GuacamoleService()
+            gs.authenticate()
+            guac_status = 'online'
+        except Exception as e:
+            guac_error = str(e)
+            
+        return Response({
+            'success': True,
+            'proxmox': {
+                'status': proxmox_status,
+                'error': proxmox_error,
+                'host': config('PROXMOX_HOST', default='unknown'),
+                'node': node_info.get('node', 'pve'),
+                'cpu_usage': round(node_info.get('cpu', 0) * 100, 1) if node_info else 0,
+                'ram_used': round(node_info.get('mem', 0) / (1024**3), 1) if node_info else 0,
+                'ram_total': round(node_info.get('maxmem', 0) / (1024**3), 1) if node_info else 0,
+                'uptime_seconds': node_info.get('uptime', 0) if node_info else 0,
+            },
+            'vms': {
+                'total': vms_total,
+                'running': vms_running,
+            },
+            'guacamole': {
+                'url': config('GUACAMOLE_URL', default='unknown'),
+                'status': guac_status,
+                'error': guac_error
+            }
+        })
                 },
                 'vms': {
                     'total': 0, 
