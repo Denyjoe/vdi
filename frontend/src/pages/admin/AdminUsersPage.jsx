@@ -338,8 +338,33 @@ export default function AdminUsersPage() {
     fetchUsers();
   }, [search, roleFilter, statusFilter, sort]);
   
-  const handleExportCSV = () => {
-    window.location.href = `${api.defaults.baseURL || 'http://localhost:8000/api'}/users/admin/export/`;
+  const handleExportCSV = async () => {
+    try {
+      const token = localStorage.getItem('dit_access_token');
+      const baseUrl = api.defaults.baseURL || 'http://localhost:8000/api';
+      const response = await fetch(`${baseUrl}/users/admin/export/`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Export failed: ${response.status}`);
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `clouddesk_users_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch(e) {
+      console.error('Export failed:', e);
+      toast.error('Failed to export users: ' + e.message);
+    }
   };
   
   const handleBulkAction = async (action) => {
