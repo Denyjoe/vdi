@@ -89,7 +89,29 @@ export default function DesktopSessionPage() {
     return () => clearInterval(intervalId);
   }, [type, sessionId]);
 
-  
+  // Workspace Polling (Admin status check)
+  useEffect(() => {
+    if (type !== 'workspace') return;
+    
+    let wsInterval;
+    const fetchWsStatus = async () => {
+      try {
+        const res = await api.get(`/workspaces/${sessionId}/`);
+        if (res.data.success && res.data.data) {
+          const status = res.data.data.status;
+          if (status === 'stopped' || status === 'error' || status === 'deleted') {
+            setDisconnectedByAdmin(true);
+          }
+        }
+      } catch (err) {
+        setDisconnectedByAdmin(true);
+      }
+    };
+    
+    wsInterval = setInterval(fetchWsStatus, 8000);
+    return () => clearInterval(wsInterval);
+  }, [type, sessionId]);
+
   // Session Polling (for participants)
   useEffect(() => {
     if (type === 'workspace') return;

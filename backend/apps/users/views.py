@@ -22,7 +22,7 @@ class RegisterView(APIView):
     def post(self, request):
         from apps.users.models import SystemConfig
 
-        allow_reg = SystemConfig.get('allow_registration', 'true')
+        allow_reg = str(SystemConfig.get('allow_registration', 'true')).lower()
         if allow_reg == 'false':
             return Response({
                 'success': False,

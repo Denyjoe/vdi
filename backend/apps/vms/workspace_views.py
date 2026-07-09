@@ -26,8 +26,14 @@ class WorkspaceCreateView(APIView):
                 from apps.users.models import SystemConfig
                 max_per_user = int(SystemConfig.get('max_vms_per_user', '3'))
                 
-                sub = request.user.subscription
-                max_w = getattr(sub.plan, 'max_workspaces', -1)
+                try:
+                    sub = request.user.subscription
+                    max_w = getattr(sub.plan, 'max_workspaces', -1)
+                    plan_name = sub.plan.display_name
+                except Exception:
+                    max_w = -1
+                    plan_name = ''
+                
                 current_w = Workspace.objects.filter(owner=request.user).exclude(status='deleted').count()
                 
                 if current_w >= max_per_user:
@@ -39,7 +45,7 @@ class WorkspaceCreateView(APIView):
                 if max_w != -1 and current_w >= max_w:
                     return Response({
                         "success": False,
-                        "message": f"Workspace limit reached for {sub.plan.display_name} plan"
+                        "message": f"Workspace limit reached for {plan_name} plan"
                     }, status=status.HTTP_403_FORBIDDEN)
                     
                 workspace = serializer.save(owner=request.user)
