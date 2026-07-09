@@ -1,4 +1,10 @@
-from rest_framework.views import APIView
+with open('admin_views.py', 'r', encoding='utf-8') as f:
+    code = f.read()
+
+# We need to completely replace AdminUserListView and AdminUserDetailView, and append others.
+# First let's just rewrite the whole file since we can easily recreate the other views.
+
+new_content = '''from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import permissions
 from apps.users.permissions import IsAdmin
@@ -416,3 +422,9 @@ class AdminExportUsersView(APIView):
             ])
         
         return response
+'''
+
+with open('admin_views.py', 'w', encoding='utf-8') as f:
+    f.write(new_content)
+
+print("Appended views")

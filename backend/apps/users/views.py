@@ -66,6 +66,15 @@ class LoginView(APIView):
         
         user = User.objects.filter(email=email).first()
         if user and user.check_password(password):
+            if user.is_suspended:
+                return Response({
+                    'success': False,
+                    'message': (
+                        'Your account has been '
+                        'suspended. Contact support '
+                        'at support@clouddesk.io')
+                }, status=403)
+                
             if not user.is_active or not user.is_approved:
                 return Response({
                     "success": False,

@@ -1,4 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import os
+
+content = '''import { useState, useEffect, useRef } from 'react';
 import { Search, Download, MoreVertical, X, Shield, ShieldOff, Users, Eye } from 'lucide-react';
 import api from '../../services/api';
 import { toast } from 'react-hot-toast';
@@ -95,7 +97,7 @@ function UserDetailDrawer({ userId, onClose, onSuspend, onReactivate }) {
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
-    api.get(`/users/admin/${userId}/detail/`)
+    api.get(/users/admin//detail/)
       .then(res => setDetail(res.data))
       .catch(e => {
         console.error(e);
@@ -216,8 +218,8 @@ function UserDetailDrawer({ userId, onClose, onSuspend, onReactivate }) {
                 gap: '12px', marginBottom: '24px',
               }}>
                 {[
-                  { label: 'Hours Used', value: `${detail.usage.hours_used}h` },
-                  { label: 'Total Spent', value: `TZS ${detail.usage.total_spent.toLocaleString()}` },
+                  { label: 'Hours Used', value: ${detail.usage.hours_used}h },
+                  { label: 'Total Spent', value: TZS  },
                   { label: 'Workspaces', value: detail.usage.workspace_count },
                   { label: 'Sessions Hosted', value: detail.usage.sessions_hosted },
                 ].map(stat => (
@@ -325,7 +327,7 @@ export default function AdminUsersPage() {
   
   const fetchUsers = () => {
     const params = new URLSearchParams({ search, role: roleFilter, status: statusFilter, sort });
-    api.get(`/users/admin/?${params.toString()}`)
+    api.get(/users/admin/?)
       .then(res => {
         setUsers(res.data.users || []);
         if (res.data.counts) setCounts(res.data.counts);
@@ -339,11 +341,11 @@ export default function AdminUsersPage() {
   }, [search, roleFilter, statusFilter, sort]);
   
   const handleExportCSV = () => {
-    window.location.href = `${api.defaults.baseURL || 'http://localhost:8000/api'}/users/admin/export/`;
+    window.location.href = ${api.defaults.baseURL || 'http://localhost:8000/api'}/users/admin/export/;
   };
   
   const handleBulkAction = async (action) => {
-    if (!window.confirm(`Are you sure you want to ${action} ${selectedIds.length} user(s)?`)) return;
+    if (!window.confirm(Are you sure you want to   user(s)?)) return;
     try {
       const res = await api.post('/users/admin/bulk/', { user_ids: selectedIds, action });
       toast.success(res.data.message || 'Action applied');
@@ -365,7 +367,7 @@ export default function AdminUsersPage() {
   const handleSuspend = (userId) => {
     const reason = prompt('Reason for suspension (optional):');
     if (reason === null) return;
-    api.post(`/users/admin/${userId}/suspend/`, { reason: reason || '' })
+    api.post(/users/admin//suspend/, { reason: reason || '' })
       .then(res => {
         toast.success(res.data.message);
         fetchUsers();
@@ -376,7 +378,7 @@ export default function AdminUsersPage() {
   
   const handleReactivate = (userId) => {
     if (!window.confirm('Reactivate this user?')) return;
-    api.post(`/users/admin/${userId}/reactivate/`)
+    api.post(/users/admin//reactivate/)
       .then(res => {
         toast.success(res.data.message);
         fetchUsers();
@@ -386,7 +388,7 @@ export default function AdminUsersPage() {
   
   const handleTriggerReset = (userId) => {
     if (!window.confirm('Trigger a password reset for this user?')) return;
-    api.post(`/users/admin/${userId}/trigger-reset/`)
+    api.post(/users/admin//trigger-reset/)
       .then(res => {
         toast.success(res.data.message);
       })
@@ -400,12 +402,12 @@ export default function AdminUsersPage() {
   
   return (
     <div style={{ padding: '24px' }}>
-      <style>{`
+      <style>{
         @keyframes slideInRight {
           from { transform: translateX(100%); }
           to { transform: translateX(0); }
         }
-      `}</style>
+      }</style>
       
       <div style={{
         display: 'flex',
@@ -677,3 +679,7 @@ export default function AdminUsersPage() {
     </div>
   );
 }
+'''
+
+with open('AdminUsersPage.jsx', 'w', encoding='utf-8') as f:
+    f.write(content)

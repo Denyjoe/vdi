@@ -98,6 +98,16 @@ class User(AbstractUser):
     notify_hours_low = models.BooleanField(default=True)
     notify_payment = models.BooleanField(default=True)
     notify_session_invite = models.BooleanField(default=True)
+
+    # Suspension Fields
+    is_suspended = models.BooleanField(default=False)
+    suspended_at = models.DateTimeField(null=True, blank=True)
+    suspended_reason = models.TextField(blank=True, default='')
+    suspended_by = models.ForeignKey(
+        'self', null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='suspended_users'
+    )
     notify_announcements = models.BooleanField(default=True)
     
     created_at = models.DateTimeField(
