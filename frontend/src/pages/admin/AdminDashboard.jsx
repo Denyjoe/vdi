@@ -3,7 +3,7 @@ import useAuthStore from '../../store/authStore';
 import { 
   Users, Monitor, Activity, Server, Clock, Database, CheckCircle, 
   Settings, Layers, Terminal, AlertTriangle, Download, Plus, List, Video,
-  RefreshCw, AlertCircle, Power
+  RefreshCw, AlertCircle, Power, Receipt, Copy
 } from 'lucide-react';
 import api from '../../services/api';
 import { 
@@ -192,6 +192,74 @@ export default function AdminDashboard() {
     );
   }
 
+  const quickActions = [
+    {
+      label: 'View Status',
+      icon: Activity,
+      colorClass: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20',
+      iconColorClass: 'bg-emerald-500/20',
+      onClick: () => document.getElementById('services-health-section')?.scrollIntoView({ behavior: 'smooth' })
+    },
+    {
+      label: 'View Payments',
+      icon: Receipt,
+      colorClass: 'bg-blue-500/10 border-blue-500/20 text-blue-300 hover:bg-blue-500/20',
+      iconColorClass: 'bg-blue-500/20',
+      onClick: () => navigate('/admin/analytics')
+    },
+    {
+      label: 'Pre-clone VMs',
+      icon: Copy,
+      colorClass: 'bg-indigo-500/10 border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20',
+      iconColorClass: 'bg-indigo-500/20',
+      onClick: () => navigate('/admin/vm-pool')
+    },
+    {
+      label: 'Manage Users',
+      icon: Users,
+      colorClass: 'bg-white/5 border-[var(--border-color)] text-[var(--text-primary)] hover:bg-white/10',
+      iconColorClass: 'bg-white/5',
+      onClick: () => navigate('/admin/users')
+    },
+    {
+      label: 'View Templates',
+      icon: List,
+      colorClass: 'bg-white/5 border-[var(--border-color)] text-[var(--text-primary)] hover:bg-white/10',
+      iconColorClass: 'bg-white/5',
+      onClick: () => navigate('/admin/templates')
+    },
+    {
+      label: 'Monitor Sessions',
+      icon: Video,
+      colorClass: 'bg-white/5 border-[var(--border-color)] text-[var(--text-primary)] hover:bg-white/10',
+      iconColorClass: 'bg-white/5',
+      onClick: () => navigate('/admin/sessions')
+    },
+    {
+      label: 'Clean Up Errors',
+      icon: AlertTriangle,
+      colorClass: 'bg-red-500/10 border-red-500/20 text-red-300 hover:bg-red-500/20',
+      iconColorClass: 'bg-red-500/20',
+      onClick: () => navigate('/admin/vm-pool')
+    },
+    {
+      label: isBackingUp ? 'Backing up...' : 'Trigger Backup',
+      icon: isBackingUp ? RefreshCw : Database,
+      colorClass: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20',
+      iconColorClass: 'bg-emerald-500/20',
+      onClick: handleTriggerBackup,
+      disabled: isBackingUp,
+      spin: isBackingUp
+    },
+    {
+      label: 'Maintenance Mode',
+      icon: Power,
+      colorClass: 'bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20',
+      iconColorClass: 'bg-amber-500/20',
+      onClick: () => alert('Maintenance mode triggered (simulated)')
+    }
+  ];
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8 animate-[fadeIn_0.4s_ease-out]">
       <div className="mb-8">
@@ -217,7 +285,17 @@ export default function AdminDashboard() {
                 </div>
                 <p className="text-sm text-[var(--text-secondary)] mb-4">{issue.description}</p>
                 <button 
-                  onClick={() => navigate(issue.action_link)}
+                  onClick={() => {
+                    if (issue.action_label === 'View Status') {
+                      document.getElementById('services-health-section')?.scrollIntoView({ behavior: 'smooth' });
+                    } else if (issue.action_label === 'View Payments') {
+                      navigate('/admin/analytics');
+                    } else if (issue.action_label === 'Pre-clone VMs') {
+                      navigate('/admin/vm-pool');
+                    } else {
+                      navigate(issue.action_link);
+                    }
+                  }}
                   className="text-sm font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
                 >
                   {issue.action_label} &rarr;
@@ -333,7 +411,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* SECTION B: System Infrastructure */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div id="services-health-section" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-[var(--bg-card)]/80 backdrop-blur-md rounded-2xl shadow-lg border border-[var(--border-color)] p-6">
           <div className="flex items-center justify-between mb-8">
             <div>
@@ -470,10 +548,12 @@ export default function AdminDashboard() {
                 <XAxis dataKey="name" stroke={getVar('--chart-text')} axisLine={false} tickLine={false} />
                 <YAxis stroke={getVar('--chart-text')} axisLine={false} tickLine={false} />
                 <RechartsTooltip 
-                  contentStyle={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
+                  cursor={{ fill: getVar('--bg-elevated') }}
+                  contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
+                  itemStyle={{ color: 'var(--text-primary)' }}
                 />
                 <Bar dataKey="created" fill={getVar('--chart-line')} radius={[4, 4, 0, 0]} maxBarSize={30} />
-                <Bar dataKey="destroyed" fill={getVar('--accent')} radius={[4, 4, 0, 0]} maxBarSize={30} />
+                <Bar dataKey="destroyed" fill={getVar('--status-error')} radius={[4, 4, 0, 0]} maxBarSize={30} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -522,58 +602,19 @@ export default function AdminDashboard() {
             <p className="text-sm text-[var(--text-secondary)] mt-1">Shortcuts to common administration tasks</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <button 
-              onClick={() => navigate('/admin/vm-pool')} 
-              className="flex items-center gap-3 p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20 transition-all text-left group"
-            >
-              <div className="p-2 bg-indigo-500/20 rounded-lg group-hover:scale-110 transition-transform"><Plus size={20} /></div>
-              <span className="font-medium">Pre-clone VMs</span>
-            </button>
-            <button 
-              onClick={() => navigate('/admin/users')}
-              className="flex items-center gap-3 p-4 rounded-xl bg-white/5 border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-white/10 transition-all text-left group"
-            >
-              <div className="p-2 bg-white/5 rounded-lg group-hover:scale-110 transition-transform"><Users size={20} /></div>
-              <span className="font-medium">Manage Users</span>
-            </button>
-            <button 
-              onClick={() => navigate('/admin/templates')}
-              className="flex items-center gap-3 p-4 rounded-xl bg-white/5 border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-white/10 transition-all text-left group"
-            >
-              <div className="p-2 bg-white/5 rounded-lg group-hover:scale-110 transition-transform"><List size={20} /></div>
-              <span className="font-medium">View Templates</span>
-            </button>
-            <button 
-              onClick={() => navigate('/admin/sessions')}
-              className="flex items-center gap-3 p-4 rounded-xl bg-white/5 border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-white/10 transition-all text-left group"
-            >
-              <div className="p-2 bg-white/5 rounded-lg group-hover:scale-110 transition-transform"><Video size={20} /></div>
-              <span className="font-medium">Monitor Sessions</span>
-            </button>
-            <button 
-              onClick={() => navigate('/admin/vm-pool')}
-              className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 hover:bg-red-500/20 transition-all text-left group"
-            >
-              <div className="p-2 bg-red-500/20 rounded-lg group-hover:scale-110 transition-transform"><AlertTriangle size={20} /></div>
-              <span className="font-medium">Clean Up Errors</span>
-            </button>
-            <button 
-              onClick={handleTriggerBackup}
-              disabled={isBackingUp}
-              className="flex items-center gap-3 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20 transition-all text-left group"
-            >
-              <div className="p-2 bg-emerald-500/20 rounded-lg group-hover:scale-110 transition-transform">
-                {isBackingUp ? <RefreshCw className="animate-spin w-5 h-5" /> : <Database size={20} />}
-              </div>
-              <span className="font-medium">{isBackingUp ? 'Backing up...' : 'Trigger Backup'}</span>
-            </button>
-            <button 
-              onClick={() => alert('Maintenance mode triggered (simulated)')}
-              className="flex items-center gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition-all text-left group"
-            >
-              <div className="p-2 bg-amber-500/20 rounded-lg group-hover:scale-110 transition-transform"><Power size={20} /></div>
-              <span className="font-medium">Maintenance Mode</span>
-            </button>
+            {quickActions.map((action, idx) => (
+              <button 
+                key={idx}
+                onClick={action.onClick}
+                disabled={action.disabled}
+                className={`flex items-center gap-3 p-4 rounded-xl transition-all text-left group border ${action.colorClass}`}
+              >
+                <div className={`p-2 rounded-lg group-hover:scale-110 transition-transform ${action.iconColorClass}`}>
+                  <action.icon size={20} className={action.spin ? "animate-spin" : ""} />
+                </div>
+                <span className="font-medium">{action.label}</span>
+              </button>
+            ))}
           </div>
         </div>
       </div>
