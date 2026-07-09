@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import api from '../../services/api'
 import { toast } from 'react-hot-toast'
+import TemplateLinkModal from '../../components/admin/TemplateLinkModal';
 
 const AUTO_REFRESH_INTERVAL_MS = 10000
 
@@ -17,11 +18,6 @@ export default function VMPoolPage() {
   
   // Link Modal State
   const [linkModalTemplate, setLinkModalTemplate] = useState(null)
-  const [vmIdInput, setVmIdInput] = useState('')
-  const [testResult, setTestResult] = useState(null)
-  const [testing, setTesting] = useState(false)
-  const [previewData, setPreviewData] = useState(null)
-  const [previewing, setPreviewing] = useState(false)
 
   const [createForm, setCreateForm] = useState({ template_id: '', count: 1 })
   const [creating, setCreating] = useState(false)
@@ -150,48 +146,6 @@ export default function VMPoolPage() {
       handleRefresh()
     } catch(e) {
       console.error(e)
-    }
-  }
-
-  const handleTestConnection = async () => {
-    try {
-      setTesting(true)
-      setTestResult(null)
-      const res = await api.post(`/vms/admin/templates/${linkModalTemplate.id}/test-link/`, { proxmox_vm_id: vmIdInput })
-      setTestResult(res.data)
-    } catch(e) {
-      setTestResult({
-        success: false,
-        message: e.response?.data?.message || 'Test failed'
-      })
-    } finally {
-      setTesting(false)
-    }
-  }
-
-  const handlePreview = async () => {
-    try {
-      setPreviewing(true)
-      const res = await api.post(`/vms/admin/templates/${linkModalTemplate.id}/preview/`, { proxmox_vm_id: vmIdInput })
-      setPreviewData(res.data)
-    } catch(e) {
-      alert('Preview failed: ' + (e.response?.data?.message || e.message))
-    } finally {
-      setPreviewing(false)
-    }
-  }
-
-  const handleConfirmLink = async () => {
-    try {
-      await api.put(`/vms/admin/templates/${linkModalTemplate.id}/link/`, { proxmox_template_id: vmIdInput })
-      toast.success('Template linked successfully')
-      setLinkModalTemplate(null)
-      setVmIdInput('')
-      setTestResult(null)
-      handleRefresh()
-    } catch(e) {
-      console.error(e)
-      toast.error('Link failed')
     }
   }
 
@@ -466,7 +420,7 @@ export default function VMPoolPage() {
                       <Unlink size={14} /> Unlink
                     </button>
                     <button 
-                      onClick={() => { setLinkModalTemplate(template); setVmIdInput(template.proxmox_template_id || '') }}
+                      onClick={() => setLinkModalTemplate(template)}
                       className="flex-1 py-2 rounded-xl border text-xs font-medium transition-colors flex items-center justify-center gap-1.5 bg-[var(--bg-input)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-card)]"
                     >
                       <Link2 size={14} /> Update
@@ -474,7 +428,7 @@ export default function VMPoolPage() {
                   </>
                 ) : (
                   <button 
-                    onClick={() => { setLinkModalTemplate(template); setVmIdInput('') }}
+                    onClick={() => setLinkModalTemplate(template)}
                     className="w-full py-2.5 rounded-xl border text-sm font-medium transition-colors flex items-center justify-center gap-2 bg-[var(--bg-input)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--bg-card)]"
                   >
                     <Link2 size={16} /> Link to Proxmox
