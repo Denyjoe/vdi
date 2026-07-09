@@ -63,7 +63,7 @@ export default function AdminAnalyticsPage() {
           api.get('/sessions/admin/stats/'),
           api.get('/payments/admin/stats/'),
           api.get('/vms/admin/system-stats/'),
-          api.get('/vms/admin/templates/'),
+          api.get('/users/admin/analytics/vm-usage/'),
           api.get('/users/admin/list/')
         ]);
 
@@ -75,9 +75,9 @@ export default function AdminAnalyticsPage() {
         });
 
         if (templatesRes.status === 'fulfilled' && templatesRes.value.data.success) {
-          const templates = templatesRes.value.data.data.map(t => ({
-            name: t.name,
-            count: t.pool_count || 0
+          const templates = templatesRes.value.data.data.by_template.map(t => ({
+            name: t.template_name,
+            count: t.vm_count || 0
           }));
           setVmTemplates(templates);
         }

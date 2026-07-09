@@ -54,14 +54,22 @@ class AnalyticsSessionTrendsView(APIView):
 class AnalyticsVMUsageView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
     def get(self, request):
+        from apps.vms.models import Workspace
+        from django.db.models import Count
+        
+        results = Workspace.objects.exclude(vm_template__isnull=True).values(
+            'vm_template__name'
+        ).annotate(vm_count=Count('id')).order_by('-vm_count')
+        
+        by_template = [
+            {"template_name": r['vm_template__name'], "vm_count": r['vm_count']}
+            for r in results
+        ]
+
         return Response({
             "success": True,
             "data": {
-                "by_template": [
-                    {"template_name": "Ubuntu 22.04", "vm_count": 45},
-                    {"template_name": "Windows 10", "vm_count": 30},
-                    {"template_name": "CentOS 8", "vm_count": 15},
-                ],
+                "by_template": by_template,
                 "top_users": [
                     {"name": "John Doe", "email": "john@example.com", "vm_count": 12, "total_session_hours": 45},
                     {"name": "Jane Smith", "email": "jane@example.com", "vm_count": 8, "total_session_hours": 32},
