@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import api from '../../services/api';
 import { useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 import useUIStore from '../../store/uiStore';
@@ -12,7 +13,7 @@ import {
   Server, Users, LayoutTemplate
 } from 'lucide-react';
 
-function NavItem({ icon: Icon, label, path, onClick, collapsed, active, accent, theme }) {
+function NavItem({ icon: Icon, label, path, onClick, collapsed, active, accent, theme, badge }) {
   const navigate = useNavigate();
   
   const handleClick = () => {
@@ -53,7 +54,31 @@ function NavItem({ icon: Icon, label, path, onClick, collapsed, active, accent, 
           {label}
         </div>
       )}
-    </button>
+    
+
+      {!collapsed && badge && (
+        <span style={{
+          marginLeft: 'auto',
+          padding: '2px 7px',
+          borderRadius: '9999px',
+          fontSize: '10px',
+          fontWeight: 700,
+          background: 'var(--status-online-bg)',
+          color: 'var(--status-online)',
+        }}>
+          {badge}
+        </span>
+      )}
+      {collapsed && badge && (
+        <span style={{
+          position: 'absolute',
+          top: '2px', right: '2px',
+          width: '8px', height: '8px',
+          borderRadius: '50%',
+          background: 'var(--status-online)',
+        }} />
+      )}
+</button>
   );
 }
 
@@ -78,6 +103,25 @@ export default function Sidebar() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  const [liveSessionCount, setLiveSessionCount] = useState(0);
+
+  useEffect(() => {
+    if (user?.role !== 'admin') return;
+    
+    const fetchLiveCount = async () => {
+      try {
+        const res = await api.get('/admin/sessions/live/');
+        setLiveSessionCount(res.data.total_active || 0);
+      } catch(e) {
+        // Silent fail — badge just won't show
+      }
+    };
+    
+    fetchLiveCount();
+    const interval = setInterval(fetchLiveCount, 15000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   const handleLogout = () => {
     logout();
@@ -113,7 +157,8 @@ export default function Sidebar() {
         className="absolute -right-3 top-16 w-6 h-6 rounded-full bg-[var(--bg-elevated)] border border-[var(--border-color)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-nav-hover)] hover:border-[var(--border-strong)] active:scale-90 transition-all duration-200 z-10 shadow-md"
         title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
         {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
-      </button>
+      
+</button>
       
       {/* ═══ NAVIGATION ═══ */}
       <nav className="flex-1 overflow-y-auto py-4 custom-scrollbar">
@@ -169,7 +214,8 @@ export default function Sidebar() {
                       </p>
                     </div>
                   )}
-                </button>
+                
+</button>
               )}
             </div>
           </>
@@ -190,6 +236,15 @@ export default function Sidebar() {
             
             <div className={`space-y-1 ${collapsed ? 'px-2' : 'px-3'}`}>
               <NavItem icon={LayoutDashboard} label="Dashboard" path="/admin/dashboard" collapsed={collapsed} active={location.pathname === '/admin/dashboard'} theme={theme} />
+          <NavItem 
+            icon={Radio}
+            label="Live Sessions"
+            path="/admin/sessions"
+            collapsed={collapsed}
+            active={location.pathname === '/admin/sessions'}
+            badge={liveSessionCount > 0 ? liveSessionCount : null}
+          />
+
               <NavItem icon={Server} label="VM Pool" path="/admin/vm-pool" collapsed={collapsed} active={location.pathname === '/admin/vm-pool'} theme={theme} />
               <NavItem icon={Users} label="Users" path="/admin/users" collapsed={collapsed} active={location.pathname === '/admin/users'} theme={theme} />
               <NavItem icon={LayoutTemplate} label="Templates" path="/admin/templates" collapsed={collapsed} active={location.pathname === '/admin/templates'} theme={theme} />
@@ -229,12 +284,14 @@ export default function Sidebar() {
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-secondary hover:bg-nav-hover transition-colors">
                 <Settings size={14} className="text-muted" />
                 Account Settings
-              </button>
+              
+</button>
               <button onClick={() => { openBilling(); setShowUserMenu(false); }}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-secondary hover:bg-nav-hover transition-colors">
                 <Receipt size={14} className="text-muted" />
                 Billing & Usage
-              </button>
+              
+</button>
             </div>
             
             {/* Sign out */}
@@ -243,7 +300,8 @@ export default function Sidebar() {
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-red-400 hover:bg-red-500/5 transition-colors">
                 <LogOut size={14} />
                 Sign Out
-              </button>
+              
+</button>
             </div>
           </div>
         )}
@@ -273,7 +331,8 @@ export default function Sidebar() {
               <ChevronUp size={14} className={`text-faint transition-transform duration-200 ${showUserMenu ? '' : 'rotate-180'}`} />
             </>
           )}
-        </button>
+        
+</button>
       </div>
 
       <style>{`
