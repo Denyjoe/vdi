@@ -19,6 +19,8 @@ from apps.vms.pool_views import (
     TemplateTestLinkView,
     TemplatePreviewView,
     TemplatePreviewCleanupView,
+    AdminTemplateCreateView,
+    AdminTemplateDetailView,
 )
 
 urlpatterns = [
@@ -29,6 +31,8 @@ urlpatterns = [
     path('pool/capacity/', PoolCapacityView.as_view(), name='pool-capacity'),
     path('pool/<int:entry_id>/', PoolDeleteEntryView.as_view(), name='pool-delete'),
     path('templates/', PoolTemplateListView.as_view(), name='pool-templates'),
+    path('templates/create/', AdminTemplateCreateView.as_view(), name='admin-template-create'),
+    path('templates/<int:template_id>/', AdminTemplateDetailView.as_view(), name='admin-template-detail'),
     path('templates/<int:template_id>/link/', TemplateLinkView.as_view(), name='template-link'),
     path('templates/<int:template_id>/test-link/', TemplateTestLinkView.as_view(), name='template-test-link'),
     path('templates/<int:template_id>/preview/', TemplatePreviewView.as_view(), name='template-preview'),

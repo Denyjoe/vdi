@@ -1,4 +1,10 @@
-import { useState, useEffect } from 'react';
+with open('c:/Users/Denis Wilson/Desktop/dit-vdi-system/frontend/src/pages/admin/AdminTemplatesPage.jsx', 'r', encoding='utf-8') as f:
+    content = f.read()
+
+import re
+
+# We will just write a new file completely for AdminTemplatesPage.jsx based on the provided instructions.
+new_content = '''import { useState, useEffect } from 'react';
 import { 
   Plus, ChevronDown, ChevronUp, Edit2, Eye, EyeOff, Trash2, 
   X, Check, Save, Loader2, RefreshCw, Monitor, Server, AlertTriangle, CheckCircle
@@ -126,7 +132,7 @@ export default function AdminTemplatesPage() {
 
   const toggleAvailability = async (template) => {
     try {
-      await api.put(`/vms/admin/templates/${template.id}/`, {
+      await api.put(/vms/admin/templates//, {
         is_available: !template.is_available
       });
       fetchTemplates();
@@ -138,7 +144,7 @@ export default function AdminTemplatesPage() {
 
   const handleDelete = async (template) => {
     try {
-      const res = await api.delete(`/vms/admin/templates/${template.id}/delete/`);
+      const res = await api.delete(/vms/admin/templates//delete/);
       if (res.data.success) {
         showToast('Template deleted');
         setDeleteTarget(null);
@@ -161,7 +167,7 @@ export default function AdminTemplatesPage() {
       };
       
       if (editingId) {
-        await api.put(`/vms/admin/templates/${editingId}/`, payload);
+        await api.put(/vms/admin/templates//, payload);
         showToast('Template updated successfully');
       } else {
         await api.post('/vms/admin/templates/create/', payload);
@@ -184,7 +190,7 @@ export default function AdminTemplatesPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {toast.show && <Toast message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, show: false })} />}
-      <ConfirmModal isOpen={!!deleteTarget} title="Delete Template" message={`Are you sure you want to delete ${deleteTarget?.name}? This action cannot be undone.`} confirmText="Delete" cancelText="Cancel" onConfirm={() => handleDelete(deleteTarget)} onCancel={() => setDeleteTarget(null)} isDanger={true} />
+      <ConfirmModal isOpen={!!deleteTarget} title="Delete Template" message={Are you sure you want to delete ? This action cannot be undone.} confirmText="Delete" cancelText="Cancel" onConfirm={() => handleDelete(deleteTarget)} onCancel={() => setDeleteTarget(null)} isDanger={true} />
       
       <TemplateLinkModal template={linkModalTemplate} isOpen={!!linkModalTemplate} onClose={() => setLinkModalTemplate(null)} onLinked={() => { setLinkModalTemplate(null); fetchTemplates(); }} />
 
@@ -359,7 +365,7 @@ export default function AdminTemplatesPage() {
                     {t.cpu_cores} vCPU · {t.ram_gb}GB · {t.storage_gb}GB
                   </td>
                   <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-primary)', fontWeight: 600 }}>
-                    {t.price_per_hour > 0 ? `TZS ${t.price_per_hour.toLocaleString()}/hr` : 'Free'}
+                    {t.price_per_hour > 0 ? TZS /hr : 'Free'}
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     {t.proxmox_template_id ? (
@@ -405,3 +411,6 @@ export default function AdminTemplatesPage() {
     </div>
   );
 }
+'''
+with open('c:/Users/Denis Wilson/Desktop/dit-vdi-system/frontend/src/pages/admin/AdminTemplatesPage.jsx', 'w', encoding='utf-8') as f:
+    f.write(new_content)
