@@ -142,6 +142,7 @@ export default function App() {
         {/* ── Protected routes (without layout) ───────────────────── */}
         <Route path="/host/session/:sessionId" element={<ProtectedRoute><ErrorBoundary><HostSessionPage /></ErrorBoundary></ProtectedRoute>} />
         <Route path="/session/:id" element={<ProtectedRoute><ErrorBoundary><DesktopSessionPage /></ErrorBoundary></ProtectedRoute>} />
+        <Route path="/workspace/:id" element={<ProtectedRoute><ErrorBoundary><DesktopSessionPage /></ErrorBoundary></ProtectedRoute>} />
 
         {/* ── Protected routes (with layout) ──────────────────────── */}
         <Route element={<ProtectedRoute><ErrorBoundary><Layout /></ErrorBoundary></ProtectedRoute>}>

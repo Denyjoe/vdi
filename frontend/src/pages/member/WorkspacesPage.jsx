@@ -447,7 +447,7 @@ export default function WorkspacesPage() {
                         <button onClick={() => handleStop(ws)} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold hover:bg-red-500/20 active:scale-95 transition-all duration-200">
                           <Power size={14} /> Shut down
                         </button>
-                        <button onClick={() => navigate(`/session/${ws.id}?type=workspace`)} className="flex-[2] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#0066FF] text-white text-xs font-semibold hover:bg-[#0052CC] active:scale-95 transition-all duration-200 shadow-lg shadow-blue-500/20">
+                        <button onClick={() => navigate(`/workspace/${ws.id}`)} className="flex-[2] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#0066FF] text-white text-xs font-semibold hover:bg-[#0052CC] active:scale-95 transition-all duration-200 shadow-lg shadow-blue-500/20">
                           <MonitorPlay size={14} /> Stream Desktop
                         </button>
                       </div>

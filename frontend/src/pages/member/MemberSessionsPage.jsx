@@ -79,7 +79,7 @@ export default function MemberSessionsPage() {
       const res = await api.post('/sessions/live/join/', { invite_code: joinCode.trim() });
       const sessionData = res.data?.data?.session || res.data?.data || res.data;
       if (sessionData?.id) {
-        navigate(`/workspace/${sessionData.id}?type=session`); // Note: user mentioned navigate to session.vm_id, but the join response might not give vm_id immediately, we'll navigate to session page or let user connect via active tab
+        navigate(`/session/${sessionData.id}?type=session`);
       }
       setJoinCode('');
       fetchSessions();
@@ -237,7 +237,7 @@ export default function MemberSessionsPage() {
             
             <div className="flex gap-2">
               <button
-                onClick={() => navigate(`/workspace/${session.id}?type=session`)}
+                onClick={() => navigate(`/session/${session.id}?type=session`)}
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#0066FF] text-white text-xs font-semibold hover:bg-[#0052CC] active:scale-95 transition-all shadow-lg shadow-blue-500/20">
                 <MonitorPlay size={14} />
                 Connect to Desktop

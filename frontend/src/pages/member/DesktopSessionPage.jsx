@@ -15,7 +15,7 @@ export default function DesktopSessionPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const searchParams = new URLSearchParams(location.search);
-  const type = searchParams.get('type');
+  const type = location.pathname.includes('/workspace/') ? 'workspace' : searchParams.get('type');
 
   const [workspace, setWorkspace] = useState(null);
   const [wsLoading, setWsLoading] = useState(type === 'workspace');
