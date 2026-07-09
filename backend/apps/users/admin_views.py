@@ -416,3 +416,160 @@ class AdminExportUsersView(APIView):
             ])
         
         return response
+
+
+class BackupListView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+    
+    def get(self, request):
+        import os
+        from django.conf import settings
+        
+        backup_dir = os.path.join(settings.BASE_DIR, 'backups')
+        
+        if not os.path.exists(backup_dir):
+            return Response({'backups': []})
+        
+        files = []
+        for f in os.listdir(backup_dir):
+            if f.endswith('.sql'):
+                path = os.path.join(backup_dir, f)
+                files.append({
+                    'filename': f,
+                    'size_mb': round(os.path.getsize(path) / (1024*1024), 2),
+                    'created_at': os.path.getctime(path),
+                })
+        
+        files.sort(key=lambda x: x['created_at'], reverse=True)
+        
+        return Response({
+            'backups': files
+        })
+
+class BackupDownloadView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+    
+    def get(self, request, filename):
+        import os
+        from django.http import FileResponse, Http404
+        from django.conf import settings
+        
+        # Security: prevent path traversal
+        if '..' in filename or '/' in filename or '\\' in filename:
+            raise Http404()
+        
+        backup_dir = os.path.join(settings.BASE_DIR, 'backups')
+        filepath = os.path.join(backup_dir, filename)
+        
+        if not os.path.exists(filepath):
+            raise Http404()
+        
+        return FileResponse(open(filepath, 'rb'), as_attachment=True, filename=filename)
+
+
+class SecurityLogView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+    
+    def get(self, request):
+        from apps.users.models import LoginAttempt
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        attempts = LoginAttempt.objects.all()[:50]
+        
+        failed_last_24h = LoginAttempt.objects.filter(
+            success=False,
+            created_at__gte=timezone.now() - timedelta(hours=24)
+        ).count()
+        
+        return Response({
+            'attempts': [{
+                'email': a.email,
+                'success': a.success,
+                'ip_address': a.ip_address,
+                'created_at': a.created_at.isoformat(),
+            } for a in attempts],
+            'failed_last_24h': failed_last_24h,
+        })
+
+class AuditLogView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+    
+    def get(self, request):
+        from apps.users.models import AdminActionLog
+        
+        logs = AdminActionLog.objects.select_related('admin')
+        
+        search = request.query_params.get('search', '')
+        if search:
+            logs = logs.filter(description__icontains=search)
+        
+        action_type = request.query_params.get('action_type', '')
+        if action_type:
+            logs = logs.filter(action_type=action_type)
+        
+        try:
+            page = int(request.query_params.get('page', 1))
+        except ValueError:
+            page = 1
+            
+        page_size = 20
+        start = (page - 1) * page_size
+        end = start + page_size
+        
+        total = logs.count()
+        logs = logs.order_by('-created_at')[start:end]
+        
+        return Response({
+            'logs': [{
+                'id': l.id,
+                'admin_name': f'{l.admin.first_name} {l.admin.last_name}' if l.admin else 'System',
+                'action_type': l.action_type,
+                'description': l.description,
+                'created_at': l.created_at.isoformat(),
+            } for l in logs],
+            'total': total,
+            'page': page,
+            'total_pages': max(1, (total + page_size - 1) // page_size),
+        })
+
+class AdminAPITokensView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+    
+    def get(self, request):
+        from apps.users.models import APIToken
+        
+        tokens = APIToken.objects.select_related('user').filter(is_active=True).order_by('-created_at')
+        
+        return Response({
+            'tokens': [{
+                'id': t.id,
+                'user_email': t.user.email,
+                'user_name': f'{t.user.first_name} {t.user.last_name}',
+                'prefix': t.key_prefix,
+                'created_at': t.created_at.isoformat(),
+                'last_used_at': t.last_used_at.isoformat() if t.last_used_at else None,
+                'calls_today': t.calls_today,
+            } for t in tokens]
+        })
+
+class AdminRevokeTokenView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+    
+    def post(self, request, token_id):
+        from apps.users.models import APIToken
+        
+        try:
+            token = APIToken.objects.get(id=token_id)
+            user_email = token.user.email
+            token.delete()
+            
+            from apps.users.admin_services import log_admin_action
+            log_admin_action(request.user, 'config_changed', f'Revoked API token for {user_email}')
+            
+            return Response({
+                'success': True,
+                'message': 'Token revoked'
+            })
+        except APIToken.DoesNotExist:
+            return Response({'error': 'Not found'}, status=404)

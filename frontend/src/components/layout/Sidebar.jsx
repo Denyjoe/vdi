@@ -10,7 +10,7 @@ import { toast } from 'react-hot-toast';
 import { 
   LayoutDashboard, Monitor, Video, Plus, BarChart3, ChevronLeft, 
   ChevronRight, Radio, ChevronUp, LogOut, Settings, Receipt,
-  Server, Users, LayoutTemplate
+  Server, Users, LayoutTemplate, HardDrive
 } from 'lucide-react';
 
 function NavItem({ icon: Icon, label, path, onClick, collapsed, active, accent, theme, badge }) {
@@ -229,22 +229,21 @@ export default function Sidebar() {
                 Admin
               </p>
             )}
-            
             {collapsed && (
               <div className="mx-2 my-4 border-t border-border-subtle" />
             )}
             
             <div className={`space-y-1 ${collapsed ? 'px-2' : 'px-3'}`}>
               <NavItem icon={LayoutDashboard} label="Dashboard" path="/admin/dashboard" collapsed={collapsed} active={location.pathname === '/admin/dashboard'} theme={theme} />
-          <NavItem 
-            icon={Radio}
-            label="Live Sessions"
-            path="/admin/sessions"
-            collapsed={collapsed}
-            active={location.pathname === '/admin/sessions'}
-            badge={liveSessionCount > 0 ? liveSessionCount : null}
-          />
-
+              
+              <div className="mx-2 my-4 border-t border-border-subtle" />
+              
+              <p className={`text-[10px] font-semibold text-[var(--text-faint)] uppercase tracking-wider mb-2 px-3 ${collapsed ? 'hidden' : 'block'}`}>
+                Administration
+              </p>
+              
+              <NavItem icon={Radio} label="Live Sessions" path="/admin/sessions" collapsed={collapsed} active={location.pathname === '/admin/sessions'} badge={liveSessionCount > 0 ? liveSessionCount : null} theme={theme} />
+              <NavItem icon={HardDrive} label="Workspaces" path="/admin/workspaces" collapsed={collapsed} active={location.pathname === '/admin/workspaces'} theme={theme} />
               <NavItem icon={Server} label="VM Pool" path="/admin/vm-pool" collapsed={collapsed} active={location.pathname === '/admin/vm-pool'} theme={theme} />
               <NavItem icon={Users} label="Users" path="/admin/users" collapsed={collapsed} active={location.pathname === '/admin/users'} theme={theme} />
               <NavItem icon={LayoutTemplate} label="Templates" path="/admin/templates" collapsed={collapsed} active={location.pathname === '/admin/templates'} theme={theme} />

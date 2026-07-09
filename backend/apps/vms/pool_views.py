@@ -385,15 +385,7 @@ class SystemStatsView(APIView):
                 'error': guac_error
             }
         })
-                },
-                'vms': {
-                    'total': 0, 
-                    'running': 0
-                },
-                'guacamole': {
-                    'status': 'unknown'
-                }
-            })
+
 
 
 class PoolEntriesView(APIView):

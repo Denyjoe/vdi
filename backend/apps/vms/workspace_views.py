@@ -23,9 +23,18 @@ class WorkspaceCreateView(APIView):
         serializer = WorkspaceSerializer(data=request.data)
         if serializer.is_valid():
             try:
+                from apps.users.models import SystemConfig
+                max_per_user = int(SystemConfig.get('max_vms_per_user', '3'))
+                
                 sub = request.user.subscription
                 max_w = getattr(sub.plan, 'max_workspaces', -1)
                 current_w = Workspace.objects.filter(owner=request.user).exclude(status='deleted').count()
+                
+                if current_w >= max_per_user:
+                    return Response({
+                        "success": False,
+                        "message": f"You have reached the platform maximum of {max_per_user} workspace(s). Delete an existing workspace to create a new one."
+                    }, status=status.HTTP_400_BAD_REQUEST)
                 
                 if max_w != -1 and current_w >= max_w:
                     return Response({
@@ -57,6 +66,17 @@ class WorkspaceLaunchView(APIView):
     def post(self, request, pk):
         workspace = get_object_or_404(Workspace, pk=pk, owner=request.user)
         
+        from apps.users.models import SystemConfig
+        from apps.vms.models import VirtualMachine
+        
+        max_concurrent = int(SystemConfig.get('max_concurrent_vms', '10'))
+        active_vms = VirtualMachine.objects.filter(status='running').count()
+        if active_vms >= max_concurrent:
+            return Response({
+                "success": False,
+                "message": "Platform is at maximum capacity. Please try again shortly."
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
         try:
             sub = request.user.subscription
             if sub.hours_remaining <= 0:

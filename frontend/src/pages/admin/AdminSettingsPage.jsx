@@ -257,7 +257,7 @@ export default function AdminSettingsPage() {
       <div className="space-y-8">
         {/* SECTION 1: Platform Config */}
         <section className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/50 flex items-center gap-2">
+          <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-nav-hover)] flex items-center gap-2">
             <Shield className="w-5 h-5 text-indigo-400" />
             <h2 className="text-lg font-semibold text-[var(--text-primary)]">Platform Configuration</h2>
           </div>
@@ -265,46 +265,46 @@ export default function AdminSettingsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-[var(--text-secondary)] mb-1">Platform Name</label>
-                <input type="text" className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
+                <input type="text" className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
                   value={platformConfig.platform_name} onChange={e => handlePlatformChange('platform_name', e.target.value)} />
               </div>
               <div>
                 <label className="block text-sm text-[var(--text-secondary)] mb-1">Support Email</label>
-                <input type="email" className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
+                <input type="email" className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
                   value={platformConfig.support_email} onChange={e => handlePlatformChange('support_email', e.target.value)} />
               </div>
             </div>
             
-            <div className="flex items-center justify-between p-4 bg-[var(--bg-primary)]/50 rounded-lg border border-[var(--border-color)]/50">
+            <div className="flex items-center justify-between p-4 bg-[var(--bg-nav-hover)] rounded-lg border border-[var(--border-color)]/50">
               <div>
                 <p className="text-[var(--text-primary)] font-medium text-sm">Allow Registration</p>
-                <p className="text-muted text-xs">Allow users to sign up for free</p>
+                <p className="text-[var(--text-muted)] text-xs">Allow users to sign up for free</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" className="sr-only peer" checked={platformConfig.allow_registration} onChange={e => handlePlatformChange('allow_registration', e.target.checked)} />
-                <div className="w-11 h-6 bg-[var(--bg-card-hover)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
+                <div className="w-11 h-6 bg-[var(--bg-nav-hover)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
               </label>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-[var(--bg-primary)]/50 rounded-lg border border-[var(--border-color)]/50">
+            <div className="flex items-center justify-between p-4 bg-[var(--bg-nav-hover)] rounded-lg border border-[var(--border-color)]/50">
               <div>
                 <p className="text-[var(--text-primary)] font-medium text-sm">Maintenance Mode</p>
-                <p className="text-muted text-xs">Block non-admin access</p>
+                <p className="text-[var(--text-muted)] text-xs">Block non-admin access</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" className="sr-only peer" checked={platformConfig.maintenance_mode} onChange={e => handlePlatformChange('maintenance_mode', e.target.checked)} />
-                <div className="w-11 h-6 bg-[var(--bg-card-hover)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"></div>
+                <div className="w-11 h-6 bg-[var(--bg-nav-hover)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"></div>
               </label>
             </div>
 
             <div>
               <label className="block text-sm text-[var(--text-secondary)] mb-1">System Announcement</label>
-              <textarea className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] h-20 resize-none"
+              <textarea className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] h-20 resize-none"
                 placeholder="Message shown to all users..."
                 value={platformConfig.system_announcement} onChange={e => handlePlatformChange('system_announcement', e.target.value)} />
             </div>
           </div>
-          <div className="px-6 py-4 border-t border-[var(--border-color)] bg-[var(--bg-primary)]/30 flex justify-end">
+          <div className="px-6 py-4 border-t border-[var(--border-color)] bg-[var(--bg-nav-hover)] flex justify-end">
             <button onClick={savePlatformConfig} disabled={savingSection === 'platform'} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
               <Save size={16} />
               {savingSection === 'platform' ? 'Saving...' : 'Save Changes'}
@@ -314,7 +314,7 @@ export default function AdminSettingsPage() {
 
         {/* SECTION 2: Subscription Plans */}
         <section className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/50 flex items-center gap-2">
+          <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-nav-hover)] flex items-center gap-2">
             <CreditCard className="w-5 h-5 text-emerald-400" />
             <h2 className="text-lg font-semibold text-[var(--text-primary)]">Subscription Plans</h2>
           </div>
@@ -323,7 +323,7 @@ export default function AdminSettingsPage() {
               {plans.length === 0 ? (
                 <div className="col-span-full text-center text-[var(--text-secondary)] p-4">No plans found. Loading...</div>
               ) : plans.map(p => (
-                <div key={p.id} className="bg-[var(--bg-primary)]/80 border border-[var(--border-color)] rounded-lg p-5 flex flex-col text-center hover:border-indigo-500/50 transition-colors group">
+                <div key={p.id} className="bg-[var(--bg-nav-hover)] border border-[var(--border-color)] rounded-lg p-5 flex flex-col text-center hover:border-indigo-500/50 transition-colors group">
                   <h3 className="text-lg font-bold text-[var(--text-primary)] mb-2">{p.display_name || p.name}</h3>
                   <p className="text-2xl font-bold text-indigo-400 mb-4">TZS {(p.price_tzs || p.price || 0).toLocaleString()}/mo</p>
                   <div className="space-y-2 mb-6 flex-1">
@@ -334,7 +334,7 @@ export default function AdminSettingsPage() {
                       {p.can_host_sessions || p.can_host ? `${p.max_participants || p.max_session_participants || 0} participants` : 'No hosting'}
                     </p>
                   </div>
-                  <button onClick={() => openPlanEdit(p)} className="w-full py-2 bg-[var(--bg-card)] group-hover:bg-indigo-600 text-white group-hover:text-white rounded-md text-sm font-medium transition-colors border border-[var(--border-color)] group-hover:border-indigo-500">
+                  <button onClick={() => openPlanEdit(p)} className="w-full py-2 bg-[var(--bg-card)] group-hover:bg-indigo-600 text-[var(--text-primary)] group-hover:text-white rounded-md text-sm font-medium transition-colors border border-[var(--border-color)] group-hover:border-indigo-500">
                     Edit Plan
                   </button>
                 </div>
@@ -345,7 +345,7 @@ export default function AdminSettingsPage() {
 
         {/* SECTION 3: VM & Resource Limits */}
         <section className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/50 flex items-center gap-2">
+          <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-nav-hover)] flex items-center gap-2">
             <Activity className="w-5 h-5 text-orange-400" />
             <h2 className="text-lg font-semibold text-[var(--text-primary)]">VM & Resource Limits</h2>
           </div>
@@ -353,37 +353,37 @@ export default function AdminSettingsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-[var(--text-secondary)] mb-1">Max VMs per User</label>
-                <input type="number" className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
+                <input type="number" className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
                   value={resourceLimits.max_vms_per_user} onChange={e => handleLimitChange('max_vms_per_user', e.target.value)} />
               </div>
               <div>
                 <label className="block text-sm text-[var(--text-secondary)] mb-1">Max Concurrent VMs</label>
-                <input type="number" className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
+                <input type="number" className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
                   value={resourceLimits.max_concurrent_vms} onChange={e => handleLimitChange('max_concurrent_vms', e.target.value)} />
               </div>
               <div>
                 <label className="block text-sm text-[var(--text-secondary)] mb-1">VM Provisioning Timeout (s)</label>
-                <input type="number" className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
+                <input type="number" className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
                   value={resourceLimits.vm_provisioning_timeout} onChange={e => handleLimitChange('vm_provisioning_timeout', e.target.value)} />
               </div>
               <div>
                 <label className="block text-sm text-[var(--text-secondary)] mb-1">Idle Timeout (minutes)</label>
-                <input type="number" className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
+                <input type="number" className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
                   value={resourceLimits.idle_timeout_mins} onChange={e => handleLimitChange('idle_timeout_mins', e.target.value)} />
               </div>
             </div>
-            <div className="flex items-center justify-between p-4 bg-[var(--bg-primary)]/50 rounded-lg border border-[var(--border-color)]/50 mt-4">
+            <div className="flex items-center justify-between p-4 bg-[var(--bg-nav-hover)] rounded-lg border border-[var(--border-color)]/50 mt-4">
               <div>
                 <p className="text-[var(--text-primary)] font-medium text-sm">Auto-shutdown Idle VMs</p>
-                <p className="text-muted text-xs">Stop VMs automatically after idle timeout</p>
+                <p className="text-[var(--text-muted)] text-xs">Stop VMs automatically after idle timeout</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" className="sr-only peer" checked={resourceLimits.auto_shutdown_idle} onChange={e => handleLimitChange('auto_shutdown_idle', e.target.checked)} />
-                <div className="w-11 h-6 bg-[var(--bg-card-hover)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                <div className="w-11 h-6 bg-[var(--bg-nav-hover)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
               </label>
             </div>
           </div>
-          <div className="px-6 py-4 border-t border-[var(--border-color)] bg-[var(--bg-primary)]/30 flex justify-end">
+          <div className="px-6 py-4 border-t border-[var(--border-color)] bg-[var(--bg-nav-hover)] flex justify-end">
             <button onClick={saveResourceLimits} disabled={savingSection === 'limits'} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
               <Save size={16} />
               {savingSection === 'limits' ? 'Saving...' : 'Save Changes'}
@@ -395,13 +395,13 @@ export default function AdminSettingsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Infrastructure */}
           <section className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl overflow-hidden flex flex-col">
-            <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/50 flex items-center gap-2">
+            <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-nav-hover)] flex items-center gap-2">
               <Server className="w-5 h-5 text-purple-400" />
               <h2 className="text-lg font-semibold text-[var(--text-primary)]">Infrastructure</h2>
             </div>
             <div className="p-6 flex-1 space-y-4">
-              <div className="bg-[var(--bg-primary)]/50 border border-[var(--border-color)]/50 rounded-lg p-4">
-                <p className="text-xs text-muted mb-1">Proxmox Host</p>
+              <div className="bg-[var(--bg-nav-hover)] border border-[var(--border-color)]/50 rounded-lg p-4">
+                <p className="text-xs text-[var(--text-muted)] mb-1">Proxmox Host</p>
                 <p className="text-sm text-[var(--text-primary)] font-mono">192.168.1.13 (pve)</p>
                 <p className="text-sm mt-2 flex items-center gap-1.5">
                   <span className={`w-2 h-2 rounded-full ${infraStats?.proxmox?.status === 'online' ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
@@ -410,8 +410,8 @@ export default function AdminSettingsPage() {
                   </span>
                 </p>
               </div>
-              <div className="bg-[var(--bg-primary)]/50 border border-[var(--border-color)]/50 rounded-lg p-4">
-                <p className="text-xs text-muted mb-1">Guacamole URL</p>
+              <div className="bg-[var(--bg-nav-hover)] border border-[var(--border-color)]/50 rounded-lg p-4">
+                <p className="text-xs text-[var(--text-muted)] mb-1">Guacamole URL</p>
                 <p className="text-sm text-[var(--text-primary)] font-mono">localhost:8080</p>
                 <p className="text-sm mt-2 flex items-center gap-1.5">
                   <span className={`w-2 h-2 rounded-full ${infraStats?.guacamole?.status === 'online' ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
@@ -421,8 +421,8 @@ export default function AdminSettingsPage() {
                 </p>
               </div>
             </div>
-            <div className="px-6 py-4 border-t border-[var(--border-color)] bg-[var(--bg-primary)]/30">
-              <button onClick={testConnections} disabled={testingInfra} className="w-full flex justify-center items-center gap-2 bg-[var(--bg-card-hover)] hover:bg-slate-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <div className="px-6 py-4 border-t border-[var(--border-color)] bg-[var(--bg-nav-hover)]">
+              <button onClick={testConnections} disabled={testingInfra} className="w-full flex justify-center items-center gap-2 bg-[var(--bg-nav-hover)] hover:bg-slate-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                 <RefreshCw size={16} className={testingInfra ? "animate-spin" : ""} />
                 Test Connections
               </button>
@@ -431,7 +431,7 @@ export default function AdminSettingsPage() {
 
           {/* Payment Configuration */}
           <section className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl overflow-hidden flex flex-col">
-            <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/50 flex items-center gap-2">
+            <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-nav-hover)] flex items-center gap-2">
               <CreditCard className="w-5 h-5 text-blue-400" />
               <h2 className="text-lg font-semibold text-[var(--text-primary)]">Payment Configuration</h2>
             </div>
@@ -447,10 +447,10 @@ export default function AdminSettingsPage() {
               <div className="py-2 border-b border-[var(--border-color)]/50">
                 <span className="text-sm text-[var(--text-secondary)] block mb-2">Supported Methods</span>
                 <div className="flex flex-wrap gap-2">
-                  <span className="text-xs bg-[var(--bg-card-hover)] text-[var(--text-primary)] px-2 py-1 rounded">☑ M-Pesa</span>
-                  <span className="text-xs bg-[var(--bg-card-hover)] text-[var(--text-primary)] px-2 py-1 rounded">☑ Airtel Money</span>
-                  <span className="text-xs bg-[var(--bg-card-hover)] text-[var(--text-primary)] px-2 py-1 rounded">☑ Tigo Pesa</span>
-                  <span className="text-xs bg-[var(--bg-card-hover)] text-[var(--text-primary)] px-2 py-1 rounded">☑ Halopesa</span>
+                  <span className="text-xs bg-[var(--bg-nav-hover)] text-[var(--text-primary)] px-2 py-1 rounded">☑ M-Pesa</span>
+                  <span className="text-xs bg-[var(--bg-nav-hover)] text-[var(--text-primary)] px-2 py-1 rounded">☑ Airtel Money</span>
+                  <span className="text-xs bg-[var(--bg-nav-hover)] text-[var(--text-primary)] px-2 py-1 rounded">☑ Tigo Pesa</span>
+                  <span className="text-xs bg-[var(--bg-nav-hover)] text-[var(--text-primary)] px-2 py-1 rounded">☑ Halopesa</span>
                 </div>
               </div>
               <div className="flex justify-between items-center pt-2">
@@ -465,7 +465,7 @@ export default function AdminSettingsPage() {
         
         {/* SECTION 6: Admin Password */}
         <section className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/50 flex items-center gap-2">
+          <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-nav-hover)] flex items-center gap-2">
             <Lock className="w-5 h-5 text-red-400" />
             <h2 className="text-lg font-semibold text-[var(--text-primary)]">Change Admin Password</h2>
           </div>
@@ -477,7 +477,7 @@ export default function AdminSettingsPage() {
                   type="password" 
                   value={passwordForm.currentPassword}
                   onChange={e => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
               <div>
@@ -486,13 +486,13 @@ export default function AdminSettingsPage() {
                   type="password" 
                   value={passwordForm.newPassword}
                   onChange={e => setPasswordForm({...passwordForm, newPassword: e.target.value})}
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
               <button 
                 type="submit"
                 disabled={savingSection === 'password' || !passwordForm.currentPassword || !passwordForm.newPassword}
-                className="mt-2 flex items-center justify-center gap-2 bg-[var(--bg-card-hover)] hover:bg-slate-600 disabled:opacity-50 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                className="mt-2 flex items-center justify-center gap-2 bg-[var(--bg-nav-hover)] hover:bg-slate-600 disabled:opacity-50 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
                 {savingSection === 'password' ? 'Updating...' : 'Update Password'}
               </button>
@@ -502,7 +502,7 @@ export default function AdminSettingsPage() {
 
         {/* SECTION 7: Backup Management */}
         <section className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/50 flex justify-between items-center">
+          <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-nav-hover)] flex justify-between items-center">
             <div className="flex items-center gap-2">
               <Database className="w-5 h-5 text-blue-400" />
               <h2 className="text-lg font-semibold text-[var(--text-primary)]">Backup Management</h2>
@@ -524,7 +524,7 @@ export default function AdminSettingsPage() {
                 </thead>
                 <tbody>
                   {backups.map(b => (
-                    <tr key={b.filename} className="border-b border-[var(--border-color)] hover:bg-[var(--bg-primary)]/30">
+                    <tr key={b.filename} className="border-b border-[var(--border-color)] hover:bg-[var(--bg-nav-hover)]">
                       <td className="py-3 px-4 text-sm text-[var(--text-primary)] font-mono">{b.filename}</td>
                       <td className="py-3 px-4 text-sm text-[var(--text-secondary)]">{b.size_mb} MB</td>
                       <td className="py-3 px-4 text-sm text-[var(--text-secondary)]">{new Date(b.created_at * 1000).toLocaleString()}</td>
@@ -549,7 +549,7 @@ export default function AdminSettingsPage() {
 
         {/* SECTION 8: Security Log */}
         <section className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/50 flex justify-between items-center">
+          <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-nav-hover)] flex justify-between items-center">
             <div className="flex items-center gap-2">
               <Shield className="w-5 h-5 text-red-400" />
               <h2 className="text-lg font-semibold text-[var(--text-primary)]">Security Log (Logins)</h2>
@@ -573,7 +573,7 @@ export default function AdminSettingsPage() {
                 </thead>
                 <tbody>
                   {securityLogs.attempts.map((a, i) => (
-                    <tr key={i} className="border-b border-[var(--border-color)] hover:bg-[var(--bg-primary)]/30">
+                    <tr key={i} className="border-b border-[var(--border-color)] hover:bg-[var(--bg-nav-hover)]">
                       <td className="py-3 px-6">
                         {a.success ? (
                           <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400">SUCCESS</span>
@@ -598,7 +598,7 @@ export default function AdminSettingsPage() {
 
         {/* SECTION 9: Audit Log */}
         <section className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/50 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-nav-hover)] flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div className="flex items-center gap-2">
               <Activity className="w-5 h-5 text-indigo-400" />
               <h2 className="text-lg font-semibold text-[var(--text-primary)]">Admin Audit Log</h2>
@@ -609,7 +609,7 @@ export default function AdminSettingsPage() {
                 <input 
                   type="text" 
                   placeholder="Search logs..." 
-                  className="pl-9 pr-4 py-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-primary)] focus:outline-none focus:border-indigo-500"
+                  className="pl-9 pr-4 py-2 bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-primary)] focus:outline-none focus:border-indigo-500"
                   value={auditSearch}
                   onChange={e => setAuditSearch(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && fetchAuditLogs(1)}
@@ -621,7 +621,7 @@ export default function AdminSettingsPage() {
             {auditLogs.logs.length > 0 ? (
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-[var(--border-color)] bg-[var(--bg-primary)]/30">
+                  <tr className="border-b border-[var(--border-color)] bg-[var(--bg-nav-hover)]">
                     <th className="py-3 px-6 text-xs font-semibold text-[var(--text-secondary)] uppercase">Admin</th>
                     <th className="py-3 px-6 text-xs font-semibold text-[var(--text-secondary)] uppercase">Action</th>
                     <th className="py-3 px-6 text-xs font-semibold text-[var(--text-secondary)] uppercase">Description</th>
@@ -630,10 +630,10 @@ export default function AdminSettingsPage() {
                 </thead>
                 <tbody>
                   {auditLogs.logs.map(l => (
-                    <tr key={l.id} className="border-b border-[var(--border-color)] hover:bg-[var(--bg-primary)]/30">
+                    <tr key={l.id} className="border-b border-[var(--border-color)] hover:bg-[var(--bg-nav-hover)]">
                       <td className="py-3 px-6 text-sm text-[var(--text-primary)] font-medium">{l.admin_name}</td>
                       <td className="py-3 px-6 text-xs">
-                        <span className="bg-[var(--bg-card-hover)] px-2 py-1 rounded text-[var(--text-primary)]">{l.action_type}</span>
+                        <span className="bg-[var(--bg-nav-hover)] px-2 py-1 rounded text-[var(--text-primary)]">{l.action_type}</span>
                       </td>
                       <td className="py-3 px-6 text-sm text-[var(--text-secondary)] max-w-xs truncate" title={l.description}>{l.description}</td>
                       <td className="py-3 px-6 text-sm text-[var(--text-secondary)]">{new Date(l.created_at).toLocaleString()}</td>
@@ -646,20 +646,20 @@ export default function AdminSettingsPage() {
             )}
           </div>
           {auditLogs.total_pages > 1 && (
-            <div className="px-6 py-3 border-t border-[var(--border-color)] bg-[var(--bg-primary)]/30 flex justify-between items-center">
+            <div className="px-6 py-3 border-t border-[var(--border-color)] bg-[var(--bg-nav-hover)] flex justify-between items-center">
               <span className="text-xs text-[var(--text-secondary)]">Page {auditLogs.page} of {auditLogs.total_pages}</span>
               <div className="flex gap-2">
                 <button 
                   disabled={auditLogs.page <= 1} 
                   onClick={() => fetchAuditLogs(auditLogs.page - 1)}
-                  className="px-3 py-1 text-xs bg-[var(--bg-card)] border border-[var(--border-color)] rounded hover:bg-[var(--bg-card-hover)] disabled:opacity-50 text-[var(--text-primary)]"
+                  className="px-3 py-1 text-xs bg-[var(--bg-card)] border border-[var(--border-color)] rounded hover:bg-[var(--bg-nav-hover)] disabled:opacity-50 text-[var(--text-primary)]"
                 >
                   Previous
                 </button>
                 <button 
                   disabled={auditLogs.page >= auditLogs.total_pages} 
                   onClick={() => fetchAuditLogs(auditLogs.page + 1)}
-                  className="px-3 py-1 text-xs bg-[var(--bg-card)] border border-[var(--border-color)] rounded hover:bg-[var(--bg-card-hover)] disabled:opacity-50 text-[var(--text-primary)]"
+                  className="px-3 py-1 text-xs bg-[var(--bg-card)] border border-[var(--border-color)] rounded hover:bg-[var(--bg-nav-hover)] disabled:opacity-50 text-[var(--text-primary)]"
                 >
                   Next
                 </button>
@@ -670,7 +670,7 @@ export default function AdminSettingsPage() {
 
         {/* SECTION 10: API Tokens */}
         <section className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/50 flex items-center gap-2">
+          <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-nav-hover)] flex items-center gap-2">
             <Key className="w-5 h-5 text-amber-400" />
             <h2 className="text-lg font-semibold text-[var(--text-primary)]">API Token Oversight</h2>
           </div>
@@ -678,7 +678,7 @@ export default function AdminSettingsPage() {
             {apiTokens.length > 0 ? (
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-[var(--border-color)] bg-[var(--bg-primary)]/30">
+                  <tr className="border-b border-[var(--border-color)] bg-[var(--bg-nav-hover)]">
                     <th className="py-3 px-6 text-xs font-semibold text-[var(--text-secondary)] uppercase">User</th>
                     <th className="py-3 px-6 text-xs font-semibold text-[var(--text-secondary)] uppercase">Prefix</th>
                     <th className="py-3 px-6 text-xs font-semibold text-[var(--text-secondary)] uppercase">Created</th>
@@ -689,12 +689,12 @@ export default function AdminSettingsPage() {
                 </thead>
                 <tbody>
                   {apiTokens.map(t => (
-                    <tr key={t.id} className="border-b border-[var(--border-color)] hover:bg-[var(--bg-primary)]/30">
+                    <tr key={t.id} className="border-b border-[var(--border-color)] hover:bg-[var(--bg-nav-hover)]">
                       <td className="py-3 px-6">
                         <p className="text-sm text-[var(--text-primary)] font-medium">{t.user_name}</p>
                         <p className="text-xs text-[var(--text-secondary)]">{t.user_email}</p>
                       </td>
-                      <td className="py-3 px-6 text-sm text-[var(--text-primary)] font-mono bg-[var(--bg-primary)]/50 rounded my-2 inline-block ml-6">{t.prefix}...</td>
+                      <td className="py-3 px-6 text-sm text-[var(--text-primary)] font-mono bg-[var(--bg-nav-hover)] rounded my-2 inline-block ml-6">{t.prefix}...</td>
                       <td className="py-3 px-6 text-sm text-[var(--text-secondary)]">{new Date(t.created_at).toLocaleDateString()}</td>
                       <td className="py-3 px-6 text-sm text-[var(--text-secondary)]">{t.last_used_at ? new Date(t.last_used_at).toLocaleDateString() : 'Never'}</td>
                       <td className="py-3 px-6 text-sm text-[var(--text-secondary)]">{t.calls_today}</td>
@@ -719,7 +719,7 @@ export default function AdminSettingsPage() {
       {editingPlan && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl max-w-md w-full shadow-2xl animate-fade-in">
-            <div className="flex justify-between items-center px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/50">
+            <div className="flex justify-between items-center px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-nav-hover)]">
               <h3 className="text-lg font-bold text-[var(--text-primary)]">Edit Plan: "{editingPlan.display_name || editingPlan.name}"</h3>
               <button onClick={() => setEditingPlan(null)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
                 <X size={20} />
@@ -728,42 +728,42 @@ export default function AdminSettingsPage() {
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-sm text-[var(--text-secondary)] mb-1">Plan Name</label>
-                <input type="text" className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
+                <input type="text" className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
                   value={planForm.name} onChange={e => setPlanForm({...planForm, name: e.target.value})} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-[var(--text-secondary)] mb-1">Price (USD)</label>
-                  <input type="number" className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
+                  <input type="number" className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
                     value={planForm.price_usd} onChange={e => setPlanForm({...planForm, price_usd: parseFloat(e.target.value) || 0})} />
                 </div>
                 <div>
                   <label className="block text-sm text-[var(--text-secondary)] mb-1">Price (TZS)</label>
-                  <input type="number" className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
+                  <input type="number" className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
                     value={planForm.price_tzs} onChange={e => setPlanForm({...planForm, price_tzs: parseInt(e.target.value) || 0})} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-[var(--text-secondary)] mb-1">Max Hours/Month (-1=unl)</label>
-                  <input type="number" className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
+                  <input type="number" className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
                     value={planForm.max_hours} onChange={e => setPlanForm({...planForm, max_hours: parseInt(e.target.value) || 0})} />
                 </div>
                 <div>
                   <label className="block text-sm text-[var(--text-secondary)] mb-1">Max Participants</label>
-                  <input type="number" className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
+                  <input type="number" className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
                     value={planForm.max_participants} onChange={e => setPlanForm({...planForm, max_participants: parseInt(e.target.value) || 0})} />
                 </div>
               </div>
-              <div className="flex items-center justify-between p-4 bg-[var(--bg-primary)]/50 rounded-lg border border-[var(--border-color)]/50">
+              <div className="flex items-center justify-between p-4 bg-[var(--bg-nav-hover)] rounded-lg border border-[var(--border-color)]/50">
                 <span className="text-sm text-[var(--text-primary)] font-medium">Can Host Sessions</span>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" className="sr-only peer" checked={planForm.can_host} onChange={e => setPlanForm({...planForm, can_host: e.target.checked})} />
-                  <div className="w-11 h-6 bg-[var(--bg-card-hover)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
+                  <div className="w-11 h-6 bg-[var(--bg-nav-hover)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
                 </label>
               </div>
             </div>
-            <div className="px-6 py-4 border-t border-[var(--border-color)] bg-[var(--bg-primary)]/30 flex justify-end gap-3">
+            <div className="px-6 py-4 border-t border-[var(--border-color)] bg-[var(--bg-nav-hover)] flex justify-end gap-3">
               <button onClick={() => setEditingPlan(null)} className="px-4 py-2 text-[var(--text-primary)] hover:text-[var(--text-primary)] transition-colors text-sm font-medium">
                 Cancel
               </button>

@@ -74,6 +74,8 @@ import AdminAnalyticsPage from "./pages/admin/AdminAnalyticsPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
 import AdminLogsPage from "./pages/admin/AdminLogsPage";
 import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
+import AdminWorkspacesPage from "./pages/admin/AdminWorkspacesPage";
+import AdminLiveSessionsPage from "./pages/admin/AdminLiveSessionsPage";
 import VMPoolPage from "./pages/admin/VMPoolPage";
 
 // Shared/User pages
@@ -166,8 +168,9 @@ export default function App() {
             <Route path="analytics" element={<AdminAnalyticsPage />} />
             <Route path="logs" element={<AdminLogsPage />} />
             <Route path="settings" element={<AdminSettingsPage />} />
+            <Route path="workspaces" element={<AdminWorkspacesPage />} />
             <Route path="vm-pool" element={<VMPoolPage />} />
-            <Route path="sessions" element={<SessionsPage />} />
+            <Route path="sessions" element={<AdminLiveSessionsPage />} />
           </Route>
           
         </Route>

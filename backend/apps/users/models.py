@@ -405,3 +405,14 @@ class AdminActionLog(models.Model):
     
     def __str__(self):
         return f"{self.admin} - {self.action_type} - {self.created_at}"
+
+
+class LoginAttempt(models.Model):
+    email = models.CharField(max_length=255)
+    success = models.BooleanField()
+    ip_address = models.CharField(max_length=45, blank=True, default='')
+    user_agent = models.CharField(max_length=255, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
