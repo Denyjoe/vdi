@@ -1,7 +1,14 @@
-with open('c:/Users/Denis Wilson/Desktop/dit-vdi-system/frontend/src/pages/admin/VMPoolPage.jsx', 'r', encoding='utf-8') as f:
+with open('c:/Users/Denis Wilson/Desktop/dit-vdi-system/frontend/src/pages/admin/AdminTemplatesPage.jsx', 'r', encoding='utf-8') as f:
     content = f.read()
+    
+# Let's verify if openEditModal is present and how it works
+if 'openEditForm' in content:
+    print('Found openEditForm')
+else:
+    print('openEditForm missing')
 
-import re
-
-# We can just leave the unused state and functions there, or remove them. It's safer to leave them if we don't want to accidentally delete something else, but Vite might throw unused variable warnings.
-# Let's check for any Vite build warnings.
+if 'handleRefresh' in content:
+    print('Found handleRefresh')
+else:
+    print('handleRefresh missing')
+    

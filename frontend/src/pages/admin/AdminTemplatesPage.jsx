@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { 
   Plus, ChevronDown, ChevronUp, Edit2, Eye, EyeOff, Trash2, 
-  X, Check, Save, Loader2, RefreshCw, Monitor, Server, AlertTriangle, CheckCircle
+  X, Check, Save, Loader2, RefreshCw, Monitor, Server, AlertTriangle, CheckCircle,
+  Code, Zap, AppWindow, HardDrive, Database, Shield, Globe, Terminal, Film,
+  Smartphone, Cpu, Palette, Network
 } from 'lucide-react';
 import api from '../../services/api';
 import Toast from '../../components/shared/Toast';
@@ -18,12 +20,17 @@ const OS_OPTIONS = [
   'Custom',
 ];
 
-const ICON_OPTIONS = [
-  'Monitor', 'Cpu', 'Code2', 'Database', 'Globe', 'Network',
-  'Server', 'Shield', 'Smartphone', 'Film', 'Palette',
-  'BrainCircuit', 'Compass', 'BarChart2', 'Building2',
-  'Wifi', 'HardDrive', 'Terminal', 'Layout', 'Cloud',
-];
+const ICON_MAP = {
+  Monitor, Code, Zap, AppWindow,
+  Server, HardDrive, Database,
+  Shield, Globe, Terminal, Film,
+  Smartphone, Cpu, Palette, Network,
+};
+
+function TemplateIcon({ name, size = 16, color }) {
+  const IconComponent = ICON_MAP[name] || Monitor;
+  return <IconComponent size={size} style={{ color }} />;
+}
 
 const EMPTY_FORM = {
   name: '',
@@ -44,6 +51,7 @@ export default function AdminTemplatesPage() {
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -69,6 +77,12 @@ export default function AdminTemplatesPage() {
   };
 
   useEffect(() => { fetchTemplates(); }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchTemplates();
+    setRefreshing(false);
+  };
 
   const showToast = (msg, type = 'success') => {
     setToast({ show: true, message: msg, type });
@@ -183,6 +197,12 @@ export default function AdminTemplatesPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
       {toast.show && <Toast message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, show: false })} />}
       <ConfirmModal isOpen={!!deleteTarget} title="Delete Template" message={`Are you sure you want to delete ${deleteTarget?.name}? This action cannot be undone.`} confirmText="Delete" cancelText="Cancel" onConfirm={() => handleDelete(deleteTarget)} onCancel={() => setDeleteTarget(null)} isDanger={true} />
       
@@ -194,9 +214,13 @@ export default function AdminTemplatesPage() {
           <p className="text-[var(--text-secondary)] mt-1">Manage the catalogue of available virtual machines.</p>
         </div>
         <div className="flex gap-3">
-          <button onClick={fetchTemplates} className="flex items-center gap-2 bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] text-[var(--text-primary)] border border-[var(--border-color)] px-4 py-2 rounded-xl transition-colors font-medium">
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-            Refresh
+          <button onClick={handleRefresh} disabled={refreshing} style={{
+            display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
+            borderRadius: '10px', background: 'var(--bg-card)', color: 'var(--text-primary)',
+            border: '1px solid var(--border-color)', fontSize: '13px', fontWeight: 600, cursor: 'pointer'
+          }}>
+            <RefreshCw size={14} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
+            {refreshing ? 'Refreshing...' : 'Refresh'}
           </button>
           {!formOpen && (
             <button onClick={openCreateForm} className="flex items-center gap-2 bg-[var(--accent-primary)] hover:opacity-90 text-white px-4 py-2 rounded-xl transition-opacity font-medium shadow-lg shadow-[var(--accent-primary)]/20">
@@ -226,9 +250,18 @@ export default function AdminTemplatesPage() {
 
               <div>
                 <label style={labelStyle}>Icon</label>
-                <select style={inputStyle} value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))}>
-                  {ICON_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '8px' }}>
+                  {Object.entries(ICON_MAP).map(([name, Icon]) => (
+                    <button key={name} type="button" onClick={() => setForm(f => ({ ...f, icon: name }))} style={{
+                      padding: '10px', borderRadius: '10px',
+                      border: form.icon === name ? '2px solid var(--accent-primary)' : '1px solid var(--border-color)',
+                      background: form.icon === name ? 'var(--accent-primary-soft)' : 'var(--bg-input)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'
+                    }}>
+                      <Icon size={18} style={{ color: form.icon === name ? 'var(--accent-primary)' : 'var(--text-secondary)' }} />
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div style={{ marginBottom: '16px', gridColumn: '1 / -1' }}>
@@ -341,7 +374,7 @@ export default function AdminTemplatesPage() {
                   <td style={{ padding: '12px 16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
-                         {t.icon || 'Monitor'}
+                         <TemplateIcon name={t.icon} size={18} color="var(--accent-primary)" />
                       </div>
                       <div>
                         <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '14px' }}>{t.name}</div>
