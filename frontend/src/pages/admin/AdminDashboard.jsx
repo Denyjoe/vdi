@@ -48,8 +48,6 @@ const CircularGauge = ({ percentage, label, subtext, format = 'percent', offline
 };
 
 export default function AdminDashboard() {
-  const getVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const [stats, setStats] = useState({
@@ -520,18 +518,18 @@ export default function AdminDashboard() {
               <AreaChart data={sessionsData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorSessions" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={getVar('--chart-line')} stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor={getVar('--chart-line')} stopOpacity={0}/>
+                    <stop offset="5%" stopColor="var(--chart-line)" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="var(--chart-line)" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={getVar('--chart-grid')} />
-                <XAxis dataKey="name" stroke={getVar('--chart-text')} axisLine={false} tickLine={false} />
-                <YAxis stroke={getVar('--chart-text')} axisLine={false} tickLine={false} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid)" />
+                <XAxis dataKey="name" stroke="var(--chart-text)" axisLine={false} tickLine={false} />
+                <YAxis stroke="var(--chart-text)" axisLine={false} tickLine={false} />
                 <RechartsTooltip 
                   contentStyle={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
                   itemStyle={{ color: 'var(--accent)' }}
                 />
-                <Area type="monotone" dataKey="count" stroke={getVar('--chart-line')} strokeWidth={3} fillOpacity={1} fill="url(#colorSessions)" />
+                <Area type="monotone" dataKey="count" stroke="var(--chart-line)" strokeWidth={3} fillOpacity={1} fill="url(#colorSessions)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -544,16 +542,16 @@ export default function AdminDashboard() {
           <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={vmUsageData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={getVar('--chart-grid')} />
-                <XAxis dataKey="name" stroke={getVar('--chart-text')} axisLine={false} tickLine={false} />
-                <YAxis stroke={getVar('--chart-text')} axisLine={false} tickLine={false} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid)" />
+                <XAxis dataKey="name" stroke="var(--chart-text)" axisLine={false} tickLine={false} />
+                <YAxis stroke="var(--chart-text)" axisLine={false} tickLine={false} />
                 <RechartsTooltip 
-                  cursor={{ fill: getVar('--bg-elevated') }}
+                  cursor={{ fill: 'var(--bg-elevated)' }}
                   contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
                   itemStyle={{ color: 'var(--text-primary)' }}
                 />
-                <Bar dataKey="created" fill={getVar('--chart-line')} radius={[4, 4, 0, 0]} maxBarSize={30} />
-                <Bar dataKey="destroyed" fill={getVar('--status-error')} radius={[4, 4, 0, 0]} maxBarSize={30} />
+                <Bar dataKey="created" fill="var(--chart-line)" radius={[4, 4, 0, 0]} maxBarSize={30} />
+                <Bar dataKey="destroyed" fill="var(--status-error)" radius={[4, 4, 0, 0]} maxBarSize={30} />
               </BarChart>
             </ResponsiveContainer>
           </div>

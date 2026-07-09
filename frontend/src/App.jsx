@@ -83,6 +83,7 @@ import NotificationsPage from './pages/shared/NotificationsPage';
 import SessionsPage from "./pages/shared/SessionsPage";
 import JoinSessionPage from "./pages/shared/JoinSessionPage";
 import NotFoundPage from "./pages/shared/NotFoundPage";
+import MaintenancePage from "./pages/shared/MaintenancePage";
 
 // User specific
 import DashboardPage from "./pages/DashboardPage";

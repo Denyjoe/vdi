@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { 
-  Monitor, Maximize2, LayoutGrid, Compass, BarChart2, 
+  Monitor, Maximize2, LayoutGrid, Compass, BarChart2, AlertCircle, 
   Code2, Palette, Network, Box, Wifi, Battery, Volume2, 
   Menu, X, Check, PanelRightOpen, PanelRightClose, Power
 } from 'lucide-react';
@@ -86,6 +86,27 @@ export default function DesktopSessionPage() {
     
     fetchWs();
     intervalId = setInterval(fetchWs, 3000);
+    return () => clearInterval(intervalId);
+  }, [type, sessionId]);
+
+  
+  // Session Polling (for participants)
+  useEffect(() => {
+    if (type === 'workspace') return;
+    
+    let intervalId;
+    const fetchSessionStatus = async () => {
+      try {
+        const res = await sessionService.getActiveSession();
+        if (!res.data.success || !res.data.data || String(res.data.data.id) !== String(sessionId)) {
+          setDisconnectedByAdmin(true);
+        }
+      } catch (err) {
+        setDisconnectedByAdmin(true);
+      }
+    };
+    
+    intervalId = setInterval(fetchSessionStatus, 8000);
     return () => clearInterval(intervalId);
   }, [type, sessionId]);
 

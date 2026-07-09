@@ -147,9 +147,17 @@ export default function AdminSettingsPage() {
       const res = await api.get('/admin/config/');
       if (res.data.success && res.data.data) {
         setPlatformConfig(prev => ({ ...prev, ...res.data.data }));
+        setResourceLimits(prev => ({
+          ...prev,
+          max_vms_per_user: res.data.data.max_vms_per_user !== undefined ? res.data.data.max_vms_per_user : prev.max_vms_per_user,
+          max_concurrent_vms: res.data.data.max_concurrent_vms !== undefined ? res.data.data.max_concurrent_vms : prev.max_concurrent_vms,
+          vm_provisioning_timeout: res.data.data.vm_provisioning_timeout !== undefined ? res.data.data.vm_provisioning_timeout : prev.vm_provisioning_timeout,
+          idle_timeout_mins: res.data.data.idle_timeout_mins !== undefined ? res.data.data.idle_timeout_mins : prev.idle_timeout_mins,
+          auto_shutdown_idle: res.data.data.auto_shutdown_idle !== undefined ? res.data.data.auto_shutdown_idle === 'true' || res.data.data.auto_shutdown_idle === true : prev.auto_shutdown_idle
+        }));
       }
     } catch (err) {
-      console.error('Failed to fetch platform config');
+      console.error('Failed to fetch config');
     }
   };
 
@@ -183,10 +191,14 @@ export default function AdminSettingsPage() {
 
   const saveResourceLimits = async () => {
     setSavingSection('limits');
-    await new Promise(r => setTimeout(r, 600));
-    localStorage.setItem('clouddesk_resource_limits', JSON.stringify(resourceLimits));
-    toast.success('Resource limits saved');
-    setSavingSection(null);
+    try {
+      await api.put('/admin/settings/config/', resourceLimits);
+      toast.success('Resource limits saved');
+    } catch (e) {
+      toast.error('Failed to save limits');
+    } finally {
+      setSavingSection(null);
+    }
   };
 
   const testConnections = async () => {

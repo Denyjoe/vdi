@@ -20,6 +20,15 @@ class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
     
     def post(self, request):
+        from apps.users.models import SystemConfig
+
+        allow_reg = SystemConfig.get('allow_registration', 'true')
+        if allow_reg == 'false':
+            return Response({
+                'success': False,
+                'message': 'New account registration is currently disabled. Please contact support@clouddesk.io'
+            }, status=403)
+
         email = request.data.get('email')
         if User.objects.filter(email=email).exists():
             return Response({
@@ -577,3 +586,17 @@ class DeleteAccountView(APIView):
         
         user.delete()
         return Response({'success': True, 'message': 'Account deleted'})
+
+from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+
+class AnnouncementView(APIView):
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        from apps.users.models import SystemConfig
+        announcement = SystemConfig.get('system_announcement', '')
+        return Response({
+            'announcement': announcement
+        })

@@ -15,14 +15,14 @@ createRoot(document.getElementById('root')).render(
         position="top-right"
         toastOptions={{
           style: {
-            background: '#1e293b',
-            color: 'var(--text-heading)',
-            border: '1px solid #334155',
+            background: 'var(--bg-elevated)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border-color)',
             borderRadius: '0.75rem',
             fontFamily: 'Inter, sans-serif',
           },
-          success: { iconTheme: { primary: '#22c55e', secondary: '#1e293b' } },
-          error: { iconTheme: { primary: '#ef4444', secondary: '#1e293b' } },
+          success: { iconTheme: { primary: 'var(--status-online)', secondary: 'var(--bg-elevated)' } },
+          error: { iconTheme: { primary: 'var(--status-error)', secondary: 'var(--bg-elevated)' } },
         }}
       />
     </GoogleOAuthProvider>

@@ -22,12 +22,19 @@ function AdminLiveSessionsPage() {
   const [messageText, setMessageText] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
 
-  const fetchSessions = async () => {
+  const fetchSessions = async (isManual = false) => {
     try {
       setRefreshing(true);
+      if (isManual === true) {
+        // slight artificial delay to make the refresh visually apparent
+        await new Promise(resolve => setTimeout(resolve, 600));
+      }
       const res = await api.get('/sessions/admin/live/');
       setSessions(res.data.sessions || []);
       setTotalParticipants(res.data.total_participants || 0);
+      if (isManual === true) {
+        toast.success('Sessions refreshed');
+      }
     } catch(e) {
       console.error(e);
       toast.error('Failed to load sessions');
@@ -182,7 +189,7 @@ function AdminLiveSessionsPage() {
             Real-time view of all active sessions across the platform
           </p>
         </div>
-        <button onClick={fetchSessions} disabled={refreshing}
+        <button onClick={() => fetchSessions(true)} disabled={refreshing}
           style={{
             display: 'flex',
             alignItems: 'center',

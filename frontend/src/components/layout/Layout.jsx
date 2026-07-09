@@ -15,9 +15,10 @@
  */
 
 import { useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
+import AnnouncementBanner from "./AnnouncementBanner";
 import { NotificationProvider } from "../../context/NotificationContext";
 import useUIStore from "../../store/uiStore";
 import useSettingsStore from "../../store/settingsStore";
@@ -25,7 +26,6 @@ import UpgradeModal from "../shared/UpgradeModal";
 import SettingsPanel from "../shared/SettingsPanel";
 import BillingPanel from "../shared/BillingPanel";
 import NotificationsDrawer from "../shared/NotificationsDrawer";
-import { useNavigate } from "react-router-dom";
 
 export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -66,6 +66,7 @@ export default function Layout({ children }) {
 
         {/* Main content area */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          <AnnouncementBanner />
           <Navbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
           <main className="flex-1 overflow-auto p-4 sm:p-6">{children ? children : <Outlet />}</main>
         </div>

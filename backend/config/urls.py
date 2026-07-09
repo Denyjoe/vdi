@@ -31,9 +31,10 @@ urlpatterns = [
     path("api/vms/admin/", include("apps.vms.pool_urls")),
     path("api/notifications/", include("apps.notifications.urls")),
 
-    # ── Health check ─────────────────────────────────────────────────────────
+    # ── Health check & Config ─────────────────────────────────────────────────────────
     # Public endpoint — no authentication required.
     path("api/health/", HealthCheckView.as_view(), name="health-check"),
+    path("api/config/announcement/", apps.users.views.AnnouncementView.as_view(), name="system-announcement"),
 
     # ── Authentication & User Endpoints ──────────────────────────────────────
     path("api/auth/", include("apps.users.urls")),

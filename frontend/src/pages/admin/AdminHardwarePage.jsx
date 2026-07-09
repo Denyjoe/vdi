@@ -110,8 +110,6 @@ const GaugeCard = ({ title, value, centerLine1, centerLine2, color }) => {
 // ── Main Component ───────────────────────────────────────────────────────────
 
 export default function AdminHardwarePage() {
-  const getVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-
   const [stats, setStats] = useState(null);
   const [history, setHistory] = useState([]);      // 20 data points
   const [loading, setLoading] = useState(true);
@@ -329,15 +327,15 @@ export default function AdminHardwarePage() {
           <div style={{ height: 280 }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={history} margin={{ top: 5, right: 16, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={getVar('--chart-grid')} vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
                 <XAxis
                   dataKey="time"
-                  stroke={getVar('--chart-text')}
+                  stroke="var(--chart-text)"
                   tick={{ fontSize: 11, fill: 'var(--chart-text)' }}
                   interval={3}
                 />
                 <YAxis
-                  stroke={getVar('--chart-text')}
+                  stroke="var(--chart-text)"
                   tick={{ fontSize: 11, fill: 'var(--chart-text)' }}
                   domain={[0, 100]}
                   tickFormatter={v => `${v}%`}
@@ -349,11 +347,11 @@ export default function AdminHardwarePage() {
                 />
                 <Line
                   type="monotone" dataKey="cpu" name="CPU"
-                  stroke={getVar('--info')} strokeWidth={2} dot={false} activeDot={{ r: 4 }}
+                  stroke="var(--status-info)" strokeWidth={2} dot={false} activeDot={{ r: 4 }}
                 />
                 <Line
                   type="monotone" dataKey="ram" name="RAM"
-                  stroke={getVar('--accent')} strokeWidth={2} dot={false} activeDot={{ r: 4 }}
+                  stroke="var(--accent-primary)" strokeWidth={2} dot={false} activeDot={{ r: 4 }}
                 />
               </LineChart>
             </ResponsiveContainer>

@@ -28,6 +28,13 @@ api.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
+        // Handle 503 Maintenance Mode
+        if (error.response?.status === 503 && error.response?.data?.maintenance) {
+            window.location.href = '/maintenance';
+            return Promise.reject(error);
+        }
+
+
         // If error is 401 and we haven't already tried to refresh
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;

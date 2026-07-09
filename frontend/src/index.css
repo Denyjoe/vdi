@@ -34,6 +34,14 @@
   --status-error: #FF3366;
   --status-error-bg: rgba(255, 51, 102, 0.1);
   
+  --status-offline: #475569;
+  --status-offline-bg: rgba(71, 85, 105, 0.1);
+
+  /* Charts */
+  --chart-line: #0066FF;
+  --chart-grid: rgba(255, 255, 255, 0.1);
+  --chart-text: #94A3B8;
+  
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.4);
@@ -97,6 +105,11 @@
   --status-error: #B91C1C;
   --status-error-bg: #FEE2E2;
   --status-error-dot: #DC2626;
+
+  /* Charts */
+  --chart-line: #2563EB;
+  --chart-grid: rgba(0, 0, 0, 0.1);
+  --chart-text: #475569;
   
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05), 0 1px 3px 0 rgba(15, 23, 42, 0.08);

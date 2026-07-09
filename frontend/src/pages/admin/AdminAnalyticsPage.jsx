@@ -43,8 +43,6 @@ function EmptyChartState({ icon: Icon, message, submessage }) {
 }
 
 export default function AdminAnalyticsPage() {
-  const getVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     total_users: 0,
@@ -364,14 +362,14 @@ export default function AdminAnalyticsPage() {
             {hasRevenueData ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={revenueMonthly} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={getVar('--chart-grid')} vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
                   <XAxis dataKey="month" stroke="var(--text-faint)" fontSize={11} />
                   <YAxis stroke="var(--text-faint)" fontSize={11} allowDecimals={false} tickFormatter={(v) => TZS } />
                   <RechartsTooltip 
                     contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
                     formatter={(value) => [TZS , "Revenue"]}
                   />
-                  <Bar dataKey="revenue" fill={getVar('--chart-bar')} radius={[4, 4, 0, 0]} maxBarSize={40} />
+                  <Bar dataKey="revenue" fill="var(--chart-bar)" radius={[4, 4, 0, 0]} maxBarSize={40} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -392,11 +390,11 @@ export default function AdminAnalyticsPage() {
             {hasUserGrowth ? (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={userGrowth} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={getVar('--chart-grid')} vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
                   <XAxis dataKey="month" stroke="var(--text-faint)" fontSize={11} />
                   <YAxis stroke="var(--text-faint)" fontSize={11} allowDecimals={false} />
                   <RechartsTooltip contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }} />
-                  <Line type="monotone" dataKey="total_users" name="Total Users" stroke={getVar('--accent')} strokeWidth={3} dot={{ r: 4, fill: getVar('--accent'), strokeWidth: 2 }} />
+                  <Line type="monotone" dataKey="total_users" name="Total Users" stroke="var(--accent-primary)" strokeWidth={3} dot={{ r: 4, fill: 'var(--accent-primary)', strokeWidth: 2 }} />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
@@ -413,14 +411,14 @@ export default function AdminAnalyticsPage() {
           <div className="h-[300px]">
             {vmTemplates.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart layout="vertical" data={vmTemplates} margin={{ top: 10, right: 10, left: 40, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={getVar('--chart-grid')} horizontal={false} />
-                  <XAxis type="number" stroke={getVar('--chart-text')} allowDecimals={false} />
-                  <YAxis dataKey="name" type="category" stroke={getVar('--chart-text')} width={100} tick={{ fontSize: 11 }} />
+                <BarChart data={vmTemplates} layout="vertical" margin={{ top: 10, right: 10, left: 20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" horizontal={false} />
+                  <XAxis type="number" stroke="var(--chart-text)" allowDecimals={false} />
+                  <YAxis dataKey="name" type="category" stroke="var(--chart-text)" width={100} tick={{ fontSize: 11 }} />
                   <RechartsTooltip contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }} />
-                  <Bar dataKey="count" name="Launch Count" fill={getVar('--info')} radius={[0, 4, 4, 0]} maxBarSize={30}>
+                  <Bar dataKey="count" name="Launch Count" fill="var(--status-info)" radius={[0, 4, 4, 0]} maxBarSize={30}>
                     {vmTemplates.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={index === 0 ? getVar('--accent') : getVar('--info')} />
+                      <Cell key={`cell-${index}`} fill={index === 0 ? 'var(--accent-primary)' : 'var(--status-info)'} />
                     ))}
                   </Bar>
                 </BarChart>
