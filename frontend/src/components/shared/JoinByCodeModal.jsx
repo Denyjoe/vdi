@@ -67,29 +67,29 @@ export default function JoinByCodeModal({ onClose, onJoined }) {
                 if (e.target === e.currentTarget) onClose();
             }}>
             
-            <div className="bg-[#0A0E14] border border-slate-800/50 rounded-2xl w-[420px] max-w-[90vw] overflow-hidden shadow-2xl shadow-black/50"
+            <div className="bg-sidebar border border-border rounded-2xl w-[420px] max-w-[90vw] overflow-hidden shadow-2xl shadow-black/50"
                 style={{
                     animation: 'scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
                 }}>
                 
                 {/* Header */}
-                <div className="px-6 py-5 border-b border-slate-800/30">
+                <div className="px-6 py-5 border-b border-border-subtle">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-xl bg-[#00A3FF]/10 flex items-center justify-center">
                                 <Users size={18} className="text-[#00A3FF]" />
                             </div>
                             <div>
-                                <h2 className="text-base font-bold text-white">
+                                <h2 className="text-base font-bold text-[var(--text-primary)]">
                                     Join a Session
                                 </h2>
-                                <p className="text-[11px] text-slate-500 mt-0.5">
+                                <p className="text-[11px] text-muted mt-0.5">
                                     Enter the invite code from your host
                                 </p>
                             </div>
                         </div>
                         <button onClick={onClose}
-                            className="p-1.5 rounded-lg hover:bg-slate-800/50 text-slate-400 hover:text-white active:scale-95 transition-all">
+                            className="p-1.5 rounded-lg hover:bg-nav-hover text-secondary hover:text-[var(--text-primary)] active:scale-95 transition-all">
                             <X size={16} />
                         </button>
                     </div>
@@ -102,8 +102,8 @@ export default function JoinByCodeModal({ onClose, onJoined }) {
                             <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-4">
                                 <CheckCircle size={32} className="text-emerald-400" />
                             </div>
-                            <h4 className="text-lg font-bold text-white mb-1">{successData.name}</h4>
-                            <p className="text-xs text-slate-400 mb-6">You've successfully joined this session!</p>
+                            <h4 className="text-lg font-bold text-[var(--text-primary)] mb-1">{successData.name}</h4>
+                            <p className="text-xs text-secondary mb-6">You've successfully joined this session!</p>
                             
                             {successData.status === 'active' ? (
                                 <button onClick={() => { onClose(); navigate(`/session/${successData.id}`); }} 
@@ -112,7 +112,7 @@ export default function JoinByCodeModal({ onClose, onJoined }) {
                                 </button>
                             ) : (
                                 <button onClick={() => { onClose(); navigate('/sessions/my'); }} 
-                                    className="w-full py-3 bg-[#1E293B] border border-slate-700/50 hover:bg-slate-800 text-slate-300 rounded-xl text-sm font-semibold transition-all active:scale-[0.98]">
+                                    className="w-full py-3 bg-[#1E293B] border border-border-strong hover:bg-slate-800 text-secondary rounded-xl text-sm font-semibold transition-all active:scale-[0.98]">
                                     View My Sessions
                                 </button>
                             )}
@@ -121,7 +121,7 @@ export default function JoinByCodeModal({ onClose, onJoined }) {
                         <form onSubmit={handleJoinSession}>
                             {/* Code input */}
                             <div className="mb-5">
-                                <label className="text-[10px] uppercase tracking-[2px] text-slate-500 font-semibold block mb-3">
+                                <label className="text-[10px] uppercase tracking-[2px] text-muted font-semibold block mb-3">
                                     Invite Code
                                 </label>
                                 <input
@@ -133,12 +133,12 @@ export default function JoinByCodeModal({ onClose, onJoined }) {
                                     }}
                                     placeholder="e.g. TYVDX0X2"
                                     maxLength={8}
-                                    className="w-full bg-[#0F131A] border-2 border-slate-800/50 rounded-xl px-5 py-4 text-center text-2xl font-mono font-bold text-white tracking-[0.5em] placeholder-slate-700 outline-none focus:border-[#00A3FF]/50 transition-all uppercase"
+                                    className="w-full bg-card border-2 border-border rounded-xl px-5 py-4 text-center text-2xl font-mono font-bold text-[var(--text-primary)] tracking-[0.5em] placeholder-muted outline-none focus:border-blue-400 transition-all uppercase"
                                     autoFocus
                                     disabled={requiresPassword}
                                 />
                                 {!requiresPassword && (
-                                    <p className="text-[11px] text-slate-600 mt-2 text-center">
+                                    <p className="text-[11px] text-faint mt-2 text-center">
                                         8-character code from your host
                                     </p>
                                 )}
@@ -146,12 +146,12 @@ export default function JoinByCodeModal({ onClose, onJoined }) {
 
                             {requiresPassword && (
                                 <div className="mb-5" style={{ animation: 'scaleIn 0.2s ease-out' }}>
-                                    <label className="text-[10px] uppercase tracking-[2px] text-slate-500 font-semibold block mb-3">
+                                    <label className="text-[10px] uppercase tracking-[2px] text-muted font-semibold block mb-3">
                                         Session Password
                                     </label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                            <Lock size={16} className="text-slate-500" />
+                                            <Lock size={16} className="text-muted" />
                                         </div>
                                         <input 
                                             type="password" 
@@ -161,7 +161,7 @@ export default function JoinByCodeModal({ onClose, onJoined }) {
                                                 setJoinError('');
                                             }}
                                             placeholder="Enter password"
-                                            className="w-full bg-[#0F131A] border-2 border-slate-800/50 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-600 outline-none focus:border-[#00A3FF]/50 transition-all"
+                                            className="w-full bg-card border-2 border-border rounded-xl pl-10 pr-4 py-3 text-sm text-[var(--text-primary)] placeholder-muted outline-none focus:border-blue-400 transition-all"
                                             autoFocus
                                             required
                                         />
@@ -200,8 +200,8 @@ export default function JoinByCodeModal({ onClose, onJoined }) {
                 
                 {/* Footer note */}
                 {!successData && (
-                    <div className="px-6 py-4 border-t border-slate-800/30 bg-[#080B10]">
-                        <p className="text-[11px] text-slate-600 text-center">
+                    <div className="px-6 py-4 border-t border-border-subtle bg-canvas">
+                        <p className="text-[11px] text-faint text-center">
                             Joining is always free. You will get your own isolated desktop.
                         </p>
                     </div>

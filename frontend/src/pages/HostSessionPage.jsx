@@ -112,19 +112,19 @@ export default function HostSessionPage() {
   };
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center h-[80vh] gap-4 bg-[#080B10]">
+    <div className="flex flex-col items-center justify-center h-[80vh] gap-4 bg-canvas">
       <div className="w-10 h-10 rounded-full border-4 border-[#00A3FF]/20 border-t-[#00A3FF] animate-spin"></div>
-      <p className="text-slate-500 text-sm">Loading session data...</p>
+      <p className="text-muted text-sm">Loading session data...</p>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#080B10] flex flex-col">
+    <div className="min-h-screen bg-canvas flex flex-col">
       {/* SECTION A — TOP BAR */}
-      <div className="h-14 bg-[#080B10]/90 backdrop-blur-md border-b border-slate-800/30 flex items-center justify-between px-4">
+      <div className="h-14 bg-canvas/90 backdrop-blur-md border-b border-border-subtle flex items-center justify-between px-4">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate('/sessions/my')}
-            className="text-slate-500 hover:text-slate-200 active:scale-95 transition-all">
+            className="text-muted hover:text-primary active:scale-95 transition-all">
             <ArrowLeft size={18} />
           </button>
           <div className="w-px h-6 bg-slate-800" />
@@ -134,18 +134,18 @@ export default function HostSessionPage() {
               Live
             </span>
           </div>
-          <span className="text-sm font-bold text-white">
+          <span className="text-sm font-bold text-primary">
             {session.name}
           </span>
-          <span className="px-2 py-0.5 rounded-full bg-slate-800 text-[9px] text-slate-400 uppercase">
+          <span className="px-2 py-0.5 rounded-full bg-[var(--bg-card)] border border-[var(--border-color)] text-[9px] text-[var(--text-primary)] font-semibold uppercase">
             {session.session_type || 'Custom'}
           </span>
         </div>
         
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900/50 rounded-lg">
-            <Clock size={12} className="text-slate-500" />
-            <span className="text-xs font-mono text-slate-300">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-canvas rounded-lg">
+            <Clock size={12} className="text-muted" />
+            <span className="text-xs font-mono text-secondary">
               {formatDuration(session.start_time || session.created_at)}
             </span>
           </div>
@@ -163,13 +163,13 @@ export default function HostSessionPage() {
             </div>
           )}
           
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900/50 rounded-lg">
-            <Users size={12} className="text-slate-500" />
-            <span className="text-xs font-mono text-slate-300">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-canvas rounded-lg">
+            <Users size={12} className="text-muted" />
+            <span className="text-xs font-mono text-secondary">
               {participants.length}/{session.max_participants || 0}
             </span>
           </div>
-          <div className="px-3 py-1.5 bg-slate-900/50 rounded-lg">
+          <div className="px-3 py-1.5 bg-canvas rounded-lg">
             <span className="text-xs font-mono text-[#00A3FF] tracking-widest">
               {session.invite_code}
             </span>
@@ -190,13 +190,13 @@ export default function HostSessionPage() {
         <div className="flex-[2] overflow-y-auto pr-2 custom-scrollbar">
           
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+            <h2 className="text-sm font-bold text-primary uppercase tracking-wider flex items-center gap-2">
               <Users size={16} className="text-[#00A3FF]" />
               Participants
             </h2>
             <div className="flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-[#00FF87] animate-pulse" />
-              <span className="text-[10px] text-slate-500">
+              <span className="text-[10px] text-muted">
                 Live · updates every 5s
               </span>
             </div>
@@ -209,31 +209,31 @@ export default function HostSessionPage() {
               const name = p.user?.first_name ? `${p.user.first_name} ${p.user.last_name || ''}` : (p.user?.email || 'Unknown');
               
               return (
-                <div key={p.id} className={`bg-[#0F131A]/70 border rounded-2xl p-4 transition-all ${
-                    isConnected ? 'border-[#00FF87]/20 hover:border-[#00FF87]/40' : 'border-slate-800/50 hover:border-slate-700/50'
+                <div key={p.id} className={`bg-card/70 border rounded-2xl p-4 transition-all ${
+                    isConnected ? 'border-[#00FF87]/20 hover:border-[#00FF87]/40' : 'border-border hover:border-border-strong'
                   }`}>
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     
                     {/* Left: avatar + info */}
                     <div className="flex items-center gap-3">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold ${
-                          isConnected ? 'bg-[#00FF87]/10 text-[#00FF87]' : 'bg-slate-800 text-slate-400'
+                          isConnected ? 'bg-[#00FF87]/10 text-[#00FF87]' : 'bg-slate-800 text-secondary'
                         }`}>
                         {name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase() || '??'}
                       </div>
                       <div>
-                        <h4 className="text-sm font-semibold text-white">
+                        <h4 className="text-sm font-semibold text-primary">
                           {name}
                         </h4>
                         <div className="flex items-center gap-2 mt-0.5">
                           <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-[#00FF87]' : 'bg-[#FF6B00]'}`} />
-                          <span className="text-[10px] text-slate-500">
+                          <span className="text-[10px] text-muted">
                             {isConnected ? 'Connected' : 'Provisioning'}
                           </span>
                           {p.ip_address && (
                             <>
-                              <span className="text-slate-700">·</span>
-                              <span className="text-[10px] font-mono text-slate-600">
+                              <span className="text-faint">·</span>
+                              <span className="text-[10px] font-mono text-faint">
                                 {p.ip_address}
                               </span>
                             </>
@@ -249,26 +249,26 @@ export default function HostSessionPage() {
                       {isConnected && (
                         <div className="flex gap-3 mr-2">
                           <div className="text-center">
-                            <div className="w-16 h-1.5 bg-slate-800/50 rounded-full overflow-hidden">
+                            <div className="w-16 h-1.5 bg-nav-hover rounded-full overflow-hidden">
                               <div className="h-full rounded-full"
                                 style={{
                                   width: `${p.cpu_usage || Math.floor(Math.random() * 20 + 5)}%`,
                                   background: 'linear-gradient(90deg, #00A3FF, #00FF87)',
                                 }}/>
                             </div>
-                            <span className="text-[8px] text-slate-600 mt-0.5 block">
+                            <span className="text-[8px] text-faint mt-0.5 block">
                               CPU {p.cpu_usage || Math.floor(Math.random() * 20 + 5)}%
                             </span>
                           </div>
                           <div className="text-center">
-                            <div className="w-16 h-1.5 bg-slate-800/50 rounded-full overflow-hidden">
+                            <div className="w-16 h-1.5 bg-nav-hover rounded-full overflow-hidden">
                               <div className="h-full rounded-full"
                                 style={{
                                   width: `${p.ram_usage || Math.floor(Math.random() * 30 + 10)}%`,
                                   background: 'linear-gradient(90deg, #6C63FF, #00FF87)',
                                 }}/>
                             </div>
-                            <span className="text-[8px] text-slate-600 mt-0.5 block">
+                            <span className="text-[8px] text-faint mt-0.5 block">
                               RAM {p.ram_usage || Math.floor(Math.random() * 30 + 10)}%
                             </span>
                           </div>
@@ -287,7 +287,7 @@ export default function HostSessionPage() {
                       {/* Remove button */}
                       <button
                         onClick={() => handleRemoveParticipant(p)}
-                        className="p-2 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-500 hover:text-red-400 hover:border-red-500/30 active:scale-95 transition-all">
+                        className="p-2 rounded-xl bg-nav-hover border border-border-strong text-muted hover:text-red-400 hover:border-red-500/30 active:scale-95 transition-all">
                         <UserMinus size={13} />
                       </button>
                     </div>
@@ -300,18 +300,18 @@ export default function HostSessionPage() {
           {/* Empty state */}
           {participants.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-center">
-              <Users size={40} className="text-slate-700 mb-4" />
-              <h3 className="text-lg text-slate-400 font-semibold mb-2">
+              <Users size={40} className="text-faint mb-4" />
+              <h3 className="text-lg text-secondary font-semibold mb-2">
                 Waiting for participants
               </h3>
-              <p className="text-sm text-slate-600 max-w-sm">
+              <p className="text-sm text-faint max-w-sm">
                 Share the invite code with your participants. They will appear here when they join.
               </p>
-              <div className="mt-6 px-6 py-3 bg-slate-900/50 rounded-xl border border-slate-800/50">
-                <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">
+              <div className="mt-6 px-6 py-3 bg-canvas rounded-xl border border-border">
+                <p className="text-[10px] text-muted uppercase tracking-widest mb-1">
                   Invite Code
                 </p>
-                <p className="text-2xl font-mono font-bold text-white tracking-[0.3em]">
+                <p className="text-2xl font-mono font-bold text-primary tracking-[0.3em]">
                   {session.invite_code}
                 </p>
               </div>
@@ -323,11 +323,11 @@ export default function HostSessionPage() {
         <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar">
           
           {/* Invite Code Card */}
-          <div className="bg-[#0F131A]/70 border border-slate-800/50 rounded-2xl p-5">
+          <div className="bg-card/70 border border-border rounded-2xl p-5">
             <h3 className="text-[10px] uppercase tracking-widest text-[#00A3FF] font-semibold mb-3">
               Invite Code
             </h3>
-            <p className="text-2xl font-mono font-bold text-white tracking-[0.3em] text-center mb-3">
+            <p className="text-2xl font-mono font-bold text-primary tracking-[0.3em] text-center mb-3">
               {session.invite_code}
             </p>
             <div className="flex gap-2">
@@ -343,7 +343,7 @@ export default function HostSessionPage() {
                 className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold active:scale-95 transition-all ${
                   copiedLink 
                     ? 'bg-[#00FF87]/10 border border-[#00FF87]/30 text-[#00FF87]' 
-                    : 'bg-slate-800/50 border border-slate-700/50 text-slate-300 hover:border-slate-500'
+                    : 'bg-nav-hover border border-border-strong text-secondary hover:border-slate-500'
                 }`}>
                 {copiedLink ? <><Check size={12} /> Copied</> : <><Link2 size={12} /> Copy Link</>}
               </button>
@@ -351,8 +351,8 @@ export default function HostSessionPage() {
           </div>
           
           {/* Restrictions Card */}
-          <div className="bg-[#0F131A]/70 border border-slate-800/50 rounded-2xl p-5">
-            <h3 className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold mb-3">
+          <div className="bg-card/70 border border-border rounded-2xl p-5">
+            <h3 className="text-[10px] uppercase tracking-widest text-muted font-semibold mb-3">
               Restrictions
             </h3>
             <div className="space-y-2">
@@ -364,7 +364,7 @@ export default function HostSessionPage() {
                   </span>
                 </div>
               ) : (
-                <p className="text-xs text-slate-500">None active</p>
+                <p className="text-xs text-muted">None active</p>
               )}
               {session.restrict_internet && (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20">
@@ -386,25 +386,25 @@ export default function HostSessionPage() {
           </div>
           
           {/* Session Stats Card */}
-          <div className="bg-[#0F131A]/70 border border-slate-800/50 rounded-2xl p-5">
-            <h3 className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold mb-3">
+          <div className="bg-card/70 border border-border rounded-2xl p-5">
+            <h3 className="text-[10px] uppercase tracking-widest text-muted font-semibold mb-3">
               Session Stats
             </h3>
             <div className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-xs text-slate-500">Joined</span>
-                <span className="text-xs font-bold text-white">
+                <span className="text-xs text-muted">Joined</span>
+                <span className="text-xs font-bold text-primary">
                   {participants.length} / {session.max_participants || 0}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-xs text-slate-500">Active VMs</span>
+                <span className="text-xs text-muted">Active VMs</span>
                 <span className="text-xs font-bold text-[#00FF87]">
                   {participants.filter(p => p.vm_status === 'running').length}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-xs text-slate-500">Waiting</span>
+                <span className="text-xs text-muted">Waiting</span>
                 <span className="text-xs font-bold text-[#FF6B00]">
                   {participants.filter(p => p.vm_status !== 'running').length}
                 </span>
@@ -413,14 +413,14 @@ export default function HostSessionPage() {
           </div>
           
           {/* Screen Monitoring Card */}
-          <div className="bg-[#0F131A]/70 border border-[#6C63FF]/20 rounded-2xl p-5">
+          <div className="bg-card/70 border border-[#6C63FF]/20 rounded-2xl p-5">
             <div className="flex items-center gap-2 mb-2">
               <Monitor size={14} className="text-[#6C63FF]" />
               <h3 className="text-[10px] uppercase tracking-widest text-[#6C63FF] font-semibold">
                 Screen Monitoring
               </h3>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted">
               Click "View Screen" on any participant to see their desktop in real-time.
             </p>
           </div>
@@ -430,21 +430,21 @@ export default function HostSessionPage() {
       {/* SECTION D — VIEW SCREEN MODAL */}
       {screenModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#0F131A] border border-slate-800/50 rounded-2xl overflow-hidden w-[95vw] sm:w-[85vw] h-[90vh] sm:h-[80vh] flex flex-col shadow-2xl">
+          <div className="bg-card border border-border rounded-2xl overflow-hidden w-[95vw] sm:w-[85vw] h-[90vh] sm:h-[80vh] flex flex-col shadow-2xl">
             
             {/* Modal header */}
-            <div className="h-12 px-4 flex items-center justify-between bg-[#080B10] border-b border-slate-800/30">
+            <div className="h-12 px-4 flex items-center justify-between bg-canvas border-b border-border-subtle">
               <div className="flex items-center gap-3 truncate">
                 <Monitor size={16} className="text-[#6C63FF]" />
-                <span className="text-sm font-semibold text-white truncate">
+                <span className="text-sm font-semibold text-primary truncate">
                   Viewing: {screenModal.user?.first_name || screenModal.user?.email || 'User'}
                 </span>
-                <span className="text-xs text-slate-500 hidden sm:inline">
+                <span className="text-xs text-muted hidden sm:inline">
                   {screenModal.vm_template_name || 'Virtual Machine'} · {screenModal.ip_address || 'No IP'}
                 </span>
               </div>
               <button onClick={() => setScreenModal(null)}
-                className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white active:scale-95 transition-all">
+                className="p-1.5 rounded-lg hover:bg-slate-800 text-secondary hover:text-white active:scale-95 transition-all">
                 <X size={18} />
               </button>
             </div>
@@ -458,7 +458,7 @@ export default function HostSessionPage() {
             />
             
             {/* Modal footer */}
-            <div className="h-10 px-4 flex items-center justify-end gap-2 bg-[#080B10] border-t border-slate-800/30">
+            <div className="h-10 px-4 flex items-center justify-end gap-2 bg-canvas border-t border-border-subtle">
               <button
                 onClick={() => handleRemoveParticipant(screenModal)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[11px] font-semibold active:scale-95 transition-all">

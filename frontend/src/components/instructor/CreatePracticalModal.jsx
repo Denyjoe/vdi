@@ -198,7 +198,7 @@ export default function CreatePracticalModal({ onClose, onCreated }) {
                 <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">Session Name <span className="text-red-400">*</span></label>
                 <input type="text" name="name" value={formData.name} onChange={handleChange}
                   placeholder="e.g. AutoCAD Lab 1 — Floor Plan"
-                  className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-[var(--text-primary)] placeholder-muted focus:outline-none focus:border-indigo-500"
                 />
               </div>
               <div>
@@ -339,7 +339,7 @@ export default function CreatePracticalModal({ onClose, onCreated }) {
                     <label key={type.id} className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${formData.submission_type === type.id ? 'bg-indigo-500/10 border-indigo-500' : 'bg-[var(--bg-card)] border-[var(--border-color)] hover:border-slate-600'}`}>
                       <input type="radio" name="submission_type" value={type.id} checked={formData.submission_type === type.id} onChange={handleChange} className="mt-1" />
                       <div>
-                        <p className={`text-sm font-medium ${formData.submission_type === type.id ? 'text-indigo-400' : 'text-slate-200'}`}>{type.label}</p>
+                        <p className={`text-sm font-medium ${formData.submission_type === type.id ? 'text-indigo-400' : 'text-primary'}`}>{type.label}</p>
                         <p className="text-xs text-[var(--text-secondary)] mt-0.5">{type.desc}</p>
                       </div>
                     </label>
@@ -358,7 +358,7 @@ export default function CreatePracticalModal({ onClose, onCreated }) {
                   <div>
                     <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">Allowed Types (Exts)</label>
                     <input type="text" placeholder=".pdf, .docx, .dwg"
-                      className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-[var(--text-primary)] placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-[var(--text-primary)] placeholder-muted focus:outline-none focus:border-indigo-500"
                     />
                   </div>
                 </div>
@@ -368,7 +368,7 @@ export default function CreatePracticalModal({ onClose, onCreated }) {
                 <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">Instructions for Students</label>
                 <textarea name="instructions" value={formData.instructions} onChange={handleChange} rows="4"
                   placeholder="Detailed instructions shown to students when they join the session..."
-                  className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:border-indigo-500 resize-none"
+                  className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-muted focus:outline-none focus:border-indigo-500 resize-none"
                 />
               </div>
             </div>
@@ -391,19 +391,19 @@ export default function CreatePracticalModal({ onClose, onCreated }) {
                 
                 <div className="grid grid-cols-2 gap-y-4 gap-x-2">
                   <div>
-                    <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Schedule</p>
+                    <p className="text-[11px] font-bold text-muted uppercase tracking-wider mb-1">Schedule</p>
                     <p className="text-sm text-[var(--text-primary)]">{formatDateTime(formData.start_time)}</p>
                     <p className="text-sm text-[var(--text-primary)]">to {formatDateTime(formData.end_time)}</p>
                   </div>
                   <div>
-                    <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Submission</p>
+                    <p className="text-[11px] font-bold text-muted uppercase tracking-wider mb-1">Submission</p>
                     <p className="text-sm text-emerald-400 font-medium">By {formatDateTime(formData.same_as_end_time ? formData.end_time : formData.submission_deadline)}</p>
                     <p className="text-xs text-[var(--text-secondary)] mt-0.5">{SUBMISSION_TYPES.find(t=>t.id===formData.submission_type)?.label}</p>
                   </div>
                   <div className="col-span-2 mt-2">
-                    <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Environment</p>
+                    <p className="text-[11px] font-bold text-muted uppercase tracking-wider mb-1">Environment</p>
                     <p className="text-sm text-[var(--text-primary)] flex items-center gap-2">
-                      <Monitor className="w-4 h-4 text-slate-500" />
+                      <Monitor className="w-4 h-4 text-muted" />
                       {selectedTemplateObj ? selectedTemplateObj.name : 'Any Template'}
                     </p>
                     {(formData.restrict_internet || formData.restrict_copy_paste) && (

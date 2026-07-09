@@ -8,6 +8,7 @@ import {
 import api from '../../services/api'
 import useAuthStore from '../../store/authStore'
 import useUIStore from '../../store/uiStore'
+import useThemeStore from '../../store/themeStore'
 
 // Maps backend icon name → lucide-react component
 const iconMap = {
@@ -20,6 +21,8 @@ const iconMap = {
 const getTemplateIcon = (iconName) => iconMap[iconName] || Monitor
 
 export default function WorkspacesPage() {
+  const { user } = useAuthStore()
+  const theme = useThemeStore(s => s.theme)
   const [workspaces, setWorkspaces] = useState([])
   const [templates, setTemplates] = useState([])
   const [loading, setLoading] = useState(true)
@@ -38,8 +41,6 @@ export default function WorkspacesPage() {
   const [wsStats, setWsStats] = useState({})
   
   const navigate = useNavigate()
-  const { user } = useAuthStore()
-
   useEffect(() => { 
     fetchWorkspaces() 
   }, [])
@@ -186,14 +187,14 @@ export default function WorkspacesPage() {
   }
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center h-[60vh] gap-4 bg-[#080B10]">
+    <div className="flex flex-col items-center justify-center h-[60vh] gap-4 bg-canvas">
       <Loader2 className="w-10 h-10 text-[#00A3FF] animate-spin" />
-      <p className="text-slate-500 text-sm">Loading infrastructure...</p>
+      <p className="text-muted text-sm">Loading infrastructure...</p>
     </div>
   )
 
   return (
-    <div className="min-h-screen bg-[#080B10] p-8 text-slate-200 selection:bg-[#0066FF]/30">
+    <div className="min-h-screen bg-canvas p-8 text-primary selection:bg-[#0066FF]/30">
       <style>{`
         @keyframes ledFlow {
           0% { background-position: 0% 50%; }
@@ -223,10 +224,10 @@ export default function WorkspacesPage() {
         {/* SECTION 1 — PAGE HEADER */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-slate-100 tracking-tight">
+            <h1 className="text-2xl font-bold text-primary tracking-tight">
               My Workspaces
             </h1>
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="text-sm text-muted mt-1">
               Manage your cloud desktops and servers
             </p>
           </div>
@@ -240,40 +241,40 @@ export default function WorkspacesPage() {
 
         {/* SECTION 2 — TOP STATS HEADER BAR */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="bg-[#0F131A]/70 backdrop-blur-sm border border-slate-800/50 rounded-xl p-4 flex items-center gap-4">
+          <div className="bg-card/70 backdrop-blur-sm border border-border rounded-xl p-4 flex items-center gap-4">
             <div className="w-10 h-10 rounded-lg bg-[#00A3FF]/10 flex items-center justify-center">
               <Monitor size={20} className="text-[#00A3FF]" />
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-slate-500 font-medium">TOTAL WORKSTATIONS</p>
-              <p className="text-xl font-bold text-white mt-0.5">{totalCount}</p>
+              <p className="text-[10px] uppercase tracking-widest text-muted font-medium">TOTAL WORKSTATIONS</p>
+              <p className="text-xl font-bold text-primary mt-0.5">{totalCount}</p>
             </div>
           </div>
-          <div className="bg-[#0F131A]/70 backdrop-blur-sm border border-slate-800/50 rounded-xl p-4 flex items-center gap-4">
+          <div className="bg-card/70 backdrop-blur-sm border border-border rounded-xl p-4 flex items-center gap-4">
             <div className="w-10 h-10 rounded-lg bg-[#00FF87]/10 flex items-center justify-center">
               <Power size={20} className="text-[#00FF87]" />
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-slate-500 font-medium">NODES ONLINE</p>
-              <p className="text-xl font-bold text-white mt-0.5">{onlineCount}</p>
+              <p className="text-[10px] uppercase tracking-widest text-muted font-medium">NODES ONLINE</p>
+              <p className="text-xl font-bold text-primary mt-0.5">{onlineCount}</p>
             </div>
           </div>
-          <div className="bg-[#0F131A]/70 backdrop-blur-sm border border-slate-800/50 rounded-xl p-4 flex items-center gap-4">
+          <div className="bg-card/70 backdrop-blur-sm border border-border rounded-xl p-4 flex items-center gap-4">
             <div className="w-10 h-10 rounded-lg bg-[#6C63FF]/10 flex items-center justify-center">
               <Cpu size={20} className="text-[#6C63FF]" />
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-slate-500 font-medium">TOTAL VIRTUAL CORES</p>
-              <p className="text-xl font-bold text-white mt-0.5">{totalCores}</p>
+              <p className="text-[10px] uppercase tracking-widest text-muted font-medium">TOTAL VIRTUAL CORES</p>
+              <p className="text-xl font-bold text-primary mt-0.5">{totalCores}</p>
             </div>
           </div>
-          <div className="bg-[#0F131A]/70 backdrop-blur-sm border border-slate-800/50 rounded-xl p-4 flex items-center gap-4">
+          <div className="bg-card/70 backdrop-blur-sm border border-border rounded-xl p-4 flex items-center gap-4">
             <div className="w-10 h-10 rounded-lg bg-[#FF6B00]/10 flex items-center justify-center">
               <Database size={20} className="text-[#FF6B00]" />
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-slate-500 font-medium">DEDICATED MEMORY</p>
-              <p className="text-xl font-bold text-white mt-0.5">{totalRam} GB</p>
+              <p className="text-[10px] uppercase tracking-widest text-muted font-medium">DEDICATED MEMORY</p>
+              <p className="text-xl font-bold text-primary mt-0.5">{totalRam} GB</p>
             </div>
           </div>
         </div>
@@ -286,9 +287,7 @@ export default function WorkspacesPage() {
                 key={tab}
                 onClick={() => setFilter(tab)}
                 className={`px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 active:scale-95 ${
-                  activeFilter === tab
-                    ? 'bg-[#0066FF] text-white shadow-lg shadow-blue-500/30'
-                    : 'bg-[#0F131A] text-slate-400 border border-slate-800/50 hover:border-slate-600 hover:text-slate-200'
+                  activeFilter === tab ? 'bg-[#2563EB] text-[#FFFFFF] shadow-md border border-[#2563EB]' : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border-color)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]'
                 }`}
               >
                 {tab}
@@ -299,18 +298,18 @@ export default function WorkspacesPage() {
           
           <div className="flex gap-3 w-full md:w-auto">
             <div className="relative flex-1 md:flex-none">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-faint" />
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search workspace..."
-                className="bg-[#0F131A] border border-slate-800/50 rounded-xl pl-9 pr-4 py-2 text-sm text-slate-300 placeholder-slate-600 outline-none focus:border-[#0066FF]/50 transition-colors w-full md:w-56"
+                className="bg-card border border-border rounded-xl pl-9 pr-4 py-2 text-sm text-secondary placeholder-muted outline-none focus:border-blue-500 transition-colors w-full md:w-56"
               />
             </div>
             <select 
               value={sortBy} 
               onChange={e => setSortBy(e.target.value)} 
-              className="bg-[#0F131A] border border-slate-800/50 rounded-xl px-3 py-2 text-sm text-slate-400 outline-none"
+              className="bg-card border border-border rounded-xl px-3 py-2 text-sm text-secondary outline-none"
             >
               <option>Sort: Recent</option>
               <option>Sort: Name</option>
@@ -322,14 +321,14 @@ export default function WorkspacesPage() {
         {/* SECTION 4 — WORKSPACE CARDS GRID */}
         {workspaces.length === 0 ? (
           /* SECTION 5 — EMPTY STATE */
-          <div className="flex flex-col items-center justify-center py-20 border border-slate-800/50 rounded-2xl bg-[#0F131A]">
-            <div className="w-16 h-16 rounded-2xl bg-slate-800/50 flex items-center justify-center mb-4">
-              <Monitor size={28} className="text-slate-600" />
+          <div className="flex flex-col items-center justify-center py-20 border border-border rounded-2xl bg-card">
+            <div className="w-16 h-16 rounded-2xl bg-nav-hover flex items-center justify-center mb-4">
+              <Monitor size={28} className="text-faint" />
             </div>
-            <h3 className="text-lg font-semibold text-slate-300 mb-2">
+            <h3 className="text-lg font-semibold text-secondary mb-2">
               No workspaces yet
             </h3>
-            <p className="text-sm text-slate-500 text-center max-w-md mb-6">
+            <p className="text-sm text-muted text-center max-w-md mb-6">
               Launch your first cloud desktop or server. Choose from pre-configured templates with professional tools pre-installed.
             </p>
             <button
@@ -353,7 +352,7 @@ export default function WorkspacesPage() {
                 return (
                   <div key={ws.id} className="relative group overflow-hidden rounded-2xl">
                     <div className="absolute inset-0 rounded-2xl p-[1px] led-strip-animation"></div>
-                    <div className="relative bg-[#0F131A] rounded-2xl p-5 m-[1px] h-full flex flex-col">
+                    <div className="relative bg-card rounded-2xl p-5 m-[1px] h-full flex flex-col">
                       
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">
@@ -361,10 +360,10 @@ export default function WorkspacesPage() {
                             <Monitor size={20} className="text-[#00FF87]" />
                           </div>
                           <div className="min-w-0">
-                            <h3 className="text-sm font-bold text-white uppercase tracking-wide truncate">
+                            <h3 className="text-sm font-bold text-primary uppercase tracking-wide truncate">
                               {ws.name}
                             </h3>
-                            <p className="text-xs text-slate-500 mt-0.5 truncate">
+                            <p className="text-xs text-muted mt-0.5 truncate">
                               {ws.vm_template_details?.os || 'Unknown OS'}
                             </p>
                           </div>
@@ -377,50 +376,68 @@ export default function WorkspacesPage() {
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-2 mb-4 px-3 py-1.5 bg-slate-900/50 rounded-lg w-fit">
-                        <Globe size={12} className="text-slate-500" />
-                        <span className="text-xs font-mono text-slate-400">
+                      <div className="flex items-center gap-2 mb-4 px-3 py-1.5 bg-canvas rounded-lg w-fit">
+                        <Globe size={12} className="text-muted" />
+                        <span className="text-xs font-mono text-secondary">
                           {ws.vm_details?.ip_address || '0.0.0.0'}
                         </span>
-                        <button onClick={() => copyToClipboard(ws.vm_details?.ip_address)} className="text-slate-600 hover:text-slate-300 active:scale-90 transition-all">
+                        <button onClick={() => copyToClipboard(ws.vm_details?.ip_address)} className="text-faint hover:text-secondary active:scale-90 transition-all">
                           <Copy size={11} />
                         </button>
                       </div>
                       
                       <div className="grid grid-cols-3 gap-3 mb-4">
-                        <div className="bg-slate-900/30 rounded-lg p-2.5 text-center">
+                        <div style={{
+                          background: theme === 'light' ? '#F8FAFC' : 'rgba(15, 23, 42, 0.3)',
+                          border: '1px solid var(--border-subtle)',
+                          borderRadius: '8px',
+                          padding: '10px',
+                          textAlign: 'center'
+                        }}>
                           <Cpu size={14} className="text-[#00A3FF] mx-auto mb-1" />
-                          <p className="text-xs font-bold text-white">{ws.vm_template_details?.cpu_cores || 0}</p>
-                          <p className="text-[9px] text-slate-600 uppercase">vCPU</p>
+                          <p style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '12px' }}>{ws.vm_template_details?.cpu_cores || 0}</p>
+                          <p style={{ color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '9px' }}>vCPU</p>
                         </div>
-                        <div className="bg-slate-900/30 rounded-lg p-2.5 text-center">
+                        <div style={{
+                          background: theme === 'light' ? '#F8FAFC' : 'rgba(15, 23, 42, 0.3)',
+                          border: '1px solid var(--border-subtle)',
+                          borderRadius: '8px',
+                          padding: '10px',
+                          textAlign: 'center'
+                        }}>
                           <MemoryStick size={14} className="text-[#6C63FF] mx-auto mb-1" />
-                          <p className="text-xs font-bold text-white">{ws.vm_template_details?.ram_gb || 0} GB</p>
-                          <p className="text-[9px] text-slate-600 uppercase">RAM</p>
+                          <p style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '12px' }}>{ws.vm_template_details?.ram_gb || 0} GB</p>
+                          <p style={{ color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '9px' }}>RAM</p>
                         </div>
-                        <div className="bg-slate-900/30 rounded-lg p-2.5 text-center">
+                        <div style={{
+                          background: theme === 'light' ? '#F8FAFC' : 'rgba(15, 23, 42, 0.3)',
+                          border: '1px solid var(--border-subtle)',
+                          borderRadius: '8px',
+                          padding: '10px',
+                          textAlign: 'center'
+                        }}>
                           <HardDrive size={14} className="text-[#FF6B00] mx-auto mb-1" />
-                          <p className="text-xs font-bold text-white">{ws.vm_template_details?.storage_gb || 0} GB</p>
-                          <p className="text-[9px] text-slate-600 uppercase">SSD</p>
+                          <p style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '12px' }}>{ws.vm_template_details?.storage_gb || 0} GB</p>
+                          <p style={{ color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '9px' }}>SSD</p>
                         </div>
                       </div>
                       
                       <div className="space-y-3 mb-5 flex-1">
                         <div>
                           <div className="flex justify-between mb-1">
-                            <span className="text-[10px] uppercase tracking-wider text-slate-500 font-medium">CPU Utilization</span>
+                            <span className="text-[10px] uppercase tracking-wider text-muted font-medium">CPU Utilization</span>
                             <span className="text-[10px] font-bold text-[#00A3FF]">{cpuUsage}%</span>
                           </div>
-                          <div className="h-1.5 bg-slate-800/50 rounded-full overflow-hidden">
+                          <div className="h-1.5 bg-nav-hover rounded-full overflow-hidden">
                             <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${cpuUsage}%`, background: 'linear-gradient(90deg, #00A3FF, #00FF87)' }} />
                           </div>
                         </div>
                         <div>
                           <div className="flex justify-between mb-1">
-                            <span className="text-[10px] uppercase tracking-wider text-slate-500 font-medium">RAM Footprint</span>
+                            <span className="text-[10px] uppercase tracking-wider text-muted font-medium">RAM Footprint</span>
                             <span className="text-[10px] font-bold text-[#6C63FF]">{ramUsage}%</span>
                           </div>
-                          <div className="h-1.5 bg-slate-800/50 rounded-full overflow-hidden">
+                          <div className="h-1.5 bg-nav-hover rounded-full overflow-hidden">
                             <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${ramUsage}%`, background: 'linear-gradient(90deg, #6C63FF, #00FF87)' }} />
                           </div>
                         </div>
@@ -441,15 +458,15 @@ export default function WorkspacesPage() {
               
               if (isProvisioning) {
                 return (
-                  <div key={ws.id} className="bg-[#0F131A] border border-[#00A3FF]/40 rounded-2xl p-5 flex flex-col animate-pulse-subtle">
+                  <div key={ws.id} className="bg-card border border-[#00A3FF]/40 rounded-2xl p-5 flex flex-col animate-pulse-subtle">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-[#00A3FF]/10 flex items-center justify-center shrink-0">
                           <Monitor size={20} className="text-[#00A3FF]" />
                         </div>
                         <div className="min-w-0">
-                          <h3 className="text-sm font-bold text-white uppercase tracking-wide truncate">{ws.name}</h3>
-                          <p className="text-xs text-slate-500 mt-0.5 truncate">{ws.vm_template_details?.os}</p>
+                          <h3 className="text-sm font-bold text-primary uppercase tracking-wide truncate">{ws.name}</h3>
+                          <p className="text-xs text-muted mt-0.5 truncate">{ws.vm_template_details?.os}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
@@ -458,26 +475,26 @@ export default function WorkspacesPage() {
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-2 mb-4 px-3 py-1.5 bg-slate-900/50 rounded-lg w-fit">
-                      <Globe size={12} className="text-slate-600" />
-                      <span className="text-xs font-mono text-slate-500">—.—.—.—</span>
+                    <div className="flex items-center gap-2 mb-4 px-3 py-1.5 bg-canvas rounded-lg w-fit">
+                      <Globe size={12} className="text-faint" />
+                      <span className="text-xs font-mono text-muted">—.—.—.—</span>
                     </div>
                     
                     <div className="grid grid-cols-3 gap-3 mb-4">
-                      <div className="bg-slate-900/30 rounded-lg p-2.5 text-center opacity-70">
-                        <Cpu size={14} className="text-slate-500 mx-auto mb-1" />
-                        <p className="text-xs font-bold text-slate-300">{ws.vm_template_details?.cpu_cores}</p>
-                        <p className="text-[9px] text-slate-600 uppercase">vCPU</p>
+                      <div className="bg-canvas/30 rounded-lg p-2.5 text-center opacity-70">
+                        <Cpu size={14} className="text-muted mx-auto mb-1" />
+                        <p className="text-xs font-bold text-secondary">{ws.vm_template_details?.cpu_cores}</p>
+                        <p className="text-[9px] text-faint uppercase">vCPU</p>
                       </div>
-                      <div className="bg-slate-900/30 rounded-lg p-2.5 text-center opacity-70">
-                        <MemoryStick size={14} className="text-slate-500 mx-auto mb-1" />
-                        <p className="text-xs font-bold text-slate-300">{ws.vm_template_details?.ram_gb} GB</p>
-                        <p className="text-[9px] text-slate-600 uppercase">RAM</p>
+                      <div className="bg-canvas/30 rounded-lg p-2.5 text-center opacity-70">
+                        <MemoryStick size={14} className="text-muted mx-auto mb-1" />
+                        <p className="text-xs font-bold text-secondary">{ws.vm_template_details?.ram_gb} GB</p>
+                        <p className="text-[9px] text-faint uppercase">RAM</p>
                       </div>
-                      <div className="bg-slate-900/30 rounded-lg p-2.5 text-center opacity-70">
-                        <HardDrive size={14} className="text-slate-500 mx-auto mb-1" />
-                        <p className="text-xs font-bold text-slate-300">{ws.vm_template_details?.storage_gb} GB</p>
-                        <p className="text-[9px] text-slate-600 uppercase">SSD</p>
+                      <div className="bg-canvas/30 rounded-lg p-2.5 text-center opacity-70">
+                        <HardDrive size={14} className="text-muted mx-auto mb-1" />
+                        <p className="text-xs font-bold text-secondary">{ws.vm_template_details?.storage_gb} GB</p>
+                        <p className="text-[9px] text-faint uppercase">SSD</p>
                       </div>
                     </div>
                     
@@ -491,15 +508,15 @@ export default function WorkspacesPage() {
               
               // OFFLINE
               return (
-                <div key={ws.id} className="bg-[#0F131A] border border-slate-800/50 rounded-2xl p-5 flex flex-col">
+                <div key={ws.id} className="bg-card border border-border rounded-2xl p-5 flex flex-col">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-[#FF6B00]/10 flex items-center justify-center shrink-0">
                         <Monitor size={20} className="text-[#FF6B00]" />
                       </div>
                       <div className="min-w-0">
-                        <h3 className="text-sm font-bold text-white uppercase tracking-wide truncate">{ws.name}</h3>
-                        <p className="text-xs text-slate-500 mt-0.5 truncate">{ws.vm_template_details?.os}</p>
+                        <h3 className="text-sm font-bold text-primary uppercase tracking-wide truncate">{ws.name}</h3>
+                        <p className="text-xs text-muted mt-0.5 truncate">{ws.vm_template_details?.os}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
@@ -508,36 +525,36 @@ export default function WorkspacesPage() {
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-2 mb-4 px-3 py-1.5 bg-slate-900/50 rounded-lg w-fit">
-                    <Globe size={12} className="text-slate-600" />
-                    <span className="text-xs font-mono text-slate-500">{ws.vm_details?.ip_address || '—.—.—.—'}</span>
+                  <div className="flex items-center gap-2 mb-4 px-3 py-1.5 bg-canvas rounded-lg w-fit">
+                    <Globe size={12} className="text-faint" />
+                    <span className="text-xs font-mono text-muted">{ws.vm_details?.ip_address || '—.—.—.—'}</span>
                   </div>
                   
                   <div className="grid grid-cols-3 gap-3 mb-4">
-                    <div className="bg-slate-900/30 rounded-lg p-2.5 text-center opacity-70">
-                      <Cpu size={14} className="text-slate-500 mx-auto mb-1" />
-                      <p className="text-xs font-bold text-slate-300">{ws.vm_template_details?.cpu_cores}</p>
-                      <p className="text-[9px] text-slate-600 uppercase">vCPU</p>
+                    <div className="bg-canvas/30 rounded-lg p-2.5 text-center opacity-70">
+                      <Cpu size={14} className="text-muted mx-auto mb-1" />
+                      <p className="text-xs font-bold text-secondary">{ws.vm_template_details?.cpu_cores}</p>
+                      <p className="text-[9px] text-faint uppercase">vCPU</p>
                     </div>
-                    <div className="bg-slate-900/30 rounded-lg p-2.5 text-center opacity-70">
-                      <MemoryStick size={14} className="text-slate-500 mx-auto mb-1" />
-                      <p className="text-xs font-bold text-slate-300">{ws.vm_template_details?.ram_gb} GB</p>
-                      <p className="text-[9px] text-slate-600 uppercase">RAM</p>
+                    <div className="bg-canvas/30 rounded-lg p-2.5 text-center opacity-70">
+                      <MemoryStick size={14} className="text-muted mx-auto mb-1" />
+                      <p className="text-xs font-bold text-secondary">{ws.vm_template_details?.ram_gb} GB</p>
+                      <p className="text-[9px] text-faint uppercase">RAM</p>
                     </div>
-                    <div className="bg-slate-900/30 rounded-lg p-2.5 text-center opacity-70">
-                      <HardDrive size={14} className="text-slate-500 mx-auto mb-1" />
-                      <p className="text-xs font-bold text-slate-300">{ws.vm_template_details?.storage_gb} GB</p>
-                      <p className="text-[9px] text-slate-600 uppercase">SSD</p>
+                    <div className="bg-canvas/30 rounded-lg p-2.5 text-center opacity-70">
+                      <HardDrive size={14} className="text-muted mx-auto mb-1" />
+                      <p className="text-xs font-bold text-secondary">{ws.vm_template_details?.storage_gb} GB</p>
+                      <p className="text-[9px] text-faint uppercase">SSD</p>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-2 px-3 py-2 bg-slate-900/30 rounded-lg mb-4 flex-1">
-                    <AlertCircle size={13} className="text-slate-600" />
-                    <span className="text-[10px] uppercase tracking-wider text-slate-600 font-medium">Hypervisor Suspended</span>
+                  <div className="flex items-center gap-2 px-3 py-2 bg-canvas/30 rounded-lg mb-4 flex-1">
+                    <AlertCircle size={13} className="text-faint" />
+                    <span className="text-[10px] uppercase tracking-wider text-faint font-medium">Hypervisor Suspended</span>
                   </div>
                   
                   <div className="flex gap-2 mt-auto">
-                    <button onClick={() => handleDelete(ws)} className="px-4 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-500 hover:text-red-400 hover:border-red-500/30 active:scale-95 transition-all duration-200">
+                    <button onClick={() => handleDelete(ws)} className="px-4 py-2.5 rounded-xl bg-nav-hover border border-border-strong text-muted hover:text-red-400 hover:border-red-500/30 active:scale-95 transition-all duration-200">
                       <Trash2 size={14} />
                     </button>
                     <button onClick={() => handleLaunch(ws)} disabled={launchingId === ws.id} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#FF6B00]/10 border border-[#FF6B00]/20 text-[#FF6B00] text-xs font-semibold hover:bg-[#FF6B00]/20 active:scale-95 transition-all duration-200">
@@ -555,23 +572,23 @@ export default function WorkspacesPage() {
       {/* SECTION 8 — CREATE WORKSPACE MODAL */}
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-[#0F131A] border border-slate-800/50 rounded-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="flex justify-between items-center p-6 border-b border-slate-800/50">
-              <h2 className="text-xl font-bold text-white">Launch New Workspace</h2>
-              <button onClick={() => setShowCreate(false)} className="text-slate-500 hover:text-white transition-colors">
+          <div className="bg-card border border-border rounded-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="flex justify-between items-center p-6 border-b border-border">
+              <h2 className="text-xl font-bold text-primary">Launch New Workspace</h2>
+              <button onClick={() => setShowCreate(false)} className="text-muted hover:text-white transition-colors">
                 <X size={20} />
               </button>
             </div>
             
             <div className="p-6 overflow-y-auto">
               <div className="mb-6">
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Workspace Name</label>
+                <label className="block text-xs font-semibold text-secondary uppercase tracking-wider mb-2">Workspace Name</label>
                 <input
                   type="text"
                   value={wsName}
                   onChange={e => setWsName(e.target.value)}
                   placeholder="e.g. My Ubuntu Dev Machine"
-                  className="w-full bg-[#080B10] border border-slate-800/50 rounded-xl px-4 py-3 text-white placeholder-slate-600 outline-none focus:border-[#0066FF] transition-colors"
+                  className="w-full bg-canvas border border-border rounded-xl px-4 py-3 text-primary placeholder-muted outline-none focus:border-blue-500 transition-colors"
                   maxLength={50}
                 />
               </div>
@@ -583,7 +600,7 @@ export default function WorkspacesPage() {
                       key={tab}
                       onClick={() => setTemplateTab(tab)}
                       className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                        templateTab === tab ? 'bg-slate-800 text-white' : 'text-slate-500 hover:text-slate-300'
+                        templateTab === tab ? 'bg-[var(--bg-elevated)] text-white' : 'text-muted hover:text-secondary'
                       }`}
                     >
                       {tab}
@@ -602,23 +619,23 @@ export default function WorkspacesPage() {
                         onClick={() => template.is_real && setSelectedTemplate(template)}
                         className={`p-4 rounded-xl border transition-all cursor-pointer relative overflow-hidden ${
                           !template.is_real 
-                            ? 'bg-[#080B10] border-slate-800/30 opacity-60 cursor-not-allowed' 
+                            ? 'bg-canvas border-border-subtle opacity-60 cursor-not-allowed' 
                             : isSelected 
                               ? 'bg-[#0066FF]/10 border-[#0066FF]' 
-                              : 'bg-[#080B10] border-slate-800/50 hover:border-slate-600'
+                              : 'bg-canvas border-border hover:border-slate-600'
                         }`}
                       >
                         <div className="flex justify-between items-start mb-3">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isSelected ? 'bg-[#0066FF]/20 text-[#00A3FF]' : 'bg-slate-800/50 text-slate-400'}`}>
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isSelected ? 'bg-[#0066FF]/20 text-[#00A3FF]' : 'bg-nav-hover text-secondary'}`}>
                             <Icon size={20} />
                           </div>
                           {!template.is_real && (
-                            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 bg-slate-900 px-2 py-1 rounded">Coming Soon</span>
+                            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted bg-canvas px-2 py-1 rounded">Coming Soon</span>
                           )}
                         </div>
-                        <h4 className="font-bold text-white mb-1">{template.name}</h4>
-                        <p className="text-xs text-slate-400 mb-3">{template.cpu_cores} vCPU · {template.ram_gb}GB RAM · {template.storage_gb}GB</p>
-                        <div className="text-xs font-semibold text-slate-300">{template.hourly_cost_tzs > 0 ? `TZS ${template.hourly_cost_tzs}/hr` : 'Free'}</div>
+                        <h4 className="font-bold text-primary mb-1">{template.name}</h4>
+                        <p className="text-xs text-secondary mb-3">{template.cpu_cores} vCPU · {template.ram_gb}GB RAM · {template.storage_gb}GB</p>
+                        <div className="text-xs font-semibold text-secondary">{template.hourly_cost_tzs > 0 ? `TZS ${template.hourly_cost_tzs}/hr` : 'Free'}</div>
                         
                         {isSelected && (
                           <div className="absolute top-0 right-0 w-8 h-8 bg-[#0066FF] rounded-bl-xl flex items-center justify-center">
@@ -634,10 +651,10 @@ export default function WorkspacesPage() {
               </div>
             </div>
             
-            <div className="p-6 border-t border-slate-800/50 flex justify-end gap-3 bg-black/20">
+            <div className="p-6 border-t border-border flex justify-end gap-3 bg-black/20">
               <button 
                 onClick={() => setShowCreate(false)}
-                className="px-5 py-2.5 rounded-xl text-slate-400 text-sm font-semibold hover:text-white transition-colors"
+                className="px-5 py-2.5 rounded-xl text-secondary text-sm font-semibold hover:text-white transition-colors"
               >
                 Cancel
               </button>
@@ -646,7 +663,7 @@ export default function WorkspacesPage() {
                 disabled={!selectedTemplate || !wsName.trim() || creating}
                 className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg ${
                   (!selectedTemplate || !wsName.trim() || creating)
-                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed shadow-none'
+                    ? 'bg-[var(--bg-elevated)] text-muted cursor-not-allowed shadow-none'
                     : 'bg-[#0066FF] text-white hover:bg-[#0052CC] active:scale-95 shadow-blue-500/20'
                 }`}
               >

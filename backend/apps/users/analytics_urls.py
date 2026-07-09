@@ -14,4 +14,9 @@ urlpatterns = [
     path('analytics/activity/', AnalyticsActivityView.as_view(), name='analytics-activity'),
     path('analytics/assignments/', AnalyticsAssignmentsView.as_view(), name='analytics-assignments'),
     path('config/', __import__('apps.users.admin_views').users.admin_views.SystemConfigView.as_view(), name='admin-system-config'),
+    
+    path('attention/', __import__('apps.users.admin_dashboard_views').users.admin_dashboard_views.AdminAttentionView.as_view(), name='admin-attention'),
+    path('services/retry/', __import__('apps.users.admin_dashboard_views').users.admin_dashboard_views.ServiceRetryView.as_view(), name='admin-service-retry'),
+    path('activity/', __import__('apps.users.admin_dashboard_views').users.admin_dashboard_views.AdminActivityView.as_view(), name='admin-activity'),
+    path('backup/trigger/', __import__('apps.users.admin_dashboard_views').users.admin_dashboard_views.TriggerBackupView.as_view(), name='admin-backup-trigger'),
 ]

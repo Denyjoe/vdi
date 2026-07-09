@@ -44,7 +44,7 @@ export default function NotificationsPage() {
         {notifications.length === 0 ? (
           <div className="p-16 text-center">
             <div className="w-20 h-20 bg-[var(--bg-card)]/50 rounded-full flex items-center justify-center mx-auto mb-6 border border-[var(--border-color)]/50">
-              <Bell className="w-10 h-10 text-slate-500" />
+              <Bell className="w-10 h-10 text-muted" />
             </div>
             <h3 className="text-xl font-semibold text-[var(--text-primary)] mb-2">You're all caught up!</h3>
             <p className="text-[var(--text-secondary)] max-w-sm mx-auto">You don't have any notifications at the moment. We'll let you know when something new happens.</p>
@@ -69,7 +69,7 @@ export default function NotificationsPage() {
                     <h4 className={`text-lg ${!notif.is_read ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-primary)] font-medium'}`}>
                       {notif.title}
                     </h4>
-                    <span className="text-xs text-slate-500 whitespace-nowrap bg-[var(--bg-primary)]/50 px-2.5 py-1 rounded-md border border-[var(--border-color)] inline-block w-fit">
+                    <span className="text-xs text-muted whitespace-nowrap bg-[var(--bg-primary)]/50 px-2.5 py-1 rounded-md border border-[var(--border-color)] inline-block w-fit">
                       {new Date(notif.created_at).toLocaleString()}
                     </span>
                   </div>

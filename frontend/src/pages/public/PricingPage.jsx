@@ -21,7 +21,7 @@ export default function PricingPage() {
         'Basic support'
       ],
       ctaText: 'Get Started Free',
-      ctaStyle: 'border border-white/20 hover:border-white/40 bg-transparent text-[var(--text-primary)]'
+      ctaStyle: 'border border-white/20 hover:border-white/40 bg-transparent text-primary'
     },
     {
       name: 'Starter',
@@ -73,7 +73,7 @@ export default function PricingPage() {
         'Full usage analytics'
       ],
       ctaText: 'Contact Us',
-      ctaStyle: 'border border-white/20 hover:border-white/40 bg-transparent text-[var(--text-primary)]'
+      ctaStyle: 'border border-white/20 hover:border-white/40 bg-transparent text-primary'
     }
   ];
 

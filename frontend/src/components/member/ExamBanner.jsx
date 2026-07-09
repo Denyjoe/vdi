@@ -122,7 +122,7 @@ export default function ExamBanner() {
           onClick={() => navigate('/workspaces')}
           className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all
             ${isUrgent
-              ? 'bg-red-500 hover:bg-red-600 text-[var(--text-primary)]'
+              ? 'bg-red-500 hover:bg-red-600 text-primary'
               : 'bg-amber-500 hover:bg-amber-400 text-amber-900'
             }`}
         >

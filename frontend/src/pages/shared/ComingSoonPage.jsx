@@ -15,13 +15,13 @@ import { Construction } from 'lucide-react';
 export default function ComingSoonPage({ title, description }) {
   return (
     <div className="flex flex-col items-center justify-center h-96 text-center">
-      <div className="w-16 h-16 bg-indigo-600/20 rounded-2xl flex items-center justify-center mb-4">
-        <Construction className="w-8 h-8 text-indigo-400" />
+      <div className="w-16 h-16 bg-indigo-600/10 dark:bg-indigo-600/20 rounded-2xl flex items-center justify-center mb-4">
+        <Construction className="w-8 h-8 text-indigo-500 dark:text-indigo-400" />
       </div>
-      <h2 className="text-xl font-bold text-[var(--text-primary)] mb-2">
+      <h2 className="text-xl font-bold text-[#0F172A] dark:text-white mb-2">
         {title || 'Coming Soon'}
       </h2>
-      <p className="text-[var(--text-secondary)] max-w-md">
+      <p className="text-slate-600 dark:text-slate-400 max-w-md">
         {description || 'This feature is under development and will be available soon.'}
       </p>
     </div>

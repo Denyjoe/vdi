@@ -98,7 +98,7 @@ export default function CreateGroupModal({ onClose, onCreated }) {
                         <p className="text-[var(--text-secondary)] mb-6">Share this code with members to let them join.</p>
                         
                         <div className="bg-[#050B18] p-6 rounded-xl border border-[var(--border-color)] mb-6">
-                            <div className="text-sm text-slate-500 font-medium uppercase tracking-wider mb-2">Invite Code</div>
+                            <div className="text-sm text-muted font-medium uppercase tracking-wider mb-2">Invite Code</div>
                             <div className="text-4xl font-mono font-bold text-[var(--text-primary)] tracking-widest mb-4">
                                 {successData.invite_code}
                             </div>
@@ -118,7 +118,7 @@ export default function CreateGroupModal({ onClose, onCreated }) {
                             </button>
                         </div>
                         
-                        <button onClick={() => { onClose(); navigate(`/instructor/groups/${successData.id}`); }} className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-[var(--text-primary)] rounded-xl font-medium transition-colors shadow-lg shadow-indigo-500/20">
+                        <button onClick={() => { onClose(); navigate(`/instructor/groups/${successData.id}`); }} className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-primary rounded-xl font-medium transition-colors shadow-lg shadow-indigo-500/20">
                             Open Group &rarr;
                         </button>
                     </div>
@@ -156,7 +156,7 @@ export default function CreateGroupModal({ onClose, onCreated }) {
                                 value={formData.name}
                                 onChange={handleChange}
                                 placeholder="e.g. AutoCAD 101 - Fall 2026"
-                                className="w-full bg-white/5 border border-[var(--border-color)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
+                                className="w-full bg-white/5 border border-[var(--border-color)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-muted focus:outline-none focus:border-indigo-500/50"
                                 required
                             />
                         </div>
@@ -168,7 +168,7 @@ export default function CreateGroupModal({ onClose, onCreated }) {
                                 value={formData.description}
                                 onChange={handleChange}
                                 rows="3"
-                                className="w-full bg-white/5 border border-[var(--border-color)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
+                                className="w-full bg-white/5 border border-[var(--border-color)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-muted focus:outline-none focus:border-indigo-500/50"
                                 placeholder="What is this group for?"
                             ></textarea>
                         </div>
@@ -232,7 +232,7 @@ export default function CreateGroupModal({ onClose, onCreated }) {
                         type="submit"
                         form="create-group-form"
                         disabled={isSubmitting || !formData.name}
-                        className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-[var(--bg-card-hover)] disabled:text-[var(--text-secondary)] text-[var(--text-primary)] rounded-lg text-sm font-medium transition-colors shadow-lg shadow-indigo-500/20"
+                        className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-[var(--bg-card-hover)] disabled:text-[var(--text-secondary)] text-primary rounded-lg text-sm font-medium transition-colors shadow-lg shadow-indigo-500/20"
                     >
                         {isSubmitting ? 'Creating...' : 'Create Group'}
                     </button>

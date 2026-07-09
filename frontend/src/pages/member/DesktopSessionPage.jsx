@@ -313,7 +313,7 @@ export default function DesktopSessionPage() {
           
           <button 
             onClick={() => setShowConfirm(true)}
-            className="bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-[var(--text-primary)] px-3 py-1.5 rounded text-xs font-medium transition-colors border border-red-500/30 flex items-center gap-1.5"
+            className="bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-primary px-3 py-1.5 rounded text-xs font-medium transition-colors border border-red-500/30 flex items-center gap-1.5"
           >
             <Power className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Disconnect</span>
@@ -427,8 +427,8 @@ export default function DesktopSessionPage() {
               </div>
               
               <div className="absolute left-1/2 -translate-x-1/2 flex items-center h-full gap-1">
-                <div className="h-full w-10 flex items-center justify-center hover:bg-white/10 cursor-pointer border-b-2 border-indigo-400"><Compass className="w-5 h-5 text-slate-200" /></div>
-                <div className="h-full w-10 flex items-center justify-center hover:bg-white/10 cursor-pointer"><Box className="w-5 h-5 text-slate-200" /></div>
+                <div className="h-full w-10 flex items-center justify-center hover:bg-white/10 cursor-pointer border-b-2 border-indigo-400"><Compass className="w-5 h-5 text-primary" /></div>
+                <div className="h-full w-10 flex items-center justify-center hover:bg-white/10 cursor-pointer"><Box className="w-5 h-5 text-primary" /></div>
               </div>
 
               <div className="flex items-center h-full text-[11px]">
@@ -459,7 +459,7 @@ export default function DesktopSessionPage() {
             <div className="space-y-6">
               {/* General Info */}
               <div>
-                <h4 className="text-xs uppercase text-slate-500 font-bold mb-3 tracking-wider">Connection</h4>
+                <h4 className="text-xs uppercase text-muted font-bold mb-3 tracking-wider">Connection</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-[var(--text-secondary)]">Session ID</span>
@@ -478,7 +478,7 @@ export default function DesktopSessionPage() {
 
               {/* VM Specs */}
               <div>
-                <h4 className="text-xs uppercase text-slate-500 font-bold mb-3 tracking-wider">Specifications</h4>
+                <h4 className="text-xs uppercase text-muted font-bold mb-3 tracking-wider">Specifications</h4>
                 <div className="bg-[var(--bg-card)] rounded-lg p-3 space-y-2 text-sm border border-[var(--border-color)]">
                   <div className="flex justify-between border-b border-[var(--border-color)]/50 pb-2">
                     <span className="text-[var(--text-secondary)]">OS</span>
@@ -501,7 +501,7 @@ export default function DesktopSessionPage() {
 
               {/* Software */}
               <div>
-                <h4 className="text-xs uppercase text-slate-500 font-bold mb-3 tracking-wider">Software</h4>
+                <h4 className="text-xs uppercase text-muted font-bold mb-3 tracking-wider">Software</h4>
                 <div className="flex flex-wrap gap-2">
                   {softwareList.map((sw, i) => (
                     <span key={i} className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-1 rounded text-xs font-medium">
@@ -513,7 +513,7 @@ export default function DesktopSessionPage() {
 
               {/* Restrictions */}
               <div>
-                <h4 className="text-xs uppercase text-slate-500 font-bold mb-3 tracking-wider">Restrictions</h4>
+                <h4 className="text-xs uppercase text-muted font-bold mb-3 tracking-wider">Restrictions</h4>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between bg-[var(--bg-card)] p-2.5 rounded-lg border border-[var(--border-color)]">
                     <span className="text-sm text-[var(--text-primary)]">Internet Access</span>

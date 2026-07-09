@@ -48,7 +48,7 @@ const getActionBadgeClass = (action) => {
     return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
   if (lowered.includes('admin') || lowered.includes('deactivate') || lowered.includes('activate') || lowered.includes('delete'))
     return 'bg-red-500/20 text-red-400 border-red-500/30';
-  return 'bg-[var(--bg-card-hover)]/50 text-[var(--text-primary)] border-slate-600';
+  return 'bg-[var(--bg-card-hover)]/50 text-primary border-slate-600';
 };
 
 export default function AdminLogsPage() {
@@ -232,7 +232,7 @@ export default function AdminLogsPage() {
             placeholder="Search by user, action, or description..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+            className="w-full pl-10 pr-4 py-2.5 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] placeholder-muted focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
           />
           {searchQuery && (
             <button
@@ -253,7 +253,7 @@ export default function AdminLogsPage() {
               className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
                 dateRange === range.key
                   ? 'bg-indigo-600 text-white shadow-md'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)]'
+                  : 'text-[var(--text-secondary)] hover:text-primary hover:bg-[var(--bg-card-hover)]'
               }`}
             >
               {range.label}
@@ -300,7 +300,7 @@ export default function AdminLogsPage() {
                     <td className="px-6 py-4 text-[var(--text-secondary)] text-sm max-w-xs truncate hidden md:table-cell">
                       {log.description || '—'}
                     </td>
-                    <td className="px-6 py-4 text-slate-500 text-xs font-mono hidden lg:table-cell">
+                    <td className="px-6 py-4 text-muted text-xs font-mono hidden lg:table-cell">
                       {log.ip_address || 'N/A'}
                     </td>
                   </tr>
@@ -308,7 +308,7 @@ export default function AdminLogsPage() {
               ) : (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-[var(--text-secondary)]">
-                    <ScrollText className="w-10 h-10 mx-auto mb-3 text-slate-600" />
+                    <ScrollText className="w-10 h-10 mx-auto mb-3 text-faint" />
                     No activity logs found for the selected filters.
                   </td>
                 </tr>
@@ -319,7 +319,7 @@ export default function AdminLogsPage() {
       </div>
 
       {/* Auto-refresh indicator */}
-      <p className="text-xs text-slate-500 text-center">
+      <p className="text-xs text-muted text-center">
         Auto-refreshes every 30 seconds
       </p>
     </div>

@@ -223,9 +223,9 @@ export default function UpgradeModal({ onClose }) {
                                             }}
                                             disabled={isCurrent}
                                             className={`w-full py-3 rounded-xl font-medium transition-all ${
-                                                isCurrent ? 'bg-white/5 text-slate-500 cursor-not-allowed' :
+                                                isCurrent ? 'bg-white/5 text-muted cursor-not-allowed' :
                                                 plan.name === 'pro_host' ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/25' :
-                                                'bg-white/10 hover:bg-white/20 text-[var(--text-primary)]'
+                                                'bg-white/10 hover:bg-white/20 text-primary'
                                             }`}
                                         >
                                             {isCurrent ? 'Current Plan' : 'Select Plan'}
@@ -246,7 +246,7 @@ export default function UpgradeModal({ onClose }) {
                                     placeholder="0712 345 678"
                                     className="w-full bg-[#0d1526] border border-[#1e293b] rounded-xl px-4 py-3 text-[var(--text-primary)] text-lg focus:outline-none focus:border-indigo-500 transition-colors mb-2"
                                 />
-                                <p className="text-xs text-slate-500 mb-6">Enter your M-Pesa, Airtel, Tigo or Halopesa number</p>
+                                <p className="text-xs text-muted mb-6">Enter your M-Pesa, Airtel, Tigo or Halopesa number</p>
 
                                 <label className="block text-sm font-medium text-[var(--text-primary)] mb-2">Provider</label>
                                 <div className="grid grid-cols-2 gap-3 mb-6">
@@ -268,7 +268,7 @@ export default function UpgradeModal({ onClose }) {
                             
                             <div className="text-center mb-6">
                                 <p className="text-3xl font-bold text-[var(--text-primary)] mb-1">TZS {Number(selectedPlan?.price_tzs || 0).toLocaleString()}</p>
-                                <p className="text-sm text-slate-500">≈ ${selectedPlan?.price_usd}/month</p>
+                                <p className="text-sm text-muted">≈ ${selectedPlan?.price_usd}/month</p>
                             </div>
 
                             <button 
@@ -279,7 +279,7 @@ export default function UpgradeModal({ onClose }) {
                                 Pay Now
                             </button>
                             
-                            <p className="text-xs text-slate-500 text-center px-4">
+                            <p className="text-xs text-muted text-center px-4">
                                 By paying you agree to our Terms of Service. Subscription renews monthly. Cancel anytime.
                             </p>
                         </div>
@@ -400,7 +400,7 @@ export default function UpgradeModal({ onClose }) {
                                     onClose();
                                     window.location.reload();
                                 }}
-                                className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-[var(--text-primary)] rounded-xl font-bold text-lg transition-all shadow-lg shadow-emerald-500/20"
+                                className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-primary rounded-xl font-bold text-lg transition-all shadow-lg shadow-emerald-500/20"
                             >
                                 Start Hosting Now &rarr;
                             </button>

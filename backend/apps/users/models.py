@@ -360,3 +360,38 @@ class Payment(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+class AdminActionLog(models.Model):
+    admin = models.ForeignKey(
+        User, on_delete=models.SET_NULL,
+        null=True, related_name='admin_actions')
+    action_type = models.CharField(
+        max_length=50,
+        choices=[
+            ('user_suspended', 'User Suspended'),
+            ('user_reactivated', 'User Reactivated'),
+            ('user_role_changed', 'User Role Changed'),
+            ('template_created', 'Template Created'),
+            ('template_updated', 'Template Updated'),
+            ('template_deleted', 'Template Deleted'),
+            ('price_changed', 'Price Changed'),
+            ('vm_stopped', 'VM Force Stopped'),
+            ('session_ended', 'Session Force Ended'),
+            ('payment_refunded', 'Payment Refunded'),
+            ('config_changed', 'System Config Changed'),
+            ('backup_triggered', 'Backup Triggered'),
+            ('maintenance_toggled', 'Maintenance Mode Toggled'),
+        ])
+    description = models.TextField()
+    target_type = models.CharField(
+        max_length=50, blank=True, default='')
+    target_id = models.CharField(
+        max_length=50, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Admin Action Log'
+    
+    def __str__(self):
+        return f"{self.admin} - {self.action_type} - {self.created_at}"

@@ -122,6 +122,10 @@ class SubscriptionPlanUpdateView(APIView):
                 plan.can_host_sessions = request.data['can_host']
         
         plan.save()
+        
+        from apps.users.admin_services import log_admin_action
+        log_admin_action(request.user, 'price_changed', f'Updated plan "{plan.name}" pricing/limits', 'plan', plan.id)
+        
         return Response({
             'success': True,
             'message': f'Plan "{plan.name}" updated successfully'

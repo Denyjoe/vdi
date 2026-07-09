@@ -376,10 +376,10 @@ export default function AdminTemplatesPage() {
                   onChange={e => setSoftwareInput(e.target.value)}
                   onKeyDown={handleSoftwareKeyDown}
                   placeholder='Type software name and press Enter...'
-                  className="w-full bg-transparent text-[var(--text-primary)] text-sm focus:outline-none placeholder-slate-500"
+                  className="w-full bg-transparent text-[var(--text-primary)] text-sm focus:outline-none placeholder-muted"
                 />
               </div>
-              <p className="text-slate-500 text-xs mt-1">Press Enter to add each software item.</p>
+              <p className="text-muted text-xs mt-1">Press Enter to add each software item.</p>
             </div>
 
             {/* Description */}

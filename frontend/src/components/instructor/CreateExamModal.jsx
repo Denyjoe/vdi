@@ -141,7 +141,7 @@ export default function CreateExamModal({ isOpen, onClose, onSuccess }) {
                     onChange={handleChange}
                     required
                     placeholder="e.g. CAD Practical Exam 1"
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] placeholder-muted focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
 
@@ -258,7 +258,7 @@ export default function CreateExamModal({ isOpen, onClose, onSuccess }) {
                   onChange={handleChange}
                   rows={3}
                   placeholder="Instructions shown to students when they join the exam..."
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                  className="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] placeholder-muted focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                 />
               </div>
 

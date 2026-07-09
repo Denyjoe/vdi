@@ -86,7 +86,7 @@ export default function CreateWorkspaceModal({ onClose, onCreated }) {
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             placeholder="e.g. AutoCAD Project Alpha"
-                            className="w-full bg-white/5 border border-[var(--border-color)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
+                            className="w-full bg-white/5 border border-[var(--border-color)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-muted focus:outline-none focus:border-indigo-500/50"
                             required
                         />
                     </div>
@@ -95,13 +95,13 @@ export default function CreateWorkspaceModal({ onClose, onCreated }) {
                         <div className="flex items-center justify-between mb-4">
                             <label className="block text-sm font-medium text-[var(--text-primary)]">Select Template</label>
                             <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
                                 <input 
                                     type="text" 
                                     placeholder="Search..." 
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
-                                    className="pl-9 pr-4 py-1.5 bg-white/5 border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] text-sm placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
+                                    className="pl-9 pr-4 py-1.5 bg-white/5 border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] text-sm placeholder-muted focus:outline-none focus:border-indigo-500/50"
                                 />
                             </div>
                         </div>
@@ -154,7 +154,7 @@ export default function CreateWorkspaceModal({ onClose, onCreated }) {
                     <button 
                         onClick={handleSubmit} 
                         disabled={isSubmitting || !name || !selectedTemplate}
-                        className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-[var(--bg-card-hover)] disabled:text-[var(--text-secondary)] text-[var(--text-primary)] rounded-lg text-sm font-medium transition-colors shadow-lg shadow-indigo-500/20"
+                        className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-[var(--bg-card-hover)] disabled:text-[var(--text-secondary)] text-primary rounded-lg text-sm font-medium transition-colors shadow-lg shadow-indigo-500/20"
                     >
                         {isSubmitting ? 'Creating...' : 'Create Workspace'}
                     </button>

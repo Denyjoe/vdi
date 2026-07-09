@@ -167,6 +167,7 @@ export default function App() {
             <Route path="logs" element={<AdminLogsPage />} />
             <Route path="settings" element={<AdminSettingsPage />} />
             <Route path="vm-pool" element={<VMPoolPage />} />
+            <Route path="sessions" element={<SessionsPage />} />
           </Route>
           
         </Route>

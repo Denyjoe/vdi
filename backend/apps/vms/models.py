@@ -92,6 +92,12 @@ class VMTemplate(models.Model):
         default=0,
         help_text="Max monthly charge TZS"
     )
+    target_pool_size = models.IntegerField(
+        default=2,
+        help_text="Number of VMs to keep pre-cloned and ready"
+    )
+    auto_refill_enabled = models.BooleanField(default=False)
+    last_pool_refresh = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

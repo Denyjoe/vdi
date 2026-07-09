@@ -82,22 +82,22 @@ export default function BillingPanel({ isOpen, onClose }) {
     <>
       <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="fixed inset-0 z-[61] flex items-center justify-center pointer-events-none">
-        <div className="bg-[#0A0E14] border border-slate-800/50 rounded-2xl shadow-2xl shadow-black/50 w-[800px] max-w-[90vw] h-[600px] max-h-[85vh] flex flex-col overflow-hidden pointer-events-auto" style={{ animation: 'scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+        <div className="bg-sidebar border border-border rounded-2xl shadow-2xl shadow-black/50 w-[800px] max-w-[90vw] h-[600px] max-h-[85vh] flex flex-col overflow-hidden pointer-events-auto" style={{ animation: 'scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)' }}>
           
           {/* Header */}
-          <div className="h-14 px-6 flex items-center justify-between border-b border-slate-800/30 flex-shrink-0">
+          <div className="h-14 px-6 flex items-center justify-between border-b border-border-subtle flex-shrink-0">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-xl bg-[#6C63FF]/10 flex items-center justify-center">
                 <Receipt size={16} className="text-[#6C63FF]" />
               </div>
               <div>
-                <h2 className="text-base font-bold text-white">Billing & Usage</h2>
-                <p className="text-[10px] text-slate-500">
+                <h2 className="text-base font-bold text-primary">Billing & Usage</h2>
+                <p className="text-[10px] text-muted">
                   {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                 </p>
               </div>
             </div>
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-800/50 text-slate-400 hover:text-white active:scale-95 transition-all">
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-nav-hover text-secondary hover:text-white active:scale-95 transition-all">
               <X size={18} />
             </button>
           </div>
@@ -122,67 +122,67 @@ export default function BillingPanel({ isOpen, onClose }) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
         
         {/* Spent this month */}
-        <div className="relative overflow-hidden bg-[#0F131A]/70 backdrop-blur-sm border border-slate-800/50 rounded-2xl p-5 group hover:border-slate-700/50 transition-all">
+        <div className="relative overflow-hidden bg-card/70 backdrop-blur-sm border border-border rounded-2xl p-5 group hover:border-border-strong transition-all">
           <div className="absolute top-0 right-0 w-24 h-24 bg-[#6C63FF]/5 rounded-full -translate-y-8 translate-x-8" />
           <div className="relative">
             <div className="flex items-center justify-between mb-4">
               <div className="w-10 h-10 rounded-xl bg-[#6C63FF]/10 flex items-center justify-center">
                 <Wallet size={20} className="text-[#6C63FF]" />
               </div>
-              <span className="text-[9px] uppercase tracking-widest text-slate-600 font-medium">
+              <span className="text-[9px] uppercase tracking-widest text-faint font-medium">
                 This Month
               </span>
             </div>
-            <p className="text-2xl font-bold text-white tracking-tight tabular-nums">
+            <p className="text-2xl font-bold text-primary tracking-tight tabular-nums">
               {formatCurrency(overview?.this_month?.total_spent)}
             </p>
-            <p className="text-[11px] text-slate-500 mt-1">
+            <p className="text-[11px] text-muted mt-1">
               Total spent
             </p>
           </div>
         </div>
         
         {/* Hours used */}
-        <div className="relative overflow-hidden bg-[#0F131A]/70 backdrop-blur-sm border border-slate-800/50 rounded-2xl p-5 group hover:border-slate-700/50 transition-all">
+        <div className="relative overflow-hidden bg-card/70 backdrop-blur-sm border border-border rounded-2xl p-5 group hover:border-border-strong transition-all">
           <div className="absolute top-0 right-0 w-24 h-24 bg-[#00A3FF]/5 rounded-full -translate-y-8 translate-x-8" />
           <div className="relative">
             <div className="flex items-center justify-between mb-4">
               <div className="w-10 h-10 rounded-xl bg-[#00A3FF]/10 flex items-center justify-center">
                 <Clock size={20} className="text-[#00A3FF]" />
               </div>
-              <span className="text-[9px] uppercase tracking-widest text-slate-600 font-medium">
+              <span className="text-[9px] uppercase tracking-widest text-faint font-medium">
                 Usage
               </span>
             </div>
-            <p className="text-2xl font-bold text-white tracking-tight tabular-nums">
+            <p className="text-2xl font-bold text-primary tracking-tight tabular-nums">
               {overview?.this_month?.hours_used || 0}h
             </p>
-            <p className="text-[11px] text-slate-500 mt-1">
+            <p className="text-[11px] text-muted mt-1">
               Hours consumed
             </p>
           </div>
         </div>
         
         {/* Free hours remaining */}
-        <div className="relative overflow-hidden bg-[#0F131A]/70 backdrop-blur-sm border border-slate-800/50 rounded-2xl p-5 group hover:border-slate-700/50 transition-all">
+        <div className="relative overflow-hidden bg-card/70 backdrop-blur-sm border border-border rounded-2xl p-5 group hover:border-border-strong transition-all">
           <div className="absolute top-0 right-0 w-24 h-24 bg-[#00FF87]/5 rounded-full -translate-y-8 translate-x-8" />
           <div className="relative">
             <div className="flex items-center justify-between mb-4">
               <div className="w-10 h-10 rounded-xl bg-[#00FF87]/10 flex items-center justify-center">
                 <CreditCard size={20} className="text-[#00FF87]" />
               </div>
-              <span className="text-[9px] uppercase tracking-widest text-slate-600 font-medium">
+              <span className="text-[9px] uppercase tracking-widest text-faint font-medium">
                 Free Tier
               </span>
             </div>
-            <p className="text-2xl font-bold text-white tracking-tight tabular-nums">
+            <p className="text-2xl font-bold text-primary tracking-tight tabular-nums">
               {overview?.this_month?.free_hours_remaining || 0}h
             </p>
-            <p className="text-[11px] text-slate-500 mt-1">
+            <p className="text-[11px] text-muted mt-1">
               Free hours remaining
             </p>
             {/* Thin progress bar */}
-            <div className="mt-3 h-1 bg-slate-800/50 rounded-full overflow-hidden">
+            <div className="mt-3 h-1 bg-nav-hover rounded-full overflow-hidden">
               <div className="h-full rounded-full transition-all duration-1000"
                 style={{
                   width: `${Math.min(100,
@@ -198,20 +198,20 @@ export default function BillingPanel({ isOpen, onClose }) {
 
       {/* Host plan banner — only if host */}
       {overview?.host_plan && overview.host_plan.name !== 'Free' && (
-        <div className="flex items-center gap-4 bg-[#0F131A]/70 border border-[#6C63FF]/20 rounded-2xl px-5 py-4 mb-8">
+        <div className="flex items-center gap-4 bg-card/70 border border-[#6C63FF]/20 rounded-2xl px-5 py-4 mb-8">
           <div className="w-10 h-10 rounded-xl bg-[#6C63FF]/10 flex items-center justify-center flex-shrink-0">
             <Monitor size={18} className="text-[#6C63FF]" />
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-white">
+              <span className="text-sm font-bold text-primary">
                 {overview.host_plan.name}
               </span>
               <span className="px-2 py-0.5 rounded-full bg-[#6C63FF]/10 text-[9px] font-bold text-[#6C63FF] uppercase tracking-wider">
                 Active
               </span>
             </div>
-            <span className="text-xs text-slate-500 mt-0.5">
+            <span className="text-xs text-muted mt-0.5">
               {formatCurrency(overview.host_plan.price)}/month
             </span>
           </div>
@@ -225,7 +225,7 @@ export default function BillingPanel({ isOpen, onClose }) {
           className={`px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 active:scale-95 whitespace-nowrap
             ${activeTab === 'usage'
               ? 'bg-[#0066FF] text-white shadow-lg shadow-blue-500/30'
-              : 'bg-[#0F131A] text-slate-400 border border-slate-800/50 hover:border-slate-600'
+              : 'bg-card text-secondary border border-border hover:border-slate-600'
             }`}>
           Usage Details
           <span className="ml-1.5 text-[10px] opacity-60">
@@ -237,7 +237,7 @@ export default function BillingPanel({ isOpen, onClose }) {
           className={`px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 active:scale-95 whitespace-nowrap
             ${activeTab === 'payments'
               ? 'bg-[#0066FF] text-white shadow-lg shadow-blue-500/30'
-              : 'bg-[#0F131A] text-slate-400 border border-slate-800/50 hover:border-slate-600'
+              : 'bg-card text-secondary border border-border hover:border-slate-600'
             }`}>
           Payment History
           <span className="ml-1.5 text-[10px] opacity-60">
@@ -248,12 +248,12 @@ export default function BillingPanel({ isOpen, onClose }) {
 
       {/* Usage Details Tab */}
       {activeTab === 'usage' && (
-        <div className="bg-[#0F131A]/70 backdrop-blur-sm border border-slate-800/50 rounded-2xl overflow-hidden overflow-x-auto">
+        <div className="bg-card/70 backdrop-blur-sm border border-border rounded-2xl overflow-hidden overflow-x-auto">
           <div className="min-w-[800px]">
             {/* Table header */}
-            <div className="grid grid-cols-[1fr_1.5fr_0.8fr_0.8fr_0.8fr] gap-4 px-5 py-3 border-b border-slate-800/30">
+            <div className="grid grid-cols-[1fr_1.5fr_0.8fr_0.8fr_0.8fr] gap-4 px-5 py-3 border-b border-border-subtle">
               {['Date', 'Environment', 'Duration', 'Rate', 'Charge'].map(h => (
-                <span key={h} className="text-[9px] uppercase tracking-widest text-slate-500 font-semibold">
+                <span key={h} className="text-[9px] uppercase tracking-widest text-muted font-semibold">
                   {h}
                 </span>
               ))}
@@ -266,10 +266,10 @@ export default function BillingPanel({ isOpen, onClose }) {
                   
                   {/* Date */}
                   <div>
-                    <p className="text-sm text-white font-medium">
+                    <p className="text-sm text-primary font-medium">
                       {new Date(item.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                     </p>
-                    <p className="text-[10px] text-slate-600 mt-0.5">
+                    <p className="text-[10px] text-faint mt-0.5">
                       {item.time_range}
                     </p>
                   </div>
@@ -280,10 +280,10 @@ export default function BillingPanel({ isOpen, onClose }) {
                       <Monitor size={13} className="text-[#00A3FF]" />
                     </div>
                     <div>
-                      <p className="text-xs text-white font-medium">
+                      <p className="text-xs text-primary font-medium">
                         {item.template}
                       </p>
-                      <p className="text-[10px] text-slate-600">
+                      <p className="text-[10px] text-faint">
                         {item.template_specs}
                       </p>
                     </div>
@@ -291,14 +291,14 @@ export default function BillingPanel({ isOpen, onClose }) {
                   
                   {/* Duration */}
                   <div className="flex items-center">
-                    <span className="text-sm text-slate-300 tabular-nums">
+                    <span className="text-sm text-secondary tabular-nums">
                       {formatDuration(item.duration_hours)}
                     </span>
                   </div>
                   
                   {/* Rate */}
                   <div className="flex items-center">
-                    <span className="text-xs text-slate-500 tabular-nums">
+                    <span className="text-xs text-muted tabular-nums">
                       {formatCurrency(item.price_per_hour)}/hr
                     </span>
                   </div>
@@ -314,12 +314,12 @@ export default function BillingPanel({ isOpen, onClose }) {
             ) : (
               <div className="flex flex-col items-center justify-center py-16">
                 <div className="w-12 h-12 rounded-2xl bg-slate-800/30 flex items-center justify-center mb-3">
-                  <Clock size={22} className="text-slate-600" />
+                  <Clock size={22} className="text-faint" />
                 </div>
-                <p className="text-sm text-slate-400 font-medium">
+                <p className="text-sm text-secondary font-medium">
                   No usage records yet
                 </p>
-                <p className="text-xs text-slate-600 mt-1">
+                <p className="text-xs text-faint mt-1">
                   Launch a workspace to see your usage here
                 </p>
               </div>
@@ -327,16 +327,16 @@ export default function BillingPanel({ isOpen, onClose }) {
             
             {/* Table footer — total */}
             {usage.length > 0 && (
-              <div className="grid grid-cols-[1fr_1.5fr_0.8fr_0.8fr_0.8fr] gap-4 px-5 py-3 bg-slate-900/30 border-t border-slate-800/30">
+              <div className="grid grid-cols-[1fr_1.5fr_0.8fr_0.8fr_0.8fr] gap-4 px-5 py-3 bg-canvas/30 border-t border-border-subtle">
                 <span />
-                <span className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold flex items-center">
+                <span className="text-[10px] uppercase tracking-widest text-muted font-semibold flex items-center">
                   Total
                 </span>
-                <span className="text-sm text-white font-semibold tabular-nums flex items-center">
+                <span className="text-sm text-primary font-semibold tabular-nums flex items-center">
                   {formatDuration(usage.reduce((sum, u) => sum + (u.duration_hours || 0), 0))}
                 </span>
                 <span />
-                <span className="text-sm text-white font-bold tabular-nums flex items-center">
+                <span className="text-sm text-primary font-bold tabular-nums flex items-center">
                   {formatCurrency(usage.reduce((sum, u) => sum + (u.charge || 0), 0))}
                 </span>
               </div>
@@ -347,12 +347,12 @@ export default function BillingPanel({ isOpen, onClose }) {
 
       {/* Payment History Tab */}
       {activeTab === 'payments' && (
-        <div className="bg-[#0F131A]/70 backdrop-blur-sm border border-slate-800/50 rounded-2xl overflow-hidden overflow-x-auto">
+        <div className="bg-card/70 backdrop-blur-sm border border-border rounded-2xl overflow-hidden overflow-x-auto">
           <div className="min-w-[800px]">
             {/* Table header */}
-            <div className="grid grid-cols-[0.8fr_1fr_1fr_1fr_0.8fr_0.5fr] gap-4 px-5 py-3 border-b border-slate-800/30">
+            <div className="grid grid-cols-[0.8fr_1fr_1fr_1fr_0.8fr_0.5fr] gap-4 px-5 py-3 border-b border-border-subtle">
               {['Date', 'Description', 'Amount', 'Method', 'Status', ''].map(h => (
-                <span key={h} className="text-[9px] uppercase tracking-widest text-slate-500 font-semibold">
+                <span key={h} className="text-[9px] uppercase tracking-widest text-muted font-semibold">
                   {h}
                 </span>
               ))}
@@ -365,10 +365,10 @@ export default function BillingPanel({ isOpen, onClose }) {
                   
                   {/* Date */}
                   <div>
-                    <p className="text-sm text-white font-medium">
+                    <p className="text-sm text-primary font-medium">
                       {new Date(p.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                     </p>
-                    <p className="text-[10px] text-slate-600">
+                    <p className="text-[10px] text-faint">
                       {p.time}
                     </p>
                   </div>
@@ -376,10 +376,10 @@ export default function BillingPanel({ isOpen, onClose }) {
                   {/* Description */}
                   <div className="flex items-center">
                     <div>
-                      <p className="text-xs text-white font-medium">
+                      <p className="text-xs text-primary font-medium">
                         {p.description}
                       </p>
-                      <p className="text-[10px] text-slate-600 mt-0.5 font-mono">
+                      <p className="text-[10px] text-faint mt-0.5 font-mono">
                         {p.reference}
                       </p>
                     </div>
@@ -387,7 +387,7 @@ export default function BillingPanel({ isOpen, onClose }) {
                   
                   {/* Amount */}
                   <div className="flex items-center">
-                    <span className="text-sm font-bold text-white tabular-nums">
+                    <span className="text-sm font-bold text-primary tabular-nums">
                       {formatCurrency(p.amount)}
                     </span>
                   </div>
@@ -397,7 +397,7 @@ export default function BillingPanel({ isOpen, onClose }) {
                     <div className="w-6 h-6 rounded-md bg-[#00FF87]/10 flex items-center justify-center">
                       <CreditCard size={12} className="text-[#00FF87]" />
                     </div>
-                    <span className="text-xs text-slate-300">
+                    <span className="text-xs text-secondary">
                       {p.method}
                     </span>
                   </div>
@@ -428,7 +428,7 @@ export default function BillingPanel({ isOpen, onClose }) {
                       <button
                         onClick={() => handleViewReceipt(p.id)}
                         disabled={downloading === p.id}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/30 border border-slate-700/30 text-slate-400 hover:text-white hover:border-slate-500 active:scale-95 transition-all text-[11px] font-medium disabled:opacity-30">
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/30 border border-slate-700/30 text-secondary hover:text-white hover:border-slate-500 active:scale-95 transition-all text-[11px] font-medium disabled:opacity-30">
                         {downloading === p.id ? (
                           <div className="w-3.5 h-3.5 border border-slate-400/30 border-t-slate-400 rounded-full animate-spin mx-1" />
                         ) : (
@@ -445,12 +445,12 @@ export default function BillingPanel({ isOpen, onClose }) {
             ) : (
               <div className="flex flex-col items-center justify-center py-16">
                 <div className="w-12 h-12 rounded-2xl bg-slate-800/30 flex items-center justify-center mb-3">
-                  <FileText size={22} className="text-slate-600" />
+                  <FileText size={22} className="text-faint" />
                 </div>
-                <p className="text-sm text-slate-400 font-medium">
+                <p className="text-sm text-secondary font-medium">
                   No payments yet
                 </p>
-                <p className="text-xs text-slate-600 mt-1">
+                <p className="text-xs text-faint mt-1">
                   Payments will appear here when you use paid features
                 </p>
               </div>
@@ -468,7 +468,7 @@ export default function BillingPanel({ isOpen, onClose }) {
           <div className="w-[600px] max-h-[90vh] overflow-auto rounded-2xl shadow-2xl shadow-black/50" id="receipt-container">
             
             {/* Receipt card */}
-            <div className="bg-[#0F131A] border border-slate-800/50 rounded-2xl overflow-hidden">
+            <div className="bg-card border border-border rounded-2xl overflow-hidden">
               
               {/* Header */}
               <div className="relative overflow-hidden px-10 py-8"
@@ -478,18 +478,18 @@ export default function BillingPanel({ isOpen, onClose }) {
                 <div className="absolute top-[-50%] right-[-20%] w-[200px] h-[200px] bg-white/5 rounded-full" />
                 <div className="relative flex justify-between items-start">
                   <div>
-                    <h1 className="text-[22px] font-extrabold text-white tracking-tight">
+                    <h1 className="text-[22px] font-extrabold text-primary tracking-tight">
                       CloudDesk
                     </h1>
-                    <p className="text-[10px] text-white/60 uppercase tracking-[3px] mt-1 font-medium">
+                    <p className="text-[10px] text-primary/60 uppercase tracking-[3px] mt-1 font-medium">
                       Cloud Virtual Desktops
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[11px] text-white/70 uppercase tracking-[2px] font-semibold">
+                    <p className="text-[11px] text-primary/70 uppercase tracking-[2px] font-semibold">
                       Payment Receipt
                     </p>
-                    <p className="text-lg font-bold text-white font-mono mt-1">
+                    <p className="text-lg font-bold text-primary font-mono mt-1">
                       {receiptData.receipt_number}
                     </p>
                   </div>
@@ -502,37 +502,37 @@ export default function BillingPanel({ isOpen, onClose }) {
                 {/* Date + Customer */}
                 <div className="grid grid-cols-2 gap-6 mb-7">
                   <div>
-                    <p className="text-[9px] uppercase tracking-[2px] text-slate-500 font-semibold mb-1.5">Date</p>
-                    <p className="text-[14px] text-slate-200 font-medium">{receiptData.date}</p>
+                    <p className="text-[9px] uppercase tracking-[2px] text-muted font-semibold mb-1.5">Date</p>
+                    <p className="text-[14px] text-primary font-medium">{receiptData.date}</p>
                   </div>
                   <div>
-                    <p className="text-[9px] uppercase tracking-[2px] text-slate-500 font-semibold mb-1.5">Time</p>
-                    <p className="text-[14px] text-slate-200 font-medium">{receiptData.time}</p>
+                    <p className="text-[9px] uppercase tracking-[2px] text-muted font-semibold mb-1.5">Time</p>
+                    <p className="text-[14px] text-primary font-medium">{receiptData.time}</p>
                   </div>
                   <div>
-                    <p className="text-[9px] uppercase tracking-[2px] text-slate-500 font-semibold mb-1.5">Customer</p>
-                    <p className="text-[14px] text-slate-200 font-medium">{receiptData.customer_name}</p>
+                    <p className="text-[9px] uppercase tracking-[2px] text-muted font-semibold mb-1.5">Customer</p>
+                    <p className="text-[14px] text-primary font-medium">{receiptData.customer_name}</p>
                   </div>
                   <div>
-                    <p className="text-[9px] uppercase tracking-[2px] text-slate-500 font-semibold mb-1.5">Email</p>
-                    <p className="text-[14px] text-slate-200 font-medium">{receiptData.customer_email}</p>
+                    <p className="text-[9px] uppercase tracking-[2px] text-muted font-semibold mb-1.5">Email</p>
+                    <p className="text-[14px] text-primary font-medium">{receiptData.customer_email}</p>
                   </div>
                 </div>
                 
                 {/* Divider */}
-                <div className="border-t border-slate-800/50 mb-7" />
+                <div className="border-t border-border mb-7" />
                 
                 {/* Description */}
                 <div className="mb-7">
-                  <p className="text-[9px] uppercase tracking-[2px] text-slate-500 font-semibold mb-1.5">Description</p>
-                  <p className="text-[14px] text-slate-200 font-medium">{receiptData.description}</p>
+                  <p className="text-[9px] uppercase tracking-[2px] text-muted font-semibold mb-1.5">Description</p>
+                  <p className="text-[14px] text-primary font-medium">{receiptData.description}</p>
                 </div>
                 
                 {/* Amount box */}
-                <div className="bg-[#0A0E14] border border-slate-800/50 rounded-2xl p-6 flex justify-between items-center mb-7">
+                <div className="bg-sidebar border border-border rounded-2xl p-6 flex justify-between items-center mb-7">
                   <div>
-                    <p className="text-[9px] uppercase tracking-[2px] text-slate-500 font-semibold mb-2">Amount Paid</p>
-                    <p className="text-[32px] font-extrabold text-white tracking-tight">
+                    <p className="text-[9px] uppercase tracking-[2px] text-muted font-semibold mb-2">Amount Paid</p>
+                    <p className="text-[32px] font-extrabold text-primary tracking-tight">
                       <span className="text-[16px] font-semibold opacity-50 mr-1">TZS</span>
                       {Number(receiptData.amount).toLocaleString()}
                     </p>
@@ -552,27 +552,27 @@ export default function BillingPanel({ isOpen, onClose }) {
                 {/* Method + Reference */}
                 <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <p className="text-[9px] uppercase tracking-[2px] text-slate-500 font-semibold mb-1.5">Payment Method</p>
-                    <p className="text-[14px] text-slate-200 font-medium">{receiptData.method}</p>
+                    <p className="text-[9px] uppercase tracking-[2px] text-muted font-semibold mb-1.5">Payment Method</p>
+                    <p className="text-[14px] text-primary font-medium">{receiptData.method}</p>
                   </div>
                   <div>
-                    <p className="text-[9px] uppercase tracking-[2px] text-slate-500 font-semibold mb-1.5">Reference Number</p>
-                    <p className="text-[13px] text-slate-200 font-mono">{receiptData.reference}</p>
+                    <p className="text-[9px] uppercase tracking-[2px] text-muted font-semibold mb-1.5">Reference Number</p>
+                    <p className="text-[13px] text-primary font-mono">{receiptData.reference}</p>
                   </div>
                 </div>
               </div>
               
               {/* Footer */}
-              <div className="text-center px-10 py-6 border-t border-slate-800/50 bg-[#0A0E14]">
-                <p className="text-[11px] text-slate-500 font-semibold">
+              <div className="text-center px-10 py-6 border-t border-border bg-sidebar">
+                <p className="text-[11px] text-muted font-semibold">
                   CloudDesk — Cloud Virtual Desktop Infrastructure
                 </p>
-                <p className="text-[11px] text-slate-600 mt-1">Dar es Salaam, Tanzania</p>
-                <p className="text-[11px] text-slate-600">support@clouddesk.io</p>
+                <p className="text-[11px] text-faint mt-1">Dar es Salaam, Tanzania</p>
+                <p className="text-[11px] text-faint">support@clouddesk.io</p>
                 <p className="text-[10px] text-[#6C63FF] mt-3 font-medium">
                   Please keep this receipt for your records
                 </p>
-                <p className="text-[9px] text-slate-700 mt-1">
+                <p className="text-[9px] text-faint mt-1">
                   Computer-generated receipt. No signature required.
                 </p>
               </div>
@@ -822,7 +822,7 @@ export default function BillingPanel({ isOpen, onClose }) {
               </button>
               <button
                 onClick={() => setReceiptData(null)}
-                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-[#1E293B] text-slate-300 text-sm font-semibold border border-slate-700/50 hover:bg-slate-800 active:scale-95 transition-all">
+                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-[#1E293B] text-secondary text-sm font-semibold border border-border-strong hover:bg-slate-800 active:scale-95 transition-all">
                 Close
               </button>
             </div>

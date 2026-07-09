@@ -235,7 +235,7 @@ export default function AdminHardwarePage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-[var(--text-primary)] font-inter">Hardware & Resources</h1>
-        <span className="text-xs text-slate-500 flex items-center gap-1.5">
+        <span className="text-xs text-muted flex items-center gap-1.5">
           <Clock className="w-3.5 h-3.5" />
           Last updated {secondsSince}s ago
         </span>
@@ -264,7 +264,7 @@ export default function AdminHardwarePage() {
         <span className="flex items-center gap-1.5 text-[var(--text-secondary)]">
           <Monitor className="w-3.5 h-3.5" />
           <span className="text-emerald-400 font-medium">{vmSum.running}</span> running
-          <span className="text-slate-500">/</span>
+          <span className="text-muted">/</span>
           <span className="text-[var(--text-primary)]">{vmSum.total}</span> total VMs
         </span>
       </div>
@@ -312,7 +312,7 @@ export default function AdminHardwarePage() {
               </span>
             </div>
           </div>
-          <p className="text-xs text-slate-500 text-center flex items-center justify-center gap-1">
+          <p className="text-xs text-muted text-center flex items-center justify-center gap-1">
             <Wifi className="w-3 h-3" />
             Interface: {stats.network.interface}
           </p>
@@ -367,7 +367,7 @@ export default function AdminHardwarePage() {
           </h3>
           {pieData.length === 0 ? (
             <div className="h-64 flex flex-col items-center justify-center text-center">
-              <Monitor className="w-12 h-12 text-slate-600 mb-3" />
+              <Monitor className="w-12 h-12 text-faint mb-3" />
               <p className="text-[var(--text-secondary)] text-sm">No VMs provisioned yet</p>
             </div>
           ) : (

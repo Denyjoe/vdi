@@ -74,7 +74,7 @@ export default function SubmissionsModal({ isOpen, onClose, assignment }) {
               <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : submissions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-slate-500">
+            <div className="flex flex-col items-center justify-center py-16 text-muted">
               <AlertCircle className="w-12 h-12 mb-3 opacity-40" />
               <p className="text-base font-medium text-[var(--text-primary)]">No Submissions Yet</p>
               <p className="text-sm mt-1">Students have not submitted any files for this assignment.</p>

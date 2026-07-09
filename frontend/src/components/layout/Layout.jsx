@@ -43,7 +43,7 @@ export default function Layout({ children }) {
 
   return (
     <NotificationProvider>
-      <div className="flex h-screen bg-[#080B10]">
+      <div className="flex h-screen" style={{ background: 'var(--bg-canvas)' }}>
         {/* Mobile overlay — covers content when sidebar is open on small screens */}
         {sidebarOpen && (
           <div

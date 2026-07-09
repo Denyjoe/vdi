@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import useAuthStore from '../../store/authStore';
 import { 
   Users, Monitor, Activity, Server, Clock, Database, CheckCircle, 
-  Settings, Layers, Terminal, AlertTriangle, Download, Plus, List, Video
+  Settings, Layers, Terminal, AlertTriangle, Download, Plus, List, Video,
+  RefreshCw, AlertCircle, Power
 } from 'lucide-react';
 import api from '../../services/api';
 import { 
@@ -18,7 +19,7 @@ const CircularGauge = ({ percentage, label, subtext, format = 'percent', offline
   const strokeDashoffset = circumference - (safePercentage / 100) * circumference;
   
   let colorClass = 'text-green-500';
-  if (offline) colorClass = 'text-slate-600';
+  if (offline) colorClass = 'text-faint';
   else if (percentage > 80) colorClass = 'text-red-500';
   else if (percentage > 60) colorClass = 'text-amber-500';
 
@@ -41,7 +42,7 @@ const CircularGauge = ({ percentage, label, subtext, format = 'percent', offline
         </div>
       </div>
       <span className="text-sm font-medium text-[var(--text-primary)] mt-3">{label}</span>
-      {subtext && <span className="text-xs text-slate-500 mt-1">{subtext}</span>}
+      {subtext && <span className="text-xs text-muted mt-1">{subtext}</span>}
     </div>
   );
 };
@@ -62,6 +63,10 @@ export default function AdminDashboard() {
   });
   const [systemStats, setSystemStats] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [attentionIssues, setAttentionIssues] = useState([]);
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [isRetrying, setIsRetrying] = useState(null);
+  const [isBackingUp, setIsBackingUp] = useState(false);
 
   // Mock data for charts - replaced with honest 0s as there's no historical API yet
   const sessionsData = [
@@ -81,17 +86,17 @@ export default function AdminDashboard() {
     { name: 'Sun', created: 0, destroyed: 0 }
   ];
 
-  const recentActivity = [];
-
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [usersRes, sessionsRes, paymentsRes, poolRes, sysRes] = await Promise.allSettled([
+        const [usersRes, sessionsRes, paymentsRes, poolRes, sysRes, attentionRes, activityRes] = await Promise.allSettled([
           api.get('/users/admin/stats/'),
           api.get('/sessions/admin/stats/'),
           api.get('/payments/admin/stats/'),
           api.get('/vms/admin/pool/status/'),
-          api.get('/vms/admin/system-stats/')
+          api.get('/vms/admin/system-stats/'),
+          api.get('/admin/attention/'),
+          api.get('/admin/activity/')
         ]);
 
         let userCount = 0;
@@ -117,6 +122,13 @@ export default function AdminDashboard() {
           sysData = sysRes.value.data;
           pveStatus = sysData.proxmox?.status === 'online' ? 'Healthy' : 'Degraded';
         }
+        
+        if (attentionRes.status === 'fulfilled' && attentionRes.value.data) {
+          setAttentionIssues(attentionRes.value.data.issues || []);
+        }
+        if (activityRes.status === 'fulfilled' && activityRes.value.data) {
+          setRecentActivity(activityRes.value.data.activities || []);
+        }
 
         setStats(prev => ({
           ...prev,
@@ -139,6 +151,32 @@ export default function AdminDashboard() {
     fetchData();
   }, []);
 
+  const handleRetry = async (serviceId) => {
+    setIsRetrying(serviceId);
+    try {
+      await api.post('/admin/services/retry/', { service: serviceId });
+      const sysRes = await api.get('/vms/admin/system-stats/');
+      if (sysRes.data) setSystemStats(sysRes.data);
+    } catch (err) {
+      console.error('Failed to retry service:', err);
+    } finally {
+      setIsRetrying(null);
+    }
+  };
+
+  const handleTriggerBackup = async () => {
+    if (!window.confirm('Trigger manual backup?')) return;
+    setIsBackingUp(true);
+    try {
+      await api.post('/admin/backup/trigger/');
+      alert('Backup triggered successfully');
+    } catch (err) {
+      alert('Failed to trigger backup');
+    } finally {
+      setIsBackingUp(false);
+    }
+  };
+
   const formatUptime = (seconds) => {
     if (!seconds) return '0h 0m';
     const h = Math.floor(seconds / 3600);
@@ -160,6 +198,35 @@ export default function AdminDashboard() {
         <h2 className="text-2xl font-semibold text-[var(--text-primary)]">Welcome back, {user?.first_name}</h2>
         <p className="text-[var(--text-secondary)] mt-1">CloudDesk Administration</p>
       </div>
+
+      {/* SECTION A.1: Needs Attention */}
+      {attentionIssues.length > 0 && (
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <AlertCircle className="w-6 h-6 text-amber-500" />
+            <h3 className="text-lg font-semibold text-amber-500">Needs Attention ({attentionIssues.length})</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {attentionIssues.map((issue, idx) => (
+              <div key={idx} className="bg-[var(--bg-card)] rounded-xl p-4 border border-[var(--border-color)]">
+                <div className="flex justify-between items-start mb-2">
+                  <span className={`px-2 py-1 text-xs rounded-md font-medium ${
+                    issue.severity === 'error' ? 'bg-red-500/10 text-red-500' : 'bg-amber-500/10 text-amber-500'
+                  }`}>{issue.label}</span>
+                  <span className="text-lg font-bold text-[var(--text-primary)]">{issue.count}</span>
+                </div>
+                <p className="text-sm text-[var(--text-secondary)] mb-4">{issue.description}</p>
+                <button 
+                  onClick={() => navigate(issue.action_link)}
+                  className="text-sm font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
+                >
+                  {issue.action_label} &rarr;
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* SECTION A: Top Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -195,19 +262,19 @@ export default function AdminDashboard() {
           </p>
         </div>
 
-        <div className="bg-[var(--bg-card)]/80 backdrop-blur-md rounded-2xl p-6 shadow-lg border border-[var(--border-color)] relative overflow-hidden group">
+        <div onClick={() => navigate('/admin/sessions')} className="bg-[var(--bg-card)]/80 backdrop-blur-md rounded-2xl p-6 shadow-lg border border-[var(--border-color)] relative overflow-hidden group cursor-pointer hover:border-blue-500/30 transition-all">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <Video size={64} />
           </div>
           <div className="flex items-center gap-4 mb-4 relative z-10">
-            <div className="bg-blue-500/20 p-3 rounded-xl">
+            <div className="bg-blue-500/20 p-3 rounded-xl group-hover:bg-blue-500/30 transition-colors">
               <Video className="w-5 h-5 text-blue-400" />
             </div>
-            <p className="text-[var(--text-secondary)] font-medium text-sm">Live Sessions</p>
+            <p className="text-[var(--text-secondary)] font-medium text-sm group-hover:text-blue-400 transition-colors">Live Sessions</p>
           </div>
           <p className="text-3xl font-bold text-[var(--text-primary)] relative z-10">{stats.liveSessions}</p>
           <p className="text-sm text-blue-400 mt-2 relative z-10 flex items-center gap-1">
-            <span>8 today</span>
+            <span>Click to monitor</span>
           </p>
         </div>
 
@@ -295,9 +362,9 @@ export default function AdminDashboard() {
               offline={stats.systemStatus !== 'Healthy'}
             />
             <CircularGauge 
-              percentage={stats.systemStatus === 'Healthy' ? 45 : 0} 
+              percentage={stats.systemStatus === 'Healthy' && systemStats?.proxmox?.storage_total > 0 ? (systemStats.proxmox.storage_used / systemStats.proxmox.storage_total * 100) : 0} 
               label="Storage" 
-              subtext={stats.systemStatus === 'Healthy' ? "120 / 512 GB" : "—"} 
+              subtext={stats.systemStatus === 'Healthy' && systemStats?.proxmox?.storage_total > 0 ? `${systemStats.proxmox.storage_used} / ${systemStats.proxmox.storage_total} GB` : "—"} 
               offline={stats.systemStatus !== 'Healthy'}
             />
           </div>
@@ -319,16 +386,17 @@ export default function AdminDashboard() {
                   <th className="pb-3 font-medium">Service</th>
                   <th className="pb-3 font-medium">Status</th>
                   <th className="pb-3 font-medium">Port</th>
+                  <th className="pb-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {[
-                  { name: 'CloudDesk API', status: true, port: '8000' },
-                  { name: 'Proxmox VE', status: systemStats?.proxmox?.status === 'online', port: '8006' },
-                  { name: 'Guacamole', status: systemStats?.guacamole?.status === 'online', port: '8080' },
-                  { name: 'PostgreSQL', status: true, port: '5432' },
-                  { name: 'Redis', status: true, port: '6379' },
-                  { name: 'Nginx', status: true, port: '80' }
+                  { name: 'CloudDesk API', status: true, port: '8000', canRetry: false },
+                  { name: 'Proxmox VE', status: systemStats?.proxmox?.status === 'online', port: '8006', canRetry: true, id: 'proxmox' },
+                  { name: 'Guacamole', status: systemStats?.guacamole?.status === 'online', port: '8080', canRetry: true, id: 'guacamole' },
+                  { name: 'PostgreSQL', status: true, port: '5432', canRetry: false },
+                  { name: 'Redis', status: true, port: '6379', canRetry: false },
+                  { name: 'Nginx', status: true, port: '80', canRetry: false }
                 ].map(service => (
                   <tr key={service.name} className="group hover:bg-white/[0.02] transition-colors">
                     <td className="py-3 text-sm text-[var(--text-primary)] font-medium">{service.name}</td>
@@ -343,6 +411,18 @@ export default function AdminDashboard() {
                       </span>
                     </td>
                     <td className="py-3 text-sm text-[var(--text-secondary)] font-mono">{service.port}</td>
+                    <td className="py-3 text-right">
+                      {service.canRetry && !service.status && (
+                        <button 
+                          onClick={() => handleRetry(service.id)}
+                          disabled={isRetrying === service.id}
+                          className="px-3 py-1 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-medium text-[var(--text-primary)] flex items-center gap-1.5 ml-auto transition-colors"
+                        >
+                          <RefreshCw className={`w-3.5 h-3.5 ${isRetrying === service.id ? 'animate-spin text-indigo-400' : 'text-[var(--text-secondary)]'}`} />
+                          {isRetrying === service.id ? 'Retrying...' : 'Reconnect'}
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -414,13 +494,13 @@ export default function AdminDashboard() {
               {recentActivity.length > 0 ? recentActivity.map((log, i) => (
                 <div key={log.id} className="flex gap-4 relative">
                   {i !== recentActivity.length - 1 && (
-                    <div className="absolute top-8 bottom-[-24px] left-2 w-px bg-white/10"></div>
+                    <div className="absolute top-8 bottom-[-24px] left-2 w-px bg-indigo-500/20"></div>
                   )}
-                  <div className={`w-4 h-4 rounded-full mt-1 shrink-0 ${log.color} ring-4 ring-slate-900 z-10`}></div>
+                  <div className={`w-4 h-4 rounded-full mt-1 shrink-0 bg-indigo-500 ring-4 ring-[var(--bg-card)] z-10`}></div>
                   <div>
-                    <p className="text-[var(--text-primary)] font-medium text-sm">{log.action}</p>
-                    <p className="text-[var(--text-secondary)] text-sm mt-0.5">{log.desc}</p>
-                    <p className="text-xs text-slate-500 mt-1">{log.time}</p>
+                    <p className="text-[var(--text-primary)] font-medium text-sm">{log.admin_name} — {log.action_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                    <p className="text-[var(--text-secondary)] text-sm mt-0.5">{log.description}</p>
+                    <p className="text-xs text-muted mt-1">{new Date(log.created_at).toLocaleString()}</p>
                   </div>
                 </div>
               )) : (
@@ -464,6 +544,13 @@ export default function AdminDashboard() {
               <span className="font-medium">View Templates</span>
             </button>
             <button 
+              onClick={() => navigate('/admin/sessions')}
+              className="flex items-center gap-3 p-4 rounded-xl bg-white/5 border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-white/10 transition-all text-left group"
+            >
+              <div className="p-2 bg-white/5 rounded-lg group-hover:scale-110 transition-transform"><Video size={20} /></div>
+              <span className="font-medium">Monitor Sessions</span>
+            </button>
+            <button 
               onClick={() => navigate('/admin/vm-pool')}
               className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 hover:bg-red-500/20 transition-all text-left group"
             >
@@ -471,11 +558,21 @@ export default function AdminDashboard() {
               <span className="font-medium">Clean Up Errors</span>
             </button>
             <button 
-              onClick={() => navigate('/admin/analytics')}
-              className="flex items-center gap-3 p-4 rounded-xl bg-white/5 border border-[var(--border-color)] text-[var(--text-primary)] hover:bg-white/10 transition-all text-left sm:col-span-2 group"
+              onClick={handleTriggerBackup}
+              disabled={isBackingUp}
+              className="flex items-center gap-3 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20 transition-all text-left group"
             >
-              <div className="p-2 bg-white/5 rounded-lg group-hover:scale-110 transition-transform"><Activity size={20} /></div>
-              <span className="font-medium">View Analytics</span>
+              <div className="p-2 bg-emerald-500/20 rounded-lg group-hover:scale-110 transition-transform">
+                {isBackingUp ? <RefreshCw className="animate-spin w-5 h-5" /> : <Database size={20} />}
+              </div>
+              <span className="font-medium">{isBackingUp ? 'Backing up...' : 'Trigger Backup'}</span>
+            </button>
+            <button 
+              onClick={() => alert('Maintenance mode triggered (simulated)')}
+              className="flex items-center gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition-all text-left group"
+            >
+              <div className="p-2 bg-amber-500/20 rounded-lg group-hover:scale-110 transition-transform"><Power size={20} /></div>
+              <span className="font-medium">Maintenance Mode</span>
             </button>
           </div>
         </div>

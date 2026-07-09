@@ -69,13 +69,13 @@ export default function SubmitAssignmentModal({ isOpen, onClose, assignment, onS
 
         <div className="px-6 py-4 bg-[var(--bg-primary)]/50 border-b border-[var(--border-color)] grid grid-cols-2 gap-4">
           <div>
-            <span className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Due Date</span>
+            <span className="block text-xs font-medium text-muted uppercase tracking-wider mb-1">Due Date</span>
             <span className={`text-sm font-medium ${assignment.is_overdue ? 'text-red-400' : 'text-[var(--text-primary)]'}`}>
               {new Date(assignment.due_date).toLocaleString()}
             </span>
           </div>
           <div>
-            <span className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Max File Size</span>
+            <span className="block text-xs font-medium text-muted uppercase tracking-wider mb-1">Max File Size</span>
             <span className="text-sm font-medium text-[var(--text-primary)]">{assignment.max_file_size_mb} MB</span>
           </div>
         </div>
@@ -95,7 +95,7 @@ export default function SubmitAssignmentModal({ isOpen, onClose, assignment, onS
                 htmlFor="submission-file-upload"
                 className="w-full bg-[var(--bg-primary)] border-2 border-dashed border-slate-600 rounded-xl px-4 py-8 text-center cursor-pointer flex flex-col items-center justify-center hover:border-indigo-500 hover:bg-[var(--bg-card)] transition-all group"
               >
-                <FolderOpen className={`w-8 h-8 mb-3 ${file ? 'text-indigo-400' : 'text-slate-500 group-hover:text-indigo-400'} transition-colors`} />
+                <FolderOpen className={`w-8 h-8 mb-3 ${file ? 'text-indigo-400' : 'text-muted group-hover:text-indigo-400'} transition-colors`} />
                 <span className="text-[var(--text-primary)] font-medium mb-1">
                   {file ? file.name : 'Click to select a file'}
                 </span>
@@ -128,7 +128,7 @@ export default function SubmitAssignmentModal({ isOpen, onClose, assignment, onS
             <button
               type="submit"
               disabled={isSubmitting || !file}
-              className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-[var(--text-primary)] font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20"
+              className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-primary font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20"
             >
               {isSubmitting ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />

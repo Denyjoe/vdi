@@ -52,7 +52,7 @@ export default function TemplatesPage() {
     if (o.includes('windows')) return 'from-blue-900/60 to-indigo-900/40 border-blue-500/20';
     if (o.includes('linux') || o.includes('ubuntu') || o.includes('debian')) return 'from-orange-900/60 to-red-900/40 border-orange-500/20';
     if (o.includes('kali')) return 'from-purple-900/60 to-fuchsia-900/40 border-purple-500/20';
-    return 'from-slate-800 to-slate-900 border-slate-700/50';
+    return 'from-slate-800 to-slate-900 border-border-strong';
   };
 
   const filteredTemplates = templates.filter(t => {
@@ -104,13 +104,13 @@ export default function TemplatesPage() {
             </div>
 
             <div className="relative w-full md:w-96">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-secondary" />
               <input
                 type="text"
                 placeholder="Search environments, software..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-white/5 border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all backdrop-blur-sm"
+                className="w-full pl-12 pr-4 py-3 bg-white/5 border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-muted focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all backdrop-blur-sm"
               />
             </div>
           </div>
@@ -127,10 +127,10 @@ export default function TemplatesPage() {
                   <div key={template.id} className="group flex flex-col bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] overflow-hidden hover:border-indigo-500/50 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300">
                     <div className={`p-8 bg-gradient-to-br ${getGradientByOS(template.os)} border-b`}>
                       <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center mb-6 shadow-inner border border-white/10">
-                        <Icon className="w-8 h-8 text-white" />
+                        <Icon className="w-8 h-8 text-primary" />
                       </div>
-                      <h3 className="text-2xl font-bold text-white mb-2">{template.name}</h3>
-                      <p className="text-white/70 font-medium">{template.os}</p>
+                      <h3 className="text-2xl font-bold text-primary mb-2">{template.name}</h3>
+                      <p className="text-primary/70 font-medium">{template.os}</p>
                     </div>
 
                     <div className="p-8 flex-1 flex flex-col">

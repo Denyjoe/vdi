@@ -59,16 +59,16 @@ export default function SessionsPage() {
                     
                     <div className="flex flex-col sm:flex-row gap-4">
                         <div className="relative flex-1">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
                             <input 
                                 type="text" 
                                 placeholder="Search sessions..." 
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                className="w-full pl-12 pr-4 py-3 bg-[#111827] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
+                                className="w-full pl-12 pr-4 py-3 bg-[#111827] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-muted focus:outline-none focus:border-indigo-500/50"
                             />
                         </div>
-                        <button onClick={() => setIsJoinOpen(true)} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-[var(--text-primary)] rounded-xl font-medium transition-all shadow-lg shadow-indigo-500/20 whitespace-nowrap">
+                        <button onClick={() => setIsJoinOpen(true)} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-primary rounded-xl font-medium transition-all shadow-lg shadow-indigo-500/20 whitespace-nowrap">
                             Have an Invite Code?
                         </button>
                     </div>
@@ -108,11 +108,11 @@ export default function SessionsPage() {
                                     
                                     <div className="space-y-3">
                                         <div className="flex items-center text-sm text-[var(--text-primary)]">
-                                            <Calendar className="w-4 h-4 text-slate-500 mr-3" />
+                                            <Calendar className="w-4 h-4 text-muted mr-3" />
                                             {new Date(session.start_time).toLocaleString()}
                                         </div>
                                         <div className="flex items-center text-sm text-[var(--text-primary)]">
-                                            <Users className="w-4 h-4 text-slate-500 mr-3" />
+                                            <Users className="w-4 h-4 text-muted mr-3" />
                                             {session.participant_count} / {session.max_participants} Participants
                                         </div>
                                     </div>
@@ -125,7 +125,7 @@ export default function SessionsPage() {
                                         </div>
                                         <span className="text-sm text-[var(--text-primary)]">{session.host_details?.first_name} {session.host_details?.last_name}</span>
                                     </div>
-                                    <button onClick={() => handleJoin(session.id)} className="w-8 h-8 rounded-full bg-indigo-500/10 text-indigo-400 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-[var(--text-primary)] transition-colors">
+                                    <button onClick={() => handleJoin(session.id)} className="w-8 h-8 rounded-full bg-indigo-500/10 text-indigo-400 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-primary transition-colors">
                                         <ChevronRight className="w-5 h-5" />
                                     </button>
                                 </div>
@@ -135,7 +135,7 @@ export default function SessionsPage() {
                 ) : (
                     <div className="p-12 glass-card rounded-3xl text-center border-dashed border-2 border-[var(--border-color)]">
                         <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <Video className="w-8 h-8 text-slate-500" />
+                            <Video className="w-8 h-8 text-muted" />
                         </div>
                         <h3 className="text-xl font-medium text-[var(--text-primary)] mb-2">No Public Sessions Found</h3>
                         <p className="text-[var(--text-secondary)] max-w-sm mx-auto">There are currently no public sessions scheduled. Check back later or use an invite code to join a private session.</p>

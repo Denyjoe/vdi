@@ -22,13 +22,13 @@ export default function NotificationBell() {
   return (
     <button 
       onClick={openNotifications}
-      className="relative p-1.5 rounded-lg hover:bg-slate-800/50 active:scale-95 transition-all"
+      className="relative p-1.5 rounded-lg hover:bg-nav-hover active:scale-95 transition-all"
     >
       <Bell size={16} 
-        className={`transition-colors ${unreadCount > 0 ? 'text-white bell-wiggle' : 'text-slate-400'}`} 
+        className={`transition-colors ${unreadCount > 0 ? 'text-[var(--text-primary)] bell-wiggle' : 'text-secondary'}`} 
       />
       {unreadCount > 0 && (
-        <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 flex items-center justify-center rounded-full bg-[#FF3366] text-[9px] font-bold text-white px-1 shadow-lg shadow-red-500/30">
+        <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 flex items-center justify-center rounded-full bg-[#FF3366] text-[9px] font-bold text-primary px-1 shadow-lg shadow-red-500/30">
           {unreadCount > 9 ? '9+' : unreadCount}
         </span>
       )}

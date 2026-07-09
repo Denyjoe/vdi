@@ -193,9 +193,9 @@ export default function CreateAssignmentModal({ isOpen, onClose, onSuccess }) {
                 <span className="truncate text-[var(--text-secondary)]">
                   {formData.attachment ? formData.attachment.name : 'Choose file...'}
                 </span>
-                <span className="text-sm text-slate-500">Browse</span>
+                <span className="text-sm text-muted">Browse</span>
               </label>
-              <p className="mt-1.5 text-xs text-slate-500">
+              <p className="mt-1.5 text-xs text-muted">
                 Attach a PDF, Word document, or other resources for this assignment.
               </p>
             </div>

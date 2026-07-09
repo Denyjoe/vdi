@@ -117,10 +117,10 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="relative z-10 mt-12 flex items-center justify-between border-t border-[var(--border-color)] pt-8">
-                    <p className="text-sm text-slate-500">&copy; 2026 CloudDesk. All rights reserved.</p>
+                    <p className="text-sm text-muted">&copy; 2026 CloudDesk. All rights reserved.</p>
                     <div className="flex gap-4">
-                        <a href="#" className="text-sm text-slate-500 hover:text-[var(--text-primary)] transition-colors">Privacy</a>
-                        <a href="#" className="text-sm text-slate-500 hover:text-[var(--text-primary)] transition-colors">Terms</a>
+                        <a href="#" className="text-sm text-muted hover:text-[var(--text-primary)] transition-colors">Privacy</a>
+                        <a href="#" className="text-sm text-muted hover:text-[var(--text-primary)] transition-colors">Terms</a>
                     </div>
                 </div>
             </div>
@@ -147,7 +147,7 @@ export default function RegisterPage() {
                                     name="first_name"
                                     value={formData.first_name}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-3 bg-[#0A101F] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                    className="w-full px-4 py-3 bg-[#0A101F] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-muted focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                                     placeholder="John"
                                     required
                                 />
@@ -159,7 +159,7 @@ export default function RegisterPage() {
                                     name="last_name"
                                     value={formData.last_name}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-3 bg-[#0A101F] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                    className="w-full px-4 py-3 bg-[#0A101F] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-muted focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                                     placeholder="Doe"
                                     required
                                 />
@@ -173,7 +173,7 @@ export default function RegisterPage() {
                                 name="email"
                                 value={formData.email}
                                 onChange={handleChange}
-                                className="w-full px-4 py-3 bg-[#0A101F] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                className="w-full px-4 py-3 bg-[#0A101F] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-muted focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                                 placeholder="john@example.com"
                                 required
                             />
@@ -186,7 +186,7 @@ export default function RegisterPage() {
                                 name="password"
                                 value={formData.password}
                                 onChange={handleChange}
-                                className="w-full px-4 py-3 bg-[#0A101F] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                className="w-full px-4 py-3 bg-[#0A101F] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-muted focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                                 placeholder="Min. 8 characters"
                                 required
                                 minLength="8"
@@ -200,7 +200,7 @@ export default function RegisterPage() {
                                 name="confirm_password"
                                 value={formData.confirm_password}
                                 onChange={handleChange}
-                                className="w-full px-4 py-3 bg-[#0A101F] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                className="w-full px-4 py-3 bg-[#0A101F] border border-[var(--border-color)] rounded-xl text-[var(--text-primary)] placeholder-muted focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                                 placeholder="Re-enter password"
                                 required
                             />
@@ -228,7 +228,7 @@ export default function RegisterPage() {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-[var(--text-primary)] rounded-xl font-semibold shadow-lg shadow-indigo-600/20 transition-all flex justify-center items-center gap-2 mt-8 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-primary rounded-xl font-semibold shadow-lg shadow-indigo-600/20 transition-all flex justify-center items-center gap-2 mt-8 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isLoading ? 'Creating Account...' : 'Create Account'}
                         </button>

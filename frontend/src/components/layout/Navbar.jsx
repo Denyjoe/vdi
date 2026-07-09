@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
+import useThemeStore from '../../store/themeStore';
 import NotificationBell from '../shared/NotificationBell';
 import { 
   Menu, Bell, Clock, Wifi, HelpCircle, BookOpen, Keyboard, 
@@ -11,6 +12,7 @@ import useLiveSession from '../../hooks/useLiveSession';
 
 export default function Navbar({ onMenuClick }) {
   const { user, logout } = useAuthStore();
+  const theme = useThemeStore(s => s.theme);
   const navigate = useNavigate();
   const location = useLocation();
   const liveSession = useLiveSession(user);
@@ -103,7 +105,15 @@ export default function Navbar({ onMenuClick }) {
 
   return (
     <>
-      <nav className="h-14 px-4 sm:px-6 flex items-center justify-between bg-[#080B10]/80 backdrop-blur-md border-b border-slate-800/30 sticky top-0 z-50">
+      <nav 
+        className="h-14 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-50 border-b border-[var(--border-subtle)] transition-all duration-300"
+        style={{ 
+          background: theme === 'light'
+            ? 'rgba(248, 250, 252, 0.85)'
+            : 'rgba(8, 11, 16, 0.85)',
+          backdropFilter: 'blur(12px)'
+        }}
+      >
         <style>{`
           @keyframes wifiBlink {
             0%, 100% { opacity: 1; }
@@ -138,7 +148,7 @@ export default function Navbar({ onMenuClick }) {
         <div className="flex items-center gap-3">
           <button
             onClick={onMenuClick}
-            className="md:hidden p-2 text-slate-400 hover:text-slate-200 transition-colors rounded-lg hover:bg-slate-800/50"
+            className="md:hidden p-2 text-secondary hover:text-primary transition-colors rounded-lg hover:bg-nav-hover"
             aria-label="Toggle sidebar menu"
           >
             <Menu className="w-5 h-5" />
@@ -146,24 +156,26 @@ export default function Navbar({ onMenuClick }) {
 
           <div className="md:hidden flex items-center gap-2">
               <Monitor className="w-6 h-6 text-[#0066FF]" />
-              <h1 className="text-slate-200 font-bold text-lg leading-tight">CloudDesk</h1>
+              <h1 className="text-primary font-bold text-lg leading-tight">CloudDesk</h1>
           </div>
 
-          <div className="hidden md:flex items-center gap-2">
-            <span className="text-[11px] text-slate-600 font-medium tracking-wider uppercase">
-              Console
-            </span>
-            <span className="text-slate-700">›</span>
-            <span className="px-3 py-1 rounded-full bg-[#0066FF]/10 border border-[#0066FF]/20 text-[10px] font-bold text-[#00A3FF] uppercase tracking-widest">
-              {getPageLabel()}
-            </span>
+          <div className="hidden md:flex items-center space-x-3">
+            <div className="flex items-center space-x-2">
+              <span className={`text-[11px] font-semibold uppercase tracking-[1.5px] ${theme === 'light' ? 'text-[#475569]' : 'text-[var(--text-muted)]'}`}>
+                Console
+              </span>
+              <span className={theme === 'light' ? 'text-[#94A3B8]' : 'text-[var(--text-faint)]'}>›</span>
+              <span className={`text-[13px] font-semibold uppercase tracking-[1px] ${theme === 'light' ? 'text-[#0F172A]' : 'text-[var(--text-primary)]'}`}>
+                {getPageLabel()}
+              </span>
+            </div>
             
             {liveSession && (
               <button
                 onClick={() => navigate(`/host/session/${liveSession.id}`)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#00FF87]/5 border border-[#00FF87]/15 hover:bg-[#00FF87]/10 active:scale-95 transition-all ml-3">
-                <div className="w-2 h-2 rounded-full bg-[#00FF87] animate-pulse shadow-lg shadow-green-500/50" />
-                <span className="text-[10px] font-semibold text-[#00FF87] uppercase tracking-wider">
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#16A34A]/5 border border-[#00FF87]/15 hover:bg-[#16A34A]/10 active:scale-95 transition-all">
+                <div className="w-2 h-2 rounded-full bg-[#16A34A] animate-pulse shadow-lg shadow-green-500/50" />
+                <span className="text-[10px] font-semibold text-[#15803D] uppercase tracking-wider">
                   Live Session
                 </span>
               </button>
@@ -173,41 +185,60 @@ export default function Navbar({ onMenuClick }) {
 
         <div className="flex items-center gap-2 sm:gap-4">
           
-          <div className="hidden md:flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-slate-900/50 border border-slate-800/30">
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '6px 12px',
+            borderRadius: '8px',
+            background: theme === 'light' ? '#F0FDF4' : 'rgba(15, 23, 42, 0.5)',
+            border: theme === 'light' ? '1px solid #BBF7D0' : '1px solid rgba(30, 41, 59, 0.5)',
+          }}>
             <div className="wifi-blink">
-              <Wifi size={13} className="text-[#00A3FF]" />
+              <Wifi size={13} style={{ color: theme === 'light' ? '#0284C7' : '#00A3FF' }} />
             </div>
-            <span className="text-[10px] font-semibold tracking-wider uppercase">
-              <span className="text-white">GW-SSL:</span>{' '}
-              <span className="text-[#00FF87]">Secured</span>
+            <span style={{ 
+              fontSize: '10px',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '1.5px'
+            }}>
+              <span style={{ color: 'var(--text-primary)' }}>GW-SSL:</span>{' '}
+              <span style={{ color: 'var(--status-online)' }}>Secured</span>
             </span>
-            <div className="w-2 h-2 rounded-full bg-[#00FF87]" style={{ boxShadow: '0 0 6px rgba(0,255,135,0.4)' }} />
+            <div style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              background: 'var(--status-online-dot)',
+              boxShadow: theme === 'light' ? '0 0 0 3px rgba(22, 163, 74, 0.15)' : '0 0 6px rgba(0, 255, 135, 0.4)'
+            }} />
           </div>
           
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900/50">
-            <Clock size={12} className="text-slate-500" />
-            <span className="text-[11px] font-mono font-medium text-slate-400 tabular-nums tracking-wider">
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-canvas">
+            <Clock size={12} className="text-muted" />
+            <span className="text-[11px] font-mono font-medium text-secondary tabular-nums tracking-wider">
               {localTime}
             </span>
-            <span className="text-[8px] text-slate-600 font-semibold uppercase ml-0.5 truncate max-w-[80px]">
+            <span className="text-[8px] text-faint font-semibold uppercase ml-0.5 truncate max-w-[80px]">
               {userTimezone.split('/').pop().replace('_', ' ')}
             </span>
           </div>
           
           <div ref={helpRef} className="relative hidden sm:block">
             <button onClick={() => setShowHelp(!showHelp)}
-              className="p-1.5 rounded-lg hover:bg-slate-800/50 transition-colors active:scale-95">
-              <HelpCircle size={16} className="text-slate-400 hover:text-slate-200 transition-colors" />
+              className="p-1.5 rounded-lg hover:bg-nav-hover transition-colors active:scale-95">
+              <HelpCircle size={16} className="text-secondary hover:text-primary transition-colors" />
             </button>
             
             {showHelp && (
-              <div className="absolute top-full right-0 mt-2 w-[280px] bg-[#0F131A] border border-slate-800/50 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden z-50"
+              <div className="absolute top-full right-0 mt-2 w-[280px] bg-card border border-border rounded-2xl shadow-2xl shadow-black/50 overflow-hidden z-50"
                 style={{ animation: 'fadeInDown 0.2s ease-out' }}>
                 
                 {/* Header */}
-                <div className="px-4 py-3 border-b border-slate-800/30">
-                  <h3 className="text-sm font-bold text-white">Help & Resources</h3>
-                  <p className="text-[10px] text-slate-500 mt-0.5">
+                <div className="px-4 py-3 border-b border-border-subtle">
+                  <h3 className="text-sm font-bold text-primary">Help & Resources</h3>
+                  <p className="text-[10px] text-muted mt-0.5">
                     Get started with CloudDesk
                   </p>
                 </div>
@@ -218,13 +249,13 @@ export default function Navbar({ onMenuClick }) {
                     setShowHelp(false);
                     setShowQuickGuide(true);
                   }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-800/40 transition-colors">
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-secondary hover:bg-nav-hover transition-colors">
                     <div className="w-7 h-7 rounded-lg bg-[#0066FF]/10 flex items-center justify-center flex-shrink-0">
                       <BookOpen size={13} className="text-[#0066FF]" />
                     </div>
                     <div className="text-left">
                       <p className="font-medium">Quick Start Guide</p>
-                      <p className="text-[10px] text-slate-500 mt-0.5">Learn the basics in 2 minutes</p>
+                      <p className="text-[10px] text-muted mt-0.5">Learn the basics in 2 minutes</p>
                     </div>
                   </button>
                   
@@ -232,25 +263,25 @@ export default function Navbar({ onMenuClick }) {
                     setShowHelp(false);
                     setShowShortcuts(true);
                   }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-800/40 transition-colors">
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-secondary hover:bg-nav-hover transition-colors">
                     <div className="w-7 h-7 rounded-lg bg-[#6C63FF]/10 flex items-center justify-center flex-shrink-0">
                       <Keyboard size={13} className="text-[#6C63FF]" />
                     </div>
                     <div className="text-left">
                       <p className="font-medium">Keyboard Shortcuts</p>
-                      <p className="text-[10px] text-slate-500 mt-0.5">Speed up your workflow</p>
+                      <p className="text-[10px] text-muted mt-0.5">Speed up your workflow</p>
                     </div>
                   </button>
                   
                   <a href="mailto:support@clouddesk.io"
                     onClick={() => setShowHelp(false)}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-800/40 transition-colors">
-                    <div className="w-7 h-7 rounded-lg bg-[#00FF87]/10 flex items-center justify-center flex-shrink-0">
-                      <Mail size={13} className="text-[#00FF87]" />
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-secondary hover:bg-nav-hover transition-colors">
+                    <div className="w-7 h-7 rounded-lg bg-[#16A34A]/10 flex items-center justify-center flex-shrink-0">
+                      <Mail size={13} className="text-[#15803D]" />
                     </div>
                     <div className="text-left">
                       <p className="font-medium">Contact Support</p>
-                      <p className="text-[10px] text-slate-500 mt-0.5">support@clouddesk.io</p>
+                      <p className="text-[10px] text-muted mt-0.5">support@clouddesk.io</p>
                     </div>
                   </a>
                   
@@ -258,9 +289,9 @@ export default function Navbar({ onMenuClick }) {
                     setShowHelp(false);
                     navigate('/terms');
                   }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-800/40 transition-colors">
-                    <div className="w-7 h-7 rounded-lg bg-slate-800/50 flex items-center justify-center flex-shrink-0">
-                      <FileText size={13} className="text-slate-400" />
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-secondary hover:bg-nav-hover transition-colors">
+                    <div className="w-7 h-7 rounded-lg bg-nav-hover flex items-center justify-center flex-shrink-0">
+                      <FileText size={13} className="text-secondary" />
                     </div>
                     <div className="text-left">
                       <p className="font-medium">Terms of Service</p>
@@ -271,9 +302,9 @@ export default function Navbar({ onMenuClick }) {
                     setShowHelp(false);
                     navigate('/privacy');
                   }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-slate-300 hover:bg-slate-800/40 transition-colors">
-                    <div className="w-7 h-7 rounded-lg bg-slate-800/50 flex items-center justify-center flex-shrink-0">
-                      <Shield size={13} className="text-slate-400" />
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-secondary hover:bg-nav-hover transition-colors">
+                    <div className="w-7 h-7 rounded-lg bg-nav-hover flex items-center justify-center flex-shrink-0">
+                      <Shield size={13} className="text-secondary" />
                     </div>
                     <div className="text-left">
                       <p className="font-medium">Privacy Policy</p>
@@ -282,8 +313,8 @@ export default function Navbar({ onMenuClick }) {
                 </div>
                 
                 {/* Footer */}
-                <div className="px-4 py-3 border-t border-slate-800/30 bg-[#080B10]">
-                  <p className="text-[9px] text-slate-600 text-center">
+                <div className="px-4 py-3 border-t border-border-subtle bg-canvas">
+                  <p className="text-[9px] text-faint text-center">
                     CloudDesk v1.0.0 · Made in Tanzania
                   </p>
                 </div>
@@ -303,7 +334,7 @@ export default function Navbar({ onMenuClick }) {
               ) : user?.is_host ? (
                   <span className="text-blue-400 font-bold tracking-wide uppercase">Host</span>
               ) : (
-                  <span className="text-slate-500 uppercase tracking-wide font-medium">Free</span>
+                  <span className="text-muted uppercase tracking-wide font-medium">Free</span>
               )}
             </p>
           </div>
@@ -329,19 +360,19 @@ export default function Navbar({ onMenuClick }) {
             if (e.target === e.currentTarget)
               setShowQuickGuide(false);
           }}>
-          <div className="bg-[#0A0E14] border border-slate-800/50 rounded-2xl w-[520px] max-w-[90vw] max-h-[80vh] overflow-hidden shadow-2xl shadow-black/50 flex flex-col"
+          <div className="bg-sidebar border border-border rounded-2xl w-[520px] max-w-[90vw] max-h-[80vh] overflow-hidden shadow-2xl shadow-black/50 flex flex-col"
             style={{ animation: 'scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)' }}>
             
             {/* Header */}
-            <div className="px-6 py-4 border-b border-slate-800/30 flex items-center justify-between flex-shrink-0">
+            <div className="px-6 py-4 border-b border-border-subtle flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-2">
                 <BookOpen size={16} className="text-[#0066FF]" />
-                <h2 className="text-base font-bold text-white">
+                <h2 className="text-base font-bold text-primary">
                   Quick Start Guide
                 </h2>
               </div>
               <button onClick={() => setShowQuickGuide(false)}
-                className="p-1.5 rounded-lg hover:bg-slate-800/50 text-slate-400 hover:text-white active:scale-95 transition-all">
+                className="p-1.5 rounded-lg hover:bg-nav-hover text-secondary hover:text-white active:scale-95 transition-all">
                 <X size={16} />
               </button>
             </div>
@@ -394,14 +425,14 @@ export default function Navbar({ onMenuClick }) {
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[var(--bg-elevated)] border border-[var(--border-color)] text-[var(--text-primary)]">
                         STEP {item.step}
                       </span>
-                      <h3 className="text-sm font-semibold text-white">
+                      <h3 className="text-sm font-semibold text-primary">
                         {item.title}
                       </h3>
                     </div>
-                    <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                    <p className="text-xs text-secondary mt-1.5 leading-relaxed">
                       {item.desc}
                     </p>
                   </div>
@@ -410,7 +441,7 @@ export default function Navbar({ onMenuClick }) {
             </div>
             
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-slate-800/30 flex justify-end flex-shrink-0">
+            <div className="px-6 py-4 border-t border-border-subtle flex justify-end flex-shrink-0">
               <button onClick={() => setShowQuickGuide(false)}
                 className="px-5 py-2 rounded-xl bg-[#0066FF] text-white text-sm font-semibold hover:bg-[#0052CC] active:scale-95 transition-all">
                 Got it
@@ -427,18 +458,18 @@ export default function Navbar({ onMenuClick }) {
             if (e.target === e.currentTarget)
               setShowShortcuts(false);
           }}>
-          <div className="bg-[#0A0E14] border border-slate-800/50 rounded-2xl w-[440px] max-w-[90vw] overflow-hidden shadow-2xl"
+          <div className="bg-sidebar border border-border rounded-2xl w-[440px] max-w-[90vw] overflow-hidden shadow-2xl"
             style={{ animation: 'scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)' }}>
             
-            <div className="px-6 py-4 border-b border-slate-800/30 flex items-center justify-between">
+            <div className="px-6 py-4 border-b border-border-subtle flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Keyboard size={16} className="text-[#6C63FF]" />
-                <h2 className="text-base font-bold text-white">
+                <h2 className="text-base font-bold text-primary">
                   Keyboard Shortcuts
                 </h2>
               </div>
               <button onClick={() => setShowShortcuts(false)}
-                className="p-1.5 rounded-lg hover:bg-slate-800/50 text-slate-400 hover:text-white active:scale-95 transition-all">
+                className="p-1.5 rounded-lg hover:bg-nav-hover text-secondary hover:text-white active:scale-95 transition-all">
                 <X size={16} />
               </button>
             </div>
@@ -452,12 +483,12 @@ export default function Navbar({ onMenuClick }) {
                 { keys: ['?'], desc: 'Show this help' },
               ].map((shortcut, i) => (
                 <div key={i} className="flex items-center justify-between py-1">
-                  <span className="text-xs text-slate-300">
+                  <span className="text-xs text-secondary">
                     {shortcut.desc}
                   </span>
                   <div className="flex gap-1">
                     {shortcut.keys.map((k, j) => (
-                      <kbd key={j} className="px-2 py-1 rounded-md bg-slate-800/70 border border-slate-700/50 text-[10px] font-mono text-slate-300 min-w-[24px] text-center">
+                      <kbd key={j} className="px-2 py-1 rounded-md bg-[var(--bg-elevated)] border border-border-strong text-[10px] font-mono text-secondary min-w-[24px] text-center">
                         {k}
                       </kbd>
                     ))}
@@ -466,9 +497,9 @@ export default function Navbar({ onMenuClick }) {
               ))}
             </div>
             
-            <div className="px-6 py-3 border-t border-slate-800/30">
+            <div className="px-6 py-3 border-t border-border-subtle">
               <button onClick={() => setShowShortcuts(false)}
-                className="w-full py-2 rounded-xl bg-slate-800/30 text-slate-400 text-xs font-medium hover:bg-slate-800/50 active:scale-[0.98] transition-all">
+                className="w-full py-2 rounded-xl bg-slate-800/30 text-secondary text-xs font-medium hover:bg-nav-hover active:scale-[0.98] transition-all">
                 Close
               </button>
             </div>

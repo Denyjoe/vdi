@@ -139,7 +139,7 @@ export default function AdminVMsPage() {
                     {vm.status === 'running' && <span className="text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded text-xs font-medium border border-emerald-400/20">Running</span>}
                     {vm.status === 'stopped' && <span className="text-[var(--text-secondary)] bg-slate-400/10 px-2 py-1 rounded text-xs font-medium border border-slate-400/20">Stopped</span>}
                     {vm.status === 'error' && <span className="text-red-400 bg-red-400/10 px-2 py-1 rounded text-xs font-medium border border-red-400/20">Error</span>}
-                    {vm.status === 'deleted' && <span className="text-slate-500 bg-[var(--bg-card)] px-2 py-1 rounded text-xs font-medium border border-[var(--border-color)]">Deleted</span>}
+                    {vm.status === 'deleted' && <span className="text-muted bg-[var(--bg-card)] px-2 py-1 rounded text-xs font-medium border border-[var(--border-color)]">Deleted</span>}
                   </td>
                   <td className="px-6 py-4">{vm.status === 'running' ? `${vm.cpu_usage}%` : '-'}</td>
                   <td className="px-6 py-4">{vm.status === 'running' ? `${vm.ram_usage}%` : '-'}</td>

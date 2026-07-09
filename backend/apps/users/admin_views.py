@@ -45,6 +45,8 @@ class AdminUserDetailView(APIView):
         if role in ['admin', 'user']:
             user.role = role
             user.save()
+            from apps.users.admin_services import log_admin_action
+            log_admin_action(request.user, 'user_role_changed', f"Changed role of {user.username} to {role}", 'user', user.id)
             return Response({"success": True, "data": UserProfileSerializer(user).data})
             
         return Response({"success": False, "message": "Invalid role"}, status=status.HTTP_400_BAD_REQUEST)
@@ -68,6 +70,10 @@ class SystemConfigView(APIView):
             
         configs = SystemConfig.objects.all()
         data = {c.key: c.value for c in configs}
+        
+        from apps.users.admin_services import log_admin_action
+        log_admin_action(request.user, 'config_changed', "Updated system configuration")
+        
         return Response({
             "success": True,
             "data": data,

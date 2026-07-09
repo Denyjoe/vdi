@@ -241,7 +241,7 @@ export default function AdminAnalyticsPage() {
             ) : (
               <div className="h-full flex items-center justify-center border-2 border-dashed border-[var(--border-color)] rounded-xl">
                 <div className="text-center text-[var(--text-secondary)]">
-                  <Monitor className="w-8 h-8 mx-auto mb-2 text-slate-500" />
+                  <Monitor className="w-8 h-8 mx-auto mb-2 text-muted" />
                   <p>No templates available</p>
                 </div>
               </div>
@@ -292,10 +292,10 @@ export default function AdminAnalyticsPage() {
                 {topUsers.length > 0 ? (
                   topUsers.map((user, idx) => (
                     <tr key={idx} className="hover:bg-[var(--bg-card-hover)]/30 transition-colors">
-                      <td className="px-6 py-4 text-center font-bold text-slate-500">{idx + 1}</td>
+                      <td className="px-6 py-4 text-center font-bold text-muted">{idx + 1}</td>
                       <td className="px-6 py-4">
                         <p className="font-medium text-[var(--text-primary)]">{user.name}</p>
-                        <p className="text-xs text-slate-500">{user.email}</p>
+                        <p className="text-xs text-muted">{user.email}</p>
                       </td>
                       <td className="px-6 py-4 text-center text-[var(--text-primary)] font-medium">{user.vms}</td>
                       <td className="px-6 py-4 text-right text-indigo-400 font-medium">{user.hours}h</td>
@@ -303,7 +303,7 @@ export default function AdminAnalyticsPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="4" className="px-6 py-8 text-center text-slate-500">
+                    <td colSpan="4" className="px-6 py-8 text-center text-muted">
                       No activity recorded yet
                     </td>
                   </tr>

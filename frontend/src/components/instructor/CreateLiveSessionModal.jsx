@@ -117,7 +117,7 @@ export default function CreateLiveSessionModal({ onClose, onCreated }) {
                         <p className="text-[var(--text-secondary)] mb-6">Share this code with your students to join.</p>
                         
                         <div className="bg-[#050B18] p-6 rounded-xl border border-[var(--border-color)] mb-6">
-                            <div className="text-sm text-slate-500 font-medium uppercase tracking-wider mb-2">Invite Code</div>
+                            <div className="text-sm text-muted font-medium uppercase tracking-wider mb-2">Invite Code</div>
                             <div className="text-4xl font-mono font-bold text-[var(--text-primary)] tracking-widest mb-4">
                                 {successData.invite_code}
                             </div>
@@ -183,7 +183,7 @@ export default function CreateLiveSessionModal({ onClose, onCreated }) {
                                     value={formData.name}
                                     onChange={handleChange}
                                     placeholder="e.g. AutoCAD Week 4 Lab"
-                                    className="w-full bg-white/5 border border-[var(--border-color)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
+                                    className="w-full bg-white/5 border border-[var(--border-color)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-muted focus:outline-none focus:border-indigo-500/50"
                                     required
                                 />
                             </div>
@@ -292,7 +292,7 @@ export default function CreateLiveSessionModal({ onClose, onCreated }) {
                                     value={formData.instructions}
                                     onChange={handleChange}
                                     rows="3"
-                                    className="w-full bg-white/5 border border-[var(--border-color)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
+                                    className="w-full bg-white/5 border border-[var(--border-color)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-muted focus:outline-none focus:border-indigo-500/50"
                                     placeholder="Add any instructions for students before they join..."
                                 ></textarea>
                             </div>
@@ -308,7 +308,7 @@ export default function CreateLiveSessionModal({ onClose, onCreated }) {
                         type="submit"
                         form="create-session-form"
                         disabled={isSubmitting || isLoading}
-                        className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-[var(--bg-card-hover)] disabled:text-[var(--text-secondary)] text-[var(--text-primary)] rounded-lg text-sm font-medium transition-colors shadow-lg shadow-indigo-500/20"
+                        className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-[var(--bg-card-hover)] disabled:text-[var(--text-secondary)] text-primary rounded-lg text-sm font-medium transition-colors shadow-lg shadow-indigo-500/20"
                     >
                         {isSubmitting ? 'Creating...' : 'Create Session'}
                     </button>

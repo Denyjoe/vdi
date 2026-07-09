@@ -141,7 +141,7 @@ export default function AdminUsersPage() {
             placeholder="Search by name or email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+            className="w-full pl-10 pr-4 py-2.5 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] placeholder-muted focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
           />
           {searchQuery && (
             <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
@@ -157,7 +157,7 @@ export default function AdminUsersPage() {
               className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
                 activeTab === tab.key
                   ? 'bg-indigo-600 text-white shadow-md'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)]'
+                  : 'text-[var(--text-secondary)] hover:text-primary hover:bg-[var(--bg-card-hover)]'
               }`}>
               {tab.label}
               <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-xs ${
@@ -202,7 +202,7 @@ export default function AdminUsersPage() {
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Active
                           </span>
                         ) : (
-                          <span className="text-slate-500">-</span>
+                          <span className="text-muted">-</span>
                         )}
                       </td>
                       <td className="px-6 py-4 text-[var(--text-secondary)]">
@@ -236,7 +236,7 @@ export default function AdminUsersPage() {
               ) : (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-[var(--text-secondary)]">
-                    <Users className="w-10 h-10 mx-auto mb-3 text-slate-600" />
+                    <Users className="w-10 h-10 mx-auto mb-3 text-faint" />
                     No users match your search.
                   </td>
                 </tr>

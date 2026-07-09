@@ -63,7 +63,7 @@ export default function GoogleSignInButton({ onSuccess, onError, text = 'Continu
       type="button"
       onClick={() => handleGoogleLogin()}
       disabled={loading}
-      className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/20 hover:border-white/40 rounded-xl text-[var(--text-primary)] font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+      className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-[#FFFFFF] hover:bg-slate-50 border border-slate-200 rounded-xl text-[#1E293B] font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
       
       {loading ? (
         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

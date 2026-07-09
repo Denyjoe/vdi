@@ -1,9 +1,12 @@
 import { useRef, useEffect } from 'react';
+import useThemeStore from '../../store/themeStore';
 
 export default function NetworkGlobe({ 
   size = 300 
 }) {
   const canvasRef = useRef(null);
+  const theme = useThemeStore(s => s.theme);
+  const isLight = theme === 'light';
   
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -20,6 +23,22 @@ export default function NetworkGlobe({
     const centerY = height / 2;
     const radius = size * 0.38;
     let rotation = 0;
+    
+    const colors = isLight ? {
+      wireframe: 'rgba(0, 102, 255, 0.15)',
+      activeNode: 'rgba(0, 102, 255, 0.8)',
+      regularNode: 'rgba(148, 163, 184, 0.7)',
+      connection: 'rgba(0, 102, 255, 0.4)',
+      particle: 'rgba(5, 150, 105, 0.8)',
+      glow: 'rgba(0, 102, 255, 0.05)',
+    } : {
+      wireframe: 'rgba(108, 99, 255, 0.06)',
+      activeNode: 'rgba(108, 99, 255, 0.9)',
+      regularNode: 'rgba(148, 163, 184, 0.6)',
+      connection: 'rgba(108, 99, 255, 0.4)',
+      particle: 'rgba(16, 185, 129, 0.8)',
+      glow: 'rgba(108, 99, 255, 0.06)',
+    };
     
     // Generate node positions on sphere
     const nodes = [];
@@ -101,12 +120,9 @@ export default function NetworkGlobe({
         centerX, centerY, radius * 0.3,
         centerX, centerY, radius * 1.3
       );
-      glow.addColorStop(0, 
-        'rgba(108, 99, 255, 0.06)');
-      glow.addColorStop(0.5, 
-        'rgba(108, 99, 255, 0.02)');
-      glow.addColorStop(1, 
-        'rgba(108, 99, 255, 0)');
+      glow.addColorStop(0, colors.glow);
+      glow.addColorStop(0.5, isLight ? 'rgba(0, 102, 255, 0.02)' : 'rgba(108, 99, 255, 0.02)');
+      glow.addColorStop(1, isLight ? 'rgba(0, 102, 255, 0)' : 'rgba(108, 99, 255, 0)');
       ctx.fillStyle = glow;
       ctx.fillRect(0, 0, width, height);
       
@@ -114,8 +130,7 @@ export default function NetworkGlobe({
       ctx.beginPath();
       ctx.arc(centerX, centerY, 
         radius, 0, Math.PI * 2);
-      ctx.strokeStyle = 
-        'rgba(108, 99, 255, 0.12)';
+      ctx.strokeStyle = isLight ? 'rgba(0, 102, 255, 0.2)' : 'rgba(108, 99, 255, 0.12)';
       ctx.lineWidth = 1;
       ctx.stroke();
       
@@ -143,8 +158,7 @@ export default function NetworkGlobe({
             started = false;
           }
         }
-        ctx.strokeStyle = 
-          `rgba(108, 99, 255, 0.06)`;
+        ctx.strokeStyle = colors.wireframe;
         ctx.lineWidth = 0.5;
         ctx.stroke();
       }
@@ -173,8 +187,7 @@ export default function NetworkGlobe({
             started = false;
           }
         }
-        ctx.strokeStyle = 
-          `rgba(108, 99, 255, 0.06)`;
+        ctx.strokeStyle = colors.wireframe;
         ctx.lineWidth = 0.5;
         ctx.stroke();
       }
@@ -209,14 +222,11 @@ export default function NetworkGlobe({
           ctx.createLinearGradient(
             from.x, from.y, to.x, to.y);
         gradient.addColorStop(0, 
-          `rgba(108, 99, 255, 
-            ${lineOpacity})`);
+          colors.connection.replace(/[\d.]+\)$/g, `${lineOpacity})`));
         gradient.addColorStop(0.5, 
-          `rgba(16, 185, 129, 
-            ${lineOpacity * 0.8})`);
+          colors.particle.replace(/[\d.]+\)$/g, `${lineOpacity * 0.8})`));
         gradient.addColorStop(1, 
-          `rgba(108, 99, 255, 
-            ${lineOpacity})`);
+          colors.connection.replace(/[\d.]+\)$/g, `${lineOpacity})`));
         ctx.strokeStyle = gradient;
         ctx.lineWidth = 0.8;
         ctx.stroke();
@@ -242,10 +252,9 @@ export default function NetworkGlobe({
           ctx.createRadialGradient(
             px, py, 0, px, py, 4);
         particleGlow.addColorStop(0, 
-          `rgba(16, 185, 129, 
-            ${lineOpacity * 2})`);
+          colors.particle.replace(/[\d.]+\)$/g, `${lineOpacity * 2})`));
         particleGlow.addColorStop(1, 
-          'rgba(16, 185, 129, 0)');
+          colors.particle.replace(/[\d.]+\)$/g, '0)'));
         ctx.fillStyle = particleGlow;
         ctx.fillRect(px - 4, py - 4, 
           8, 8);
@@ -255,8 +264,7 @@ export default function NetworkGlobe({
         ctx.arc(px, py, 1.2, 0, 
           Math.PI * 2);
         ctx.fillStyle = 
-          `rgba(16, 185, 129, 
-            ${lineOpacity * 3})`;
+          colors.particle.replace(/[\d.]+\)$/g, `${lineOpacity * 3})`);
         ctx.fill();
       });
       
@@ -277,10 +285,9 @@ export default function NetworkGlobe({
                 n.x, n.y, 0, 
                 n.x, n.y, nodeSize * 4);
             nodeGlow.addColorStop(0, 
-              `rgba(108, 99, 255, 
-                ${n.opacity * 0.3})`);
+              colors.activeNode.replace(/[\d.]+\)$/g, `${n.opacity * (isLight ? 0.2 : 0.3)})`));
             nodeGlow.addColorStop(1, 
-              'rgba(108, 99, 255, 0)');
+              colors.activeNode.replace(/[\d.]+\)$/g, '0)'));
             ctx.fillStyle = nodeGlow;
             ctx.fillRect(
               n.x - nodeSize * 4, 
@@ -294,8 +301,7 @@ export default function NetworkGlobe({
               nodeSize * 1.5, 0, 
               Math.PI * 2);
             ctx.fillStyle = 
-              `rgba(108, 99, 255, 
-                ${n.opacity * 0.9})`;
+              colors.activeNode.replace(/[\d.]+\)$/g, `${n.opacity * (isLight ? 0.7 : 0.9)})`);
             ctx.fill();
           } else {
             // Regular node
@@ -304,8 +310,7 @@ export default function NetworkGlobe({
               nodeSize, 0, 
               Math.PI * 2);
             ctx.fillStyle = 
-              `rgba(148, 163, 184, 
-                ${n.opacity * 0.6})`;
+              colors.regularNode.replace(/[\d.]+\)$/g, `${n.opacity * 0.6})`);
             ctx.fill();
           }
         });
@@ -317,8 +322,7 @@ export default function NetworkGlobe({
       ctx.arc(centerX, centerY, 
         radius * ringPulse * 1.05, 0, 
         Math.PI * 2);
-      ctx.strokeStyle = 
-        'rgba(108, 99, 255, 0.06)';
+      ctx.strokeStyle = colors.wireframe;
       ctx.lineWidth = 1;
       ctx.stroke();
       
@@ -326,8 +330,7 @@ export default function NetworkGlobe({
       ctx.beginPath();
       ctx.arc(centerX, centerY, 
         radius * 0.98, 0, Math.PI * 2);
-      ctx.strokeStyle = 
-        'rgba(108, 99, 255, 0.04)';
+      ctx.strokeStyle = isLight ? 'rgba(0, 102, 255, 0.08)' : 'rgba(108, 99, 255, 0.04)';
       ctx.lineWidth = 0.5;
       ctx.stroke();
       

@@ -88,7 +88,7 @@ export default function VerifyEmailPage() {
             <label htmlFor="code" className="sr-only">Verification Code</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Mail className="h-5 w-5 text-slate-400" />
+                <Mail className="h-5 w-5 text-secondary" />
               </div>
               <input
                 id="code"
@@ -97,7 +97,7 @@ export default function VerifyEmailPage() {
                 required
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
-                className="appearance-none relative block w-full px-3 py-3 pl-10 border border-[var(--border-color)] bg-[#0B1221] placeholder-slate-500 text-[var(--text-primary)] rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm transition-all"
+                className="appearance-none relative block w-full px-3 py-3 pl-10 border border-[var(--border-color)] bg-[#0B1221] placeholder-muted text-[var(--text-primary)] rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm transition-all"
                 placeholder="6-digit code"
                 maxLength={6}
               />

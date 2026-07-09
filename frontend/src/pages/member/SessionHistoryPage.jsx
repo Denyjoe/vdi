@@ -119,7 +119,7 @@ export default function SessionHistoryPage() {
       <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] shadow-md overflow-hidden flex flex-col">
         {sessions.length === 0 ? (
           <EmptyState
-            icon={<Terminal className="w-12 h-12 text-slate-500 mx-auto" />}
+            icon={<Terminal className="w-12 h-12 text-muted mx-auto" />}
             title="No Session History"
             description="You haven't connected to any virtual machines yet."
           />
@@ -141,7 +141,7 @@ export default function SessionHistoryPage() {
                   <tr key={session.id} className="hover:bg-[var(--bg-card-hover)]/20 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="font-medium text-[var(--text-primary)]">{session.vm.name}</div>
-                      <div className="text-xs text-slate-500 mt-1">{session.vm.template_name}</div>
+                      <div className="text-xs text-muted mt-1">{session.vm.template_name}</div>
                     </td>
                     <td className="px-6 py-4">{getStatusBadge(session.status)}</td>
                     <td className="px-6 py-4 text-[var(--text-primary)] font-mono text-xs tracking-wider">

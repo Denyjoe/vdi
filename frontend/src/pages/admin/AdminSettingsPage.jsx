@@ -189,7 +189,7 @@ export default function AdminSettingsPage() {
             <div className="flex items-center justify-between p-4 bg-[var(--bg-primary)]/50 rounded-lg border border-[var(--border-color)]/50">
               <div>
                 <p className="text-[var(--text-primary)] font-medium text-sm">Allow Registration</p>
-                <p className="text-slate-500 text-xs">Allow users to sign up for free</p>
+                <p className="text-muted text-xs">Allow users to sign up for free</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" className="sr-only peer" checked={platformConfig.allow_registration} onChange={e => handlePlatformChange('allow_registration', e.target.checked)} />
@@ -200,7 +200,7 @@ export default function AdminSettingsPage() {
             <div className="flex items-center justify-between p-4 bg-[var(--bg-primary)]/50 rounded-lg border border-[var(--border-color)]/50">
               <div>
                 <p className="text-[var(--text-primary)] font-medium text-sm">Maintenance Mode</p>
-                <p className="text-slate-500 text-xs">Block non-admin access</p>
+                <p className="text-muted text-xs">Block non-admin access</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" className="sr-only peer" checked={platformConfig.maintenance_mode} onChange={e => handlePlatformChange('maintenance_mode', e.target.checked)} />
@@ -286,7 +286,7 @@ export default function AdminSettingsPage() {
             <div className="flex items-center justify-between p-4 bg-[var(--bg-primary)]/50 rounded-lg border border-[var(--border-color)]/50 mt-4">
               <div>
                 <p className="text-[var(--text-primary)] font-medium text-sm">Auto-shutdown Idle VMs</p>
-                <p className="text-slate-500 text-xs">Stop VMs automatically after idle timeout</p>
+                <p className="text-muted text-xs">Stop VMs automatically after idle timeout</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" className="sr-only peer" checked={resourceLimits.auto_shutdown_idle} onChange={e => handleLimitChange('auto_shutdown_idle', e.target.checked)} />
@@ -312,7 +312,7 @@ export default function AdminSettingsPage() {
             </div>
             <div className="p-6 flex-1 space-y-4">
               <div className="bg-[var(--bg-primary)]/50 border border-[var(--border-color)]/50 rounded-lg p-4">
-                <p className="text-xs text-slate-500 mb-1">Proxmox Host</p>
+                <p className="text-xs text-muted mb-1">Proxmox Host</p>
                 <p className="text-sm text-[var(--text-primary)] font-mono">192.168.1.13 (pve)</p>
                 <p className="text-sm mt-2 flex items-center gap-1.5">
                   <span className={`w-2 h-2 rounded-full ${infraStats?.proxmox?.status === 'online' ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
@@ -322,7 +322,7 @@ export default function AdminSettingsPage() {
                 </p>
               </div>
               <div className="bg-[var(--bg-primary)]/50 border border-[var(--border-color)]/50 rounded-lg p-4">
-                <p className="text-xs text-slate-500 mb-1">Guacamole URL</p>
+                <p className="text-xs text-muted mb-1">Guacamole URL</p>
                 <p className="text-sm text-[var(--text-primary)] font-mono">localhost:8080</p>
                 <p className="text-sm mt-2 flex items-center gap-1.5">
                   <span className={`w-2 h-2 rounded-full ${infraStats?.guacamole?.status === 'online' ? 'bg-emerald-500' : 'bg-red-500'}`}></span>

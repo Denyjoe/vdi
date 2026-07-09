@@ -104,15 +104,20 @@ export default function SettingsPanel() {
       <div className="fixed inset-0 z-[61] flex items-center justify-center pointer-events-none">
         <div 
           ref={panelRef}
-          className="bg-[#0A0E14] border border-slate-800/50 rounded-2xl shadow-2xl shadow-black/50 w-[700px] max-w-[90vw] h-[550px] max-h-[80vh] flex overflow-hidden pointer-events-auto"
-          style={{ animation: 'scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)' }}
+          className="border rounded-2xl w-[700px] max-w-[90vw] h-[550px] max-h-[80vh] flex overflow-hidden pointer-events-auto"
+          style={{ 
+            background: 'var(--bg-card)',
+            borderColor: 'var(--border-subtle)',
+            boxShadow: 'var(--shadow-2xl, 0 25px 50px rgba(0,0,0,0.5))',
+            animation: 'scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)' 
+          }}
         >
         {/* Left sidebar — tabs */}
-        <div className="w-[180px] flex-shrink-0 bg-[#080B10] border-r border-slate-800/30 flex flex-col">
+        <div className="w-[180px] flex-shrink-0 border-r flex flex-col" style={{ background: 'var(--bg-sidebar)', borderColor: 'var(--border-subtle)' }}>
           
           {/* Panel header */}
-          <div className="px-4 py-5 border-b border-slate-800/30">
-            <h2 className="text-sm font-bold text-white tracking-tight">
+          <div className="px-4 py-5 border-b flex-shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
+            <h2 className="text-sm font-bold text-primary tracking-tight">
               Settings
             </h2>
           </div>
@@ -127,7 +132,7 @@ export default function SettingsPanel() {
                     ? 'bg-[#0066FF]/10 text-[#0066FF]'
                     : tab.id === 'danger'
                       ? 'text-red-400/60 hover:text-red-400 hover:bg-red-500/5'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                      : 'text-secondary hover:text-primary hover:bg-nav-hover'
                   }`}>
                 <tab.icon size={15} />
                 {tab.label}
@@ -136,7 +141,7 @@ export default function SettingsPanel() {
           </nav>
           
           {/* User info at bottom */}
-          <div className="px-4 py-4 border-t border-slate-800/30">
+          <div className="px-4 py-4 border-t border-border-subtle">
             <div className="flex items-center gap-2.5">
               {user?.avatar ? (
                 <img src={user.avatar} 
@@ -152,10 +157,10 @@ export default function SettingsPanel() {
                 {user?.last_name?.[0]}
               </div>
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold text-slate-200 truncate">
+                <p className="text-[11px] font-semibold text-primary truncate">
                   {user?.first_name} {user?.last_name}
                 </p>
-                <p className="text-[9px] text-slate-500 truncate">
+                <p className="text-[9px] text-muted truncate">
                   {user?.email}
                 </p>
               </div>
@@ -167,12 +172,12 @@ export default function SettingsPanel() {
         <div className="flex-1 flex flex-col min-w-0">
           
           {/* Content header with close */}
-          <div className="h-14 px-6 flex items-center justify-between border-b border-slate-800/30 flex-shrink-0">
-            <h3 className="text-base font-bold text-white">
+          <div className="h-14 px-6 flex items-center justify-between border-b flex-shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
+            <h3 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
               {tabs.find(t => t.id === activeTab)?.label}
             </h3>
             <button onClick={closeSettings}
-              className="p-1.5 rounded-lg hover:bg-slate-800/50 text-slate-400 hover:text-white active:scale-95 transition-all">
+              className="p-1.5 rounded-lg hover:bg-nav-hover text-secondary hover:text-primary active:scale-95 transition-all">
               <X size={18} />
             </button>
           </div>
@@ -336,7 +341,7 @@ function ProfileTab({ user }) {
   return (
     <div className="space-y-6">
       {/* Avatar section */}
-      <div className="flex items-center gap-5 pb-6 border-b border-slate-800/30">
+      <div className="flex items-center gap-5 pb-6 border-b border-border-subtle">
         <div className="relative group">
           <div className="w-20 h-20 rounded-2xl bg-[#6C63FF]/15 flex items-center justify-center text-2xl font-bold text-[#6C63FF] ring-2 ring-slate-700 overflow-hidden">
             {user?.avatar ? (
@@ -351,64 +356,64 @@ function ProfileTab({ user }) {
             </div>
           </div>
           <button onClick={() => fileRef.current?.click()}
-            className="absolute -bottom-1 -right-1 w-7 h-7 rounded-lg bg-[#0066FF] flex items-center justify-center text-white shadow-lg active:scale-95 transition-all">
+            className="absolute -bottom-1 -right-1 w-7 h-7 rounded-lg bg-[#0066FF] flex items-center justify-center text-primary shadow-lg active:scale-95 transition-all">
             <Camera size={13} />
           </button>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
         </div>
         <div>
-          <p className="text-sm font-semibold text-white">Profile Photo</p>
-          <p className="text-[11px] text-slate-500 mt-1">JPEG, PNG or WebP. Max 5MB.</p>
+          <p className="text-sm font-semibold text-primary">Profile Photo</p>
+          <p className="text-[11px] text-muted mt-1">JPEG, PNG or WebP. Max 5MB.</p>
         </div>
       </div>
 
       {/* Name fields */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold block mb-2">First Name</label>
+          <label className="text-[10px] uppercase tracking-widest text-muted font-semibold block mb-2">First Name</label>
           <input value={form.first_name}
             onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))}
-            className="w-full bg-[#0F131A] border border-slate-800/50 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#0066FF]/50 transition-colors" />
+            className="w-full bg-card border border-border rounded-xl px-4 py-2.5 text-sm text-primary outline-none focus:border-blue-500 transition-colors" />
         </div>
         <div>
-          <label className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold block mb-2">Last Name</label>
+          <label className="text-[10px] uppercase tracking-widest text-muted font-semibold block mb-2">Last Name</label>
           <input value={form.last_name}
             onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))}
-            className="w-full bg-[#0F131A] border border-slate-800/50 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#0066FF]/50 transition-colors" />
+            className="w-full bg-card border border-border rounded-xl px-4 py-2.5 text-sm text-primary outline-none focus:border-blue-500 transition-colors" />
         </div>
       </div>
 
       {/* Email */}
       <div>
-        <label className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold block mb-2">Email Address</label>
+        <label className="text-[10px] uppercase tracking-widest text-muted font-semibold block mb-2">Email Address</label>
         <input value={user?.email || ''} disabled
-          className="w-full bg-[#0F131A]/50 border border-slate-800/30 rounded-xl px-4 py-2.5 text-sm text-slate-500 cursor-not-allowed" />
+          className="w-full bg-card/50 border border-border-subtle rounded-xl px-4 py-2.5 text-sm text-muted cursor-not-allowed" />
       </div>
 
       {/* Country searchable dropdown */}
       <div ref={countryRef} className="relative">
-        <label className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold block mb-2">Country</label>
+        <label className="text-[10px] uppercase tracking-widest text-muted font-semibold block mb-2">Country</label>
         
         <button onClick={() => setShowCountryDropdown(!showCountryDropdown)}
-          className="w-full bg-[#0F131A] border border-slate-800/50 rounded-xl px-4 py-2.5 text-sm text-left flex items-center justify-between focus:border-[#0066FF]/50 transition-colors"
-          style={{ color: form.country ? '#E2E8F0' : '#64748B' }}>
+          className="w-full bg-card border border-border rounded-xl px-4 py-2.5 text-sm text-left flex items-center justify-between focus:border-blue-500 transition-colors"
+          style={{ color: form.country ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
           <span>{form.country || 'Select your country'}</span>
-          <ChevronDown size={14} className="text-slate-500" />
+          <ChevronDown size={14} className="text-muted" />
         </button>
         
         {showCountryDropdown && (
-          <div className="absolute top-full left-0 right-0 mt-2 bg-[#0F131A] border border-slate-800/50 rounded-xl shadow-2xl shadow-black/50 z-50 overflow-hidden max-h-[280px] flex flex-col">
+          <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-xl shadow-2xl shadow-black/50 z-50 overflow-hidden max-h-[280px] flex flex-col">
             
             {/* Search input */}
-            <div className="p-2 border-b border-slate-800/30 flex-shrink-0">
+            <div className="p-2 border-b border-border-subtle flex-shrink-0">
               <div className="relative">
-                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" />
+                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-faint" />
                 <input
                   value={countrySearch}
                   onChange={e => setCountrySearch(e.target.value)}
                   placeholder="Search countries..."
                   autoFocus
-                  className="w-full bg-[#0A0E14] border border-slate-800/50 rounded-lg pl-8 pr-3 py-2 text-xs text-white placeholder-slate-600 outline-none focus:border-[#0066FF]/50"
+                  className="w-full bg-sidebar border border-border rounded-lg pl-8 pr-3 py-2 text-xs text-primary placeholder-muted outline-none focus:border-blue-500"
                 />
               </div>
             </div>
@@ -429,7 +434,7 @@ function ProfileTab({ user }) {
                   className={`w-full text-left px-4 py-2.5 text-xs transition-colors flex items-center justify-between
                     ${form.country === c.name
                       ? 'bg-[#0066FF]/10 text-[#0066FF]'
-                      : 'text-slate-300 hover:bg-slate-800/40'
+                      : 'text-secondary hover:bg-nav-hover'
                     }`}>
                   <span>{c.name}</span>
                   {form.country === c.name && (
@@ -438,7 +443,7 @@ function ProfileTab({ user }) {
                 </button>
               ))}
               {filteredCountries.length === 0 && (
-                <p className="px-4 py-6 text-xs text-slate-500 text-center">
+                <p className="px-4 py-6 text-xs text-muted text-center">
                   No countries found
                 </p>
               )}
@@ -492,8 +497,8 @@ function SecurityTab() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-sm font-bold text-white mb-1">Change Password</h3>
-        <p className="text-xs text-slate-500">Update your password to keep your account secure</p>
+        <h3 className="text-sm font-bold text-primary mb-1">Change Password</h3>
+        <p className="text-xs text-muted">Update your password to keep your account secure</p>
       </div>
 
       {message && (
@@ -505,38 +510,38 @@ function SecurityTab() {
       )}
 
       <div>
-        <label className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold block mb-2">Current Password</label>
+        <label className="text-[10px] uppercase tracking-widest text-muted font-semibold block mb-2">Current Password</label>
         <div className="relative">
           <input type={showCurrent ? 'text' : 'password'}
             value={form.current_password}
             onChange={e => setForm(f => ({ ...f, current_password: e.target.value }))}
-            className="w-full bg-[#0F131A] border border-slate-800/50 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#0066FF]/50 transition-colors pr-10" />
+            className="w-full bg-card border border-border rounded-xl px-4 py-2.5 text-sm text-primary outline-none focus:border-blue-500 transition-colors pr-10" />
           <button onClick={() => setShowCurrent(!showCurrent)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-secondary">
             {showCurrent ? <EyeOff size={15} /> : <Eye size={15} />}
           </button>
         </div>
       </div>
 
       <div>
-        <label className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold block mb-2">New Password</label>
+        <label className="text-[10px] uppercase tracking-widest text-muted font-semibold block mb-2">New Password</label>
         <div className="relative">
           <input type={showNew ? 'text' : 'password'}
             value={form.new_password}
             onChange={e => setForm(f => ({ ...f, new_password: e.target.value }))}
-            className="w-full bg-[#0F131A] border border-slate-800/50 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#0066FF]/50 transition-colors pr-10" />
+            className="w-full bg-card border border-border rounded-xl px-4 py-2.5 text-sm text-primary outline-none focus:border-blue-500 transition-colors pr-10" />
           <button onClick={() => setShowNew(!showNew)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-secondary">
             {showNew ? <EyeOff size={15} /> : <Eye size={15} />}
           </button>
         </div>
       </div>
 
       <div>
-        <label className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold block mb-2">Confirm New Password</label>
+        <label className="text-[10px] uppercase tracking-widest text-muted font-semibold block mb-2">Confirm New Password</label>
         <input type="password" value={form.confirm_password}
           onChange={e => setForm(f => ({ ...f, confirm_password: e.target.value }))}
-          className="w-full bg-[#0F131A] border border-slate-800/50 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-[#0066FF]/50 transition-colors" />
+          className="w-full bg-card border border-border rounded-xl px-4 py-2.5 text-sm text-primary outline-none focus:border-blue-500 transition-colors" />
       </div>
 
       <button onClick={handleSubmit} disabled={saving || !form.current_password || !form.new_password}
@@ -593,18 +598,18 @@ function NotificationsTab() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-sm font-bold text-white mb-1">Notification Preferences</h3>
-        <p className="text-xs text-slate-500">Choose what you want to be notified about</p>
+        <h3 className="text-sm font-bold text-primary mb-1">Notification Preferences</h3>
+        <p className="text-xs text-muted">Choose what you want to be notified about</p>
       </div>
 
       <div className="space-y-2">
         {items.map(item => (
           <div key={item.key}
             className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-300
-              ${prefs[item.key] ? 'bg-[#00FF87]/5 border-[#00FF87]/10' : 'bg-[#0F131A] border-slate-800/50'}`}>
+              ${prefs[item.key] ? 'bg-[#00FF87]/5 border-[#00FF87]/10' : 'bg-card border-border'}`}>
             <div>
-              <p className="text-sm font-medium text-white">{item.label}</p>
-              <p className="text-[11px] text-slate-500 mt-0.5">{item.desc}</p>
+              <p className="text-sm font-medium text-primary">{item.label}</p>
+              <p className="text-[11px] text-muted mt-0.5">{item.desc}</p>
             </div>
             <button onClick={() => handleToggle(item.key)}
               className={`relative w-11 h-6 rounded-full transition-all duration-300 active:scale-95 ${prefs[item.key] ? 'bg-[#00FF87]' : 'bg-slate-700'}`}>
@@ -628,39 +633,32 @@ function AppearanceTab() {
   const setTheme = useThemeStore(s => s.setTheme) || useThemeStore(s => s.toggleTheme);
   
   const applyTheme = (newTheme) => {
-    if (typeof setTheme === 'function') {
-      try {
-        setTheme(newTheme);
-      } catch {
-        if (theme !== newTheme) {
-          setTheme();
-        }
-      }
+    if (setTheme) {
+      setTheme(newTheme);
     }
-    document.documentElement.setAttribute('data-theme', newTheme);
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-sm font-bold text-white mb-1">Appearance</h3>
-        <p className="text-xs text-slate-500">Customize how CloudDesk looks</p>
+        <h3 className="text-sm font-bold text-primary mb-1">Appearance</h3>
+        <p className="text-xs text-muted">Customize how CloudDesk looks</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         {/* Dark mode card */}
         <button onClick={() => applyTheme('dark')}
           className={`p-5 rounded-2xl border-2 transition-all duration-300 active:scale-[0.97]
-            ${theme === 'dark' ? 'border-[#0066FF] bg-[#0066FF]/5' : 'border-slate-800/50 hover:border-slate-600'}`}>
-          <div className="bg-[#080B10] rounded-xl p-3 mb-4 border border-slate-800/30 h-20 flex flex-col justify-center">
+            ${theme === 'dark' ? 'border-[#0066FF] bg-[#0066FF]/5' : 'border-border hover:border-slate-600'}`}>
+          <div className="bg-canvas rounded-xl p-3 mb-4 border border-border-subtle h-20 flex flex-col justify-center">
             <div className="h-1.5 w-10 bg-slate-700 rounded mb-2" />
             <div className="h-1.5 w-16 bg-slate-800 rounded mb-2" />
             <div className="h-1.5 w-12 bg-slate-800 rounded" />
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-white text-left">Dark</p>
-              <p className="text-[10px] text-slate-500 mt-0.5 text-left">Easier on the eyes</p>
+              <p className="text-sm font-semibold text-primary text-left">Dark</p>
+              <p className="text-[10px] text-muted mt-0.5 text-left">Easier on the eyes</p>
             </div>
             {theme === 'dark' && (
               <div className="w-5 h-5 rounded-full bg-[#0066FF] flex items-center justify-center">
@@ -673,7 +671,7 @@ function AppearanceTab() {
         {/* Light mode card */}
         <button onClick={() => applyTheme('light')}
           className={`p-5 rounded-2xl border-2 transition-all duration-300 active:scale-[0.97]
-            ${theme === 'light' ? 'border-[#0066FF] bg-[#0066FF]/5' : 'border-slate-800/50 hover:border-slate-600'}`}>
+            ${theme === 'light' ? 'border-[#0066FF] bg-[#0066FF]/5' : 'border-border hover:border-slate-600'}`}>
           <div className="bg-white rounded-xl p-3 mb-4 border border-gray-200 h-20 flex flex-col justify-center">
             <div className="h-1.5 w-10 bg-gray-300 rounded mb-2" />
             <div className="h-1.5 w-16 bg-gray-200 rounded mb-2" />
@@ -681,8 +679,8 @@ function AppearanceTab() {
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-white text-left">Light</p>
-              <p className="text-[10px] text-slate-500 mt-0.5 text-left">Classic bright interface</p>
+              <p className="text-sm font-semibold text-primary text-left">Light</p>
+              <p className="text-[10px] text-muted mt-0.5 text-left">Classic bright interface</p>
             </div>
             {theme === 'light' && (
               <div className="w-5 h-5 rounded-full bg-[#0066FF] flex items-center justify-center">
@@ -755,16 +753,16 @@ function DeveloperTab() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  if (loading) return <div className="text-slate-400 text-sm">Loading API Info...</div>;
+  if (loading) return <div className="text-secondary text-sm">Loading API Info...</div>;
 
   return (
     <div className="space-y-6">
       
       {/* Info banner */}
-      <div className="bg-[#0F131A] rounded-2xl border border-slate-800/50 p-6">
+      <div className="bg-card rounded-2xl border border-border p-6">
         
-        <h2 className="text-base font-bold text-white mb-1">API Access</h2>
-        <p className="text-xs text-slate-500 mb-6">
+        <h2 className="text-base font-bold text-primary mb-1">API Access</h2>
+        <p className="text-xs text-muted mb-6">
           Use API tokens to access CloudDesk programmatically. Integrate with your tools, automate workspace provisioning, or build custom workflows.
         </p>
         
@@ -773,7 +771,7 @@ function DeveloperTab() {
           <Shield size={16} className="text-[#FF6B00] flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-xs font-semibold text-[#FF6B00]">Security Notice</p>
-            <p className="text-[11px] text-slate-400 mt-0.5">
+            <p className="text-[11px] text-secondary mt-0.5">
               Your API token has the same access as your account. Never share it publicly, commit it to code repositories, or expose it in client-side code. Treat it like a password.
             </p>
           </div>
@@ -787,12 +785,12 @@ function DeveloperTab() {
               <p className="text-xs font-bold text-[#00FF87]">Copy your token now — it will not be shown again</p>
             </div>
             <div className="flex items-center gap-2 mt-3">
-              <code className="flex-1 bg-[#0A0E14] px-4 py-3 rounded-xl text-xs font-mono text-white border border-slate-800/50 select-all break-all">
+              <code className="flex-1 bg-sidebar px-4 py-3 rounded-xl text-xs font-mono text-primary border border-border select-all break-all">
                 {newKey}
               </code>
               <button onClick={copyKey}
                 className={`px-4 py-3 rounded-xl text-xs font-semibold transition-all active:scale-95 flex-shrink-0
-                ${copied ? 'bg-[#00FF87]/10 border border-[#00FF87]/20 text-[#00FF87]' : 'bg-[#0066FF] text-white'}`}>
+                ${copied ? 'bg-[#00FF87]/10 border border-[#00FF87]/20 text-[#00FF87]' : 'bg-[#0066FF] text-primary'}`}>
                 {copied ? 'Copied' : 'Copy'}
               </button>
             </div>
@@ -803,21 +801,21 @@ function DeveloperTab() {
         {tokenInfo?.exists ? (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-[#0A0E14] rounded-xl p-4 border border-slate-800/30">
-                <p className="text-[9px] uppercase tracking-widest text-slate-500 font-semibold mb-1">Token</p>
-                <p className="text-sm font-mono text-white">{tokenInfo.prefix}••••••••••••</p>
+              <div className="bg-sidebar rounded-xl p-4 border border-border-subtle">
+                <p className="text-[9px] uppercase tracking-widest text-muted font-semibold mb-1">Token</p>
+                <p className="text-sm font-mono text-primary">{tokenInfo.prefix}••••••••••••</p>
               </div>
-              <div className="bg-[#0A0E14] rounded-xl p-4 border border-slate-800/30">
-                <p className="text-[9px] uppercase tracking-widest text-slate-500 font-semibold mb-1">Created</p>
-                <p className="text-sm text-white">{new Date(tokenInfo.created_at).toLocaleDateString()}</p>
+              <div className="bg-sidebar rounded-xl p-4 border border-border-subtle">
+                <p className="text-[9px] uppercase tracking-widest text-muted font-semibold mb-1">Created</p>
+                <p className="text-sm text-primary">{new Date(tokenInfo.created_at).toLocaleDateString()}</p>
               </div>
-              <div className="bg-[#0A0E14] rounded-xl p-4 border border-slate-800/30">
-                <p className="text-[9px] uppercase tracking-widest text-slate-500 font-semibold mb-1">Last Used</p>
-                <p className="text-sm text-white">{tokenInfo.last_used_at ? new Date(tokenInfo.last_used_at).toLocaleDateString() : 'Never'}</p>
+              <div className="bg-sidebar rounded-xl p-4 border border-border-subtle">
+                <p className="text-[9px] uppercase tracking-widest text-muted font-semibold mb-1">Last Used</p>
+                <p className="text-sm text-primary">{tokenInfo.last_used_at ? new Date(tokenInfo.last_used_at).toLocaleDateString() : 'Never'}</p>
               </div>
-              <div className="bg-[#0A0E14] rounded-xl p-4 border border-slate-800/30">
-                <p className="text-[9px] uppercase tracking-widest text-slate-500 font-semibold mb-1">Calls Today</p>
-                <p className="text-sm text-white">{tokenInfo.calls_today} <span className="text-slate-500 text-xs"> / 1,000</span></p>
+              <div className="bg-sidebar rounded-xl p-4 border border-border-subtle">
+                <p className="text-[9px] uppercase tracking-widest text-muted font-semibold mb-1">Calls Today</p>
+                <p className="text-sm text-primary">{tokenInfo.calls_today} <span className="text-muted text-xs"> / 1,000</span></p>
               </div>
             </div>
             
@@ -839,10 +837,10 @@ function DeveloperTab() {
             </div>
           </div>
         ) : (
-          <div className="text-center py-8 border border-dashed border-slate-800/50 rounded-xl bg-[#0A0E14]">
-            <Code size={32} className="text-slate-600 mx-auto mb-3" />
-            <p className="text-sm text-slate-300 mb-1">No API token generated</p>
-            <p className="text-xs text-slate-500 mb-5 max-w-sm mx-auto">
+          <div className="text-center py-8 border border-dashed border-border rounded-xl bg-sidebar">
+            <Code size={32} className="text-faint mx-auto mb-3" />
+            <p className="text-sm text-secondary mb-1">No API token generated</p>
+            <p className="text-xs text-muted mb-5 max-w-sm mx-auto">
               Generate a token to access CloudDesk API from scripts, integrations, or custom tools.
             </p>
             <button onClick={() => {
@@ -857,34 +855,34 @@ function DeveloperTab() {
         )}
         
         {/* Usage example */}
-        <div className="mt-6 pt-6 border-t border-slate-800/30">
-          <p className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold mb-3">Usage Example</p>
-          <div className="bg-[#0A0E14] rounded-xl p-4 border border-slate-800/30 overflow-x-auto">
-            <code className="text-[11px] font-mono text-slate-300 leading-relaxed whitespace-pre-wrap">
+        <div className="mt-6 pt-6 border-t border-border-subtle">
+          <p className="text-[10px] uppercase tracking-widest text-muted font-semibold mb-3">Usage Example</p>
+          <div className="bg-sidebar rounded-xl p-4 border border-border-subtle overflow-x-auto">
+            <code className="text-[11px] font-mono text-secondary leading-relaxed whitespace-pre-wrap">
 {`curl -X GET \\
   https://clouddesk.io/api/workspaces/ \\
   -H "X-API-Key: sk-cd-your-token-here"`}
             </code>
           </div>
-          <p className="text-[10px] text-slate-600 mt-2">Rate limit: 1,000 requests/day</p>
+          <p className="text-[10px] text-faint mt-2">Rate limit: 1,000 requests/day</p>
         </div>
       </div>
       
       {/* Revoke confirmation modal */}
       {showRevokeConfirm && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#0F131A] border border-slate-800/50 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-            <h3 className="text-base font-bold text-white mb-2">Revoke API Token?</h3>
-            <p className="text-xs text-slate-400 mb-5">
+          <div className="bg-card border border-border rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <h3 className="text-base font-bold text-primary mb-2">Revoke API Token?</h3>
+            <p className="text-xs text-secondary mb-5">
               This immediately invalidates your token. Any scripts or integrations using it will stop working.
             </p>
             <div className="flex gap-3 justify-end">
               <button onClick={() => setShowRevokeConfirm(false)}
-                className="px-4 py-2 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-300 text-xs font-semibold active:scale-95 transition-all">
+                className="px-4 py-2 rounded-xl bg-nav-hover border border-border-strong text-secondary text-xs font-semibold active:scale-95 transition-all">
                 Cancel
               </button>
               <button onClick={handleRevoke}
-                className="px-4 py-2 rounded-xl bg-red-500 text-white text-xs font-semibold active:scale-95 transition-all">
+                className="px-4 py-2 rounded-xl bg-red-500 text-primary text-xs font-semibold active:scale-95 transition-all">
                 Revoke Token
               </button>
             </div>
@@ -922,7 +920,7 @@ function DangerTab() {
           <AlertTriangle size={20} className="text-red-400 flex-shrink-0 mt-0.5" />
           <div>
             <h3 className="text-sm font-bold text-red-400">Delete Your Account</h3>
-            <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+            <p className="text-xs text-secondary mt-1 leading-relaxed">
               If you no longer need your CloudDesk account, you can permanently remove it here. All your workspaces, session history, and billing data will be deleted.
             </p>
           </div>
@@ -936,16 +934,16 @@ function DangerTab() {
           </button>
         ) : (
           <div className="mt-4 pt-4 border-t border-red-500/10">
-            <p className="text-xs text-slate-400 mb-3">Enter your password to confirm:</p>
+            <p className="text-xs text-secondary mb-3">Enter your password to confirm:</p>
             <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Your password"
-              className="w-full bg-[#0A0E14] border border-red-500/20 rounded-xl px-4 py-2.5 text-sm text-white outline-none mb-3 focus:border-red-500/50" />
+              className="w-full bg-sidebar border border-red-500/20 rounded-xl px-4 py-2.5 text-sm text-primary outline-none mb-3 focus:border-red-500/50" />
             <div className="flex gap-3">
               <button onClick={() => { setConfirm(false); setPassword(''); }}
-                className="px-4 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-300 text-xs font-semibold active:scale-95 transition-all">
+                className="px-4 py-2.5 rounded-xl bg-nav-hover border border-border-strong text-secondary text-xs font-semibold active:scale-95 transition-all">
                 Cancel
               </button>
               <button onClick={handleDelete} disabled={!password || deleting}
-                className="px-4 py-2.5 rounded-xl bg-red-500 text-white text-xs font-bold active:scale-95 transition-all disabled:opacity-30">
+                className="px-4 py-2.5 rounded-xl bg-red-500 text-primary text-xs font-bold active:scale-95 transition-all disabled:opacity-30">
                 {deleting ? 'Deleting...' : 'Request Account Deletion'}
               </button>
             </div>
