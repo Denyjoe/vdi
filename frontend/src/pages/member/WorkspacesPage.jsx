@@ -143,14 +143,17 @@ export default function WorkspacesPage() {
   }
 
   const handleDelete = async (ws) => {
-    if (!window.confirm('Delete this workspace? This cannot be undone.')) return
+    if (!window.confirm(
+      'Permanently delete this workspace? This will destroy the virtual machine and all its data. This cannot be undone.'
+    )) return;
+    
     try {
-      await api.post(`/workspaces/${ws.id}/delete/`)
-      fetchWorkspaces()
+      await api.post(`/workspaces/${ws.id}/delete/`);
+      fetchWorkspaces();
     } catch(e) {
-      console.error(e)
+      alert('Failed to delete: ' + (e.response?.data?.message || e.message));
     }
-  }
+  };
 
   const copyToClipboard = (text) => {
     if (text) navigator.clipboard.writeText(text)

@@ -126,6 +126,10 @@ class WorkspaceLaunchView(APIView):
                     workspace.vm.status = 'provisioning'
                     workspace.vm.save()
                     
+                    workspace.status = 'active'
+                    workspace.last_accessed_at = timezone.now()
+                    workspace.save()
+                    
                     if workspace.vm_template.is_real:
                         import threading
                         thread = threading.Thread(target=orchestrator.provision_real_vm, args=(workspace.vm,))
@@ -223,22 +227,61 @@ class WorkspaceStopView(APIView):
 class WorkspaceDeleteView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
-    def delete(self, request, pk):
-        workspace = get_object_or_404(Workspace, pk=pk, owner=request.user)
+    def post(self, request, pk):
+        try:
+            from apps.vms.models import Workspace
+            ws = Workspace.objects.get(id=pk, owner=request.user)
+        except Workspace.DoesNotExist:
+            return Response({'success': False, 'message': 'Not found'}, status=404)
         
-        if workspace.vm:
-            orchestrator = VMOrchestrator()
-            if workspace.vm.status == 'running':
-                orchestrator.stop_vm(workspace.vm)
-            orchestrator.delete_vm(workspace.vm)
-            
-            from apps.vms.services.pool_service import VMPoolService
-            pool = VMPoolService()
-            pool.release_vm(workspace.vm)
-            
-        workspace.status = 'deleted'
-        workspace.save()
-        return Response({"success": True})
+        errors = []
+        
+        # 1. Delete Guacamole connection
+        if ws.vm and getattr(ws.vm, 'guacamole_connection_id', None):
+            try:
+                from apps.vms.services.guacamole_service import GuacamoleService
+                gs = GuacamoleService()
+                gs.authenticate()
+                gs.delete_connection(ws.vm.guacamole_connection_id)
+            except Exception as e:
+                errors.append(f'Guacamole cleanup: {str(e)}')
+        
+        # 2. Stop and destroy the actual Proxmox VM
+        if ws.vm and getattr(ws.vm, 'proxmox_vm_id', None):
+            try:
+                from apps.vms.services.proxmox_service import ProxmoxService
+                ps = ProxmoxService()
+                vmid = ws.vm.proxmox_vm_id
+                
+                try:
+                    status = ps.proxmox.nodes(ps.node).qemu(vmid).status.current.get()
+                    if status.get('status') == 'running':
+                        ps.proxmox.nodes(ps.node).qemu(vmid).status.stop.post()
+                        import time
+                        time.sleep(5)
+                except Exception:
+                    pass
+                
+                ps.proxmox.nodes(ps.node).qemu(vmid).delete()
+            except Exception as e:
+                errors.append(f'Proxmox VM deletion: {str(e)}')
+        
+        # 3. Delete DB records
+        vm_id = ws.vm.id if ws.vm else None
+        ws.delete()
+        if vm_id:
+            from apps.vms.models import VirtualMachine
+            VirtualMachine.objects.filter(id=vm_id).delete()
+        
+        if errors:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f'Workspace delete had partial infra errors: {errors}')
+        
+        return Response({
+            'success': True,
+            'message': 'Workspace permanently deleted',
+        })
 
 class WorkspaceStatsView(APIView):
     permission_classes = [permissions.IsAuthenticated]
