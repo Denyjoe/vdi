@@ -71,7 +71,7 @@ export default function DesktopSessionPage() {
     const fetchWs = async () => {
       try {
         const res = await api.get(`/workspaces/${sessionId}/`);
-        const wsData = res.data;
+        const wsData = res.data.data || res.data; // Ensure we get the actual workspace object
         setWorkspace(wsData);
         
         const vmStatus = wsData.vm_details?.status;
@@ -91,6 +91,8 @@ export default function DesktopSessionPage() {
     intervalId = setInterval(fetchWs, 3000);
     return () => clearInterval(intervalId);
   }, [type, sessionId]);
+
+  const [disconnectedByAdmin, setDisconnectedByAdmin] = useState(false);
 
   // Workspace Polling (Admin status check)
   useEffect(() => {
@@ -195,7 +197,7 @@ export default function DesktopSessionPage() {
     return 'text-red-400';
   };
 
-  const handleDisconnect = async () => {
+  const handleEndSession = async () => {
     setIsDisconnecting(true);
     try {
       if (type === 'workspace') {
@@ -205,8 +207,9 @@ export default function DesktopSessionPage() {
         await sessionService.disconnect(sessionId);
         navigate('/workspaces', { state: { disconnected: true } });
       }
-    } catch (err) {
-      setToast({ show: true, message: 'Failed to disconnect', type: 'error' });
+    } catch (e) {
+      console.error('Failed to end session:', e);
+      alert('Failed to end session: ' + (e.response?.data?.message || e.message));
       setIsDisconnecting(false);
       setShowConfirm(false);
     }
@@ -214,13 +217,11 @@ export default function DesktopSessionPage() {
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      containerRef.current?.requestFullscreen().catch(err => {
-        console.error("Error attempting to enable full-screen mode:", err.message);
+      containerRef.current?.requestFullscreen().catch(e => {
+        console.error('Fullscreen request failed:', e);
       });
     } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      }
+      document.exitFullscreen();
     }
   };
 
@@ -302,7 +303,7 @@ export default function DesktopSessionPage() {
               </button>
               
               <button 
-                onClick={handleDisconnect} 
+                onClick={handleEndSession} 
                 disabled={isDisconnecting}
                 className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors border border-red-500/20 flex items-center gap-2"
               >
@@ -606,7 +607,7 @@ export default function DesktopSessionPage() {
       <ConfirmModal
         isOpen={showConfirm}
         onCancel={() => setShowConfirm(false)}
-        onConfirm={handleDisconnect}
+        onConfirm={handleEndSession}
         title="Disconnect Session"
         message="Are you sure you want to disconnect from this virtual machine? Any unsaved work inside the VM may be lost if the VM is stopped later."
         confirmText={isDisconnecting ? "Disconnecting..." : "Disconnect"}
