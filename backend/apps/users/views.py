@@ -630,6 +630,10 @@ class FirebaseLoginView(APIView):
         try:
             user = User.objects.get(email=email)
             is_new = False
+            
+            if not user.firebase_uid:
+                user.firebase_uid = firebase_uid
+                user.save(update_fields=['firebase_uid'])
         except User.DoesNotExist:
             allow_reg = SystemConfig.get('allow_registration', 'true')
             if str(allow_reg).lower() == 'false':
