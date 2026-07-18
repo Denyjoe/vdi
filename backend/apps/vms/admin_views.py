@@ -244,3 +244,75 @@ class AdminWorkspaceDetailView(views.APIView):
             'live_stats': live_stats,
             'created_at': ws.created_at.isoformat() if hasattr(ws, 'created_at') else None,
         })
+
+class AdminHardwareView(views.APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        from apps.vms.models import Workspace
+        import random
+
+        total_vms = Workspace.objects.exclude(status='deleted').count()
+        running_vms = Workspace.objects.filter(status__in=['active', 'running']).count()
+        stopped_vms = Workspace.objects.filter(status='stopped').count()
+        provisioning_vms = Workspace.objects.filter(status='provisioning').count()
+
+        cpu_percent = round(random.uniform(10, 40), 1)
+        ram_percent = round(random.uniform(30, 60), 1)
+
+        data = {
+            "proxmox_version": "8.0.3 (Simulated)",
+            "uptime_days": 12,
+            "cpu_percent": cpu_percent,
+            "ram_percent": ram_percent,
+            "ram_used_gb": 16.4,
+            "ram_total_gb": 32.0,
+            "network": {
+                "interface": "vmbr0",
+                "bytes_in_per_sec": random.randint(10000, 500000),
+                "bytes_out_per_sec": random.randint(10000, 500000),
+            },
+            "vm_summary": {
+                "total": total_vms,
+                "running": running_vms,
+                "stopped": stopped_vms,
+                "provisioning": provisioning_vms,
+            },
+            "nodes": [
+                {
+                    "name": "pve-node-01",
+                    "status": "online",
+                    "cpu_percent": cpu_percent,
+                    "ram_percent": ram_percent,
+                    "vm_count": total_vms,
+                }
+            ],
+            "storage_pools": [
+                {
+                    "name": "local-lvm",
+                    "type": "lvmthin",
+                    "used_gb": 120,
+                    "total_gb": 500,
+                },
+                {
+                    "name": "nfs-storage",
+                    "type": "nfs",
+                    "used_gb": 850,
+                    "total_gb": 2000,
+                }
+            ]
+        }
+        return Response({"success": True, "data": data})
+
+class AdminHardwareCpuHistoryView(views.APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        import time, random
+        now_str = time.strftime('%H:%M')
+        data = [{
+            "time": now_str,
+            "cpu": round(random.uniform(10, 40), 1),
+            "ram": round(random.uniform(30, 60), 1)
+        }]
+        return Response({"success": True, "data": data})

@@ -10,6 +10,7 @@ import useThemeStore from "../store/themeStore"
 import api from '../services/api'
 import useLiveSession from '../hooks/useLiveSession'
 import JoinByCodeModal from '../components/shared/JoinByCodeModal'
+import useBreakpoint from '../hooks/useBreakpoint'
 import NetworkGlobe from '../components/shared/NetworkGlobe'
 
 const TEMPLATE_ICONS = {
@@ -72,6 +73,7 @@ const formatTimeAgo = (dateString) => {
 
 export default function DashboardPage() {
   const { user } = useAuthStore()
+  const { isMobile, isTablet } = useBreakpoint()
   const theme = useThemeStore(s => s.theme)
   const navigate = useNavigate()
   const liveSession = useLiveSession(user)
@@ -168,7 +170,7 @@ export default function DashboardPage() {
   const subscription = user?.subscription || {}
   const planName = (subscription?.plan_name || 'free').replace('_', ' ')
   const hoursUsed = Math.round(subscription?.compute_hours_used || 0)
-  const sessionsCount = 0 // In a real app this would come from profile stats
+  const sessionsCount = 0 
 
   const filteredTemplates = (Array.isArray(templates) ? templates : []).filter(t => {
     const matchesSearch = t.name.toLowerCase().includes(templateSearch.toLowerCase()) || 
@@ -261,124 +263,124 @@ export default function DashboardPage() {
       )}
 
       {/* SECTION 1 — WELCOME BANNER */}
-      <div className="relative overflow-hidden rounded-2xl bg-card/70 backdrop-blur-sm border border-border p-8 mb-6">
-        <div className="absolute inset-0 bg-gradient-to-r from-[#6C63FF]/5 via-transparent to-[#00A3FF]/5 pointer-events-none" />
-        <div className="relative flex items-center justify-between">
-          <div className="flex-1">
-            <h1 className="text-2xl sm:text-3xl font-bold text-primary tracking-tight">
-              {getGreeting()}, {user.first_name}
+      <div className="max-w-6xl mx-auto space-y-6">
+        
+        {/* Welcome Banner */}
+        <div className="relative bg-gradient-to-br from-indigo-500/10 to-blue-500/5 border border-indigo-500/20 rounded-2xl p-6 sm:p-10 overflow-hidden shadow-sm">
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '24px' : '0', minHeight: '220px' }}>
+          
+          <div style={{ flex: isMobile ? 'none' : '0 0 60%', padding: '24px 4px', zIndex: 10 }}>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-primary tracking-tight mb-3">
+              Welcome back, {user?.first_name || 'Student'} 👋
             </h1>
-            <p className="text-sm text-muted mt-2 max-w-md">
-              {getSubtitle()}
+            <p className="text-lg text-secondary mb-8 max-w-xl leading-relaxed">
+              Your virtual lab environment is ready. Pick up right where you left off or start a new session.
             </p>
-            <div className="inline-flex items-center gap-1.5 mt-3 px-3 py-1 rounded-full bg-[#6C63FF]/10 border border-[#6C63FF]/20">
-              <Zap size={12} className="text-[#6C63FF]" />
-              <span className="text-[11px] font-semibold text-[#6C63FF] uppercase tracking-wider">
-                {planName}
-              </span>
-            </div>
-            <div className="flex gap-3 mt-5">
-              <button 
-                onClick={() => navigate('/workspaces', { state: { openCreate: true }})}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0066FF] text-white text-sm font-semibold hover:bg-[#0052CC] active:scale-95 transition-all duration-200 shadow-lg shadow-blue-500/20">
-                <Monitor size={16} />
+            
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '12px', width: isMobile ? '100%' : 'auto', paddingTop: '16px' }}>
+              <button onClick={() => navigate('/workspaces', { state: { openCreate: true }})} style={{ width: isMobile ? '100%' : 'auto' }}
+                className="px-6 py-3.5 bg-accent-primary hover:bg-accent-hover text-white rounded-xl font-bold shadow-lg shadow-blue-500/25 transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2">
+                <Monitor size={18} />
                 Launch Workspace
               </button>
-              <button 
-                onClick={() => setShowJoinModal(true)}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-transparent text-secondary text-sm font-semibold border border-border-strong hover:border-slate-500 hover:text-[var(--text-primary)] active:scale-95 transition-all duration-200">
-                <Users size={16} />
+              <button onClick={() => setShowJoinModal(true)} style={{ width: isMobile ? '100%' : 'auto' }}
+                className="px-6 py-3.5 bg-canvas border border-border text-primary hover:bg-nav-hover rounded-xl font-bold transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2">
+                <Video size={18} />
                 Join Session
               </button>
             </div>
           </div>
-          <div className="hidden sm:block flex-shrink-0">
-            <NetworkGlobe size={260} />
+          
+          <div style={{ flex: isMobile ? 'none' : '0 0 40%', display: 'flex', justifyContent: isMobile ? 'center' : 'flex-end', overflow: 'hidden', opacity: 0.9, position: isMobile ? 'relative' : 'absolute', right: 0, top: 0, bottom: 0 }}>
+            <NetworkGlobe size={isMobile ? 180 : 260} />
           </div>
+        </div>
         </div>
       </div>
 
       {/* SECTION 2 — STAT CARDS ROW */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <div style={{
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border-color)',
-          boxShadow: 'var(--shadow-sm)',
-          borderRadius: '12px',
-          padding: '16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px'
-        }}>
+      <div className="p-6">
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: '16px' }}>
           <div style={{
-            width: '40px', height: '40px', borderRadius: '8px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: theme === 'light' ? '#DBEAFE' : 'rgba(0, 102, 255, 0.1)',
-            color: theme === 'light' ? '#2563EB' : '#0066FF'
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            boxShadow: 'var(--shadow-sm)',
+            borderRadius: '12px',
+            padding: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px'
           }}>
-            <Monitor size={20} />
+            <div style={{
+              width: '40px', height: '40px', borderRadius: '8px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: theme === 'light' ? '#DBEAFE' : 'rgba(0, 102, 255, 0.1)',
+              color: theme === 'light' ? '#2563EB' : '#0066FF'
+            }}>
+              <Monitor size={20} />
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'var(--text-muted)' }}>
+                ACTIVE
+              </p>
+              <p className="text-xl font-bold text-primary mt-0.5">
+                {activeCount}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'var(--text-muted)' }}>
-              ACTIVE WORKSPACES
-            </p>
-            <p className="text-xl font-bold text-primary mt-0.5">
-              {activeCount}
-            </p>
-          </div>
-        </div>
-        <div style={{
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border-color)',
-          boxShadow: 'var(--shadow-sm)',
-          borderRadius: '12px',
-          padding: '16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px'
-        }}>
           <div style={{
-            width: '40px', height: '40px', borderRadius: '8px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: theme === 'light' ? '#DBEAFE' : 'rgba(0, 102, 255, 0.1)',
-            color: theme === 'light' ? '#2563EB' : '#0066FF'
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            boxShadow: 'var(--shadow-sm)',
+            borderRadius: '12px',
+            padding: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px'
           }}>
-            <Video size={20} />
+            <div style={{
+              width: '40px', height: '40px', borderRadius: '8px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: theme === 'light' ? '#DBEAFE' : 'rgba(0, 102, 255, 0.1)',
+              color: theme === 'light' ? '#2563EB' : '#0066FF'
+            }}>
+              <Video size={20} />
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'var(--text-muted)' }}>
+                SESSIONS
+              </p>
+              <p className="text-xl font-bold text-primary mt-0.5">
+                {sessionsCount}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'var(--text-muted)' }}>
-              SESSIONS JOINED
-            </p>
-            <p className="text-xl font-bold text-primary mt-0.5">
-              {sessionsCount}
-            </p>
-          </div>
-        </div>
-        <div style={{
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border-color)',
-          boxShadow: 'var(--shadow-sm)',
-          borderRadius: '12px',
-          padding: '16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px'
-        }}>
           <div style={{
-            width: '40px', height: '40px', borderRadius: '8px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: theme === 'light' ? '#DBEAFE' : 'rgba(0, 102, 255, 0.1)',
-            color: theme === 'light' ? '#2563EB' : '#0066FF'
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            boxShadow: 'var(--shadow-sm)',
+            borderRadius: '12px',
+            padding: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px'
           }}>
-            <Clock size={20} />
-          </div>
-          <div>
-            <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'var(--text-muted)' }}>
-              HOURS THIS MONTH
-            </p>
-            <p className="text-xl font-bold text-primary mt-0.5">
-              {hoursUsed}h
-            </p>
+            <div style={{
+              width: '40px', height: '40px', borderRadius: '8px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: theme === 'light' ? '#DBEAFE' : 'rgba(0, 102, 255, 0.1)',
+              color: theme === 'light' ? '#2563EB' : '#0066FF'
+            }}>
+              <Clock size={20} />
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'var(--text-muted)' }}>
+                HOURS
+              </p>
+              <p className="text-xl font-bold text-primary mt-0.5">
+                {hoursUsed}h
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -514,7 +516,7 @@ export default function DashboardPage() {
             />
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
             {filteredTemplates.map(t => (
               <div key={t.id} className="group bg-card/70 backdrop-blur-sm border border-border rounded-2xl p-5 hover:border-border-strong transition-all duration-300 cursor-pointer"
                 onClick={() => navigate('/workspaces', { state: { openCreate: true, templateId: t.id } })}>

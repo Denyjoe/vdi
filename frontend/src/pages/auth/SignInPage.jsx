@@ -6,7 +6,7 @@ import useAuthStore from '../../store/authStore';
 
 export default function SignInPage() {
   const navigate = useNavigate();
-  const setUser = useAuthStore(s => s.setUser);
+  const login = useAuthStore(s => s.login);
   const [loading, setLoading] = useState(null); // 'google' | 'github' | null
   const [error, setError] = useState(null);
 
@@ -23,10 +23,7 @@ export default function SignInPage() {
       
       const { access, refresh, user } = res.data.data;
       
-      localStorage.setItem('dit_access_token', access);
-      localStorage.setItem('dit_refresh_token', refresh);
-      
-      setUser(user);
+      login(user, access, refresh);
       
       navigate(user.role === 'admin' ? '/admin/dashboard' : '/dashboard');
     } catch(e) {

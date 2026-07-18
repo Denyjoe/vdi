@@ -14,8 +14,8 @@
  * @returns {JSX.Element} The full dashboard layout.
  */
 
-import { useState } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 import AnnouncementBanner from "./AnnouncementBanner";
@@ -28,8 +28,8 @@ import BillingPanel from "../shared/BillingPanel";
 import NotificationsDrawer from "../shared/NotificationsDrawer";
 
 export default function Layout({ children }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { 
     showUpgradeModal, 
     closeUpgradeModal,
@@ -38,36 +38,23 @@ export default function Layout({ children }) {
     showBilling,
     closeBilling,
     showNotifications,
-    closeNotifications
+    closeNotifications,
+    closeMobileMenu
   } = useUIStore();
+
+  useEffect(() => {
+    closeMobileMenu();
+  }, [location.pathname, closeMobileMenu]);
 
   return (
     <NotificationProvider>
       <div className="flex h-screen" style={{ background: 'var(--bg-canvas)' }}>
-        {/* Mobile overlay — covers content when sidebar is open on small screens */}
-        {sidebarOpen && (
-          <div
-            className="fixed inset-0 bg-black/50 z-20 md:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-
-        {/* Sidebar — fixed on mobile, static on desktop */}
-        <div
-          className={`
-            fixed md:static inset-y-0 left-0 z-30
-            transform transition-transform duration-300 ease-in-out
-            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-            md:translate-x-0
-          `}
-        >
-          <Sidebar onClose={() => setSidebarOpen(false)} />
-        </div>
+        <Sidebar />
 
         {/* Main content area */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
           <AnnouncementBanner />
-          <Navbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+          <Navbar />
           <main className="flex-1 overflow-auto p-4 sm:p-6">{children ? children : <Outlet />}</main>
         </div>
       </div>

@@ -192,7 +192,7 @@ export default function AdminSettingsPage() {
   const saveResourceLimits = async () => {
     setSavingSection('limits');
     try {
-      await api.put('/admin/settings/config/', resourceLimits);
+      await api.put('/admin/config/', resourceLimits);
       toast.success('Resource limits saved');
     } catch (e) {
       toast.error('Failed to save limits');

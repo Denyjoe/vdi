@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { HardDrive, Search, RefreshCw } from 'lucide-react';
 import api from '../../services/api';
+import useBreakpoint from '../../hooks/useBreakpoint';
 
 function formatTimeAgo(dateString) {
   if (!dateString) return 'Never';
@@ -18,6 +19,7 @@ function formatTimeAgo(dateString) {
 }
 
 export default function AdminWorkspacesPage() {
+  const { isMobile } = useBreakpoint();
   const [workspaces, setWorkspaces] = useState([]);
   const [counts, setCounts] = useState({
     all: 0, running: 0, stopped: 0, error: 0, provisioning: 0
@@ -219,7 +221,53 @@ export default function AdminWorkspacesPage() {
         </div>
       )}
 
-      {/* Workspaces Table */}
+      {/* Workspaces Table / Cards */}
+      {isMobile ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {workspaces.map(ws => (
+            <div key={ws.id} style={{ border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px', background: 'var(--bg-card)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input type="checkbox" checked={selectedIds.includes(ws.id)} onChange={() => toggleSelectWs(ws.id)} />
+                  <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>{ws.name}</span>
+                </div>
+                <span style={{
+                  padding: '3px 10px', borderRadius: '9999px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
+                  background: ws.status === 'active' || ws.status === 'running' ? 'var(--status-online-bg)' :
+                              ws.status === 'error' ? 'var(--status-error-bg)' :
+                              ws.status === 'provisioning' ? 'var(--status-info-bg)' : 'var(--status-warning-bg)',
+                  color: ws.status === 'active' || ws.status === 'running' ? 'var(--status-online)' :
+                         ws.status === 'error' ? 'var(--status-error)' :
+                         ws.status === 'provisioning' ? 'var(--status-info)' : 'var(--status-warning)',
+                }}>
+                  {ws.status}
+                </span>
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                <span style={{ fontWeight: 600 }}>Owner:</span> {ws.owner_name} ({ws.owner_email})
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                <span style={{ fontWeight: 600 }}>Template:</span> {ws.template_name}
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                <span style={{ fontWeight: 600 }}>IP:</span> {ws.ip_address || '—'}
+              </div>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                  {(ws.status === 'active' || ws.status === 'running') && (
+                    <button onClick={() => handleForceStop(ws.id)}
+                      style={{ padding: '5px 10px', borderRadius: '6px', background: 'var(--status-warning-bg)', color: 'var(--status-warning)', border: 'none', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}>
+                      Stop
+                    </button>
+                  )}
+                  <button onClick={() => handleDelete(ws.id)}
+                    style={{ padding: '5px 10px', borderRadius: '6px', background: 'var(--status-error-bg)', color: 'var(--status-error)', border: 'none', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}>
+                    Delete
+                  </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
@@ -298,6 +346,7 @@ export default function AdminWorkspacesPage() {
           ))}
         </tbody>
       </table>
+      )}
 
       {workspaces.length === 0 && (
         <div style={{ textAlign: 'center', padding: '48px 24px' }}>

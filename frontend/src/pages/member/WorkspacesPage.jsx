@@ -9,6 +9,7 @@ import api from '../../services/api'
 import useAuthStore from '../../store/authStore'
 import useUIStore from '../../store/uiStore'
 import useThemeStore from '../../store/themeStore'
+import useBreakpoint from '../../hooks/useBreakpoint'
 
 // Maps backend icon name → lucide-react component
 const iconMap = {
@@ -23,6 +24,7 @@ const getTemplateIcon = (iconName) => iconMap[iconName] || Monitor
 export default function WorkspacesPage() {
   const { user } = useAuthStore()
   const theme = useThemeStore(s => s.theme)
+  const { isMobile, isTablet } = useBreakpoint()
   const [workspaces, setWorkspaces] = useState([])
   const [templates, setTemplates] = useState([])
   const [loading, setLoading] = useState(true)
@@ -222,127 +224,76 @@ export default function WorkspacesPage() {
         }
       `}</style>
 
-      <div className="max-w-[1200px] mx-auto">
-        
-        {/* SECTION 1 — PAGE HEADER */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-primary tracking-tight">
-              My Workspaces
-            </h1>
-            <p className="text-sm text-muted mt-1">
-              Manage your cloud desktops and servers
-            </p>
-          </div>
-          <button 
-            onClick={openCreateModal}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0066FF] text-white text-sm font-semibold hover:bg-[#0052CC] active:scale-95 transition-all duration-200 shadow-lg shadow-blue-500/20">
-            <Plus size={18} />
-            New Workspace
-          </button>
-        </div>
-
-        {/* SECTION 2 — TOP STATS HEADER BAR */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="bg-card/70 backdrop-blur-sm border border-border rounded-xl p-4 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-lg bg-[#00A3FF]/10 flex items-center justify-center">
-              <Monitor size={20} className="text-[#00A3FF]" />
-            </div>
+      <div className="bg-card/80 backdrop-blur-sm border-b border-border sticky top-14 z-40 transition-colors duration-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: isMobile ? 'flex-start' : 'space-between', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? '16px' : '0', padding: isMobile ? '24px 0' : '24px 0 16px 0' }}>
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-muted font-medium">TOTAL WORKSTATIONS</p>
-              <p className="text-xl font-bold text-primary mt-0.5">{totalCount}</p>
+              <h1 className="text-2xl font-bold text-primary tracking-tight">My Workspaces</h1>
+              <p className="text-sm text-secondary mt-1">Manage and access your cloud development environments</p>
             </div>
-          </div>
-          <div className="bg-card/70 backdrop-blur-sm border border-border rounded-xl p-4 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-lg bg-[#00FF87]/10 flex items-center justify-center">
-              <Power size={20} className="text-[#00FF87]" />
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-widest text-muted font-medium">NODES ONLINE</p>
-              <p className="text-xl font-bold text-primary mt-0.5">{onlineCount}</p>
-            </div>
-          </div>
-          <div className="bg-card/70 backdrop-blur-sm border border-border rounded-xl p-4 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-lg bg-[#6C63FF]/10 flex items-center justify-center">
-              <Cpu size={20} className="text-[#6C63FF]" />
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-widest text-muted font-medium">TOTAL VIRTUAL CORES</p>
-              <p className="text-xl font-bold text-primary mt-0.5">{totalCores}</p>
-            </div>
-          </div>
-          <div className="bg-card/70 backdrop-blur-sm border border-border rounded-xl p-4 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-lg bg-[#FF6B00]/10 flex items-center justify-center">
-              <Database size={20} className="text-[#FF6B00]" />
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-widest text-muted font-medium">DEDICATED MEMORY</p>
-              <p className="text-xl font-bold text-primary mt-0.5">{totalRam} GB</p>
-            </div>
-          </div>
-        </div>
-
-        {/* SECTION 3 — FILTER & SEARCH BAR */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-          <div className="flex flex-wrap gap-2">
-            {['All Nodes', 'Online', 'Offline', 'Provisioning'].map(tab => (
-              <button
-                key={tab}
-                onClick={() => setFilter(tab)}
-                className={`px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 active:scale-95 ${
-                  activeFilter === tab ? 'bg-[#2563EB] text-[#FFFFFF] shadow-md border border-[#2563EB]' : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border-color)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]'
-                }`}
-              >
-                {tab}
-                <span className="ml-1.5 text-[10px] opacity-60">({getCountForFilter(tab)})</span>
-              </button>
-            ))}
-          </div>
-          
-          <div className="flex gap-3 w-full md:w-auto">
-            <div className="relative flex-1 md:flex-none">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-faint" />
-              <input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Search workspace..."
-                className="bg-card border border-border rounded-xl pl-9 pr-4 py-2 text-sm text-secondary placeholder-muted outline-none focus:border-blue-500 transition-colors w-full md:w-56"
-              />
-            </div>
-            <select 
-              value={sortBy} 
-              onChange={e => setSortBy(e.target.value)} 
-              className="bg-card border border-border rounded-xl px-3 py-2 text-sm text-secondary outline-none"
-            >
-              <option>Sort: Recent</option>
-              <option>Sort: Name</option>
-              <option>Sort: Status</option>
-            </select>
-          </div>
-        </div>
-
-        {/* SECTION 4 — WORKSPACE CARDS GRID */}
-        {workspaces.length === 0 ? (
-          /* SECTION 5 — EMPTY STATE */
-          <div className="flex flex-col items-center justify-center py-20 border border-border rounded-2xl bg-card">
-            <div className="w-16 h-16 rounded-2xl bg-nav-hover flex items-center justify-center mb-4">
-              <Monitor size={28} className="text-faint" />
-            </div>
-            <h3 className="text-lg font-semibold text-secondary mb-2">
-              No workspaces yet
-            </h3>
-            <p className="text-sm text-muted text-center max-w-md mb-6">
-              Launch your first cloud desktop or server. Choose from pre-configured templates with professional tools pre-installed.
-            </p>
-            <button
-              onClick={openCreateModal}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-[#0066FF] text-white text-sm font-semibold hover:bg-[#0052CC] active:scale-95 transition-all shadow-lg shadow-blue-500/20">
-              <Plus size={18} />
-              Create First Workspace
+            <button onClick={openCreateModal} className="flex items-center justify-center gap-2 px-5 py-2.5 bg-accent-primary hover:bg-accent-hover text-white rounded-xl font-bold transition-all active:scale-95 shadow-md shadow-blue-500/20">
+              <Plus size={16} />
+              New Workspace
             </button>
           </div>
+          
+          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', paddingBottom: '16px', gap: '16px' }}>
+            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: isMobile ? '4px' : '0', scrollbarWidth: 'none' }} className="flex-nowrap">
+              {['All Nodes', 'Online', 'Offline', 'Provisioning'].map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setFilter(tab)}
+                  className={`px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 active:scale-95 whitespace-nowrap ${
+                    activeFilter === tab ? 'bg-[#2563EB] text-[#FFFFFF] shadow-md border border-[#2563EB]' : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border-color)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  {tab}
+                  <span className="ml-1.5 text-[10px] opacity-60">({getCountForFilter(tab)})</span>
+                </button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: '12px', flexDirection: isMobile ? 'column' : 'row' }}>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted w-4 h-4" />
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Search workspace..."
+                  className="bg-card border border-border rounded-xl pl-9 pr-4 py-2 text-sm text-secondary placeholder-muted outline-none focus:border-blue-500 transition-colors w-full md:w-56"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-24">
+            <Loader2 className="w-10 h-10 text-accent-primary animate-spin mb-4" />
+            <p className="text-muted font-medium">Loading your workspaces...</p>
+          </div>
+        ) : workspaces.length === 0 ? (
+          <div className="bg-card border border-border rounded-2xl p-12 text-center max-w-2xl mx-auto">
+            <div className="w-20 h-20 bg-canvas rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+              <Monitor size={32} className="text-muted" />
+            </div>
+            <h2 className="text-xl font-bold text-primary mb-2">No workspaces yet</h2>
+            <p className="text-secondary mb-8 leading-relaxed">
+              Create your first cloud environment to get started. Choose from a variety of optimized templates for your workload.
+            </p>
+            <button onClick={openCreateModal} className="inline-flex items-center gap-2 px-6 py-3 bg-accent-primary hover:bg-accent-hover text-white rounded-xl font-bold transition-all hover:scale-105 active:scale-95 shadow-lg shadow-blue-500/25">
+              <Plus size={18} />
+              Launch First Workspace
+            </button>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-20">
+            <h3 className="text-lg font-bold text-primary">No matching workspaces</h3>
+            <p className="text-muted mt-1">Try adjusting your search or filters.</p>
+          </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(380px, 1fr))', gap: '24px' }}>
             {filtered.map(ws => {
               const isRunning = ws.status === 'active' || ws.status === 'running'
               const isProvisioning = ws.status === 'provisioning'
@@ -611,7 +562,7 @@ export default function WorkspacesPage() {
                   ))}
                 </div>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '16px' }}>
                   {templates.filter(t => t.template_type === (templateTab === 'Desktops' ? 'desktop' : 'server')).map(template => {
                     const Icon = getTemplateIcon(template.icon)
                     const isSelected = selectedTemplate?.id === template.id

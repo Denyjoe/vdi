@@ -11,17 +11,10 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  Server, Monitor, ArrowDown, ArrowUp, Clock, Activity,
-  RefreshCw, Wifi
-} from 'lucide-react';
-import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip as RechartsTooltip, ResponsiveContainer, Legend,
-  PieChart, Pie, Cell, BarChart, Bar,
-  RadialBarChart, RadialBar
-} from 'recharts';
+import { Server, Monitor, Cpu, HardDrive, Wifi, ArrowUp, ArrowDown, Clock, RefreshCw } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, PieChart, Pie, Cell } from 'recharts';
 import api from '../../services/api';
+import useBreakpoint from '../../hooks/useBreakpoint';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -110,6 +103,7 @@ const GaugeCard = ({ title, value, centerLine1, centerLine2, color }) => {
 // ── Main Component ───────────────────────────────────────────────────────────
 
 export default function AdminHardwarePage() {
+  const { isMobile } = useBreakpoint();
   const [stats, setStats] = useState(null);
   const [history, setHistory] = useState([]);      // 20 data points
   const [loading, setLoading] = useState(true);
@@ -415,6 +409,32 @@ export default function AdminHardwarePage() {
           <h3 className="text-base font-semibold text-[var(--text-primary)]">Storage Pools</h3>
         </div>
         <div className="overflow-x-auto">
+          {isMobile ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px' }}>
+              {stats.storage_pools.map((pool) => {
+                const pct = (pool.used_gb / pool.total_gb) * 100;
+                const barColor = pct < 60 ? '#10B981' : pct < 80 ? '#F59E0B' : '#EF4444';
+                return (
+                  <div key={pool.name} style={{ border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px', background: 'var(--bg-card)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span className="font-medium text-[var(--text-primary)]">{pool.name}</span>
+                      <span className="bg-[var(--bg-card-hover)] border border-slate-600 px-2 py-0.5 rounded text-xs">{pool.type}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                      <span>{pool.used_gb} GB used</span>
+                      <span>{pool.total_gb} GB total</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div className="w-full bg-[var(--bg-card-hover)] rounded-full h-2">
+                        <div className="h-2 rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: barColor }} />
+                      </div>
+                      <span className="text-xs font-medium" style={{ color: barColor }}>{pct.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
           <table className="w-full text-sm text-[var(--text-primary)]">
             <thead className="text-xs uppercase text-[var(--text-secondary)] bg-[var(--bg-primary)]/50 border-b border-[var(--border-color)]">
               <tr>
@@ -458,6 +478,7 @@ export default function AdminHardwarePage() {
               })}
             </tbody>
           </table>
+          )}
         </div>
       </div>
 
@@ -467,6 +488,42 @@ export default function AdminHardwarePage() {
           <h3 className="text-base font-semibold text-[var(--text-primary)]">Proxmox Nodes</h3>
         </div>
         <div className="overflow-x-auto">
+          {isMobile ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px' }}>
+              {stats.nodes.map((n) => {
+                const avg = (n.cpu_percent + n.ram_percent) / 2;
+                const h = nodeHealth(avg);
+                return (
+                  <div key={n.name} style={{ border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px', background: 'var(--bg-card)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'center' }}>
+                      <div className="flex items-center gap-2 font-medium text-[var(--text-primary)]">
+                        <Server className="w-4 h-4 text-[var(--text-secondary)]" />
+                        {n.name}
+                      </div>
+                      {n.status === 'online' ? (
+                        <span className="flex items-center gap-1.5 text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-2 py-0.5 rounded text-xs font-medium w-fit">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          Online
+                        </span>
+                      ) : (
+                        <span className="text-red-400 bg-red-400/10 border border-red-400/20 px-2 py-0.5 rounded text-xs font-medium">
+                          Offline
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                      <span>CPU: <span style={{ color: percentColor(n.cpu_percent) }}>{n.cpu_percent}%</span></span>
+                      <span>RAM: <span style={{ color: percentColor(n.ram_percent) }}>{n.ram_percent}%</span></span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                      <span>VMs: <span className="text-[var(--text-primary)] font-medium">{n.vm_count}</span></span>
+                      <span className={`px-2 py-0.5 rounded text-xs font-medium border ${h.cls}`}>{h.label}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
           <table className="w-full text-sm text-[var(--text-primary)]">
             <thead className="text-xs uppercase text-[var(--text-secondary)] bg-[var(--bg-primary)]/50 border-b border-[var(--border-color)]">
               <tr>
@@ -517,6 +574,7 @@ export default function AdminHardwarePage() {
               })}
             </tbody>
           </table>
+          )}
         </div>
       </div>
     </div>

@@ -8,8 +8,10 @@ import useThemeStore from '../../store/themeStore';
 import useLiveSession from '../../hooks/useLiveSession';
 import { toast } from 'react-hot-toast';
 import { signOutFirebase } from '../../config/firebase';
+import useBreakpoint from '../../hooks/useBreakpoint';
 import { 
-  LayoutDashboard, Monitor, Video, Plus, BarChart3, ChevronLeft, 
+  LayoutDashboard, Monitor, Video, Plus, BarChart3, ChevronLeft,
+  X, 
   ChevronRight, Radio, ChevronUp, LogOut, Settings, Receipt,
   Server, Users, LayoutTemplate, HardDrive
 } from 'lucide-react';
@@ -85,9 +87,10 @@ function NavItem({ icon: Icon, label, path, onClick, collapsed, active, accent, 
 
 export default function Sidebar() {
   const { user, logout } = useAuthStore();
-  const { sidebarCollapsed, toggleSidebar, openBilling } = useUIStore();
+  const { sidebarCollapsed, toggleSidebar, openBilling, mobileMenuOpen, closeMobileMenu } = useUIStore();
+  const { isMobile } = useBreakpoint();
   const theme = useThemeStore(s => s.theme);
-  const collapsed = sidebarCollapsed;
+  const collapsed = isMobile ? false : sidebarCollapsed;
   const navigate = useNavigate();
   const location = useLocation();
   const liveSession = useLiveSession(user);
@@ -135,8 +138,9 @@ export default function Sidebar() {
     toast.success('Logged out successfully');
   };
 
-  return (
-    <aside className={`h-screen flex flex-col border-r transition-all duration-300 ease-out ${collapsed ? 'w-[68px]' : 'w-[240px]'} flex-shrink-0 relative`} style={{ background: 'var(--bg-sidebar)', borderColor: 'var(--border-subtle)' }}>
+
+  const sidebarContent = (
+    <>
       
       {/* ═══ LOGO AREA ═══ */}
       <div className={`h-14 flex items-center border-b flex-shrink-0 ${collapsed ? 'justify-center px-0' : 'px-5'}`} style={{ borderColor: 'var(--border-subtle)' }}>
@@ -349,6 +353,61 @@ export default function Sidebar() {
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
       `}</style>
+    
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <>
+        {mobileMenuOpen && (
+          <div 
+            onClick={closeMobileMenu}
+            style={{
+              position: 'fixed', 
+              inset: 0,
+              background: 'rgba(0,0,0,0.6)',
+              zIndex: 90,
+            }}
+          />
+        )}
+        
+        <aside style={{
+          position: 'fixed',
+          top: 0, left: 0, bottom: 0,
+          width: '260px',
+          background: 'var(--bg-sidebar)',
+          borderRight: '1px solid var(--border-color)',
+          zIndex: 91,
+          transform: mobileMenuOpen ? 'translateX(0)' : 'translateX(-100%)',
+          transition: 'transform 0.25s ease-out',
+          display: 'flex',
+          flexDirection: 'column',
+        }}>
+          <div style={{
+            padding: '16px',
+            display: 'flex',
+            justifyContent: 'flex-end',
+          }}>
+            <button onClick={closeMobileMenu}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-secondary)',
+              }}>
+              <X size={20} />
+            </button>
+          </div>
+          
+          {sidebarContent}
+        </aside>
+      </>
+    );
+  }
+
+  return (
+    <aside className={`h-screen flex flex-col border-r transition-all duration-300 ease-out flex-shrink-0 relative ${collapsed ? 'w-[80px]' : 'w-[260px]'}`} style={{ background: 'var(--bg-sidebar)', borderColor: 'var(--border-subtle)' }}>
+      {sidebarContent}
     </aside>
   );
 }

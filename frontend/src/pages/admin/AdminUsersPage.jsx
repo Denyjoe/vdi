@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, Download, MoreVertical, X, Shield, ShieldOff, Users, Eye } from 'lucide-react';
+import { Search, Download, MoreVertical, X, Users } from 'lucide-react';
 import api from '../../services/api';
+import useBreakpoint from '../../hooks/useBreakpoint';
 import { toast } from 'react-hot-toast';
 
 function UserActionsMenu({ user, onSuspend, onReactivate, onViewDetail, onResetPassword }) {
@@ -313,6 +314,7 @@ function UserDetailDrawer({ userId, onClose, onSuspend, onReactivate }) {
 }
 
 export default function AdminUsersPage() {
+  const { isMobile } = useBreakpoint();
   const [users, setUsers] = useState([]);
   const [counts, setCounts] = useState({ all: 0, free: 0, hosts: 0, admins: 0, active: 0, suspended: 0 });
   const [search, setSearch] = useState('');
@@ -579,9 +581,53 @@ export default function AdminUsersPage() {
       <div style={{
         background: 'var(--bg-card)',
         borderRadius: '12px',
-        border: '1px solid var(--border-color)',
+        border: isMobile ? 'none' : '1px solid var(--border-color)',
         overflow: 'hidden'
       }}>
+        {isMobile ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {users.length > 0 ? users.map(u => (
+              <div key={u.id} style={{ border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px', background: 'var(--bg-card)' }}
+                onClick={(e) => {
+                  if (e.target.type !== 'checkbox' && !e.target.closest('button'))
+                    setSelectedUserDetail(u.id);
+                }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }} onClick={e => e.stopPropagation()}>
+                    <input type="checkbox" checked={selectedIds.includes(u.id)} onChange={() => toggleSelectUser(u.id)} />
+                    {u.avatar ? (
+                      <img src={u.avatar} style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} alt="" onError={(e) => { e.target.style.display = 'none'; }} />
+                    ) : (
+                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--accent-primary-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, color: 'var(--accent-primary)' }}>
+                        {u.first_name?.[0]}{u.last_name?.[0]}
+                      </div>
+                    )}
+                    <span style={{ color: 'var(--text-primary)', fontSize: '14px', fontWeight: 600 }}>{u.first_name} {u.last_name}</span>
+                    {u.role === 'admin' && <span style={{ fontSize: '9px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: 'var(--status-info-bg)', color: 'var(--status-info)' }}>ADMIN</span>}
+                    {u.is_host && u.role !== 'admin' && <span style={{ fontSize: '9px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: 'var(--accent-primary-soft)', color: 'var(--accent-primary)' }}>HOST</span>}
+                  </div>
+                  <span style={{ padding: '3px 10px', borderRadius: '9999px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', background: u.is_suspended ? 'var(--status-error-bg)' : 'var(--status-online-bg)', color: u.is_suspended ? 'var(--status-error)' : 'var(--status-online)' }}>
+                    {u.is_suspended ? 'Suspended' : 'Active'}
+                  </span>
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                  <span style={{ fontWeight: 600 }}>Email:</span> {u.email}
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                  <span style={{ fontWeight: 600 }}>Plan:</span> {u.subscription?.plan_name ? u.subscription.plan_name.replace('_', ' ') : 'Free'}
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                  <span style={{ fontWeight: 600 }}>Joined:</span> {formatDate(u.date_joined)}
+                </div>
+              </div>
+            )) : (
+              <div style={{ textAlign: 'center', padding: '48px 24px', border: '1px solid var(--border-color)', borderRadius: '12px', background: 'var(--bg-card)' }}>
+                <Users size={32} style={{ color: 'var(--text-faint)', margin: '0 auto 12px auto' }} />
+                <h3 style={{ color: 'var(--text-secondary)', fontSize: '15px', fontWeight: 600 }}>No users found</h3>
+              </div>
+            )}
+          </div>
+        ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
@@ -689,6 +735,7 @@ export default function AdminUsersPage() {
             </tbody>
           </table>
         </div>
+        )}
       </div>
       
       {selectedUserDetail && (

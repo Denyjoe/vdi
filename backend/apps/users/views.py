@@ -601,6 +601,48 @@ class AnnouncementView(APIView):
             'announcement': announcement
         })
 
+class PublicSettingsView(APIView):
+    permission_classes = [permissions.AllowAny]
+    
+    def get(self, request):
+        from apps.users.models import SystemConfig
+        return Response({
+            'maintenance_mode': 
+                str(SystemConfig.get('maintenance_mode', 'false')).lower() == 'true',
+            'allow_registration': 
+                str(SystemConfig.get('allow_registration', 'true')).lower() != 'false',
+        })
+
+class ProfileStatsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        from apps.vms.models import Workspace
+        user = request.user
+        
+        workspace_count = Workspace.objects.filter(owner=user).exclude(status='deleted').count()
+        active_count = Workspace.objects.filter(owner=user, status__in=['active', 'running']).count()
+        
+        sessions_joined = 0
+        try:
+            from apps.sessions.models import SessionParticipant
+            sessions_joined = SessionParticipant.objects.filter(user=user).count()
+        except Exception:
+            pass
+            
+        hours_used = 0.0
+        try:
+            sub = user.subscription
+            hours_used = float(getattr(sub, 'compute_hours_used', 0) or 0)
+        except Exception:
+            pass
+            
+        return Response({
+            'workspace_count': workspace_count,
+            'active_workspaces': active_count,
+            'sessions_joined': sessions_joined,
+            'hours_used': hours_used,
+        })
 class FirebaseLoginView(APIView):
     permission_classes = [AllowAny]
     

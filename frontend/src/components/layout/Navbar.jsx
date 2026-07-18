@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 import useThemeStore from '../../store/themeStore';
+import useUIStore from '../../store/uiStore';
+import useBreakpoint from '../../hooks/useBreakpoint';
 import NotificationBell from '../shared/NotificationBell';
 import { 
   Menu, Bell, Clock, Wifi, HelpCircle, BookOpen, Keyboard, 
@@ -14,6 +16,8 @@ import { signOutFirebase } from '../../config/firebase';
 export default function Navbar({ onMenuClick }) {
   const { user, logout } = useAuthStore();
   const theme = useThemeStore(s => s.theme);
+  const { isMobile } = useBreakpoint();
+  const { toggleMobileMenu } = useUIStore();
   const navigate = useNavigate();
   const location = useLocation();
   const liveSession = useLiveSession(user);
@@ -152,25 +156,33 @@ export default function Navbar({ onMenuClick }) {
         `}</style>
         
         <div className="flex items-center gap-3">
-          <button
-            onClick={onMenuClick}
-            className="md:hidden p-2 text-secondary hover:text-primary transition-colors rounded-lg hover:bg-nav-hover"
-            aria-label="Toggle sidebar menu"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
+          {isMobile && (
+            <button
+              onClick={toggleMobileMenu}
+              className="p-2 text-secondary hover:text-primary transition-colors rounded-lg hover:bg-nav-hover"
+              aria-label="Toggle mobile menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+          )}
 
-          <div className="md:hidden flex items-center gap-2">
-              <Monitor className="w-6 h-6 text-[#0066FF]" />
-              <h1 className="text-primary font-bold text-lg leading-tight">CloudDesk</h1>
-          </div>
+          {!isMobile && (
+            <div className="hidden md:flex items-center gap-2">
+                <Monitor className="w-6 h-6 text-[#0066FF]" />
+                <h1 className="text-primary font-bold text-lg leading-tight">CloudDesk</h1>
+            </div>
+          )}
 
-          <div className="hidden md:flex items-center space-x-3">
+          <div className="flex items-center space-x-3">
             <div className="flex items-center space-x-2">
-              <span className={`text-[11px] font-semibold uppercase tracking-[1.5px] ${theme === 'light' ? 'text-[#475569]' : 'text-[var(--text-muted)]'}`}>
-                Console
-              </span>
-              <span className={theme === 'light' ? 'text-[#94A3B8]' : 'text-[var(--text-faint)]'}>›</span>
+              {!isMobile && (
+                <>
+                  <span className={`text-[11px] font-semibold uppercase tracking-[1.5px] ${theme === 'light' ? 'text-[#475569]' : 'text-[var(--text-muted)]'}`}>
+                    Console
+                  </span>
+                  <span className={theme === 'light' ? 'text-[#94A3B8]' : 'text-[var(--text-faint)]'}>›</span>
+                </>
+              )}
               <span className={`text-[13px] font-semibold uppercase tracking-[1px] ${theme === 'light' ? 'text-[#0F172A]' : 'text-[var(--text-primary)]'}`}>
                 {getPageLabel()}
               </span>
@@ -191,47 +203,51 @@ export default function Navbar({ onMenuClick }) {
 
         <div className="flex items-center gap-2 sm:gap-4">
           
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            padding: '6px 12px',
-            borderRadius: '8px',
-            background: theme === 'light' ? '#F0FDF4' : 'rgba(15, 23, 42, 0.5)',
-            border: theme === 'light' ? '1px solid #BBF7D0' : '1px solid rgba(30, 41, 59, 0.5)',
-          }}>
-            <div className="wifi-blink">
-              <Wifi size={13} style={{ color: theme === 'light' ? '#0284C7' : '#00A3FF' }} />
-            </div>
-            <span style={{ 
-              fontSize: '10px',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '1.5px'
-            }}>
-              <span style={{ color: 'var(--text-primary)' }}>GW-SSL:</span>{' '}
-              <span style={{ color: 'var(--status-online)' }}>Secured</span>
-            </span>
+          {!isMobile && (
             <div style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              background: 'var(--status-online-dot)',
-              boxShadow: theme === 'light' ? '0 0 0 3px rgba(22, 163, 74, 0.15)' : '0 0 6px rgba(0, 255, 135, 0.4)'
-            }} />
-          </div>
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              background: theme === 'light' ? '#F0FDF4' : 'rgba(15, 23, 42, 0.5)',
+              border: theme === 'light' ? '1px solid #BBF7D0' : '1px solid rgba(30, 41, 59, 0.5)',
+            }}>
+              <div className="wifi-blink">
+                <Wifi size={13} style={{ color: theme === 'light' ? '#0284C7' : '#00A3FF' }} />
+              </div>
+              <span style={{ 
+                fontSize: '10px',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '1.5px'
+              }}>
+                <span style={{ color: 'var(--text-primary)' }}>GW-SSL:</span>{' '}
+                <span style={{ color: 'var(--status-online)' }}>Secured</span>
+              </span>
+              <div style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                background: 'var(--status-online-dot)',
+                boxShadow: theme === 'light' ? '0 0 0 3px rgba(22, 163, 74, 0.15)' : '0 0 6px rgba(0, 255, 135, 0.4)'
+              }} />
+            </div>
+          )}
           
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-canvas">
-            <Clock size={12} className="text-muted" />
-            <span className="text-[11px] font-mono font-medium text-secondary tabular-nums tracking-wider">
-              {localTime}
-            </span>
-            <span className="text-[8px] text-faint font-semibold uppercase ml-0.5 truncate max-w-[80px]">
-              {userTimezone.split('/').pop().replace('_', ' ')}
-            </span>
-          </div>
+          {!isMobile && (
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-canvas">
+              <Clock size={12} className="text-muted" />
+              <span className="text-[11px] font-mono font-medium text-secondary tabular-nums tracking-wider">
+                {localTime}
+              </span>
+              <span className="text-[8px] text-faint font-semibold uppercase ml-0.5 truncate max-w-[80px]">
+                {userTimezone.split('/').pop().replace('_', ' ')}
+              </span>
+            </div>
+          )}
           
-          <div ref={helpRef} className="relative hidden sm:block">
+          <div ref={helpRef} className="relative">
             <button onClick={() => setShowHelp(!showHelp)}
               className="p-1.5 rounded-lg hover:bg-nav-hover transition-colors active:scale-95">
               <HelpCircle size={16} className="text-secondary hover:text-primary transition-colors" />

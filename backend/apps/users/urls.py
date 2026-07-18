@@ -13,6 +13,7 @@ urlpatterns = [
     
     # Account Settings Endpoints
     path('profile/', views.ProfileUpdateView.as_view(), name='profile-update'),
+    path('profile/stats/', views.ProfileStatsView.as_view(), name='profile-stats'),
     path('avatar/', views.AvatarUploadView.as_view(), name='avatar-upload'),
     path('change-password/', views.ChangePasswordView.as_view(), name='change-password-new'),
     path('notification-preferences/', views.NotificationPreferencesView.as_view(), name='notification-preferences'),
