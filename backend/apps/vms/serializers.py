@@ -17,17 +17,35 @@ class VirtualMachineSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_guacamole_url(self, obj):
+        """Build a Guacamole client URL with a fresh auth token.
+
+        Fetches a live auth token from the Guacamole API so the iframe
+        auto-connects without showing the Guacamole login page.
+
+        Args:
+            obj: VirtualMachine instance.
+
+        Returns:
+            str or None: Full authenticated Guacamole client URL, or None
+            if no connection exists.
+        """
         if not obj.guacamole_connection_id:
             return None
-        import base64
-        from decouple import config
-        guac_public = config(
-            'GUACAMOLE_PUBLIC_URL',
-            default='http://192.168.1.4:8080/guacamole'
-        )
-        identifier = f"{obj.guacamole_connection_id}\x00c\x00postgresql"
-        encoded = base64.b64encode(identifier.encode()).decode()
-        return f"{guac_public}/#/client/{encoded}"
+        try:
+            from .services.guacamole_service import get_guacamole_service
+            gs = get_guacamole_service()
+            return gs.get_connection_url(obj.guacamole_connection_id)
+        except Exception:
+            # Fallback: return URL without token (user will see Guac login)
+            import base64
+            from decouple import config
+            guac_public = config(
+                'GUACAMOLE_PUBLIC_URL',
+                default='http://192.168.1.4:8080/guacamole'
+            )
+            identifier = f"{obj.guacamole_connection_id}\x00c\x00postgresql"
+            encoded = base64.b64encode(identifier.encode()).decode()
+            return f"{guac_public}/#/client/{encoded}"
 
 class WorkspaceSerializer(serializers.ModelSerializer):
     vm_template_details = VMTemplateSerializer(source='vm_template', read_only=True)

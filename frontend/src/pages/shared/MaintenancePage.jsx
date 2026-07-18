@@ -21,7 +21,7 @@ export default function MaintenancePage() {
         </p>
         
         <button 
-          onClick={() => window.location.href = '/login'}
+          onClick={() => window.location.href = '/signin'}
           className="w-full py-3 rounded-xl font-semibold transition-colors"
           style={{ background: 'var(--accent-primary)', color: '#fff' }}
         >

@@ -50,13 +50,13 @@ export default function PublicNavbar() {
             ) : (
               <>
                 <Link 
-                  to="/login"
+                  to="/signin"
                   className="text-sm font-medium text-[var(--text-primary)] hover:text-[var(--text-primary)] transition-colors px-4 py-2"
                 >
                   Sign In
                 </Link>
                 <Link 
-                  to="/register"
+                  to="/signin"
                   className="text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 px-5 py-2.5 rounded-full transition-all duration-300 glow-primary"
                 >
                   Get Started Free
@@ -102,13 +102,13 @@ export default function PublicNavbar() {
               ) : (
                 <>
                   <Link 
-                    to="/login"
+                    to="/signin"
                     className="block text-center w-full text-base font-medium text-[var(--text-primary)] border border-white/20 hover:bg-white/5 px-5 py-3 rounded-xl transition-all duration-300"
                   >
                     Sign In
                   </Link>
                   <Link 
-                    to="/register"
+                    to="/signin"
                     className="block text-center w-full text-base font-medium text-white bg-indigo-600 hover:bg-indigo-500 px-5 py-3 rounded-xl transition-all duration-300"
                   >
                     Get Started Free

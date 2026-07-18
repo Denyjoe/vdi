@@ -7,6 +7,7 @@ import useSettingsStore from '../../store/settingsStore';
 import useThemeStore from '../../store/themeStore';
 import useLiveSession from '../../hooks/useLiveSession';
 import { toast } from 'react-hot-toast';
+import { signOutFirebase } from '../../config/firebase';
 import { 
   LayoutDashboard, Monitor, Video, Plus, BarChart3, ChevronLeft, 
   ChevronRight, Radio, ChevronUp, LogOut, Settings, Receipt,
@@ -123,9 +124,14 @@ export default function Sidebar() {
     return () => clearInterval(interval);
   }, [user]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await signOutFirebase();
+    } catch(e) {
+      console.error('Firebase signout error:', e);
+    }
     logout();
-    navigate('/login');
+    navigate('/signin');
     toast.success('Logged out successfully');
   };
 

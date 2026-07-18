@@ -12,7 +12,7 @@ export default function PrivacyPage() {
             <span className="text-xl font-bold tracking-tight text-[#0F172A] dark:text-white">CloudDesk</span>
           </Link>
           <div className="flex items-center gap-4">
-            <Link to="/login" className="text-sm font-medium text-[#475569] dark:text-slate-300 hover:text-[#0F172A] dark:hover:text-white dark:text-white transition-colors">Sign in</Link>
+            <Link to="/signin" className="text-sm font-medium text-[#475569] dark:text-slate-300 hover:text-[#0F172A] dark:hover:text-white dark:text-white transition-colors">Sign in</Link>
           </div>
         </div>
       </nav>

@@ -43,7 +43,7 @@ export default function TemplatesPage() {
     if (user) {
       navigate('/workspaces');
     } else {
-      navigate('/register');
+      navigate('/signin');
     }
   };
 

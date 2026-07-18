@@ -79,6 +79,7 @@ class ProxmoxService:
                     token_name=PROXMOX_TOKEN_NAME,
                     token_value=PROXMOX_TOKEN_SECRET,
                     verify_ssl=PROXMOX_VERIFY_SSL,
+                    timeout=120,
                 )
                 logger.info("Connected to Proxmox at %s", self.host)
             except Exception as exc:
@@ -108,19 +109,32 @@ class ProxmoxService:
         """
         new_vmid = self.get_next_vmid()
 
-        self.proxmox.nodes(self.node).qemu(template_id).clone.post(
+        upid = self.proxmox.nodes(self.node).qemu(template_id).clone.post(
             newid=new_vmid,
             name=name,
-            full=0,  # linked clone — faster, less disk
+            full=1,  # full clone — linked clone not supported on this local-lvm
         )
 
         logger.info(
-            "Cloned template %s -> VM %s (name: %s)",
-            template_id, new_vmid, name,
+            "Cloned template %s -> VM %s (name: %s), UPID: %s",
+            template_id, new_vmid, name, upid
         )
 
-        # Brief wait for clone task to register
-        time.sleep(CLONE_WAIT_SECONDS)
+        # Wait for full clone to finish
+        import time
+        for _ in range(120):  # Wait up to 10 minutes (120 * 5s)
+            try:
+                task_status = self.proxmox.nodes(self.node).tasks(upid).status.get()
+                if task_status.get("status") == "stopped":
+                    if task_status.get("exitstatus") == "OK":
+                        break
+                    else:
+                        raise Exception(f"Clone task failed: {task_status.get('exitstatus')}")
+            except Exception as e:
+                if "failed" in str(e).lower():
+                    raise
+            time.sleep(5)
+            
         return int(new_vmid)
 
     def start_vm(self, vmid):
@@ -130,6 +144,11 @@ class ProxmoxService:
         Args:
             vmid (int): The Proxmox VM ID to start.
         """
+        try:
+            self.proxmox.nodes(self.node).qemu(vmid).config.post(agent=1)
+        except Exception as e:
+            logger.warning("Could not enable QEMU guest agent for VM %s: %s", vmid, str(e))
+            
         self.proxmox.nodes(self.node).qemu(vmid).status.start.post()
         logger.info("Started VM %s", vmid)
 
@@ -224,13 +243,15 @@ class ProxmoxService:
 
 
 def get_proxmox_service():
-    """
-    Factory function that returns a ProxmoxService instance.
-
-    Defers construction so the module can be imported without
-    requiring Proxmox credentials to be present.
-
-    Returns:
-        ProxmoxService: A ready-to-use service instance.
-    """
+    import logging
+    from decouple import config
+    logger = logging.getLogger(__name__)
+    logger.error(
+        f'[DEBUG] PROXMOX_USER='
+        f'{config("PROXMOX_USER", default="MISSING")} '
+        f'TOKEN_NAME='
+        f'{config("PROXMOX_TOKEN_NAME", default="MISSING")} '
+        f'SECRET_LEN='
+        f'{len(config("PROXMOX_TOKEN_SECRET", default=""))}'
+    )
     return ProxmoxService()

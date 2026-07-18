@@ -57,6 +57,11 @@ class User(AbstractUser):
         null=True,
         help_text="Contact phone number.",
     )
+    firebase_uid = models.CharField(
+        max_length=128, blank=True, 
+        default='', unique=False)
+    avatar_url = models.URLField(
+        blank=True, default='')
     avatar = models.ImageField(
         upload_to="avatars/",
         blank=True,

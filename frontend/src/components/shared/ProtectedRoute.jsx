@@ -21,7 +21,7 @@ export default function ProtectedRoute({ children }) {
           // If maintenance mode is ON and user is NOT admin
           if (user?.role !== 'admin') {
             logout();
-            navigate('/login');
+            navigate('/signin');
           }
         }
       } catch (err) {
@@ -43,7 +43,7 @@ export default function ProtectedRoute({ children }) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/signin" replace />;
   }
 
   return children;

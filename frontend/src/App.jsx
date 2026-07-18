@@ -60,10 +60,7 @@ import TermsPage from "./pages/public/TermsPage";
 import PrivacyPage from "./pages/public/PrivacyPage";
 
 // Auth pages
-import LoginPage from "./pages/auth/LoginPage";
-import RegisterPage from "./pages/auth/RegisterPage";
-import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
-import VerifyEmailPage from "./pages/auth/VerifyEmailPage";
+import SignInPage from "./pages/auth/SignInPage";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -128,10 +125,11 @@ export default function App() {
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         
-        <Route path="/login" element={user ? <Navigate to={getDashboardRoute()} replace /> : <LoginPage />} />
-        <Route path="/register" element={user ? <Navigate to={getDashboardRoute()} replace /> : <RegisterPage />} />
-        <Route path="/forgot-password" element={user ? <Navigate to={getDashboardRoute()} replace /> : <ForgotPasswordPage />} />
-        <Route path="/verify-email" element={user ? <Navigate to={getDashboardRoute()} replace /> : <VerifyEmailPage />} />
+        <Route path="/signin" element={user ? <Navigate to={getDashboardRoute()} replace /> : <SignInPage />} />
+        <Route path="/login" element={<Navigate to="/signin" replace />} />
+        <Route path="/register" element={<Navigate to="/signin" replace />} />
+        <Route path="/forgot-password" element={<Navigate to="/signin" replace />} />
+        <Route path="/verify-email" element={<Navigate to="/signin" replace />} />
         
         <Route path="/join/session/:code" element={<JoinSessionPage />} />
         

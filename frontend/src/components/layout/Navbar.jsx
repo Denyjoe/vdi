@@ -9,6 +9,7 @@ import {
   Radio, Receipt 
 } from 'lucide-react';
 import useLiveSession from '../../hooks/useLiveSession';
+import { signOutFirebase } from '../../config/firebase';
 
 export default function Navbar({ onMenuClick }) {
   const { user, logout } = useAuthStore();
@@ -98,9 +99,14 @@ export default function Navbar({ onMenuClick }) {
   
   const avatarUrl = user?.avatar_url || user?.avatar;
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await signOutFirebase();
+    } catch(e) {
+      console.error('Firebase signout error:', e);
+    }
     logout();
-    navigate('/login');
+    navigate('/signin');
   };
 
   return (

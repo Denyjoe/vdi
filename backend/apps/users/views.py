@@ -600,3 +600,84 @@ class AnnouncementView(APIView):
         return Response({
             'announcement': announcement
         })
+
+class FirebaseLoginView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        from apps.users.firebase_admin_init import firebase_admin
+        from firebase_admin import auth as fb_auth
+        from apps.users.models import User, SystemConfig
+        from rest_framework_simplejwt.tokens import RefreshToken
+        
+        id_token = request.data.get('id_token')
+        if not id_token:
+            return Response({'success': False, 'message': 'No token provided'}, status=400)
+        
+        try:
+            decoded = fb_auth.verify_id_token(id_token)
+        except Exception as e:
+            return Response({'success': False, 'message': 'Invalid Firebase token: ' + str(e)}, status=401)
+        
+        email = decoded.get('email')
+        name = decoded.get('name', '')
+        picture = decoded.get('picture', '')
+        firebase_uid = decoded.get('uid')
+        
+        if not email:
+            return Response({'success': False, 'message': 'No email in token'}, status=400)
+        
+        try:
+            user = User.objects.get(email=email)
+            is_new = False
+        except User.DoesNotExist:
+            allow_reg = SystemConfig.get('allow_registration', 'true')
+            if str(allow_reg).lower() == 'false':
+                return Response({'success': False, 'message': 'New account registration is currently disabled.'}, status=403)
+            
+            name_parts = name.split(' ', 1)
+            first_name = name_parts[0] if name_parts else ''
+            last_name = name_parts[1] if len(name_parts) > 1 else ''
+            
+            user = User.objects.create(
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                firebase_uid=firebase_uid,
+                username=email
+            )
+            user.set_unusable_password()
+            
+            if email == 'deniswilson255@gmail.com':
+                user.role = 'admin'
+                user.is_superuser = True
+            
+            user.save()
+            is_new = True
+        
+        if getattr(user, 'is_suspended', False):
+            return Response({'success': False, 'message': 'Your account has been suspended. Contact support.'}, status=403)
+        
+        if picture and not getattr(user, 'avatar_url', None):
+            user.avatar_url = picture
+            user.save(update_fields=['avatar_url'])
+        
+        refresh = RefreshToken.for_user(user)
+        
+        return Response({
+            'success': True,
+            'is_new_user': is_new,
+            'data': {
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
+                'user': {
+                    'id': user.id,
+                    'email': user.email,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'role': user.role,
+                    'is_host': getattr(user, 'is_host', False),
+                    'avatar': getattr(user, 'avatar_url', None),
+                }
+            }
+        })

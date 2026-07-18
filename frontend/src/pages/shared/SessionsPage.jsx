@@ -32,7 +32,7 @@ export default function SessionsPage() {
 
     const handleJoin = async (sessionId) => {
         if (!user) {
-            navigate('/login');
+            navigate('/signin');
             return;
         }
         // In a real app we'd call an endpoint to join by ID here, 

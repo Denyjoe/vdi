@@ -192,7 +192,7 @@ export default function PricingPage() {
                 
                 <div className="mt-auto">
                   <Link 
-                    to="/register"
+                    to="/signin"
                     className={`block w-full text-center py-3 px-4 rounded-xl font-medium transition-all duration-300 ${plan.ctaStyle}`}
                   >
                     {plan.ctaText}

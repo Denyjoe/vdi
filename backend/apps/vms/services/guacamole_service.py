@@ -26,6 +26,8 @@ GUACAMOLE_ADMIN_USER = config(
     'GUACAMOLE_ADMIN_USER', default='guacadmin')
 GUACAMOLE_ADMIN_PASSWORD = config(
     'GUACAMOLE_ADMIN_PASSWORD', default='')
+GUACAMOLE_PUBLIC_URL = config(
+    'GUACAMOLE_PUBLIC_URL', default='http://localhost:8080/guacamole')
 
 # Default VM credentials for RDP connections
 VM_DEFAULT_USER = config('VM_DEFAULT_USER', default='student')
@@ -127,8 +129,6 @@ class GuacamoleService:
             "password": password,
             "security": "any",
             "ignore-cert": "true",
-            "resize-method": "display-update",
-            "enable-font-smoothing": "true",
         }
         
         if restrictions:
@@ -222,7 +222,7 @@ class GuacamoleService:
 
         identifier = f"{connection_id}\x00c\x00{self.data_source}"
         encoded = base64.b64encode(identifier.encode()).decode()
-        return f'{self.base_url}/#/client/{encoded}?token={self.token}'
+        return f'{GUACAMOLE_PUBLIC_URL}/#/client/{encoded}?token={self.token}'
 
 
 def get_guacamole_service():

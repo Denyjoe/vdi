@@ -905,7 +905,7 @@ function DangerTab() {
       setDeleting(true);
       await api.post('/auth/delete-account/', { password });
       logout();
-      navigate('/login');
+      navigate('/signin');
     } catch(e) {
       alert(e.response?.data?.message || 'Failed to delete account');
     } finally {

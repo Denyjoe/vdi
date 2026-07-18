@@ -28,7 +28,7 @@ export default function NotFoundPage() {
    * @returns {string} The path to navigate to.
    */
   const getBackPath = () => {
-    if (!isAuthenticated || !user) return '/login';
+    if (!isAuthenticated || !user) return '/signin';
     return DASHBOARD_PATHS[user.role] || '/dashboard';
   };
 

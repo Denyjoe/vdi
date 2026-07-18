@@ -13,7 +13,7 @@ export default function JoinSessionPage() {
         if (!user) {
             // Store intent and redirect to login
             sessionStorage.setItem('redirectAfterLogin', `/join/session/${code}`);
-            navigate('/login');
+            navigate('/signin');
         } else {
             setShowModal(true);
         }

@@ -92,7 +92,7 @@ export default function LandingPage() {
               Pricing
             </a>
             <div className="flex items-center gap-4 ml-4">
-              <Link to="/login" className="text-sm font-medium text-[#334155] dark:text-slate-200 hover:text-[#0F172A] dark:hover:text-white dark:text-white transition-colors">Sign in</Link>
+              <Link to="/signin" className="text-sm font-medium text-[#334155] dark:text-slate-200 hover:text-[#0F172A] dark:hover:text-white dark:text-white transition-colors">Sign in</Link>
               <button 
                 onClick={() => setShowJoinModal(true)}
                 className="px-5 py-2.5 rounded-full border border-transparent bg-transparent hover:border-indigo-500/50 hover:bg-[#1D4ED8]/10 text-[#334155] dark:text-slate-200 hover:text-[#0F172A] dark:hover:text-white dark:text-white text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
@@ -130,7 +130,7 @@ export default function LandingPage() {
               </p>
               
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-                <Link to="/register" className="w-full sm:w-auto px-8 py-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-[#FFFFFF] rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2 hover:scale-105">
+                <Link to="/signin" className="w-full sm:w-auto px-8 py-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-[#FFFFFF] rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2 hover:scale-105">
                   Start for Free <ArrowRight size={20} />
                 </Link>
                 <button 
@@ -230,7 +230,7 @@ export default function LandingPage() {
                      </li>
                    </ul>
                    
-                   <Link to="/register" className={`block w-full py-3 text-center rounded-xl font-bold transition-all ${plan.name === 'pro_host' ? 'bg-gradient-to-r from-indigo-500 to-cyan-500 hover:from-indigo-600 hover:to-cyan-600 text-[#0F172A] dark:text-white shadow-lg shadow-indigo-500/25' : 'bg-white dark:bg-[#0A1124] hover:bg-[#F8FAFC] dark:hover:bg-[#050B18] text-[#0F172A] dark:text-white border border-[#E2E8F0] dark:border-slate-800'}`}>
+                   <Link to="/signin" className={`block w-full py-3 text-center rounded-xl font-bold transition-all ${plan.name === 'pro_host' ? 'bg-gradient-to-r from-indigo-500 to-cyan-500 hover:from-indigo-600 hover:to-cyan-600 text-[#0F172A] dark:text-white shadow-lg shadow-indigo-500/25' : 'bg-white dark:bg-[#0A1124] hover:bg-[#F8FAFC] dark:hover:bg-[#050B18] text-[#0F172A] dark:text-white border border-[#E2E8F0] dark:border-slate-800'}`}>
                      Get Started
                    </Link>
                  </div>
