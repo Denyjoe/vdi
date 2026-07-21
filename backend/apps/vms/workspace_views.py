@@ -255,20 +255,19 @@ class WorkspaceDeleteView(APIView):
             try:
                 from apps.vms.services.proxmox_service import ProxmoxService
                 ps = ProxmoxService()
-                vmid = ws.vm.proxmox_vm_id
-                
-                try:
-                    status = ps.proxmox.nodes(ps.node).qemu(vmid).status.current.get()
-                    if status.get('status') == 'running':
-                        ps.proxmox.nodes(ps.node).qemu(vmid).status.stop.post()
-                        import time
-                        time.sleep(5)
-                except Exception:
-                    pass
-                
-                ps.proxmox.nodes(ps.node).qemu(vmid).delete()
+                ps.delete_vm_completely(ws.vm.proxmox_vm_id)
+                print(f'Proxmox VM {ws.vm.proxmox_vm_id} genuinely confirmed deleted')
             except Exception as e:
-                errors.append(f'Proxmox VM deletion: {str(e)}')
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f'FAILED to delete Proxmox VM: {str(e)}', exc_info=True)
+                return Response({
+                    'success': False,
+                    'message': (
+                        f'Failed to delete VM from infrastructure: '
+                        f'{str(e)}. Please try again or contact support.'
+                    )
+                }, status=500)
         
         # 3. Delete DB records
         vm_id = ws.vm.id if ws.vm else None

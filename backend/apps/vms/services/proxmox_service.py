@@ -162,20 +162,56 @@ class ProxmoxService:
         self.proxmox.nodes(self.node).qemu(vmid).status.stop.post()
         logger.info("Stopped VM %s", vmid)
 
+    def wait_for_task(self, upid, timeout=60, poll_interval=2):
+        """Poll a Proxmox task UPID until it completes.
+        Returns True if successful, raises Exception if it failed or timed out.
+        """
+        import time
+        elapsed = 0
+        while elapsed < timeout:
+            try:
+                status = self.proxmox.nodes(self.node).tasks(upid).status.get()
+                
+                if status.get('status') == 'stopped':
+                    exitstatus = status.get('exitstatus', '')
+                    if exitstatus == 'OK':
+                        return True
+                    else:
+                        raise Exception(f'Task failed: {exitstatus}')
+            except Exception as e:
+                if 'Task failed' in str(e):
+                    raise
+                # Task might not be queryable yet, keep trying
+            
+            time.sleep(poll_interval)
+            elapsed += poll_interval
+        
+        raise Exception(f'Task {upid} timed out after {timeout}s')
+
+    def delete_vm_completely(self, vmid):
+        """Stop and delete a VM, waiting for each step to actually complete."""
+        # Check current status
+        status = self.proxmox.nodes(self.node).qemu(vmid).status.current.get()
+        
+        if status.get('status') == 'running':
+            stop_upid = self.proxmox.nodes(self.node).qemu(vmid).status.stop.post()
+            self.wait_for_task(stop_upid, timeout=30)
+        
+        # Now genuinely wait a moment for the lock to release after stop completes
+        import time
+        time.sleep(3)
+        
+        # Delete and WAIT for the delete task to actually finish
+        delete_upid = self.proxmox.nodes(self.node).qemu(vmid).delete()
+        self.wait_for_task(delete_upid, timeout=60)
+        
+        return True
+
     def delete_vm(self, vmid):
         """
-        Delete a VM completely (stop first if running).
-
-        Args:
-            vmid (int): The Proxmox VM ID to delete.
+        Delete a VM completely (legacy wrapper).
         """
-        try:
-            self.stop_vm(vmid)
-            time.sleep(CLONE_WAIT_SECONDS)
-        except Exception:
-            pass  # VM might already be stopped
-
-        self.proxmox.nodes(self.node).qemu(vmid).delete()
+        self.delete_vm_completely(vmid)
         logger.info("Deleted VM %s", vmid)
 
     def get_vm_ip(self, vmid, max_wait=DEFAULT_MAX_WAIT_SECONDS):
