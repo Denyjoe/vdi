@@ -132,7 +132,7 @@ class WorkspaceLaunchView(APIView):
                     
                     if workspace.vm_template.is_real:
                         import threading
-                        thread = threading.Thread(target=orchestrator.provision_real_vm, args=(workspace.vm,))
+                        thread = threading.Thread(target=orchestrator.start_real_vm, args=(workspace,))
                         thread.daemon = True
                         thread.start()
                     else:

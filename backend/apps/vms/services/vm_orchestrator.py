@@ -179,6 +179,96 @@ class VMOrchestrator:
             'uptime_seconds': uptime,
             'can_connect': vm.status == 'running',
         }
+    def start_real_vm(self, workspace):
+        """
+        Start an existing real VM (Power Up flow).
+        """
+        vm = workspace.vm
+        vm.status = 'provisioning'
+        vm.save()
+        
+        try:
+            from apps.vms.services.proxmox_service import get_proxmox_service
+            from apps.vms.services.guacamole_service import get_guacamole_service
+            from decouple import config
+            import time
+            from django.utils import timezone
+            
+            proxmox = get_proxmox_service()
+            guacamole = get_guacamole_service()
+            
+            if not vm.proxmox_vm_id:
+                raise Exception("VM does not have a proxmox_vm_id")
+                
+            proxmox.start_vm(vm.proxmox_vm_id)
+            
+            ASSIGN_IP_WAIT_SECONDS = 120
+            ip_address = proxmox.get_vm_ip(vm.proxmox_vm_id, max_wait=ASSIGN_IP_WAIT_SECONDS)
+            if not ip_address:
+                raise Exception('VM did not acquire IP address within timeout')
+                
+            vm.ip_address = ip_address
+            vm.save()
+            
+            time.sleep(15)
+            
+            session_restrictions = {}
+            try:
+                from apps.sessions.models import SessionParticipant
+                participant = SessionParticipant.objects.filter(vm=vm).first()
+                if participant and participant.session:
+                    session_restrictions = participant.session.restrictions
+            except ImportError:
+                pass
+                
+            if vm.guacamole_connection_id:
+                try:
+                    guacamole.delete_connection(vm.guacamole_connection_id)
+                except Exception:
+                    pass
+            
+            clone_name = f'vm-{vm.owner.id}-{vm.id}'
+            conn_id = guacamole.create_connection(
+                name=clone_name,
+                hostname=ip_address,
+                username=config('VM_DEFAULT_USER', default='student'),
+                password=config('VM_DEFAULT_PASSWORD', default='student123'),
+                restrictions=session_restrictions
+            )
+            
+            vm.guacamole_connection_id = conn_id or ''
+            vm.status = 'running'
+            vm.started_at = timezone.now()
+            vm.save()
+            
+            workspace.status = 'active'
+            workspace.save()
+            
+            self._log_activity(vm, 'VM_REAL_STARTED', {
+                'vmid': vm.proxmox_vm_id,
+                'ip': ip_address,
+                'guacamole_connection': conn_id,
+            })
+            
+            return {
+                'status': 'running',
+                'vmid': vm.proxmox_vm_id,
+                'ip': ip_address,
+                'guacamole_connection': conn_id,
+            }
+            
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(
+                f'Provisioning update failed '
+                f'for workspace {workspace.id}: '
+                f'{str(e)}', exc_info=True)
+            # Also update status to reflect the real problem instead of leaving it stuck
+            workspace.vm.status = 'error'
+            workspace.vm.notes = f'Update failed: {str(e)}'
+            workspace.vm.save()
+            return {'error': str(e)}
 
     def provision_real_vm(self, vm):
         """
