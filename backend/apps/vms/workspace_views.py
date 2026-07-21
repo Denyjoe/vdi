@@ -243,7 +243,11 @@ class WorkspaceDeleteView(APIView):
                 gs = GuacamoleService()
                 gs.authenticate()
                 gs.delete_connection(ws.vm.guacamole_connection_id)
+                print(f'Guacamole connection {ws.vm.guacamole_connection_id} deleted successfully')
             except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f'FAILED to delete Guacamole connection: {str(e)}', exc_info=True)
                 errors.append(f'Guacamole cleanup: {str(e)}')
         
         # 2. Stop and destroy the actual Proxmox VM

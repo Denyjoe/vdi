@@ -194,16 +194,21 @@ class GuacamoleService:
         """
         self._ensure_authenticated()
 
-        try:
-            requests.delete(
-                f'{self.base_url}/api/session/data/'
-                f'{self.data_source}/connections/{connection_id}',
-                params={'token': self.token},
-                timeout=REQUEST_TIMEOUT_SECONDS,
+        res = requests.delete(
+            f'{self.base_url}/api/session/data/'
+            f'{self.data_source}/connections/{connection_id}',
+            params={'token': self.token},
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+        
+        if res.status_code not in [200, 204]:
+            raise Exception(
+                f'Failed to delete connection {connection_id}: '
+                f'{res.status_code} {res.text}'
             )
-            logger.info("Deleted Guacamole connection %s", connection_id)
-        except requests.RequestException as exc:
-            logger.error("Guacamole delete connection error: %s", exc)
+            
+        logger.info("Deleted Guacamole connection %s", connection_id)
+        return True
 
     def get_connection_url(self, connection_id):
         """
