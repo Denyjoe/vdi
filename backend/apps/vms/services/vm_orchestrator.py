@@ -303,7 +303,8 @@ class VMOrchestrator:
 
         # Pool empty — fall back to direct clone (slow path)
         vm.status = 'provisioning'
-        vm.save()
+        vm.notes = 'Cloning template...'
+        vm.save(update_fields=['status', 'notes'])
 
         try:
             from apps.vms.services.proxmox_service import get_proxmox_service
@@ -318,17 +319,24 @@ class VMOrchestrator:
                 template.proxmox_template_id, clone_name)
 
             vm.proxmox_vm_id = new_vmid
-            vm.save()
+            vm.notes = 'Starting virtual machine...'
+            vm.save(update_fields=['proxmox_vm_id', 'notes'])
 
             proxmox.start_vm(new_vmid)
 
-            DIRECT_CLONE_IP_WAIT = 300
-            ip_address = proxmox.get_vm_ip(new_vmid, max_wait=DIRECT_CLONE_IP_WAIT)
+            DIRECT_CLONE_IP_WAIT = 90
+            
+            def ip_progress_cb(waited):
+                vm.notes = f'Waiting for network ({waited}s)...'
+                vm.save(update_fields=['notes'])
+
+            ip_address = proxmox.get_vm_ip(new_vmid, max_wait=DIRECT_CLONE_IP_WAIT, progress_callback=ip_progress_cb)
 
             if not ip_address:
                 vm.status = 'error'
-                vm.notes = 'VM did not acquire IP address within timeout'
-                vm.save()
+                vm.notes = ('Failed to detect network after clone. The VM may still be '
+                            'booting — try refreshing in a moment, or contact support if this persists.')
+                vm.save(update_fields=['status', 'notes'])
                 self._log_activity(vm, 'VM_PROVISION_FAILED', {'reason': 'no_ip'})
                 return {'error': 'VM did not get IP'}
 
@@ -357,6 +365,7 @@ class VMOrchestrator:
 
             vm.guacamole_connection_id = conn_id or ''
             vm.status = 'running'
+            vm.notes = ''
             vm.started_at = timezone.now()
             vm.save()
 

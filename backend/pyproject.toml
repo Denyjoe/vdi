@@ -1,0 +1,5 @@
+[tool.pyrefly]
+python_version = "3.14"
+search_path = [
+    "C:\\Users\\Denis Wilson\\Desktop\\dit-vdi-system\\backend\\venv\\Lib\\site-packages",
+]

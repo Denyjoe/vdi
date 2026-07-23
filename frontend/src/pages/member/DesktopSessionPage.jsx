@@ -68,6 +68,9 @@ export default function DesktopSessionPage() {
     if (type !== 'workspace') return;
     
     let intervalId;
+    let hardTimeoutId;
+    let isComplete = false;
+
     const fetchWs = async () => {
       try {
         const res = await api.get(`/workspaces/${sessionId}/`);
@@ -77,10 +80,17 @@ export default function DesktopSessionPage() {
         const vmStatus = wsData.vm_details?.status;
         if (vmStatus === 'error') {
            setWsLoading(false);
+           isComplete = true;
         } else if (vmStatus === 'running' || wsData.status === 'active') {
            if (!wsData.vm_template_details?.is_real || wsData.vm_details?.guacamole_url) {
               setWsLoading(false);
+              isComplete = true;
            }
+        }
+        
+        if (isComplete) {
+           clearInterval(intervalId);
+           clearTimeout(hardTimeoutId);
         }
       } catch (err) {
         console.error(err);
@@ -89,7 +99,24 @@ export default function DesktopSessionPage() {
     
     fetchWs();
     intervalId = setInterval(fetchWs, 3000);
-    return () => clearInterval(intervalId);
+    
+    hardTimeoutId = setTimeout(() => {
+      clearInterval(intervalId);
+      setWsLoading(false);
+      setWorkspace(prev => ({
+        ...prev,
+        vm_details: {
+          ...(prev?.vm_details || {}),
+          status: 'error',
+          notes: "Provisioning timed out. The system took too long to respond."
+        }
+      }));
+    }, 150000);
+
+    return () => {
+      clearInterval(intervalId);
+      clearTimeout(hardTimeoutId);
+    };
   }, [type, sessionId]);
 
   const [disconnectedByAdmin, setDisconnectedByAdmin] = useState(false);
@@ -252,7 +279,7 @@ export default function DesktopSessionPage() {
           <div className="w-10 h-10 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
           <div className="text-center">
              <h2 className="text-[var(--text-primary)] text-xl font-semibold mb-2">Preparing your workspace...</h2>
-             <p className="text-[var(--text-secondary)]">Starting virtual machine. This usually takes 30-60 seconds.</p>
+             <p className="text-[var(--text-secondary)]">{workspace?.vm_details?.notes || 'Starting virtual machine...'}</p>
           </div>
         </div>
       );
@@ -262,11 +289,17 @@ export default function DesktopSessionPage() {
        return (
         <div className="flex flex-col items-center justify-center h-screen gap-6 bg-[#050B18]">
           <div className="text-center max-w-md">
+             <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
              <h2 className="text-red-400 text-xl font-semibold mb-2">Error Provisioning Workspace</h2>
              <p className="text-[var(--text-secondary)] mb-6">{workspace.vm_details?.notes || 'Unknown error occurred during provisioning.'}</p>
-             <button onClick={() => navigate('/workspaces')} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/25">
-               Back to Workspaces
-             </button>
+             <div className="flex justify-center gap-4">
+                 <button onClick={() => window.location.reload()} className="px-6 py-3 bg-transparent text-[var(--text-primary)] rounded-xl font-medium hover:bg-white/5 transition-colors border border-[var(--border-color)]">
+                   Try Again
+                 </button>
+                 <button onClick={() => navigate('/workspaces')} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/25">
+                   Back to Workspaces
+                 </button>
+             </div>
           </div>
         </div>
        );
