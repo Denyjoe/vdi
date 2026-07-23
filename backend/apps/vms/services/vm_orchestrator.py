@@ -209,9 +209,49 @@ class VMOrchestrator:
                 
             vm.ip_address = ip_address
             vm.save()
-            
-            time.sleep(15)
-            
+
+            # Wait for RDP to be genuinely ready (TCP port check)
+            import socket
+            def wait_for_rdp_ready(ip, port=3389, timeout=90, poll_interval=2):
+                """Wait until xrdp is actually accepting connections."""
+                elapsed = 0
+                while elapsed < timeout:
+                    try:
+                        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        sock.settimeout(3)
+                        result = sock.connect_ex((ip, port))
+                        sock.close()
+                        if result == 0:
+                            return True
+                    except Exception:
+                        pass
+                    time.sleep(poll_interval)
+                    elapsed += poll_interval
+                return False
+
+            vm.notes = 'Waiting for remote desktop service to start...'
+            vm.save(update_fields=['notes'])
+
+            rdp_ready = wait_for_rdp_ready(ip_address, timeout=90)
+            if not rdp_ready:
+                # Clean up the orphaned Proxmox VM
+                try:
+                    proxmox.delete_vm_completely(vm.proxmox_vm_id)
+                except Exception as cleanup_err:
+                    import logging
+                    logging.getLogger(__name__).error(
+                        f'Failed to clean up orphaned VM {vm.proxmox_vm_id} '
+                        f'after RDP timeout: {cleanup_err}')
+                vm.status = 'error'
+                vm.notes = (
+                    'VM started but the remote desktop service did not '
+                    'become ready in time. The VM has been cleaned up. '
+                    'Please try again.')
+                vm.save()
+                workspace.status = 'error'
+                workspace.save()
+                return {'error': 'RDP port did not become ready'}
+
             session_restrictions = {}
             try:
                 from apps.sessions.models import SessionParticipant
@@ -236,6 +276,8 @@ class VMOrchestrator:
                     password=config('VM_DEFAULT_PASSWORD', default='student123'),
                     restrictions=session_restrictions
                 )
+                if not conn_id:
+                    raise Exception('Guacamole connection failed: create_connection returned None')
                 vm.guacamole_connection_id = conn_id
             except Exception as e:
                 import logging
@@ -244,11 +286,19 @@ class VMOrchestrator:
                     f'Guacamole connection failed '
                     f'for VM {vm.id}: {str(e)}',
                     exc_info=True)
+                # Clean up the orphaned Proxmox VM
+                try:
+                    proxmox.delete_vm_completely(vm.proxmox_vm_id)
+                except Exception as cleanup_err:
+                    logger.error(
+                        f'Failed to clean up orphaned VM {vm.proxmox_vm_id} '
+                        f'after Guacamole failure: {cleanup_err}')
                 vm.status = 'error'
                 vm.notes = (
                     'VM started successfully but '
                     'failed to connect to the '
                     'remote desktop service. '
+                    'The VM has been cleaned up. '
                     'Please try again or contact '
                     'support.')
                 vm.save()
@@ -365,7 +415,8 @@ class VMOrchestrator:
 
             # Wait for RDP to be genuinely ready
             import socket
-            def wait_for_rdp_ready(ip, port=3389, timeout=60, poll_interval=2):
+            def wait_for_rdp_ready(ip, port=3389, timeout=90, poll_interval=2):
+                """Wait until xrdp is actually accepting connections."""
                 elapsed = 0
                 while elapsed < timeout:
                     try:
@@ -384,12 +435,22 @@ class VMOrchestrator:
             vm.notes = 'Waiting for remote desktop service to start...'
             vm.save(update_fields=['notes'])
 
-            rdp_ready = wait_for_rdp_ready(ip_address, timeout=60)
+            rdp_ready = wait_for_rdp_ready(ip_address, timeout=90)
             if not rdp_ready:
+                # Clean up the orphaned Proxmox VM
+                try:
+                    from apps.vms.services.proxmox_service import get_proxmox_service
+                    get_proxmox_service().delete_vm_completely(vm.proxmox_vm_id)
+                except Exception as cleanup_err:
+                    import logging
+                    logging.getLogger(__name__).error(
+                        f'Failed to clean up orphaned VM {vm.proxmox_vm_id} '
+                        f'after RDP timeout: {cleanup_err}')
                 vm.status = 'error'
                 vm.notes = (
                     'VM started but the remote desktop service did not '
-                    'become ready in time. Please try again.')
+                    'become ready in time. The VM has been cleaned up. '
+                    'Please try again.')
                 vm.save()
                 workspace = vm.workspace_set.first()
                 if workspace:
@@ -424,11 +485,20 @@ class VMOrchestrator:
                     f'Guacamole connection failed '
                     f'for VM {vm.id}: {str(e)}',
                     exc_info=True)
+                # Clean up the orphaned Proxmox VM
+                try:
+                    from apps.vms.services.proxmox_service import get_proxmox_service
+                    get_proxmox_service().delete_vm_completely(vm.proxmox_vm_id)
+                except Exception as cleanup_err:
+                    logger.error(
+                        f'Failed to clean up orphaned VM {vm.proxmox_vm_id} '
+                        f'after Guacamole failure: {cleanup_err}')
                 vm.status = 'error'
                 vm.notes = (
                     'VM started successfully but '
                     'failed to connect to the '
                     'remote desktop service. '
+                    'The VM has been cleaned up. '
                     'Please try again or contact '
                     'support.')
                 vm.save()
