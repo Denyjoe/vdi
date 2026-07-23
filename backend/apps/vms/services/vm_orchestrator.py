@@ -363,8 +363,39 @@ class VMOrchestrator:
             vm.ip_address = ip_address
             vm.save()
 
-            RDP_READY_WAIT = 15
-            time.sleep(RDP_READY_WAIT)
+            # Wait for RDP to be genuinely ready
+            import socket
+            def wait_for_rdp_ready(ip, port=3389, timeout=60, poll_interval=2):
+                elapsed = 0
+                while elapsed < timeout:
+                    try:
+                        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        sock.settimeout(3)
+                        result = sock.connect_ex((ip, port))
+                        sock.close()
+                        if result == 0:
+                            return True
+                    except Exception:
+                        pass
+                    time.sleep(poll_interval)
+                    elapsed += poll_interval
+                return False
+
+            vm.notes = 'Waiting for remote desktop service to start...'
+            vm.save(update_fields=['notes'])
+
+            rdp_ready = wait_for_rdp_ready(ip_address, timeout=60)
+            if not rdp_ready:
+                vm.status = 'error'
+                vm.notes = (
+                    'VM started but the remote desktop service did not '
+                    'become ready in time. Please try again.')
+                vm.save()
+                workspace = vm.workspace_set.first()
+                if workspace:
+                    workspace.status = 'error'
+                    workspace.save()
+                return {'error': 'RDP port did not become ready'}
 
             session_restrictions = {}
             try:

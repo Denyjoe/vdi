@@ -192,15 +192,31 @@ class VMPoolService:
                     pass
 
                 # Create new one with correct IP
-                conn_id = self.guacamole.create_connection(
-                    name=f'user-{user.id}-vm-{entry.proxmox_vmid}',
-                    hostname=ip_address,
-                    username=config('VM_DEFAULT_USER', default='student'),
-                    password=config('VM_DEFAULT_PASSWORD', default='student123'),
-                    restrictions=session_restrictions
-                )
-                entry.guacamole_connection_id = conn_id or ''
-                entry.save()
+                try:
+                    conn_id = self.guacamole.create_connection(
+                        name=f'user-{user.id}-vm-{entry.proxmox_vmid}',
+                        hostname=ip_address,
+                        username=config('VM_DEFAULT_USER', default='student'),
+                        password=config('VM_DEFAULT_PASSWORD', default='student123'),
+                        restrictions=session_restrictions
+                    )
+                    entry.guacamole_connection_id = conn_id
+                    entry.save()
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f'Pool Guacamole connection failed: {e}', exc_info=True)
+                    entry.status = 'error'
+                    entry.notes = 'Failed to connect to remote desktop service'
+                    entry.save()
+                    vm_instance.status = 'error'
+                    vm_instance.notes = entry.notes
+                    vm_instance.save()
+                    workspace = vm_instance.workspace_set.first()
+                    if workspace:
+                        workspace.status = 'error'
+                        workspace.save()
+                    return {'error': f'Guacamole connection failed: {e}'}
 
             # Update the VirtualMachine record
             vm_instance.proxmox_vm_id = entry.proxmox_vmid
@@ -242,19 +258,26 @@ class VMPoolService:
         entry = VMPoolEntry.objects.filter(assigned_vm=vm_instance).first()
 
         if entry:
+            errors = []
             # Delete Guacamole connection
             if entry.guacamole_connection_id:
                 try:
                     self.guacamole.delete_connection(entry.guacamole_connection_id)
-                except Exception:
-                    pass
+                except Exception as e:
+                    errors.append(f"Guacamole: {str(e)}")
 
             # Delete VM from Proxmox
             if entry.proxmox_vmid:
                 try:
                     self.proxmox.delete_vm(entry.proxmox_vmid)
-                except Exception:
-                    pass
+                except Exception as e:
+                    errors.append(f"Proxmox: {str(e)}")
+
+            if errors:
+                entry.status = 'error'
+                entry.notes = 'Release failed: ' + ' | '.join(errors)
+                entry.save()
+                raise Exception(entry.notes)
 
             entry.delete()
 
@@ -301,8 +324,10 @@ class VMPoolService:
             if entry.proxmox_vmid:
                 try:
                     self.proxmox.delete_vm(entry.proxmox_vmid)
-                except Exception:
-                    pass
-            entry.delete()
+                    entry.delete()
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Failed to clean broken pool entry {entry.id} (VM {entry.proxmox_vmid}): {e}")
             cleaned += 1
         return cleaned
