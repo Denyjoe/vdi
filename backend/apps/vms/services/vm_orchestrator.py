@@ -228,15 +228,34 @@ class VMOrchestrator:
                     pass
             
             clone_name = f'vm-{vm.owner.id}-{vm.id}'
-            conn_id = guacamole.create_connection(
-                name=clone_name,
-                hostname=ip_address,
-                username=config('VM_DEFAULT_USER', default='student'),
-                password=config('VM_DEFAULT_PASSWORD', default='student123'),
-                restrictions=session_restrictions
-            )
+            try:
+                conn_id = guacamole.create_connection(
+                    name=clone_name,
+                    hostname=ip_address,
+                    username=config('VM_DEFAULT_USER', default='student'),
+                    password=config('VM_DEFAULT_PASSWORD', default='student123'),
+                    restrictions=session_restrictions
+                )
+                vm.guacamole_connection_id = conn_id
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(
+                    f'Guacamole connection failed '
+                    f'for VM {vm.id}: {str(e)}',
+                    exc_info=True)
+                vm.status = 'error'
+                vm.notes = (
+                    'VM started successfully but '
+                    'failed to connect to the '
+                    'remote desktop service. '
+                    'Please try again or contact '
+                    'support.')
+                vm.save()
+                workspace.status = 'error'
+                workspace.save()
+                return {'error': f'Guacamole connection failed: {str(e)}'}
             
-            vm.guacamole_connection_id = conn_id or ''
             vm.status = 'running'
             vm.started_at = timezone.now()
             vm.save()
@@ -356,15 +375,38 @@ class VMOrchestrator:
             except ImportError:
                 pass
 
-            conn_id = guacamole.create_connection(
-                name=clone_name,
-                hostname=ip_address,
-                username=config('VM_DEFAULT_USER', default='student'),
-                password=config('VM_DEFAULT_PASSWORD', default='student123'),
-                restrictions=session_restrictions
-            )
+            try:
+                conn_id = guacamole.create_connection(
+                    name=clone_name,
+                    hostname=ip_address,
+                    username=config('VM_DEFAULT_USER', default='student'),
+                    password=config('VM_DEFAULT_PASSWORD', default='student123'),
+                    restrictions=session_restrictions
+                )
+                if not conn_id:
+                    raise Exception('Guacamole connection failed: create_connection returned None')
+                vm.guacamole_connection_id = conn_id
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(
+                    f'Guacamole connection failed '
+                    f'for VM {vm.id}: {str(e)}',
+                    exc_info=True)
+                vm.status = 'error'
+                vm.notes = (
+                    'VM started successfully but '
+                    'failed to connect to the '
+                    'remote desktop service. '
+                    'Please try again or contact '
+                    'support.')
+                vm.save()
+                workspace = vm.workspace_set.first()
+                if workspace:
+                    workspace.status = 'error'
+                    workspace.save()
+                return {'error': f'Guacamole connection failed: {str(e)}'}
 
-            vm.guacamole_connection_id = conn_id or ''
             vm.status = 'running'
             vm.notes = ''
             vm.started_at = timezone.now()
@@ -409,14 +451,24 @@ class VMOrchestrator:
         from apps.vms.services.proxmox_service import get_proxmox_service
         from apps.vms.services.guacamole_service import get_guacamole_service
 
+        errors = []
         try:
             if vm.guacamole_connection_id:
                 guacamole = get_guacamole_service()
-                guacamole.delete_connection(vm.guacamole_connection_id)
+                try:
+                    guacamole.delete_connection(vm.guacamole_connection_id)
+                except Exception as e:
+                    errors.append(f"Guacamole: {str(e)}")
 
             if vm.proxmox_vm_id:
                 proxmox = get_proxmox_service()
-                proxmox.delete_vm(vm.proxmox_vm_id)
+                try:
+                    proxmox.delete_vm(vm.proxmox_vm_id)
+                except Exception as e:
+                    errors.append(f"Proxmox: {str(e)}")
+
+            if errors:
+                raise Exception(' | '.join(errors))
 
             vm.status = 'deleted'
             vm.save()

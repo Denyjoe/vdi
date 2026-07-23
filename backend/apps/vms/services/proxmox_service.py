@@ -88,13 +88,15 @@ class ProxmoxService:
         return self._client
 
     def get_next_vmid(self):
-        """
-        Get the next available VM ID from the cluster.
-
-        Returns:
-            int: Next available VMID.
-        """
-        return int(self.proxmox.cluster.nextid.get())
+        """Get the next available Proxmox VM ID."""
+        vms = self.proxmox.nodes(self.node).qemu.get()
+        existing_ids = [int(v.get('vmid')) for v in vms]
+        if not existing_ids:
+            return 110
+        max_id = max(existing_ids)
+        if max_id < 110:
+            return 110
+        return max_id + 1
 
     def clone_template(self, template_id, name):
         """
@@ -108,12 +110,17 @@ class ProxmoxService:
             int: The VMID of the newly created clone.
         """
         new_vmid = self.get_next_vmid()
+        logger.info(f"[DEBUG] Starting clone.post for {new_vmid}...")
 
-        upid = self.proxmox.nodes(self.node).qemu(template_id).clone.post(
-            newid=new_vmid,
-            name=name,
-            full=1,  # full clone — linked clone not supported on this local-lvm
-        )
+        try:
+            upid = self.proxmox.nodes(self.node).qemu(template_id).clone.post(
+                newid=new_vmid,
+                name=name,
+                full=0,  # linked clone — supported and dramatically faster on LVM-thin
+            )
+        except Exception as e:
+            logger.info(f"[DEBUG] clone.post failed: {e}")
+            raise
 
         logger.info(
             "Cloned template %s -> VM %s (name: %s), UPID: %s",
@@ -122,15 +129,17 @@ class ProxmoxService:
 
         # Wait for full clone to finish
         import time
-        for _ in range(120):  # Wait up to 10 minutes (120 * 5s)
+        for i in range(120):  # Wait up to 10 minutes (120 * 5s)
             try:
                 task_status = self.proxmox.nodes(self.node).tasks(upid).status.get()
+                logger.info(f"[DEBUG] Poll {i}: {task_status}")
                 if task_status.get("status") == "stopped":
                     if task_status.get("exitstatus") == "OK":
                         break
                     else:
                         raise Exception(f"Clone task failed: {task_status.get('exitstatus')}")
             except Exception as e:
+                logger.info(f"[DEBUG] Poll exception {i}: {e}")
                 if "failed" in str(e).lower():
                     raise
             time.sleep(5)
