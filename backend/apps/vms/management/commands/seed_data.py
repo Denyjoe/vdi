@@ -51,7 +51,7 @@ class Command(BaseCommand):
         default_settings = [
             {'key': 'max_vms_per_student', 'value': '1', 'description': 'Maximum number of VMs a student can have running at once'},
             {'key': 'max_session_hours', 'value': '8', 'description': 'Maximum session duration in hours before auto-disconnect'},
-            {'key': 'vm_provisioning_timeout', 'value': '300', 'description': 'VM provisioning timeout in seconds'},
+            {'key': 'vm_provisioning_timeout', 'value': '320', 'description': 'VM provisioning timeout in seconds'},
             {'key': 'allow_student_registration', 'value': 'true', 'description': 'Allow new student self-registration'},
             {'key': 'require_enrollment_approval', 'value': 'true', 'description': 'Require lecturer approval for class enrollment requests'},
             {'key': 'current_academic_year', 'value': '2025/2026', 'description': 'Current academic year displayed across the system'},

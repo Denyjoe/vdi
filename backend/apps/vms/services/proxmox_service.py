@@ -215,7 +215,7 @@ class ProxmoxService:
         logger.info("Deleted VM %s", vmid)
 
     def get_vm_ip(self, vmid, max_wait=DEFAULT_MAX_WAIT_SECONDS, progress_callback=None):
-        \"\"\"
+        """
         Get the VM's IP address via the QEMU guest agent.
 
         Polls the guest agent network interfaces until a 192.168.x.x
@@ -228,7 +228,7 @@ class ProxmoxService:
 
         Returns:
             str or None: The IP address, or None if not found in time.
-        \"\"\"
+        """
         waited = 0
         while waited < max_wait:
             if progress_callback:

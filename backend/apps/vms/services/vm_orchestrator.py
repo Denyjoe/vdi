@@ -282,31 +282,32 @@ class VMOrchestrator:
             dict: Result with status, vmid, ip, guacamole_connection,
                   guacamole_url on success, or error message on failure.
         """
-        from apps.vms.services.pool_service import VMPoolService
-
-        template = vm.template
-
-        if not template.is_real or not template.proxmox_template_id:
-            return self.provision_vm(vm)
-
-        pool = VMPoolService()
-
-        # Try pool first (fast path)
-        result = pool.assign_vm_to_user(template, vm.owner, vm)
-
-        if 'error' not in result:
-            self._log_activity(vm, 'VM_POOL_ASSIGNED', {
-                'vmid': result.get('vmid'),
-                'ip': result.get('ip'),
-            })
-            return result
-
-        # Pool empty — fall back to direct clone (slow path)
-        vm.status = 'provisioning'
-        vm.notes = 'Cloning template...'
-        vm.save(update_fields=['status', 'notes'])
-
+        print(f'[THREAD START] provision_real_vm called for VM {vm.id}')
         try:
+            from apps.vms.services.pool_service import VMPoolService
+
+            template = vm.template
+
+            if not template.is_real or not template.proxmox_template_id:
+                return self.provision_vm(vm)
+
+            pool = VMPoolService()
+
+            # Try pool first (fast path)
+            result = pool.assign_vm_to_user(template, vm.owner, vm)
+
+            if 'error' not in result:
+                self._log_activity(vm, 'VM_POOL_ASSIGNED', {
+                    'vmid': result.get('vmid'),
+                    'ip': result.get('ip'),
+                })
+                return result
+
+            # Pool empty — fall back to direct clone (slow path)
+            vm.status = 'provisioning'
+            vm.notes = 'Cloning template...'
+            vm.save(update_fields=['status', 'notes'])
+
             from apps.vms.services.proxmox_service import get_proxmox_service
             from apps.vms.services.guacamole_service import get_guacamole_service
             from decouple import config
@@ -386,6 +387,9 @@ class VMOrchestrator:
             }
 
         except Exception as exc:
+            print(f'[THREAD CRASHED] {str(exc)}')
+            import traceback
+            traceback.print_exc()
             vm.status = 'error'
             vm.notes = str(exc)
             vm.save()

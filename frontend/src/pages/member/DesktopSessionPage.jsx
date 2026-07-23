@@ -108,10 +108,11 @@ export default function DesktopSessionPage() {
         vm_details: {
           ...(prev?.vm_details || {}),
           status: 'error',
-          notes: "Provisioning timed out. The system took too long to respond."
+          isTimeout: true,
+          notes: "This workspace is taking longer than expected to start. On current infrastructure, cold starts can take up to 5 minutes."
         }
       }));
-    }, 150000);
+    }, 330000); // 330 seconds — matches realistic HDD clone+boot time with safety margin
 
     return () => {
       clearInterval(intervalId);
@@ -286,18 +287,23 @@ export default function DesktopSessionPage() {
     }
     
     if (workspace?.vm_details?.status === 'error') {
+       const isTimeout = workspace?.vm_details?.isTimeout;
        return (
         <div className="flex flex-col items-center justify-center h-screen gap-6 bg-[#050B18]">
           <div className="text-center max-w-md">
-             <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-             <h2 className="text-red-400 text-xl font-semibold mb-2">Error Provisioning Workspace</h2>
-             <p className="text-[var(--text-secondary)] mb-6">{workspace.vm_details?.notes || 'Unknown error occurred during provisioning.'}</p>
-             <div className="flex justify-center gap-4">
+             <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+             <h2 className="text-red-400 text-xl font-semibold mb-2">
+               {isTimeout ? 'Provisioning Taking Longer Than Expected' : 'Error Provisioning Workspace'}
+             </h2>
+             <p className="text-[var(--text-secondary)] mb-6">
+               {workspace.vm_details?.notes || 'Unknown error occurred during provisioning.'}
+             </p>
+             <div className="flex justify-center gap-4 flex-col sm:flex-row">
                  <button onClick={() => window.location.reload()} className="px-6 py-3 bg-transparent text-[var(--text-primary)] rounded-xl font-medium hover:bg-white/5 transition-colors border border-[var(--border-color)]">
-                   Try Again
+                   {isTimeout ? 'Check Again' : 'Try Again'}
                  </button>
-                 <button onClick={() => navigate('/workspaces')} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/25">
-                   Back to Workspaces
+                 <button onClick={() => navigate('/workspaces')} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/25 text-sm">
+                   Back to Workspaces {isTimeout ? '(it may still finish)' : ''}
                  </button>
              </div>
           </div>
