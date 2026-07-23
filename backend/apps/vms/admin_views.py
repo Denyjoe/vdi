@@ -114,45 +114,77 @@ class AdminForceStopWorkspaceView(views.APIView):
             return Response({'success': False, 'message': str(e)}, status=500)
 
 class AdminDeleteWorkspaceView(views.APIView):
+    """Admin endpoint to delete a workspace with full infrastructure cleanup."""
     permission_classes = [IsAdminUser]
     
     def delete(self, request, workspace_id):
         try:
-            from apps.vms.models import Workspace
-            from apps.vms.services.pool_service import VMPoolService
+            from apps.vms.models import Workspace, VirtualMachine
             
             ws = Workspace.objects.get(id=workspace_id)
             
-            if ws.vm and ws.status in ['active', 'running']:
-                pool = VMPoolService()
+            # 1. Delete Guacamole connection
+            if ws.vm and getattr(ws.vm, 'guacamole_connection_id', None):
                 try:
-                    pool.release_vm(ws.vm)
-                except Exception:
-                    pass
+                    from apps.vms.services.guacamole_service import GuacamoleService
+                    gs = GuacamoleService()
+                    gs.authenticate()
+                    gs.delete_connection(ws.vm.guacamole_connection_id)
+                except Exception as e:
+                    import logging
+                    logging.getLogger(__name__).error(
+                        f'Admin delete: failed to delete Guacamole '
+                        f'connection {ws.vm.guacamole_connection_id}: {e}',
+                        exc_info=True)
             
+            # 2. Stop and destroy the actual Proxmox VM
+            if ws.vm and getattr(ws.vm, 'proxmox_vm_id', None):
+                try:
+                    from apps.vms.services.proxmox_service import ProxmoxService
+                    ps = ProxmoxService()
+                    ps.delete_vm_completely(ws.vm.proxmox_vm_id)
+                except Exception as e:
+                    import logging
+                    logging.getLogger(__name__).error(
+                        f'Admin delete: failed to delete Proxmox VM '
+                        f'{ws.vm.proxmox_vm_id}: {e}', exc_info=True)
+                    return Response({
+                        'success': False,
+                        'message': (
+                            f'Failed to delete VM from infrastructure: '
+                            f'{str(e)}. Please try again or contact support.'
+                        )
+                    }, status=500)
+            
+            # 3. Delete DB records
             name = ws.name
             owner_email = ws.owner.email if ws.owner else 'unknown'
+            vm_id = ws.vm.id if ws.vm else None
             ws.delete()
+            if vm_id:
+                VirtualMachine.objects.filter(id=vm_id).delete()
             
             from apps.users.admin_services import log_admin_action
             log_admin_action(
                 request.user, 
-                'vm_stopped',
+                'workspace_deleted',
                 f'Deleted workspace "{name}" (owner: {owner_email})',
                 target_type='workspace',
                 target_id=workspace_id
             )
             
-            return Response({'success': True, 'message': 'Workspace deleted'})
+            return Response({'success': True, 'message': 'Workspace permanently deleted'})
+        except Workspace.DoesNotExist:
+            return Response({'success': False, 'message': 'Workspace not found'}, status=404)
         except Exception as e:
             return Response({'success': False, 'message': str(e)}, status=500)
 
 class AdminBulkWorkspaceView(views.APIView):
+    """Admin endpoint for bulk workspace operations with full infrastructure cleanup."""
     permission_classes = [IsAdminUser]
     
     def post(self, request):
-        from apps.vms.models import Workspace
-        from apps.vms.services.pool_service import VMPoolService
+        from apps.vms.models import Workspace, VirtualMachine
         
         workspace_ids = request.data.get('workspace_ids', [])
         action = request.data.get('action')
@@ -160,35 +192,60 @@ class AdminBulkWorkspaceView(views.APIView):
         if not workspace_ids or not action:
             return Response({'success': False, 'message': 'workspace_ids and action required'}, status=400)
         
-        pool = VMPoolService()
         count = 0
+        errors = []
         
         workspaces = Workspace.objects.filter(id__in=workspace_ids)
         
         if action == 'stop':
             for ws in workspaces:
-                if ws.vm:
+                if ws.vm and getattr(ws.vm, 'proxmox_vm_id', None):
                     try:
-                        pool.release_vm(ws.vm)
-                    except Exception:
-                        pass
+                        from apps.vms.services.proxmox_service import ProxmoxService
+                        ps = ProxmoxService()
+                        ps.proxmox.nodes(ps.node).qemu(ws.vm.proxmox_vm_id).status.stop.post()
+                    except Exception as e:
+                        errors.append(f'VM {ws.vm.proxmox_vm_id}: {e}')
                 ws.status = 'stopped'
                 ws.save()
                 count += 1
         elif action == 'delete':
             for ws in workspaces:
-                if ws.vm and ws.status in ['active', 'running']:
+                # 1. Delete Guacamole connection
+                if ws.vm and getattr(ws.vm, 'guacamole_connection_id', None):
                     try:
-                        pool.release_vm(ws.vm)
-                    except Exception:
-                        pass
+                        from apps.vms.services.guacamole_service import GuacamoleService
+                        gs = GuacamoleService()
+                        gs.authenticate()
+                        gs.delete_connection(ws.vm.guacamole_connection_id)
+                    except Exception as e:
+                        errors.append(f'Guacamole {ws.vm.guacamole_connection_id}: {e}')
+                
+                # 2. Delete Proxmox VM
+                if ws.vm and getattr(ws.vm, 'proxmox_vm_id', None):
+                    try:
+                        from apps.vms.services.proxmox_service import ProxmoxService
+                        ps = ProxmoxService()
+                        ps.delete_vm_completely(ws.vm.proxmox_vm_id)
+                    except Exception as e:
+                        errors.append(f'Proxmox VM {ws.vm.proxmox_vm_id}: {e}')
+                
+                # 3. Delete DB records
+                vm_id = ws.vm.id if ws.vm else None
                 ws.delete()
+                if vm_id:
+                    VirtualMachine.objects.filter(id=vm_id).delete()
                 count += 1
+        
+        if errors:
+            import logging
+            logging.getLogger(__name__).warning(
+                f'Bulk {action} had partial errors: {errors}')
         
         from apps.users.admin_services import log_admin_action
         log_admin_action(
             request.user, 
-            'vm_stopped',
+            'workspace_deleted' if action == 'delete' else 'vm_stopped',
             f'Bulk {action} applied to {count} workspace(s)'
         )
         
