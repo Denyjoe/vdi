@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from apps.users.models import User, SubscriptionPlan, UserSubscription
+from apps.users.models import User, SubscriptionPlan, UserSubscription, Payment
 from apps.sessions.models import LiveSession
 from apps.vms.models import VMTemplate
 from django.utils import timezone
@@ -10,6 +10,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         self.stdout.write(self.style.WARNING("Clearing existing data..."))
+        Payment.objects.all().delete()
         UserSubscription.objects.all().delete()
         SubscriptionPlan.objects.all().delete()
         LiveSession.objects.all().delete()
