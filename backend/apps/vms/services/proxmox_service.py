@@ -198,9 +198,23 @@ class ProxmoxService:
         raise Exception(f'Task {upid} timed out after {timeout}s')
 
     def delete_vm_completely(self, vmid):
-        """Stop and delete a VM, waiting for each step to actually complete."""
-        # Check current status
-        status = self.proxmox.nodes(self.node).qemu(vmid).status.current.get()
+        """Stop and delete a VM, waiting for each step to actually complete.
+        Gracefully handles the case where the VM is already gone."""
+        
+        try:
+            status = self.proxmox.nodes(self.node).qemu(vmid).status.current.get()
+        except Exception as e:
+            error_str = str(e).lower()
+            if 'does not exist' in error_str or ('500' in error_str and 'config' in error_str):
+                # VM already doesn't exist — this is the desired end state
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.info(
+                    f'VM {vmid} already does not exist in Proxmox — '
+                    f'treating as already deleted'
+                )
+                return True
+            raise
         
         if status.get('status') == 'running':
             stop_upid = self.proxmox.nodes(self.node).qemu(vmid).status.stop.post()
@@ -210,9 +224,16 @@ class ProxmoxService:
         import time
         time.sleep(3)
         
-        # Delete and WAIT for the delete task to actually finish
-        delete_upid = self.proxmox.nodes(self.node).qemu(vmid).delete()
-        self.wait_for_task(delete_upid, timeout=60)
+        try:
+            # Delete and WAIT for the delete task to actually finish
+            delete_upid = self.proxmox.nodes(self.node).qemu(vmid).delete()
+            self.wait_for_task(delete_upid, timeout=60)
+        except Exception as e:
+            error_str = str(e).lower()
+            if 'does not exist' in error_str:
+                # Already gone, treat as success
+                return True
+            raise
         
         return True
 

@@ -258,16 +258,20 @@ class WorkspaceDeleteView(APIView):
                 ps.delete_vm_completely(ws.vm.proxmox_vm_id)
                 print(f'Proxmox VM {ws.vm.proxmox_vm_id} genuinely confirmed deleted')
             except Exception as e:
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.error(f'FAILED to delete Proxmox VM: {str(e)}', exc_info=True)
-                return Response({
-                    'success': False,
-                    'message': (
-                        f'Failed to delete VM from infrastructure: '
-                        f'{str(e)}. Please try again or contact support.'
-                    )
-                }, status=500)
+                error_str = str(e).lower()
+                if 'does not exist' not in error_str:
+                    # Genuine failure, not "already gone" — actually fail here
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f'FAILED to delete Proxmox VM: {str(e)}', exc_info=True)
+                    return Response({
+                        'success': False,
+                        'message': (
+                            f'Failed to delete VM from infrastructure: '
+                            f'{str(e)}. Please try again or contact support.'
+                        )
+                    }, status=500)
+                # else: already gone, continue to delete DB records normally
         
         # 3. Delete DB records
         vm_id = ws.vm.id if ws.vm else None

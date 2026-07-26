@@ -144,17 +144,19 @@ class AdminDeleteWorkspaceView(views.APIView):
                     ps = ProxmoxService()
                     ps.delete_vm_completely(ws.vm.proxmox_vm_id)
                 except Exception as e:
-                    import logging
-                    logging.getLogger(__name__).error(
-                        f'Admin delete: failed to delete Proxmox VM '
-                        f'{ws.vm.proxmox_vm_id}: {e}', exc_info=True)
-                    return Response({
-                        'success': False,
-                        'message': (
-                            f'Failed to delete VM from infrastructure: '
-                            f'{str(e)}. Please try again or contact support.'
-                        )
-                    }, status=500)
+                    error_str = str(e).lower()
+                    if 'does not exist' not in error_str:
+                        import logging
+                        logging.getLogger(__name__).error(
+                            f'Admin delete: failed to delete Proxmox VM '
+                            f'{ws.vm.proxmox_vm_id}: {e}', exc_info=True)
+                        return Response({
+                            'success': False,
+                            'message': (
+                                f'Failed to delete VM from infrastructure: '
+                                f'{str(e)}. Please try again or contact support.'
+                            )
+                        }, status=500)
             
             # 3. Delete DB records
             name = ws.name
