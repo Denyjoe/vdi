@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { 
   Monitor, Plus, Cpu, MemoryStick, HardDrive, 
   Search, Globe, Copy, Power, MonitorPlay, 
-  AlertCircle, Trash2, Loader2, Database, X 
+  AlertCircle, Trash2, Loader2, Database, X,
+  Terminal, AppWindow
 } from 'lucide-react'
 import api from '../../services/api'
 import useAuthStore from '../../store/authStore'
@@ -16,7 +17,9 @@ const iconMap = {
   'Monitor': Monitor,
   'Cpu': Cpu,
   'Database': Database,
-  'HardDrive': HardDrive
+  'HardDrive': HardDrive,
+  'Terminal': Terminal,
+  'AppWindow': AppWindow
 }
 
 const getTemplateIcon = (iconName) => iconMap[iconName] || Monitor
@@ -231,7 +234,7 @@ export default function WorkspacesPage() {
               <h1 className="text-2xl font-bold text-primary tracking-tight">My Workspaces</h1>
               <p className="text-sm text-secondary mt-1">Manage and access your cloud development environments</p>
             </div>
-            <button onClick={openCreateModal} className="flex items-center justify-center gap-2 px-5 py-2.5 bg-accent-primary hover:bg-accent-hover text-white rounded-xl font-bold transition-all active:scale-95 shadow-md shadow-blue-500/20">
+            <button onClick={openCreateModal} className="flex items-center justify-center gap-2 px-5 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-xl font-bold transition-all active:scale-95 shadow-md shadow-blue-500/20">
               <Plus size={16} />
               New Workspace
             </button>
@@ -282,7 +285,7 @@ export default function WorkspacesPage() {
             <p className="text-secondary mb-8 leading-relaxed">
               Create your first cloud environment to get started. Choose from a variety of optimized templates for your workload.
             </p>
-            <button onClick={openCreateModal} className="inline-flex items-center gap-2 px-6 py-3 bg-accent-primary hover:bg-accent-hover text-white rounded-xl font-bold transition-all hover:scale-105 active:scale-95 shadow-lg shadow-blue-500/25">
+            <button onClick={openCreateModal} className="inline-flex items-center gap-2 px-6 py-3 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-xl font-bold transition-all hover:scale-105 active:scale-95 shadow-lg shadow-blue-500/25">
               <Plus size={18} />
               Launch First Workspace
             </button>
@@ -529,7 +532,7 @@ export default function WorkspacesPage() {
           <div className="bg-card border border-border rounded-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="flex justify-between items-center p-6 border-b border-border">
               <h2 className="text-xl font-bold text-primary">Launch New Workspace</h2>
-              <button onClick={() => setShowCreate(false)} className="text-muted hover:text-white transition-colors">
+              <button onClick={() => setShowCreate(false)} className="text-muted hover:text-primary transition-colors">
                 <X size={20} />
               </button>
             </div>
@@ -554,7 +557,7 @@ export default function WorkspacesPage() {
                       key={tab}
                       onClick={() => setTemplateTab(tab)}
                       className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                        templateTab === tab ? 'bg-[var(--bg-elevated)] text-white' : 'text-muted hover:text-secondary'
+                        templateTab === tab ? 'bg-[var(--bg-elevated)] text-primary' : 'text-muted hover:text-secondary'
                       }`}
                     >
                       {tab}
@@ -608,7 +611,7 @@ export default function WorkspacesPage() {
             <div className="p-6 border-t border-border flex justify-end gap-3 bg-black/20">
               <button 
                 onClick={() => setShowCreate(false)}
-                className="px-5 py-2.5 rounded-xl text-secondary text-sm font-semibold hover:text-white transition-colors"
+                className="px-5 py-2.5 rounded-xl text-secondary text-sm font-semibold hover:text-primary transition-colors"
               >
                 Cancel
               </button>
