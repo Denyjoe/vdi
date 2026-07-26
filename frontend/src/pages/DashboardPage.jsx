@@ -13,6 +13,8 @@ import JoinByCodeModal from '../components/shared/JoinByCodeModal'
 import useBreakpoint from '../hooks/useBreakpoint'
 import NetworkGlobe from '../components/shared/NetworkGlobe'
 
+import OsIcon, { OS_ICONS } from '../components/shared/OsIcon';
+
 const TEMPLATE_ICONS = {
   Code: Code, Code2: Code, Compass: Compass, Terminal: Terminal, Palette: Palette,
   Network: Network, Database: Database, Shield: Shield, Cpu: Cpu,
@@ -20,7 +22,10 @@ const TEMPLATE_ICONS = {
   HardDrive: HardDrive, Server: Server, AppWindow: AppWindow
 }
 
-const TemplateIcon = ({ icon, className, size }) => {
+const TemplateIcon = ({ icon, className, size, templateName }) => {
+  if (templateName && OS_ICONS[templateName]) {
+    return <span className={className} style={{ display: 'inline-flex' }}><OsIcon templateName={templateName} size={size} color="currentColor" /></span>
+  }
   const Icon = TEMPLATE_ICONS[icon] || Monitor
   return <Icon className={className} size={size} />
 }
@@ -279,7 +284,7 @@ export default function DashboardPage() {
             
             <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '12px', width: isMobile ? '100%' : 'auto', paddingTop: '16px' }}>
               <button onClick={() => navigate('/workspaces', { state: { openCreate: true }})} style={{ width: isMobile ? '100%' : 'auto' }}
-                className="px-6 py-3.5 bg-accent-primary hover:bg-accent-hover text-white rounded-xl font-bold shadow-lg shadow-blue-500/25 transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2">
+                className="px-6 py-3.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-xl font-bold shadow-lg shadow-blue-500/25 transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2">
                 <Monitor size={18} />
                 Launch Workspace
               </button>
@@ -527,6 +532,7 @@ export default function DashboardPage() {
                     }`}>
                       <TemplateIcon 
                         icon={t.icon}
+                        templateName={t.name}
                         className={t.template_type === 'server' ? 'text-[#FF6B00]' : 'text-[#00A3FF]'}
                         size={20} />
                     </div>

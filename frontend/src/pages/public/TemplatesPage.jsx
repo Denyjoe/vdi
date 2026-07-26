@@ -5,6 +5,8 @@ import PublicNavbar from '../../components/public/PublicNavbar';
 import useAuthStore from '../../store/authStore';
 import api from '../../services/api';
 
+import OsIcon, { OS_ICONS } from '../../components/shared/OsIcon';
+
 const TEMPLATE_ICONS = {
   Code2, Compass, Terminal, Palette,
   Network, Database, Shield, Cpu,
@@ -12,7 +14,13 @@ const TEMPLATE_ICONS = {
   HardDrive,
 };
 
-const getTemplateIcon = (iconName) => TEMPLATE_ICONS[iconName] || Monitor;
+const TemplateIcon = ({ iconName, templateName, size = 20, color, className }) => {
+  if (templateName && OS_ICONS[templateName]) {
+    return <span className={className} style={{ display: 'inline-flex', color }}><OsIcon templateName={templateName} size={size} color="currentColor" /></span>
+  }
+  const IconComponent = TEMPLATE_ICONS[iconName] || Monitor;
+  return <IconComponent size={size} color={color} className={className} />;
+};
 
 export default function TemplatesPage() {
   const navigate = useNavigate();
@@ -121,13 +129,12 @@ export default function TemplatesPage() {
              </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredTemplates.map((template) => {
-                const Icon = getTemplateIcon(template.icon);
+              {filteredTemplates.map(template => {
                 return (
                   <div key={template.id} className="group flex flex-col bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] overflow-hidden hover:border-indigo-500/50 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300">
                     <div className={`p-8 bg-gradient-to-br ${getGradientByOS(template.os)} border-b`}>
                       <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center mb-6 shadow-inner border border-white/10">
-                        <Icon className="w-8 h-8 text-primary" />
+                        <TemplateIcon iconName={template.icon} templateName={template.name} className="w-8 h-8 text-primary" size={32} />
                       </div>
                       <h3 className="text-2xl font-bold text-primary mb-2">{template.name}</h3>
                       <p className="text-primary/70 font-medium">{template.os}</p>

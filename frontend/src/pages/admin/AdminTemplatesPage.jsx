@@ -20,6 +20,8 @@ const OS_OPTIONS = [
   'Custom',
 ];
 
+import OsIcon, { OS_ICONS } from '../../components/shared/OsIcon';
+
 const ICON_MAP = {
   Monitor, Code, Zap, AppWindow,
   Server, HardDrive, Database,
@@ -27,7 +29,10 @@ const ICON_MAP = {
   Smartphone, Cpu, Palette, Network,
 };
 
-function TemplateIcon({ name, size = 16, color }) {
+function TemplateIcon({ name, size = 16, color, templateName }) {
+  if (templateName && OS_ICONS[templateName]) {
+    return <span style={{ display: 'inline-flex' }}><OsIcon templateName={templateName} size={size} color={color} /></span>;
+  }
   const IconComponent = ICON_MAP[name] || Monitor;
   return <IconComponent size={size} style={{ color }} />;
 }
@@ -374,7 +379,7 @@ export default function AdminTemplatesPage() {
                   <td style={{ padding: '12px 16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
-                         <TemplateIcon name={t.icon} size={18} color="var(--accent-primary)" />
+                         <TemplateIcon name={t.icon} templateName={t.name} size={18} color="var(--accent-primary)" />
                       </div>
                       <div>
                         <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '14px' }}>{t.name}</div>
