@@ -170,9 +170,20 @@ export default function DesktopSessionPage() {
             return;
           }
           const sData = res.data.data;
+          
+          if (sData.status === 'ended') {
+            setDisconnectedByAdmin(true);
+            return;
+          }
+          
           const myParticipant = sData.participants?.find(p => p.user?.id === user?.id);
           
           if (myParticipant) {
+             if (myParticipant.status === 'removed' || myParticipant.status === 'disconnected' || myParticipant.vm_status === 'stopped') {
+                setDisconnectedByAdmin(true);
+                return;
+             }
+             
              setSessionData(prev => ({
                 ...prev,
                 guacamole_url: myParticipant.guacamole_url,
