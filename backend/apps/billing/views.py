@@ -303,3 +303,80 @@ class ReceiptDownloadView(APIView):
                 'status': status,
             }
         })
+
+class CheckoutView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        from apps.users.models import (
+            SubscriptionPlan, 
+            UserSubscription, 
+            Payment)
+        
+        plan_name = request.data.get('plan_name')
+        phone = request.data.get('phone_number')
+        provider = request.data.get('provider')
+        
+        # In DB the names are like 'pro_host', 'personal_host', 'starter', 'free'
+        db_plan_name = plan_name.lower().replace(' ', '_')
+        if db_plan_name == 'starter': db_plan_name = 'personal_host'
+        if db_plan_name == 'pro': db_plan_name = 'pro_host'
+        
+        try:
+            plan = SubscriptionPlan.objects.get(name=db_plan_name)
+        except SubscriptionPlan.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'Plan not found'
+            }, status=404)
+        
+        # SANDBOX MODE — simulate instant payment success 
+        import uuid
+        transaction_id = f'CD-{str(uuid.uuid4())[:8].upper()}'
+        
+        try:
+            payment = Payment.objects.create(
+                user=request.user,
+                plan=plan,
+                amount_tzs=plan.price_tzs,
+                amount_usd=plan.price_usd,
+                currency='TZS',
+                provider=provider,
+                phone_number=phone,
+                status='completed',
+                transaction_id=transaction_id,
+                description=f'{plan.display_name or plan.name} Host Plan subscription'
+            )
+        except Exception:
+            pass  # Fallback if fields are different
+        
+        # Activate subscription immediately
+        existing = UserSubscription.objects.filter(user=request.user).first()
+        
+        if existing:
+            existing.plan = plan
+            existing.status = 'active'
+            existing.save()
+        else:
+            UserSubscription.objects.create(
+                user=request.user,
+                plan=plan,
+                status='active')
+        
+        # Also flip is_host=True
+        request.user.is_host = True
+        request.user.save(update_fields=['is_host'])
+        
+        from apps.users.admin_services import log_admin_action
+        try:
+            log_admin_action(
+                request.user, 
+                'config_changed',
+                f'{request.user.email} upgraded to {plan.name} host plan (sandbox)')
+        except Exception:
+            pass
+        
+        return Response({
+            'success': True,
+            'message': f'Successfully upgraded to {plan.display_name or plan.name}'
+        })

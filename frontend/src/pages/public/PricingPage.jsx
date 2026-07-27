@@ -1,11 +1,42 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Check } from 'lucide-react';
 import PublicNavbar from '../../components/public/PublicNavbar';
+import useAuthStore from '../../store/authStore';
+import CheckoutModal from '../../components/shared/CheckoutModal';
 
 export default function PricingPage() {
   const [currency, setCurrency] = useState('USD');
   const [billing, setBilling] = useState('monthly');
+  const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuthStore();
+  const [checkoutPlan, setCheckoutPlan] = useState(null);
+  const [showCheckout, setShowCheckout] = useState(false);
+
+  const handlePlanClick = (plan) => {
+    if (!isAuthenticated) {
+      navigate('/signin');
+      return;
+    }
+    
+    if (plan.name === 'Free') {
+      navigate('/dashboard');
+      return;
+    }
+    
+    if (plan.name === 'Institution') {
+      window.location.href = 'mailto:support@clouddesk.io?subject=Institution Plan Inquiry';
+      return;
+    }
+    
+    setCheckoutPlan(plan);
+    setShowCheckout(true);
+  };
+
+  const handleCheckoutSuccess = () => {
+    setShowCheckout(false);
+    navigate('/create-session');
+  };
 
   const plans = [
     {
@@ -191,12 +222,12 @@ export default function PricingPage() {
                 </ul>
                 
                 <div className="mt-auto">
-                  <Link 
-                    to="/signin"
+                  <button 
+                    onClick={() => handlePlanClick(plan)}
                     className={`block w-full text-center py-3 px-4 rounded-xl font-medium transition-all duration-300 ${plan.ctaStyle}`}
                   >
                     {plan.ctaText}
-                  </Link>
+                  </button>
                 </div>
               </div>
             );
@@ -220,6 +251,13 @@ export default function PricingPage() {
           </div>
         </div>
       </div>
+      
+      <CheckoutModal 
+        plan={checkoutPlan}
+        isOpen={showCheckout}
+        onClose={() => setShowCheckout(false)}
+        onSuccess={handleCheckoutSuccess} 
+      />
     </div>
   );
 }
