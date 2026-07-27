@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Monitor, Users, Clock, Copy, X, Power, Eye, Shield, WifiOff, ClipboardX, Link2, ArrowLeft, UserMinus, Check } from 'lucide-react';
 import api from '../services/api';
+import GuacamoleEmbed from '../components/shared/GuacamoleEmbed';
 
 const formatDuration = (startedAt) => {
   if (!startedAt) return '00:00:00';
@@ -110,13 +111,6 @@ export default function HostSessionPage() {
 
   const openScreenModal = (participant) => {
     setScreenModal(participant);
-  };
-
-  const fixGuacUrl = (url) => {
-    if (!url) return '';
-    return url.split('?')[0]
-      .replace('localhost:8080', window.location.hostname + ':8080')
-      .replace('127.0.0.1:8080', window.location.hostname + ':8080');
   };
 
   if (loading) return (
@@ -463,10 +457,8 @@ export default function HostSessionPage() {
             </div>
             
             {/* Guacamole iframe */}
-            <iframe
-              src={fixGuacUrl(screenModal.guacamole_url)}
-              className="flex-1 w-full border-none bg-black"
-              allow="clipboard-read; clipboard-write"
+            <GuacamoleEmbed 
+              url={screenModal.guacamole_url}
               title={`Screen: ${screenModal.user?.first_name || 'User'}`}
             />
             

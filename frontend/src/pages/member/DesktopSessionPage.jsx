@@ -10,6 +10,7 @@ import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import ConfirmModal from '../../components/shared/ConfirmModal';
 import Toast from '../../components/shared/Toast';
+import GuacamoleEmbed from '../../components/shared/GuacamoleEmbed';
 
 export default function DesktopSessionPage() {
   const { id: sessionId } = useParams();
@@ -408,12 +409,7 @@ export default function DesktopSessionPage() {
             </div>
           )}
 
-          <iframe 
-            src={workspace.vm_details.guacamole_url} 
-            className="w-full flex-1 border-none bg-black" 
-            allow="clipboard-read; clipboard-write; fullscreen" 
-            title="Virtual Desktop" 
-          />
+          <GuacamoleEmbed url={workspace.vm_details.guacamole_url} />
         </div>
       );
     }
@@ -496,12 +492,7 @@ export default function DesktopSessionPage() {
         </div>
       )}
 
-      <iframe 
-        src={sessionData.guacamole_url} 
-        className="w-full flex-1 border-none bg-black" 
-        allow="clipboard-read; clipboard-write; fullscreen" 
-        title="Virtual Desktop" 
-      />
+      <GuacamoleEmbed url={sessionData.guacamole_url} />
       
       <ConfirmModal
         isOpen={showConfirm}
@@ -523,3 +514,4 @@ export default function DesktopSessionPage() {
     </div>
   );
 }
+
