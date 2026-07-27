@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { sessionService } from '../../services/sessionService';
 import api from '../../services/api';
+import useAuthStore from '../../store/authStore';
 import ConfirmModal from '../../components/shared/ConfirmModal';
 import Toast from '../../components/shared/Toast';
 
@@ -14,6 +15,7 @@ export default function DesktopSessionPage() {
   const { id: sessionId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const searchParams = new URLSearchParams(location.search);
   const type = location.pathname.includes('/workspace/') ? 'workspace' : searchParams.get('type');
 
@@ -41,19 +43,28 @@ export default function DesktopSessionPage() {
     
     // If we don't have session data in state (e.g., page refresh), fetch it
     if (!sessionData) {
-      sessionService.getActiveSession().then(res => {
+      sessionService.getLiveSession(sessionId).then(res => {
         if (res.data.success && res.data.data && String(res.data.data.id) === String(sessionId)) {
           // It's active
           const sData = res.data.data;
+          const myParticipant = sData.participants?.find(p => p.user?.id === user?.id);
+          
+          if (!myParticipant && user?.id !== sData.host) {
+             navigate('/workspaces');
+             return;
+          }
+          
           setSessionData({
             session_id: sData.id,
             session_token: "retrieved-token",
-            vm_name: sData.vm?.name || 'Virtual Machine',
-            template_name: sData.vm?.template_name || '',
-            os: sData.vm?.os || 'windows',
+            vm_name: myParticipant?.vm?.name || 'Virtual Machine',
+            template_name: myParticipant?.vm?.template_name || '',
+            os: myParticipant?.vm?.os || 'windows',
             resolution: "1920x1080",
-            connected_at: sData.started_at || new Date().toISOString(),
-            guacamole_url: sData.guacamole_url,
+            connected_at: sData.start_time || new Date().toISOString(),
+            guacamole_url: myParticipant?.guacamole_url,
+            vm_status: myParticipant?.vm_status,
+            session_scheduled_end_at: sData.scheduled_end_at,
             restrictions: { internet: true, copy_paste: true }
           });
         } else {
@@ -62,7 +73,7 @@ export default function DesktopSessionPage() {
         }
       }).catch(() => navigate('/workspaces'));
     }
-  }, [sessionData, sessionId, navigate, type]);
+  }, [sessionData, sessionId, navigate, type, user]);
 
   // Workspace Polling
   useEffect(() => {
@@ -146,25 +157,37 @@ export default function DesktopSessionPage() {
     return () => clearInterval(wsInterval);
   }, [type, sessionId]);
 
-  // Session Polling (for participants)
-  useEffect(() => {
-    if (type === 'workspace') return;
-    
-    let intervalId;
-    const fetchSessionStatus = async () => {
-      try {
-        const res = await sessionService.getActiveSession();
-        if (!res.data.success || !res.data.data || String(res.data.data.id) !== String(sessionId)) {
+    // Session Polling (for participants)
+    useEffect(() => {
+      if (type === 'workspace') return;
+      
+      let intervalId;
+      const fetchSessionStatus = async () => {
+        try {
+          const res = await sessionService.getLiveSession(sessionId);
+          if (!res.data.success || !res.data.data || String(res.data.data.id) !== String(sessionId)) {
+            setDisconnectedByAdmin(true);
+            return;
+          }
+          const sData = res.data.data;
+          const myParticipant = sData.participants?.find(p => p.user?.id === user?.id);
+          
+          if (myParticipant) {
+             setSessionData(prev => ({
+                ...prev,
+                guacamole_url: myParticipant.guacamole_url,
+                vm_status: myParticipant.vm_status,
+                session_scheduled_end_at: sData.scheduled_end_at
+             }));
+          }
+        } catch (err) {
           setDisconnectedByAdmin(true);
         }
-      } catch (err) {
-        setDisconnectedByAdmin(true);
-      }
-    };
-    
-    intervalId = setInterval(fetchSessionStatus, 8000);
-    return () => clearInterval(intervalId);
-  }, [type, sessionId]);
+      };
+      
+      intervalId = setInterval(fetchSessionStatus, 8000);
+      return () => clearInterval(intervalId);
+    }, [type, sessionId, user]);
 
 
 

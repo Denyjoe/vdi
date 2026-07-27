@@ -10,6 +10,9 @@ export const sessionService = {
   getActiveSession: () =>
     api.get('/sessions/active/'),
 
+  getLiveSession: (id) =>
+    api.get(`/sessions/live/${id}/`),
+
   getMySessions: () =>
     api.get('/sessions/my-sessions/'),
 

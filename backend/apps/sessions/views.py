@@ -54,47 +54,93 @@ class PublicSessionsView(generics.ListAPIView):
             "data": serializer.data
         })
 
-class LiveSessionCreateView(APIView):
-    permission_classes = [CanHostSessions]
-
+class PayAndStartSessionView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
     def post(self, request):
+        from apps.users.models import SystemConfig, Payment
+        from apps.sessions.models import LiveSession
+        from apps.vms.models import VMTemplate
         from django.utils import timezone
-        import datetime
-        data = request.data.copy()
+        from datetime import timedelta
+        import random, string, decimal
         
-        # Populate start_time and end_time if missing
-        scheduled_at = data.get('scheduled_at')
-        duration_hours = float(data.get('duration_hours', 2.0))
+        hours = decimal.Decimal(str(request.data.get('hours', 1)))
         
-        if not data.get('start_time'):
-            start = timezone.now() if not scheduled_at else timezone.datetime.fromisoformat(scheduled_at.replace('Z', '+00:00'))
-            data['start_time'] = start
-        if not data.get('end_time'):
-            data['end_time'] = data['start_time'] + datetime.timedelta(hours=duration_hours)
-            
-        serializer = LiveSessionSerializer(data=data)
-        if serializer.is_valid():
-            max_allowed = request.user.subscription.plan.max_session_participants
-            if serializer.validated_data.get('max_participants', 50) > max_allowed:
-                raise ValidationError(f"Your plan allows up to {max_allowed} participants. Upgrade to host more.")
-            
-            session = serializer.save(host=request.user)
-            session.participant_count = 0
-            
+        if hours <= 0 or hours > 24:
             return Response({
-                "success": True,
-                "data": LiveSessionSerializer(session).data,
-                "session_id": session.id,
-                "invite_code": session.invite_code,
-                "invite_link": f"https://clouddesk.io/join/{session.invite_code}",
-                "qr_code_url": None,
-                "host_link": f"https://clouddesk.io/host/{session.invite_code}"
-            }, status=status.HTTP_201_CREATED)
-            
+                'success': False,
+                'message': 'Please select between 0.5 and 24 hours.'
+            }, status=400)
+        
+        rate = decimal.Decimal(SystemConfig.get('session_hosting_rate_tzs', '5000'))
+        total_price = hours * rate
+        
+        phone = request.data.get('phone_number')
+        provider = request.data.get('provider')
+        session_name = request.data.get('name', f"{request.user.first_name}'s Session")
+        template_id = request.data.get('vm_template')
+        max_participants = request.data.get('max_participants', 10)
+        restrictions = request.data.get('restrictions', {})
+        
+        try:
+            template = VMTemplate.objects.get(id=template_id)
+        except VMTemplate.DoesNotExist:
+            return Response({'success': False, 'message': 'Invalid template'}, status=400)
+        
+        # SANDBOX payment — instant success
+        try:
+            Payment.objects.create(
+                user=request.user,
+                amount_tzs=total_price,
+                currency='TZS',
+                provider=provider,
+                phone_number=phone,
+                status='completed',
+                description=f'{hours}hr live session'
+            )
+        except Exception:
+            pass
+        
+        invite_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+        
+        now = timezone.now()
+        end_at = now + timedelta(hours=float(hours))
+        
+        session = LiveSession.objects.create(
+            host=request.user,
+            name=session_name,
+            required_vm_template=template,
+            max_participants=max_participants,
+            invite_code=invite_code,
+            status='active',
+            hours_purchased=hours,
+            amount_paid_tzs=total_price,
+            scheduled_end_at=end_at,
+            start_time=now,
+            end_time=end_at
+        )
+        
+        from apps.users.admin_services import log_admin_action
+        try:
+            log_admin_action(
+                request.user, 
+                'config_changed',
+                f'{request.user.email} started a {hours}hr paid session (TZS {total_price})'
+            )
+        except Exception:
+            pass
+        
         return Response({
-            "success": False,
-            "errors": serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
+            'success': True,
+            'data': {
+                'id': session.id,
+                'invite_code': invite_code,
+                'scheduled_end_at': end_at.isoformat(),
+                'hours_purchased': float(hours),
+                'amount_paid_tzs': float(total_price),
+            }
+        })
 
 class JoinSessionByCodeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -119,6 +165,10 @@ class JoinSessionByCodeView(APIView):
             return Response({"success": False, "message": "Incorrect password"}, status=status.HTTP_401_UNAUTHORIZED)
             
         participant, created = SessionParticipant.objects.get_or_create(session=session, user=request.user)
+        
+        from apps.sessions.services.session_lifecycle_service import SessionLifecycleService
+        if not participant.vm:
+            SessionLifecycleService.handle_participant_join(participant)
         
         from apps.notifications.services import notify
         notify(
