@@ -67,10 +67,19 @@ export default function CreateSessionPage() {
   useEffect(() => {
     const checkAccess = async () => {
       try {
-        const res = await api.get('/auth/profile/');
+        const res = await api.get('/auth/profile/', {
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        });
         const userData = res.data?.data || res.data;
+        console.log('Fresh profile check — is_host:', userData.is_host, 'role:', userData.role);
         setHasHostAccess(userData.is_host === true || userData.role === 'admin');
+        
+        // Update global store
+        useAuthStore.getState().setUser(userData);
       } catch(e) {
+        console.error('Access check failed:', e);
         setHasHostAccess(false);
       } finally {
         setCheckingAccess(false);

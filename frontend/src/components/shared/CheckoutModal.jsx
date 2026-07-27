@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, CreditCard, Check } from 'lucide-react';
 import api from '../../services/api';
+import useAuthStore from '../../store/authStore';
 
 export default function CheckoutModal({ plan, isOpen, onClose, onSuccess }) {
   const [step, setStep] = useState('payment'); 
@@ -25,6 +26,14 @@ export default function CheckoutModal({ plan, isOpen, onClose, onSuccess }) {
       });
       
       if (res.data.success) {
+        try {
+          const profileRes = await api.get('/auth/profile/');
+          const userData = profileRes.data?.data || profileRes.data;
+          useAuthStore.getState().setUser(userData);
+        } catch(e) {
+          console.error('Failed to update auth store after checkout', e);
+        }
+        
         setStep('success');
         setTimeout(() => {
           onSuccess();
