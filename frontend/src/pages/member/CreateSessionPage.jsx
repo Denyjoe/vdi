@@ -67,7 +67,7 @@ export default function CreateSessionPage() {
   useEffect(() => {
     const checkAccess = async () => {
       try {
-        const res = await api.get('/auth/profile/', {
+        const res = await api.get('/auth/me/', {
           headers: {
             'Cache-Control': 'no-cache'
           }

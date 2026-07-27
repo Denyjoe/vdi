@@ -27,7 +27,7 @@ export default function CheckoutModal({ plan, isOpen, onClose, onSuccess }) {
       
       if (res.data.success) {
         try {
-          const profileRes = await api.get('/auth/profile/');
+          const profileRes = await api.get('/auth/me/');
           const userData = profileRes.data?.data || profileRes.data;
           useAuthStore.getState().setUser(userData);
         } catch(e) {
