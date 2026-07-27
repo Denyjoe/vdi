@@ -16,20 +16,22 @@ class LiveSessionSerializer(serializers.ModelSerializer):
             'restrict_copy_paste', 'allow_late_submission', 'submission_type',
             'instructions', 'status', 'created_at', 'participant_count',
             'password', 'allow_participant_chat', 'record_session', 'show_participant_list',
-            'restrictions', 'duration_hours', 'scheduled_at'
+            'restrictions', 'duration_hours', 'scheduled_at', 'hours_purchased',
+            'amount_paid_tzs', 'scheduled_end_at', 'auto_ended'
         ]
-        read_only_fields = ['host', 'invite_code', 'invite_link', 'status']
+        read_only_fields = ['host', 'invite_code', 'invite_link', 'status', 'scheduled_end_at']
 
 class SessionParticipantSerializer(serializers.ModelSerializer):
     user = UserProfileSerializer(read_only=True)
     vm_status = serializers.CharField(source='vm.status', read_only=True)
     guacamole_url = serializers.SerializerMethodField()
+    session_scheduled_end_at = serializers.DateTimeField(source='session.scheduled_end_at', read_only=True)
     
     class Meta:
         model = SessionParticipant
         fields = [
             'id', 'user', 'vm', 'vm_status', 'guacamole_url', 'status', 'joined_at',
-            'submitted_at', 'submission_file', 'vm_snapshot_id'
+            'submitted_at', 'submission_file', 'vm_snapshot_id', 'session_scheduled_end_at'
         ]
 
     def get_guacamole_url(self, obj):

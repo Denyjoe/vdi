@@ -168,27 +168,30 @@ export default function DesktopSessionPage() {
 
 
 
-  // Session timer
+  // Session timer (countdown)
+  const [timeLeft, setTimeLeft] = useState(null);
+
   useEffect(() => {
-    if (!sessionData?.connected_at) return;
-    const start = new Date(sessionData.connected_at).getTime();
+    if (!sessionData?.session_scheduled_end_at) return;
     
     const interval = setInterval(() => {
-      const now = new Date().getTime();
-      setTimer(Math.floor((now - start) / 1000));
+      const end = new Date(sessionData.session_scheduled_end_at).getTime();
+      const now = Date.now();
+      const diff = end - now;
+      
+      if (diff <= 0) {
+        setTimeLeft('00:00:00');
+        clearInterval(interval);
+      } else {
+        const h = Math.floor(diff / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
+        setTimeLeft(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
+      }
     }, 1000);
+    
     return () => clearInterval(interval);
-  }, [sessionData]);
-
-
-
-  const formatTimer = (totalSeconds) => {
-    if (totalSeconds < 0) totalSeconds = 0;
-    const h = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
-    const m = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
-    const s = (totalSeconds % 60).toString().padStart(2, '0');
-    return `${h}:${m}:${s}`;
-  };
+  }, [sessionData?.session_scheduled_end_at]);
 
   const getMetricColor = (val) => {
     if (val < 50) return 'text-emerald-400';
@@ -244,24 +247,7 @@ export default function DesktopSessionPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  if (disconnectedByAdmin) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen gap-6 bg-[#050B18]">
-        <div className="text-center max-w-md">
-           <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-           <h2 className="text-red-400 text-xl font-semibold mb-2">
-             Session Disconnected
-           </h2>
-           <p className="text-[var(--text-secondary)] mb-6">
-             Your session has been stopped or ended by the administrator.
-           </p>
-           <button onClick={() => navigate('/workspaces')} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/25 text-sm">
-             Back to Workspaces
-           </button>
-        </div>
-      </div>
-    );
-  }
+  // Removed early return for disconnectedByAdmin, now handled as an overlay
 
   if (type === 'workspace') {
     if (wsLoading || workspace?.vm_details?.status === 'provisioning') {
@@ -311,6 +297,33 @@ export default function DesktopSessionPage() {
                 {workspace.name}
               </span>
               
+              {type !== 'workspace' && timeLeft && (
+                  <div className="flex items-center gap-4 border-l border-border pl-4">
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '4px 12px',
+                      borderRadius: '8px',
+                      background: timeLeft.startsWith('00:0') 
+                        ? 'var(--status-warning-bg, rgba(245, 158, 11, 0.1))'
+                        : 'var(--bg-input, transparent)',
+                    }}>
+                      <Clock size={12} className={timeLeft.startsWith('00:0') ? "text-[var(--status-warning)]" : "text-secondary"} />
+                      <span style={{
+                        fontFamily: 'monospace',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        color: timeLeft.startsWith('00:0') ? 'var(--status-warning, #F59E0B)' : 'var(--text-primary)',
+                      }}>{timeLeft}</span>
+                      <span style={{
+                        fontSize: '10px',
+                        color: 'var(--text-muted)',
+                      }}>left</span>
+                    </div>
+                  </div>
+                )}
+              
               <div className="h-5 w-px bg-[var(--border-color)] hidden sm:block" />
               
               <div className="flex items-center gap-1.5">
@@ -341,6 +354,26 @@ export default function DesktopSessionPage() {
               </button>
             </div>
           </div>
+          
+          {disconnectedByAdmin && (
+            <div style={{
+              position: 'absolute', inset: 0,
+              zIndex: 100,
+              background: '#050B18',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <Power size={48} className="text-slate-400 mb-4" />
+              <h2 className="text-slate-300 text-xl font-semibold mb-2">Workspace Shut Down</h2>
+              <p className="text-slate-500 mb-6">This workspace has been shut down or the session was disconnected.</p>
+              <button onClick={() => navigate('/workspaces')} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors shadow-lg">
+                Back to Workspaces
+              </button>
+            </div>
+          )}
+
           <iframe 
             src={workspace.vm_details.guacamole_url} 
             className="w-full flex-1 border-none bg-black" 
@@ -357,17 +390,14 @@ export default function DesktopSessionPage() {
   if (!sessionData.guacamole_url) {
     return (
       <div className="flex flex-col items-center justify-center h-screen gap-6 bg-[#050B18]">
-        <div className="text-center max-w-md">
-           <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-           <h2 className="text-red-400 text-xl font-semibold mb-2">
-             Waiting for Connection
-           </h2>
-           <p className="text-[var(--text-secondary)] mb-6">
-             The session is active, but the virtual machine desktop is not ready yet.
+        <div className="w-10 h-10 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+        <div className="text-center">
+           <h2 className="text-[var(--text-primary)] text-xl font-semibold mb-2">Preparing your session...</h2>
+           <p className="text-[var(--text-secondary)]">
+             {sessionData.vm_status === 'provisioning' 
+                ? 'Starting virtual machine...' 
+                : 'Waiting for virtual desktop to be ready...'}
            </p>
-           <button onClick={() => window.location.reload()} className="px-6 py-3 bg-transparent text-[var(--text-primary)] rounded-xl font-medium hover:bg-white/5 transition-colors border border-[var(--border-color)]">
-             Check Again
-           </button>
         </div>
       </div>
     );
@@ -412,6 +442,26 @@ export default function DesktopSessionPage() {
           </button>
         </div>
       </div>
+
+      {disconnectedByAdmin && (
+        <div style={{
+          position: 'absolute', inset: 0,
+          zIndex: 100,
+          background: '#050B18',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <Power size={48} className="text-slate-400 mb-4" />
+          <h2 className="text-slate-300 text-xl font-semibold mb-2">Workspace Shut Down</h2>
+          <p className="text-slate-500 mb-6">This workspace has been shut down or the session was disconnected.</p>
+          <button onClick={() => navigate('/workspaces')} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors shadow-lg">
+            Back to Workspaces
+          </button>
+        </div>
+      )}
+
       <iframe 
         src={sessionData.guacamole_url} 
         className="w-full flex-1 border-none bg-black" 
