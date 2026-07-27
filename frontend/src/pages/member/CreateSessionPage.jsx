@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Radio, X, ArrowLeft, ArrowRight, Rocket, Check, Monitor as MonitorIcon, Database, Terminal, Shield, Globe, Clipboard, FolderUp, Usb, Monitor, Film, Fingerprint, Users, MousePointer, Timer, Eye } from 'lucide-react';
+import { Radio, X, ArrowLeft, ArrowRight, Rocket, Check, Monitor as MonitorIcon, Database, Terminal, Shield, Globe, Clipboard, FolderUp, Usb, Monitor, Film, Fingerprint, Users, MousePointer, Timer, Eye, Video } from 'lucide-react';
 import api from '../../services/api';
 import useUIStore from '../../store/uiStore';
 
@@ -31,8 +31,14 @@ const ControlToggle = ({ label, description, icon: Icon, value, onChange, onColo
   </div>
 );
 
+import useAuthStore from '../../store/authStore';
+
 export default function CreateSessionPage() {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const [checkingAccess, setCheckingAccess] = useState(true);
+  const [hasHostAccess, setHasHostAccess] = useState(false);
+
   const [step, setStep] = useState(1);
   const [sessionName, setSessionName] = useState('');
   const [sessionDesc, setSessionDesc] = useState('');
@@ -57,6 +63,21 @@ export default function CreateSessionPage() {
     auto_shutdown_idle: false,
     idle_timeout_minutes: 15,
   });
+
+  useEffect(() => {
+    const checkAccess = async () => {
+      try {
+        const res = await api.get('/auth/profile/');
+        const userData = res.data?.data || res.data;
+        setHasHostAccess(userData.is_host === true || userData.role === 'admin');
+      } catch(e) {
+        setHasHostAccess(false);
+      } finally {
+        setCheckingAccess(false);
+      }
+    };
+    checkAccess();
+  }, []);
 
   useEffect(() => {
     api.get('/vms/templates/').then(res => {
@@ -302,6 +323,82 @@ export default function CreateSessionPage() {
       )}
     </div>
   );
+
+  if (checkingAccess) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!hasHostAccess) {
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '60vh',
+        padding: '40px',
+        textAlign: 'center',
+      }}>
+        <div style={{
+          width: '64px', height: '64px',
+          borderRadius: '20px',
+          background: 'var(--accent-primary-soft, #0066FF15)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: '20px',
+        }}>
+          <Video size={28} style={{ color: 'var(--accent-primary, #0066FF)' }} />
+        </div>
+        <h2 style={{
+          fontSize: '20px',
+          fontWeight: 700,
+          color: 'var(--text-primary)',
+          marginBottom: '8px',
+        }}>
+          Hosting requires a Host Plan
+        </h2>
+        <p style={{
+          fontSize: '14px',
+          color: 'var(--text-muted)',
+          maxWidth: '400px',
+          marginBottom: '24px',
+        }}>
+          Create live, controlled desktop sessions for your team, students, or class. 
+          Upgrade to a Host plan to get started.
+        </p>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button onClick={() => navigate('/pricing')}
+            style={{
+              padding: '12px 24px',
+              borderRadius: '10px',
+              background: 'var(--accent-primary, #0066FF)',
+              color: '#fff',
+              border: 'none',
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}>
+            View Host Plans
+          </button>
+          <button onClick={() => navigate('/dashboard')}
+            style={{
+              padding: '12px 24px',
+              borderRadius: '10px',
+              background: 'var(--bg-input, transparent)',
+              color: 'var(--text-secondary, #64748B)',
+              border: '1px solid var(--border-color, #E2E8F0)',
+              cursor: 'pointer'
+            }}>
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-[900px] mx-auto px-6 py-6">
