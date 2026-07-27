@@ -14,16 +14,7 @@ const formatDuration = (startedAt) => {
   return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 };
 
-const getTimeRemaining = (session) => {
-  if (!session?.start_time || !session?.duration_hours) return null;
-  const end = new Date(session.start_time).getTime() + session.duration_hours * 3600000;
-  const remaining = end - Date.now();
-  if (remaining <= 0) return 'Ended';
-  const h = Math.floor(remaining / 3600000);
-  const m = Math.floor((remaining % 3600000) / 60000);
-  const s = Math.floor((remaining % 60000) / 1000);
-  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-};
+// Replaced by new countdown timer effect
 
 export default function HostSessionPage() {
   const { sessionId } = useParams();
@@ -53,12 +44,29 @@ export default function HostSessionPage() {
     return () => clearInterval(interval);
   }, [sessionId]);
 
-  // Also tick every second for the clock
-  const [, setTick] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(null);
+
   useEffect(() => {
-    const interval = setInterval(() => setTick(t => t + 1), 1000);
+    if (!session?.scheduled_end_at) return;
+    
+    const interval = setInterval(() => {
+      const end = new Date(session.scheduled_end_at).getTime();
+      const now = Date.now();
+      const diff = end - now;
+      
+      if (diff <= 0) {
+        setTimeLeft('00:00:00');
+        clearInterval(interval);
+      } else {
+        const h = Math.floor(diff / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
+        setTimeLeft(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
+      }
+    }, 1000);
+    
     return () => clearInterval(interval);
-  }, []);
+  }, [session?.scheduled_end_at]);
 
   const handleEndSession = async () => {
     if (!window.confirm('End this session? All participants will be disconnected.')) return;
@@ -143,25 +151,30 @@ export default function HostSessionPage() {
         </div>
         
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-canvas rounded-lg">
-            <Clock size={12} className="text-muted" />
-            <span className="text-xs font-mono text-secondary">
-              {formatDuration(session.start_time || session.created_at)}
-            </span>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 16px',
+            borderRadius: '10px',
+            background: timeLeft && timeLeft.startsWith('00:0') 
+              ? 'var(--status-warning-bg, rgba(245, 158, 11, 0.1))'
+              : 'var(--bg-input, transparent)',
+          }}>
+            <Clock size={14} className={timeLeft && timeLeft.startsWith('00:0') ? "text-[var(--status-warning)]" : "text-secondary"} />
+            <span style={{
+              fontFamily: 'monospace',
+              fontSize: '15px',
+              fontWeight: 700,
+              color: timeLeft && timeLeft.startsWith('00:0') ? 'var(--status-warning, #F59E0B)' : 'var(--text-primary)',
+            }}>{timeLeft || '--:--:--'}</span>
+            <span style={{
+              fontSize: '11px',
+              color: 'var(--text-muted)',
+            }}>remaining</span>
           </div>
           
-          {session.duration_hours && (
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border ${
-              getTimeRemaining(session) === 'Ended' 
-                ? 'bg-red-500/10 border-red-500/20 text-red-400' 
-                : 'bg-[#FF6B00]/10 border-[#FF6B00]/20 text-[#FF6B00]'
-            }`}>
-              <Clock size={12} />
-              <span className="text-xs font-mono font-bold tracking-wider">
-                {getTimeRemaining(session) === 'Ended' ? 'SESSION ENDED' : `${getTimeRemaining(session)} left`}
-              </span>
-            </div>
-          )}
+
           
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-canvas rounded-lg">
             <Users size={12} className="text-muted" />
