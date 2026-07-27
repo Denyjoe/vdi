@@ -37,9 +37,9 @@ class SessionParticipantSerializer(serializers.ModelSerializer):
     def get_guacamole_url(self, obj):
         if not obj.vm or not obj.vm.guacamole_connection_id:
             return None
-        import base64
-        from decouple import config
-        guac_public = config('GUACAMOLE_PUBLIC_URL', default='http://192.168.1.4:8080/guacamole')
-        identifier = f"{obj.vm.guacamole_connection_id}\x00c\x00postgresql"
-        encoded = base64.b64encode(identifier.encode()).decode()
-        return f"{guac_public}/#/client/{encoded}"
+        try:
+            from apps.vms.services.guacamole_service import get_guacamole_service
+            gs = get_guacamole_service()
+            return gs.get_connection_url(obj.vm.guacamole_connection_id)
+        except Exception:
+            return None
