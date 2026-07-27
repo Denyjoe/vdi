@@ -3,9 +3,9 @@ import { X, Users, AlertCircle, CheckCircle, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 
-export default function JoinByCodeModal({ onClose, onJoined }) {
+export default function JoinByCodeModal({ onClose, onJoined, initialCode = '' }) {
     const navigate = useNavigate();
-    const [joinCode, setJoinCode] = useState('');
+    const [joinCode, setJoinCode] = useState(initialCode);
     const [password, setPassword] = useState('');
     const [requiresPassword, setRequiresPassword] = useState(false);
     const [joining, setJoining] = useState(false);
@@ -33,7 +33,7 @@ export default function JoinByCodeModal({ onClose, onJoined }) {
             
             if (res.data?.success) {
                 setSuccessData(res.data.data.session);
-                if (onJoined) onJoined();
+                if (onJoined) onJoined(res.data.data.session);
             }
         } catch (err) {
             const errorMsg = err.response?.data?.message || '';
@@ -48,7 +48,7 @@ export default function JoinByCodeModal({ onClose, onJoined }) {
                     const session = joined.find(s => s.invite_code === joinCode);
                     if (session) {
                         setSuccessData(session);
-                        if (onJoined) onJoined();
+                        if (onJoined) onJoined(session);
                     } else {
                         setJoinError('You are already joined but session details could not be loaded.');
                     }

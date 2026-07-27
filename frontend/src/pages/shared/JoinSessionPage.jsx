@@ -24,10 +24,14 @@ export default function JoinSessionPage() {
         navigate(user?.role === 'instructor' ? '/instructor/dashboard' : '/member/dashboard');
     };
 
-    const handleJoined = () => {
-        // Modal will show success, then we navigate
+    const handleJoined = (session) => {
+        // Modal will show success, then we navigate to the session
         setTimeout(() => {
-            navigate('/member/dashboard'); // Or sessions list
+            if (session?.id) {
+                navigate(`/session/${session.id}`);
+            } else {
+                navigate('/member/dashboard'); // Fallback
+            }
         }, 1500);
     };
 
@@ -36,6 +40,7 @@ export default function JoinSessionPage() {
             {showModal && (
                 <JoinByCodeModal 
                     type="session" 
+                    initialCode={code}
                     onClose={handleClose}
                     onJoined={handleJoined}
                 />
