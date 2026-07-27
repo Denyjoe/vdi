@@ -154,8 +154,8 @@ class GuacamoleService:
             "protocol": "rdp",
             "parameters": parameters,
             "attributes": {
-                "max-connections": "1",
-                "max-connections-per-user": "1",
+                "max-connections": "5",
+                "max-connections-per-user": "5",
             },
         }
 
