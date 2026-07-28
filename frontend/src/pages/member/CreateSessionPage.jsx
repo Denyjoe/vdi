@@ -49,7 +49,6 @@ export default function CreateSessionPage() {
   const [checkoutPayload, setCheckoutPayload] = useState(null);
   
   const [restrictions, setRestrictions] = useState({
-    internet_access: true,
     clipboard: true,
     file_transfer: true,
     screen_monitoring: false,
@@ -225,13 +224,6 @@ export default function CreateSessionPage() {
           <div className="bg-card/70 backdrop-blur-sm border border-border rounded-2xl p-6">
             <h3 className="text-sm font-semibold text-primary mb-4">Environment Controls</h3>
             <div className="space-y-2">
-              <ControlToggle 
-                label="Internet Access" 
-                description="Allow VMs to access external websites" 
-                value={restrictions.internet_access} 
-                onChange={v => setRestrictions({...restrictions, internet_access: v})} 
-                onColor="#00FF87" 
-              />
               <ControlToggle 
                 label="Clipboard Sync" 
                 description="Allow copy/paste between local and VM" 

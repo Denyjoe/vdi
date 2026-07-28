@@ -112,6 +112,7 @@ class PayAndStartSessionView(APIView):
             name=session_name,
             required_vm_template=template,
             max_participants=max_participants,
+            restrictions=restrictions,
             invite_code=invite_code,
             status='active',
             hours_purchased=hours,
