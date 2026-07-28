@@ -14,4 +14,5 @@ urlpatterns = [
     path('<int:pk>/control-participant/<int:participant_id>/', views.HostControlParticipantView.as_view(), name='live-session-control-participant'),
     path('<int:pk>/release-control/<int:participant_id>/', views.HostReleaseControlView.as_view(), name='live-session-release-control'),
     path('<int:pk>/leave/', views.LeaveSessionView.as_view(), name='live-session-leave'),
+    path('<int:pk>/broadcast/', views.BroadcastMessageView.as_view(), name='live-session-broadcast'),
 ]

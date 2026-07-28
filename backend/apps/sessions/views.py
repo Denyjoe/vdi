@@ -397,5 +397,47 @@ class HostReleaseControlView(APIView):
             participant.save(update_fields=['is_being_controlled'])
         except SessionParticipant.DoesNotExist:
             pass
-            
+
         return Response({'success': True})
+
+class BroadcastMessageView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            session = LiveSession.objects.get(id=pk)
+        except LiveSession.DoesNotExist:
+            return Response({'error': 'Not found'}, status=404)
+
+        if session.host_id != request.user.id:
+            return Response({
+                'success': False,
+                'message': 'Only the host can broadcast to this session.'
+            }, status=403)
+
+        message_text = request.data.get('message', '').strip()
+        if not message_text:
+            return Response({
+                'success': False,
+                'message': 'Message cannot be empty'
+            }, status=400)
+
+        from apps.notifications.services import notify
+
+        sent_count = 0
+        for participant in session.participants.filter(status__in=['joined', 'active']):
+            try:
+                notify(
+                    user=participant.user,
+                    title=f'Message from {request.user.first_name}',
+                    message=message_text,
+                    notification_type='system',
+                )
+                sent_count += 1
+            except Exception:
+                pass
+
+        return Response({
+            'success': True,
+            'message': f'Sent to {sent_count} participant(s)'
+        })

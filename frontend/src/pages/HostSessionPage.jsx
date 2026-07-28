@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Monitor, Users, Clock, Copy, X, Power, Eye, Shield, WifiOff, ClipboardX, Link2, ArrowLeft, UserMinus, Check } from 'lucide-react';
+import { Monitor, Users, Clock, Copy, X, Power, Eye, Shield, WifiOff, ClipboardX, Link2, ArrowLeft, UserMinus, Check, Send } from 'lucide-react';
 import api from '../services/api';
 import GuacamoleEmbed from '../components/shared/GuacamoleEmbed';
 
@@ -27,6 +27,8 @@ export default function HostSessionPage() {
   const [loading, setLoading] = useState(true);
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [broadcastText, setBroadcastText] = useState('');
+  const [broadcastSent, setBroadcastSent] = useState(false);
 
   useEffect(() => {
     const fetchMonitor = async () => {
@@ -66,7 +68,7 @@ export default function HostSessionPage() {
         setTimeLeft(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
       }
     }, 1000);
-    
+
     return () => clearInterval(interval);
   }, [session?.scheduled_end_at]);
 
@@ -124,6 +126,18 @@ export default function HostSessionPage() {
       }
     } catch(e) {
       console.error(e);
+    }
+  };
+
+  const handleBroadcast = async () => {
+    if (!broadcastText.trim()) return;
+    try {
+      await api.post(`/sessions/live/${sessionId}/broadcast/`, { message: broadcastText });
+      setBroadcastText('');
+      setBroadcastSent(true);
+      setTimeout(() => setBroadcastSent(false), 2000);
+    } catch(e) {
+      alert('Failed to send: ' + (e.response?.data?.message || e.message));
     }
   };
 
@@ -241,7 +255,49 @@ export default function HostSessionPage() {
               </span>
             </div>
           </div>
-          
+
+          {/* Broadcast message box */}
+          <div style={{
+            display: 'flex',
+            gap: '10px',
+            padding: '14px',
+            borderRadius: '12px',
+            background: 'var(--bg-input)',
+            marginBottom: '16px',
+          }}>
+            <input
+              value={broadcastText}
+              onChange={e => setBroadcastText(e.target.value)}
+              placeholder="Message all participants..."
+              style={{
+                flex: 1,
+                padding: '10px 14px',
+                borderRadius: '10px',
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-card)',
+                color: 'var(--text-primary)',
+                fontSize: '13px',
+              }}
+              onKeyDown={e => {
+                if (e.key === 'Enter') handleBroadcast();
+              }}
+            />
+            <button onClick={handleBroadcast}
+              disabled={!broadcastText.trim()}
+              className="flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{
+                padding: '10px 18px',
+                borderRadius: '10px',
+                background: broadcastSent ? 'var(--status-success, #00FF87)' : 'var(--accent-primary)',
+                color: '#fff',
+                border: 'none',
+                fontSize: '13px',
+                fontWeight: 600,
+              }}>
+              {broadcastSent ? <><Check size={14} /> Sent</> : <><Send size={14} /> Broadcast</>}
+            </button>
+          </div>
+
           {/* Participant cards */}
           <div className="space-y-3">
             {participants.map(p => {
