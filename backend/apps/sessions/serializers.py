@@ -31,7 +31,8 @@ class SessionParticipantSerializer(serializers.ModelSerializer):
         model = SessionParticipant
         fields = [
             'id', 'user', 'vm', 'vm_status', 'guacamole_url', 'status', 'joined_at',
-            'submitted_at', 'submission_file', 'vm_snapshot_id', 'session_scheduled_end_at'
+            'submitted_at', 'submission_file', 'vm_snapshot_id', 'session_scheduled_end_at',
+            'is_being_controlled',
         ]
 
     def get_guacamole_url(self, obj):
