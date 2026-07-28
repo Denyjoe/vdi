@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Monitor, Users, Clock, Copy, X, Power, Eye, Shield, WifiOff, ClipboardX, Link2, ArrowLeft, UserMinus, Check, Send } from 'lucide-react';
+import { Monitor, Users, Clock, Copy, X, Power, Eye, Shield, WifiOff, ClipboardX, Link2, ArrowLeft, UserMinus, Check, Send, LayoutGrid } from 'lucide-react';
 import api from '../services/api';
 import GuacamoleEmbed from '../components/shared/GuacamoleEmbed';
 
@@ -269,6 +269,68 @@ export default function HostSessionPage() {
             }}>
             <X size={14} />
           </button>
+        </div>
+      )}
+
+      {/* SECTION B1 — LIVE THUMBNAIL GRID */}
+      {participants.some(p => (p.vm_status === 'running' || p.status === 'connected') && p.guacamole_url) && (
+        <div className="px-5 pt-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+              <LayoutGrid size={16} className="text-[#6C63FF]" />
+              Live Preview
+            </h2>
+            <span className="text-[10px] text-faint">
+              Scaled-down live streams · click a tile to open full view
+            </span>
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+            gap: '12px',
+          }}>
+            {participants
+              .filter(p => (p.vm_status === 'running' || p.status === 'connected') && p.guacamole_url)
+              .map(p => {
+                const name = p.user?.first_name ? `${p.user.first_name} ${p.user.last_name || ''}` : (p.user?.email || 'Unknown');
+                return (
+                  <div key={p.id}
+                    onClick={() => openScreenModal(p)}
+                    className="border-border hover:border-[#6C63FF]/40 transition-all"
+                    style={{
+                      position: 'relative',
+                      aspectRatio: '16/10',
+                      borderRadius: '10px',
+                      overflow: 'hidden',
+                      border: '1px solid',
+                      cursor: 'pointer',
+                      background: '#000',
+                    }}>
+                    <div style={{
+                      position: 'absolute',
+                      inset: 0,
+                      transform: 'scale(0.25)',
+                      transformOrigin: 'top left',
+                      width: '400%',
+                      height: '400%',
+                      pointerEvents: 'none',
+                    }}>
+                      <GuacamoleEmbed url={p.guacamole_url} loadingText="" />
+                    </div>
+                    <div style={{
+                      position: 'absolute',
+                      bottom: 0, left: 0, right: 0,
+                      padding: '6px 10px',
+                      background: 'rgba(0,0,0,0.6)',
+                      fontSize: '11px',
+                      color: '#fff',
+                    }}>
+                      {name}
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
         </div>
       )}
 
