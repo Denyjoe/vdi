@@ -28,7 +28,7 @@ SITE_TAGLINE = 'Your workspace, anywhere'
 
 SECRET_KEY = config("SECRET_KEY")
 DEBUG = config("DEBUG", default=False, cast=bool)
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost').split(',')
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,.ngrok-free.dev,.ngrok-free.app,.ngrok.io').split(',')
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -123,6 +123,24 @@ DATABASES = {
         "PASSWORD": config("DB_PASSWORD"),
         "HOST": config("DB_HOST", default="localhost"),
         "PORT": config("DB_PORT", default="5432"),
+    }
+}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CACHES
+# ─────────────────────────────────────────────────────────────────────────────
+# NOTE: LocMemCache is per-process. If deployed with multiple worker
+# processes (gunicorn -w N, N>1), each worker maintains its own
+# separate Guacamole token cache. The retry-on-401 logic in
+# GuacamoleService handles this gracefully (each worker will simply
+# re-authenticate on first use), but for high-traffic production
+# deployments, consider a shared cache backend (Redis/Memcached)
+# for efficiency.
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
     }
 }
 
