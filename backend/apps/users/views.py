@@ -727,3 +727,9 @@ class FirebaseLoginView(APIView):
                 }
             }
         })
+
+class SessionRateConfigView(APIView):
+    def get(self, request):
+        from apps.users.models import SystemConfig
+        rate = SystemConfig.get('session_hosting_rate_tzs', '5000')
+        return Response({'success': True, 'rate_tzs': float(rate)})

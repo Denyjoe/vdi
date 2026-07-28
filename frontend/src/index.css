@@ -54,9 +54,18 @@
   /* Fallbacks for existing properties if not migrated */
   --scrollbar-track: #0A0E14;
   --scrollbar-thumb: #1E293B;
-  
+
   --led-opacity: 0.6;
   --led-blur: 1px;
+
+  /* Aliases referenced across admin/instructor UI — kept in sync with the base tokens above */
+  --bg-nav-hover: rgba(255, 255, 255, 0.06);
+  --bg-card-hover: var(--bg-elevated);
+  --bg-primary: var(--bg-input);
+  --bg-secondary: var(--bg-elevated);
+  --chart-bar: var(--accent-purple);
+  --text-heading: var(--text-primary);
+  --accent: var(--accent-primary);
 }
 
 [data-theme="light"] {
@@ -117,13 +126,22 @@
   --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.1), 0 4px 6px -4px rgba(15, 23, 42, 0.05);
   --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.08);
   --shadow-blue: 0 4px 12px rgba(37, 99, 235, 0.25);
-    
+
   --led-opacity: 0.35;
   --led-blur: 2px;
+
+  /* Aliases referenced across admin/instructor UI — kept in sync with the base tokens above */
+  --bg-card-hover: var(--bg-elevated);
+  --bg-primary: var(--bg-input);
+  --bg-secondary: var(--bg-elevated);
+  --chart-bar: var(--accent-purple);
+  --text-heading: var(--text-primary);
+  --accent: var(--accent-primary);
 }
 
 @theme {
   --font-sans: "Inter", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
   --color-canvas: var(--bg-canvas);
   --color-sidebar: var(--bg-sidebar);
   --color-card: var(--bg-card);
@@ -140,6 +158,7 @@
   --color-faint: var(--text-faint);
   
   --color-accent: var(--accent-primary);
+  --color-accent-primary: var(--accent-primary);
   --color-accent-hover: var(--accent-primary-hover);
   --color-accent-soft: var(--accent-primary-soft);
   
@@ -180,6 +199,17 @@ body {
 [class*="ledFlow"] {
   transition: none;
 }
+
+@keyframes orbit-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes orbit-counter-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
+.orbit-ring { animation: orbit-spin 16s linear infinite; }
+.orbit-icon { animation: orbit-counter-spin 16s linear infinite; }
 
 ::-webkit-scrollbar {
   width: 8px;

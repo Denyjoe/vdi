@@ -161,15 +161,17 @@ export default function Sidebar() {
         )}
       </div>
       
-      {/* ═══ COLLAPSE TOGGLE ═══ */}
-      <button 
+      {/* ═══ COLLAPSE TOGGLE (desktop/tablet only — mobile has its own close button) ═══ */}
+      {!isMobile && (
+      <button
         onClick={toggleSidebar}
         className="absolute -right-3 top-16 w-6 h-6 rounded-full bg-[var(--bg-elevated)] border border-[var(--border-color)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-nav-hover)] hover:border-[var(--border-strong)] active:scale-90 transition-all duration-200 z-10 shadow-md"
         title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
         {collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
-      
+
 </button>
-      
+      )}
+
       {/* ═══ NAVIGATION ═══ */}
       <nav className="flex-1 overflow-y-auto py-4 custom-scrollbar">
         
@@ -191,7 +193,7 @@ export default function Sidebar() {
         )}
 
         {/* HOST section */}
-        {user?.is_host && user?.role !== 'admin' && (
+        {user?.role !== 'admin' && (
           <>
             {!collapsed && (
               <p className="px-5 mt-6 mb-2 text-[9px] uppercase tracking-[3px] text-faint font-semibold">
@@ -317,7 +319,7 @@ export default function Sidebar() {
         
         {/* Avatar button */}
         <button onClick={() => setShowUserMenu(!showUserMenu)}
-          className={`w-full flex items-center transition-all duration-200 hover:bg-slate-800/30 active:scale-[0.98] group ${collapsed ? 'justify-center p-3' : 'gap-3 px-3 py-3'}`}>
+          className={`w-full flex items-center transition-all duration-200 hover:bg-[var(--bg-nav-hover)] active:scale-[0.98] group ${collapsed ? 'justify-center p-3' : 'gap-3 px-3 py-3'}`}>
           
           {/* Avatar circle */}
           {user?.avatar ? (
@@ -406,7 +408,7 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className={`h-screen flex flex-col border-r transition-all duration-300 ease-out flex-shrink-0 relative ${collapsed ? 'w-[80px]' : 'w-[260px]'}`} style={{ background: 'var(--bg-sidebar)', borderColor: 'var(--border-subtle)' }}>
+    <aside className={`h-screen flex flex-col border-r transition-all duration-300 ease-out flex-shrink-0 relative z-20 ${collapsed ? 'w-[80px]' : 'w-[260px]'}`} style={{ background: 'var(--bg-sidebar)', borderColor: 'var(--border-subtle)' }}>
       {sidebarContent}
     </aside>
   );

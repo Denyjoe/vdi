@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { 
   Monitor, Maximize2, Minimize2, LayoutGrid, Compass, BarChart2, AlertCircle, 
   Code2, Palette, Network, Box, Wifi, Battery, Volume2, 
-  Menu, X, Check, PanelRightOpen, PanelRightClose, Power
+  Menu, X, Check, PanelRightOpen, PanelRightClose, Power, UserCheck, RefreshCw
 } from 'lucide-react';
 import { sessionService } from '../../services/sessionService';
 import api from '../../services/api';
@@ -78,6 +78,9 @@ export default function DesktopSessionPage() {
 
   const lastKnownStatus = useRef(null);
   const [disconnectedByAdmin, setDisconnectedByAdmin] = useState(false);
+  // Separate state for the host-takeover scenario so we show the right message
+  const [takenOverByHost, setTakenOverByHost] = useState(false);
+  const [reconnecting, setReconnecting] = useState(false);
 
   // Consolidated Polling Loop
   useEffect(() => {
@@ -132,9 +135,15 @@ export default function DesktopSessionPage() {
           if (myParticipant) {
              const pStatus = myParticipant.status;
              const vmStatus = myParticipant.vm_status;
+             const beingControlled = myParticipant.is_being_controlled;
              
              if (pStatus === 'removed' || pStatus === 'disconnected' || vmStatus === 'stopped') {
-                setDisconnectedByAdmin(true);
+                // Distinguish takeover-disconnect from a genuine end/remove
+                if (beingControlled) {
+                  setTakenOverByHost(true);
+                } else {
+                  setDisconnectedByAdmin(true);
+                }
                 return;
              }
              
@@ -145,12 +154,23 @@ export default function DesktopSessionPage() {
                    ...prev,
                    session_scheduled_end_at: sData.scheduled_end_at
                 };
+
+                if (!prev.guacamole_url && myParticipant.guacamole_url) {
+                    newState.guacamole_url = myParticipant.guacamole_url;
+                }
                 
                 if (vmStatus !== lastKnownStatus.current) {
-                   lastKnownStatus.current = vmStatus;
-                   newState.guacamole_url = prev.guacamole_url || myParticipant.guacamole_url;
-                   newState.vm_status = vmStatus;
-                }
+                  lastKnownStatus.current = vmStatus;
+                  newState.vm_status = vmStatus;
+               }
+               newState.is_being_controlled = beingControlled;
+                
+               // Host released control — allow reconnect to restore
+               if (prev.is_being_controlled && !beingControlled && takenOverByHost) {
+                 setTakenOverByHost(false);
+                 setReconnecting(false);
+                 newState.guacamole_url = myParticipant.guacamole_url || prev.guacamole_url;
+               }
                 
                 return newState;
              });
@@ -235,6 +255,36 @@ export default function DesktopSessionPage() {
       setIsDisconnecting(false);
       setShowConfirm(false);
     }
+  };
+
+  /**
+   * Handles participant reconnecting after host releases control.
+   * Re-fetches the session to get a fresh Guacamole URL and clears the takeover state.
+   */
+  const handleReconnect = async () => {
+    setReconnecting(true);
+    try {
+      const res = await sessionService.getLiveSession(sessionId);
+      if (res.data.success && res.data.data) {
+        const sData = res.data.data;
+        const myParticipant = sData.participants?.find(p => p.user?.id === user?.id);
+        if (myParticipant && myParticipant.guacamole_url && !myParticipant.is_being_controlled) {
+          setSessionData(prev => ({
+            ...prev,
+            guacamole_url: myParticipant.guacamole_url,
+            is_being_controlled: false,
+          }));
+          setTakenOverByHost(false);
+          setReconnecting(false);
+          return;
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+    // Still under control — tell user to wait
+    setReconnecting(false);
+    setToast({ show: true, message: 'Session is still under instructor control. Try again in a moment.', type: 'warning' });
   };
 
   const toggleFullscreen = () => {
@@ -458,6 +508,61 @@ export default function DesktopSessionPage() {
         </div>
       </div>
 
+      {/* Takeover overlay — shown when host is actively controlling this session */}
+      {takenOverByHost && (
+        <div style={{
+          position: 'absolute', inset: 0,
+          zIndex: 100,
+          background: '#050B18',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '12px',
+          textAlign: 'center',
+          padding: '32px',
+        }}>
+          <div style={{
+            width: 64, height: 64,
+            borderRadius: '50%',
+            background: 'rgba(245, 158, 11, 0.12)',
+            border: '1.5px solid rgba(245, 158, 11, 0.3)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            marginBottom: 8,
+          }}>
+            <UserCheck size={28} color="#F59E0B" />
+          </div>
+          <h2 style={{ color: '#e2e8f0', fontSize: '20px', fontWeight: 700, margin: 0 }}>
+            Your instructor has taken control
+          </h2>
+          <p style={{ color: '#64748b', fontSize: '14px', maxWidth: 360, margin: 0, lineHeight: 1.6 }}>
+            Your instructor is temporarily using your desktop. Your work is safe — nothing
+            will be deleted. You can reconnect once they release control.
+          </p>
+          <button
+            onClick={handleReconnect}
+            disabled={reconnecting}
+            style={{
+              marginTop: 16,
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '10px 24px',
+              borderRadius: 10,
+              background: 'rgba(99, 102, 241, 0.15)',
+              border: '1px solid rgba(99, 102, 241, 0.35)',
+              color: '#818cf8',
+              fontSize: 14, fontWeight: 600,
+              cursor: reconnecting ? 'not-allowed' : 'pointer',
+              opacity: reconnecting ? 0.6 : 1,
+              transition: 'all 0.2s',
+            }}
+          >
+            <RefreshCw size={14} className={reconnecting ? 'animate-spin' : ''} />
+            {reconnecting ? 'Checking...' : 'Try Reconnecting'}
+          </button>
+        </div>
+      )}
+
+      {/* Genuine disconnect overlay (session ended / removed by admin) */}
       {disconnectedByAdmin && (
         <div style={{
           position: 'absolute', inset: 0,
@@ -469,14 +574,20 @@ export default function DesktopSessionPage() {
           justifyContent: 'center',
         }}>
           <Power size={48} className="text-slate-400 mb-4" />
-          <h2 className="text-slate-300 text-xl font-semibold mb-2">Workspace Shut Down</h2>
-          <p className="text-slate-500 mb-6">This workspace has been shut down or the session was disconnected.</p>
+          <h2 className="text-slate-300 text-xl font-semibold mb-2">Session Ended</h2>
+          <p className="text-slate-500 mb-6">This session has ended or you were removed by the instructor.</p>
           <button onClick={() => navigate('/workspaces')} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors shadow-lg">
             Back to Workspaces
           </button>
         </div>
       )}
 
+      {sessionData.is_being_controlled && !takenOverByHost && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 bg-amber-500/90 text-white rounded-full shadow-lg shadow-amber-500/20 backdrop-blur-sm animate-in slide-in-from-top-4">
+          <Monitor size={14} className="animate-pulse" />
+          <span className="text-xs font-semibold tracking-wide">Your instructor is currently interacting with your screen</span>
+        </div>
+      )}
       <GuacamoleEmbed url={sessionData.guacamole_url} loadingText="Connecting to your session..." />
       
       <ConfirmModal

@@ -212,7 +212,7 @@ class VMOrchestrator:
 
             # Wait for RDP to be genuinely ready (TCP port check)
             import socket
-            def wait_for_rdp_ready(ip, port=3389, timeout=90, poll_interval=2):
+            def wait_for_rdp_ready(ip, port=3389, timeout=120, poll_interval=2):
                 """Wait until xrdp is actually accepting connections."""
                 elapsed = 0
                 while elapsed < timeout:
@@ -232,7 +232,7 @@ class VMOrchestrator:
             vm.notes = 'Waiting for remote desktop service to start...'
             vm.save(update_fields=['notes'])
 
-            rdp_ready = wait_for_rdp_ready(ip_address, timeout=90)
+            rdp_ready = wait_for_rdp_ready(ip_address, timeout=120)
             if not rdp_ready:
                 # Clean up the orphaned Proxmox VM
                 try:
@@ -415,7 +415,7 @@ class VMOrchestrator:
 
             # Wait for RDP to be genuinely ready
             import socket
-            def wait_for_rdp_ready(ip, port=3389, timeout=90, poll_interval=2):
+            def wait_for_rdp_ready(ip, port=3389, timeout=120, poll_interval=2):
                 """Wait until xrdp is actually accepting connections."""
                 elapsed = 0
                 while elapsed < timeout:
@@ -435,7 +435,7 @@ class VMOrchestrator:
             vm.notes = 'Waiting for remote desktop service to start...'
             vm.save(update_fields=['notes'])
 
-            rdp_ready = wait_for_rdp_ready(ip_address, timeout=90)
+            rdp_ready = wait_for_rdp_ready(ip_address, timeout=120)
             if not rdp_ready:
                 # Clean up the orphaned Proxmox VM
                 try:

@@ -28,11 +28,42 @@ class SessionLifecycleService:
             orchestrator = VMOrchestrator()
             if template.is_real:
                 import threading
-                thread = threading.Thread(target=orchestrator.provision_real_vm, args=(vm,))
+                def provision_and_update(vm_instance, part_instance):
+                    try:
+                        res = orchestrator.provision_real_vm(vm_instance)
+                        if res and 'error' not in res:
+                            part_instance.status = 'connected'
+                        else:
+                            part_instance.status = 'error'
+                    except Exception as e:
+                        import logging
+                        logging.getLogger(__name__).error(
+                            f"Participant {part_instance.id} VM provision failed: {e}", 
+                            exc_info=True
+                        )
+                        part_instance.status = 'error'
+                    finally:
+                        part_instance.save()
+
+                thread = threading.Thread(target=provision_and_update, args=(vm, participant))
                 thread.daemon = True
                 thread.start()
             else:
-                orchestrator.provision_vm(vm)
+                try:
+                    res = orchestrator.provision_vm(vm)
+                    if res and 'error' not in res:
+                        participant.status = 'connected'
+                    else:
+                        participant.status = 'error'
+                except Exception as e:
+                    import logging
+                    logging.getLogger(__name__).error(
+                        f"Participant {participant.id} mock VM provision failed: {e}", 
+                        exc_info=True
+                    )
+                    participant.status = 'error'
+                finally:
+                    participant.save()
 
     @staticmethod
     def handle_participant_disconnect(participant):

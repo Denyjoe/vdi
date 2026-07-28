@@ -97,7 +97,7 @@ export default function BillingPanel({ isOpen, onClose }) {
                 </p>
               </div>
             </div>
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-nav-hover text-secondary hover:text-white active:scale-95 transition-all">
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-nav-hover text-secondary hover:text-primary active:scale-95 transition-all">
               <X size={18} />
             </button>
           </div>
@@ -428,7 +428,7 @@ export default function BillingPanel({ isOpen, onClose }) {
                       <button
                         onClick={() => handleViewReceipt(p.id)}
                         disabled={downloading === p.id}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/30 border border-slate-700/30 text-secondary hover:text-white hover:border-slate-500 active:scale-95 transition-all text-[11px] font-medium disabled:opacity-30">
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800/30 border border-slate-700/30 text-secondary hover:text-primary hover:border-slate-500 active:scale-95 transition-all text-[11px] font-medium disabled:opacity-30">
                         {downloading === p.id ? (
                           <div className="w-3.5 h-3.5 border border-slate-400/30 border-t-slate-400 rounded-full animate-spin mx-1" />
                         ) : (

@@ -307,7 +307,7 @@ export default function AdminDashboard() {
       {/* SECTION A: Top Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-[var(--bg-card)]/80 backdrop-blur-md rounded-2xl p-6 shadow-lg border border-[var(--border-color)] relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+          <div className="absolute top-0 right-0 p-4 opacity-[0.04] dark:opacity-10 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity">
             <Users size={64} />
           </div>
           <div className="flex items-center gap-4 mb-4 relative z-10">
@@ -323,7 +323,7 @@ export default function AdminDashboard() {
         </div>
 
         <div className="bg-[var(--bg-card)]/80 backdrop-blur-md rounded-2xl p-6 shadow-lg border border-[var(--border-color)] relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+          <div className="absolute top-0 right-0 p-4 opacity-[0.04] dark:opacity-10 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity">
             <Monitor size={64} />
           </div>
           <div className="flex items-center gap-4 mb-4 relative z-10">
@@ -339,7 +339,7 @@ export default function AdminDashboard() {
         </div>
 
         <div onClick={() => navigate('/admin/sessions')} className="bg-[var(--bg-card)]/80 backdrop-blur-md rounded-2xl p-6 shadow-lg border border-[var(--border-color)] relative overflow-hidden group cursor-pointer hover:border-blue-500/30 transition-all">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+          <div className="absolute top-0 right-0 p-4 opacity-[0.04] dark:opacity-10 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity">
             <Video size={64} />
           </div>
           <div className="flex items-center gap-4 mb-4 relative z-10">
@@ -355,7 +355,7 @@ export default function AdminDashboard() {
         </div>
 
         <div className="bg-[var(--bg-card)]/80 backdrop-blur-md rounded-2xl p-6 shadow-lg border border-[var(--border-color)] relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+          <div className="absolute top-0 right-0 p-4 opacity-[0.04] dark:opacity-10 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity">
             <Activity size={64} />
           </div>
           <div className="flex items-center gap-4 mb-4 relative z-10">
@@ -376,7 +376,7 @@ export default function AdminDashboard() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
         <div className="bg-[var(--bg-card)]/80 backdrop-blur-md rounded-2xl p-6 shadow-lg border border-[var(--border-color)] relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+          <div className="absolute top-0 right-0 p-4 opacity-[0.04] dark:opacity-10 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity">
             <Activity size={64} />
           </div>
           <div className="flex items-center gap-4 mb-4 relative z-10">
@@ -392,7 +392,7 @@ export default function AdminDashboard() {
         </div>
 
         <div className="bg-[var(--bg-card)]/80 backdrop-blur-md rounded-2xl p-6 shadow-lg border border-[var(--border-color)] relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+          <div className="absolute top-0 right-0 p-4 opacity-[0.04] dark:opacity-10 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity">
             <Database size={64} />
           </div>
           <div className="flex items-center gap-4 mb-4 relative z-10">
@@ -526,7 +526,7 @@ export default function AdminDashboard() {
                 <XAxis dataKey="name" stroke="var(--chart-text)" axisLine={false} tickLine={false} />
                 <YAxis stroke="var(--chart-text)" axisLine={false} tickLine={false} />
                 <RechartsTooltip 
-                  contentStyle={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
+                  contentStyle={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', boxShadow: 'var(--shadow-lg)' }}
                   itemStyle={{ color: 'var(--accent)' }}
                 />
                 <Area type="monotone" dataKey="count" stroke="var(--chart-line)" strokeWidth={3} fillOpacity={1} fill="url(#colorSessions)" />
@@ -547,7 +547,7 @@ export default function AdminDashboard() {
                 <YAxis stroke="var(--chart-text)" axisLine={false} tickLine={false} />
                 <RechartsTooltip 
                   cursor={{ fill: 'var(--bg-elevated)' }}
-                  contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
+                  contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', boxShadow: 'var(--shadow-lg)' }}
                   itemStyle={{ color: 'var(--text-primary)' }}
                 />
                 <Bar dataKey="created" fill="var(--chart-line)" radius={[4, 4, 0, 0]} maxBarSize={30} />

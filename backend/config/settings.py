@@ -256,6 +256,10 @@ CELERY_BEAT_SCHEDULE = {
     'task': 'apps.vms.tasks.cleanup_expired_sessions',
     'schedule': crontab(minute=0),
   },
+  'end-expired-live-sessions': {
+    'task': 'apps.sessions.tasks.end_expired_sessions',
+    'schedule': crontab(minute='*'),
+  },
 }
 
 GOOGLE_CLIENT_ID = config('GOOGLE_CLIENT_ID', default='')

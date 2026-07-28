@@ -253,7 +253,7 @@ export default function NotificationsDrawer({ isOpen, onClose }) {
  e.stopPropagation();
  markRead(notif.id);
  }}
- className="opacity-0 group-hover:opacity-100 p-1 rounded-lg hover:bg-[var(--bg-nav-hover)] text-[#475569] dark:text-slate-300 hover:text-[var(--text-[#0F172A] dark:text-white )] transition-all flex-shrink-0">
+ className="opacity-0 group-hover:opacity-100 p-1 rounded-lg hover:bg-[var(--bg-nav-hover)] text-[#475569] dark:text-slate-300 hover:text-[#0F172A] dark:hover:text-white transition-all flex-shrink-0">
  <Check size={13} />
  </button>
  )}

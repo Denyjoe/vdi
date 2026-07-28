@@ -35,6 +35,7 @@ urlpatterns = [
     # Public endpoint — no authentication required.
     path("api/health/", HealthCheckView.as_view(), name="health-check"),
     path("api/config/announcement/", apps.users.views.AnnouncementView.as_view(), name="system-announcement"),
+    path("api/config/session-rate/", apps.users.views.SessionRateConfigView.as_view(), name="session-rate-config"),
 
     # ── Authentication & User Endpoints ──────────────────────────────────────
     path("api/auth/", include("apps.users.urls")),

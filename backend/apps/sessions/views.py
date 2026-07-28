@@ -309,3 +309,93 @@ class DisconnectSessionView(APIView):
             SessionLifecycleService.handle_participant_disconnect(participant)
             
         return Response({"success": True})
+
+class HostControlParticipantView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request, pk, participant_id):
+        from apps.sessions.models import LiveSession, SessionParticipant
+        
+        try:
+            session = LiveSession.objects.get(id=pk)
+        except LiveSession.DoesNotExist:
+            return Response({'error': 'Not found'}, status=404)
+        
+        # CRITICAL SECURITY CHECK
+        if session.host_id != request.user.id:
+            return Response({
+                'success': False,
+                'message': 'Only the session host can control participant sessions.'
+            }, status=403)
+        
+        try:
+            participant = SessionParticipant.objects.get(id=participant_id, session=session)
+        except SessionParticipant.DoesNotExist:
+            return Response({'error': 'Participant not found'}, status=404)
+        
+        if not participant.vm or not participant.vm.guacamole_connection_id:
+            return Response({
+                'success': False,
+                'message': 'Participant has no active connection.'
+            }, status=400)
+        
+        from apps.vms.services.guacamole_service import GuacamoleService
+        gs = GuacamoleService()
+        gs.authenticate()
+        
+        # Generate a direct connection URL for the host.
+        #
+        # Background: Guacamole's sharingCredentials API (the "sharing profile" approach) requires
+        # a live WebSocket *tunnel* UUID, which only exists in the participant's browser session —
+        # the backend has no access to it. Instead, we give the host a direct connection URL to
+        # the SAME Guacamole connection the participant is on. This is fully supported: each
+        # connection allows up to 5 simultaneous sessions (max-connections=5), and all concurrent
+        # sessions on the same connection share the same live desktop in full read-write mode.
+        try:
+            control_url = gs.get_connection_url(participant.vm.guacamole_connection_id)
+        except Exception as e:
+            return Response({
+                'success': False,
+                'message': f'Failed to generate control URL: {str(e)}'
+            }, status=500)
+        
+        from apps.users.admin_services import log_admin_action
+        try:
+            log_admin_action(
+                request.user, 
+                'config_changed',
+                f'{request.user.email} took control of {participant.user.email}' + "'s session"
+            )
+        except Exception:
+            pass
+            
+        participant.is_being_controlled = True
+        participant.save(update_fields=['is_being_controlled'])
+        
+        return Response({
+            'success': True,
+            'control_url': control_url
+        })
+
+class HostReleaseControlView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request, pk, participant_id):
+        from apps.sessions.models import LiveSession, SessionParticipant
+        
+        try:
+            session = LiveSession.objects.get(id=pk)
+        except LiveSession.DoesNotExist:
+            return Response({'error': 'Not found'}, status=404)
+            
+        if session.host_id != request.user.id:
+            return Response({'error': 'Unauthorized'}, status=403)
+            
+        try:
+            participant = SessionParticipant.objects.get(id=participant_id, session=session)
+            participant.is_being_controlled = False
+            participant.save(update_fields=['is_being_controlled'])
+        except SessionParticipant.DoesNotExist:
+            pass
+            
+        return Response({'success': True})

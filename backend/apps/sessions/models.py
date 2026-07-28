@@ -224,6 +224,18 @@ class LiveSession(models.Model):
         default=False)
     record_session = models.BooleanField(
         default=False)
+    
+    # Pay-and-start session fields
+    hours_purchased = models.DecimalField(
+        max_digits=5, decimal_places=2, 
+        default=1)
+    amount_paid_tzs = models.DecimalField(
+        max_digits=10, decimal_places=2, 
+        default=0)
+    scheduled_end_at = models.DateTimeField(
+        null=True, blank=True)
+    auto_ended = models.BooleanField(
+        default=False)
     show_participant_list = models.BooleanField(
         default=True)
     created_at = models.DateTimeField(
@@ -276,6 +288,8 @@ class SessionParticipant(models.Model):
         max_length=20,
         choices=STATUS_CHOICES,
         default='joined')
+    is_being_controlled = models.BooleanField(
+        default=False)
     joined_at = models.DateTimeField(
         auto_now_add=True)
     submitted_at = models.DateTimeField(

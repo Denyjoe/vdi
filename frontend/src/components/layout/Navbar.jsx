@@ -16,7 +16,7 @@ import { signOutFirebase } from '../../config/firebase';
 export default function Navbar({ onMenuClick }) {
   const { user, logout } = useAuthStore();
   const theme = useThemeStore(s => s.theme);
-  const { isMobile } = useBreakpoint();
+  const { isMobile, isDesktop } = useBreakpoint();
   const { toggleMobileMenu } = useUIStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -166,7 +166,7 @@ export default function Navbar({ onMenuClick }) {
             </button>
           )}
 
-          {!isMobile && (
+          {isDesktop && (
             <div className="hidden md:flex items-center gap-2">
                 <Monitor className="w-6 h-6 text-[#0066FF]" />
                 <h1 className="text-primary font-bold text-lg leading-tight">CloudDesk</h1>
@@ -175,7 +175,7 @@ export default function Navbar({ onMenuClick }) {
 
           <div className="flex items-center space-x-3">
             <div className="flex items-center space-x-2">
-              {!isMobile && (
+              {isDesktop && (
                 <>
                   <span className={`text-[11px] font-semibold uppercase tracking-[1.5px] ${theme === 'light' ? 'text-[#475569]' : 'text-[var(--text-muted)]'}`}>
                     Console
@@ -203,7 +203,7 @@ export default function Navbar({ onMenuClick }) {
 
         <div className="flex items-center gap-2 sm:gap-4">
           
-          {!isMobile && (
+          {isDesktop && (
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -235,7 +235,7 @@ export default function Navbar({ onMenuClick }) {
             </div>
           )}
           
-          {!isMobile && (
+          {isDesktop && (
             <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-canvas">
               <Clock size={12} className="text-muted" />
               <span className="text-[11px] font-mono font-medium text-secondary tabular-nums tracking-wider">
@@ -394,7 +394,7 @@ export default function Navbar({ onMenuClick }) {
                 </h2>
               </div>
               <button onClick={() => setShowQuickGuide(false)}
-                className="p-1.5 rounded-lg hover:bg-nav-hover text-secondary hover:text-white active:scale-95 transition-all">
+                className="p-1.5 rounded-lg hover:bg-nav-hover text-secondary hover:text-primary active:scale-95 transition-all">
                 <X size={16} />
               </button>
             </div>
@@ -491,7 +491,7 @@ export default function Navbar({ onMenuClick }) {
                 </h2>
               </div>
               <button onClick={() => setShowShortcuts(false)}
-                className="p-1.5 rounded-lg hover:bg-nav-hover text-secondary hover:text-white active:scale-95 transition-all">
+                className="p-1.5 rounded-lg hover:bg-nav-hover text-secondary hover:text-primary active:scale-95 transition-all">
                 <X size={16} />
               </button>
             </div>

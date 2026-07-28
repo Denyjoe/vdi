@@ -23,6 +23,7 @@ export default function HostSessionPage() {
   const [session, setSession] = useState({});
   const [participants, setParticipants] = useState([]);
   const [screenModal, setScreenModal] = useState(null);
+  const [controlSession, setControlSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -77,6 +78,38 @@ export default function HostSessionPage() {
     } catch(e) {
       console.error(e);
     }
+  };
+
+  const handleTakeControl = async (participant) => {
+    const name = participant.user?.first_name || participant.user_name || participant.user?.email || 'this user';
+    const confirmed = window.confirm(
+      `Take control of ${name}'s session?\n\n` +
+      `They will be temporarily disconnected while you have control. ` +
+      `Their work is saved and they can reconnect once you release control.`
+    );
+    if (!confirmed) return;
+    try {
+      const res = await api.post(`/sessions/live/${sessionId}/control-participant/${participant.id}/`);
+      if (res.data.success) {
+        setControlSession({
+          participant,
+          controlUrl: res.data.control_url,
+        });
+      }
+    } catch(e) {
+      alert('Failed to take control: ' + (e.response?.data?.message || e.message));
+    }
+  };
+
+  const releaseControl = async () => {
+    if (controlSession) {
+      try {
+        await api.post(`/sessions/live/${sessionId}/release-control/${controlSession.participant.id}/`);
+      } catch (e) {
+        // ignore
+      }
+    }
+    setControlSession(null);
   };
 
   const handleRemoveParticipant = async (participant) => {
@@ -291,6 +324,13 @@ export default function HostSessionPage() {
                         View Screen
                       </button>
                       
+                      <button
+                        onClick={() => handleTakeControl(p)}
+                        disabled={!isConnected || !p.guacamole_url}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[11px] font-semibold hover:bg-amber-500/20 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed">
+                        Take Control
+                      </button>
+                      
                       {/* Remove button */}
                       <button
                         onClick={() => handleRemoveParticipant(p)}
@@ -469,6 +509,43 @@ export default function HostSessionPage() {
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[11px] font-semibold active:scale-95 transition-all">
                 <UserMinus size={12} />
                 Remove from Session
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SECTION E — TAKE CONTROL MODAL */}
+      {controlSession && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="bg-card border border-amber-500/30 rounded-2xl overflow-hidden w-[95vw] sm:w-[85vw] h-[90vh] sm:h-[80vh] flex flex-col shadow-2xl">
+            
+            <div className="h-12 px-4 flex items-center justify-between bg-amber-500/10 border-b border-amber-500/20">
+              <div className="flex items-center gap-3 truncate">
+                <Monitor size={16} className="text-amber-500" />
+                <span className="text-sm font-semibold text-amber-500 truncate">
+                  Controlling: {controlSession.participant.user?.first_name || controlSession.participant.user?.email || 'User'}
+                </span>
+                <span className="text-xs text-amber-500/70 hidden sm:inline">
+                  They can see your interactions
+                </span>
+              </div>
+              <button onClick={releaseControl}
+                className="p-1.5 rounded-lg hover:bg-amber-500/20 text-amber-500 hover:text-amber-400 active:scale-95 transition-all">
+                <X size={18} />
+              </button>
+            </div>
+            
+            <GuacamoleEmbed 
+              url={controlSession.controlUrl}
+              title={`Controlling: ${controlSession.participant.user?.first_name || 'User'}`}
+            />
+            
+            <div className="h-10 px-4 flex items-center justify-end gap-2 bg-canvas border-t border-border-subtle">
+              <button
+                onClick={releaseControl}
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-amber-500 text-white text-[11px] font-semibold active:scale-95 transition-all">
+                Release Control
               </button>
             </div>
           </div>
