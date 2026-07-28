@@ -409,7 +409,7 @@ export default function DesktopSessionPage() {
             </div>
           )}
 
-          <GuacamoleEmbed url={workspace.vm_details.guacamole_url} />
+          <GuacamoleEmbed url={workspace.vm_details.guacamole_url} loadingText="Connecting to your workspace..." />
         </div>
       );
     }
@@ -492,7 +492,7 @@ export default function DesktopSessionPage() {
         </div>
       )}
 
-      <GuacamoleEmbed url={sessionData.guacamole_url} />
+      <GuacamoleEmbed url={sessionData.guacamole_url} loadingText="Connecting to your session..." />
       
       <ConfirmModal
         isOpen={showConfirm}

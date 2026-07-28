@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-export default function GuacamoleEmbed({ url, title = "Virtual Desktop", className = "w-full flex-1 border-none bg-black" }) {
+export default function GuacamoleEmbed({ url, title = "Virtual Desktop", className = "w-full flex-1 border-none bg-black", loadingText = "Connecting..." }) {
   const [connectionState, setConnectionState] = useState('connecting');
 
   useEffect(() => {
@@ -47,8 +47,7 @@ export default function GuacamoleEmbed({ url, title = "Virtual Desktop", classNa
           justifyContent: 'center',
         }}>
           <div className="w-10 h-10 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-4" />
-          <h2 className="text-[var(--text-primary, #fff)] text-xl font-semibold mb-2">Connecting...</h2>
-          <p className="text-[var(--text-secondary, #94a3b8)] text-sm">Securing desktop stream</p>
+          <h2 className="text-[var(--text-primary, #fff)] text-xl font-semibold mb-2">{loadingText}</h2>
         </div>
       )}
       <iframe
