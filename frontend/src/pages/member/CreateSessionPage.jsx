@@ -168,6 +168,30 @@ export default function CreateSessionPage() {
             </div>
           </div>
           
+        </div>
+
+        {/* Right Column: Controls */}
+        <div className="space-y-6">
+          <div className="bg-card/70 backdrop-blur-sm border border-border rounded-2xl p-6">
+            <h3 className="text-sm font-semibold text-primary mb-4">Environment Controls</h3>
+            <div className="space-y-4">
+              <ControlToggle 
+                label="Clipboard Sync" 
+                description="Allow copy/paste between local and VM" 
+                value={restrictions.clipboard} 
+                onChange={v => setRestrictions({...restrictions, clipboard: v})} 
+                onColor="#00A3FF" 
+              />
+              <ControlToggle 
+                label="File Transfer" 
+                description="Allow uploading/downloading files" 
+                value={restrictions.file_transfer} 
+                onChange={v => setRestrictions({...restrictions, file_transfer: v})} 
+                onColor="#FFB800" 
+              />
+            </div>
+          </div>
+          
           <div className="bg-card/70 backdrop-blur-sm border border-border rounded-2xl p-6">
             <h3 className="text-sm font-semibold text-primary mb-4">Duration & Pricing</h3>
             
@@ -215,29 +239,6 @@ export default function CreateSessionPage() {
               <p style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)' }}>
                 TZS {(hours * rate).toLocaleString()}
               </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column: Controls */}
-        <div className="space-y-6">
-          <div className="bg-card/70 backdrop-blur-sm border border-border rounded-2xl p-6">
-            <h3 className="text-sm font-semibold text-primary mb-4">Environment Controls</h3>
-            <div className="space-y-2">
-              <ControlToggle 
-                label="Clipboard Sync" 
-                description="Allow copy/paste between local and VM" 
-                value={restrictions.clipboard} 
-                onChange={v => setRestrictions({...restrictions, clipboard: v})} 
-                onColor="#00A3FF" 
-              />
-              <ControlToggle 
-                label="File Transfer" 
-                description="Allow uploading/downloading files" 
-                value={restrictions.file_transfer} 
-                onChange={v => setRestrictions({...restrictions, file_transfer: v})} 
-                onColor="#FFB800" 
-              />
             </div>
           </div>
         </div>
