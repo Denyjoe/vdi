@@ -76,95 +76,46 @@ export default function DesktopSessionPage() {
     }
   }, [sessionData, sessionId, navigate, type, user]);
 
-  // Workspace Polling
-  useEffect(() => {
-    if (type !== 'workspace') return;
-    
-    let intervalId;
-    let hardTimeoutId;
-    let isComplete = false;
-
-    const fetchWs = async () => {
-      try {
-        const res = await api.get(`/workspaces/${sessionId}/`);
-        const wsData = res.data.data || res.data; // Ensure we get the actual workspace object
-        setWorkspace(wsData);
-        
-        const vmStatus = wsData.vm_details?.status;
-        if (vmStatus === 'error') {
-           setWsLoading(false);
-           isComplete = true;
-        } else if (vmStatus === 'running' || wsData.status === 'active') {
-           if (wsData.vm_details?.guacamole_url) {
-              setWsLoading(false);
-              isComplete = true;
-           }
-        }
-        
-        if (isComplete) {
-           clearInterval(intervalId);
-           clearTimeout(hardTimeoutId);
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    
-    fetchWs();
-    intervalId = setInterval(fetchWs, 3000);
-    
-    hardTimeoutId = setTimeout(() => {
-      clearInterval(intervalId);
-      setWsLoading(false);
-      setWorkspace(prev => ({
-        ...prev,
-        vm_details: {
-          ...(prev?.vm_details || {}),
-          status: 'error',
-          isTimeout: true,
-          notes: "This workspace is taking longer than expected to start. On current infrastructure, cold starts can take up to 5 minutes."
-        }
-      }));
-    }, 330000); // 330 seconds — matches realistic HDD clone+boot time with safety margin
-
-    return () => {
-      clearInterval(intervalId);
-      clearTimeout(hardTimeoutId);
-    };
-  }, [type, sessionId]);
-
+  const lastKnownStatus = useRef(null);
   const [disconnectedByAdmin, setDisconnectedByAdmin] = useState(false);
 
-  // Workspace Polling (Admin status check)
+  // Consolidated Polling Loop
   useEffect(() => {
-    if (type !== 'workspace') return;
-    
-    let wsInterval;
-    const fetchWsStatus = async () => {
-      try {
-        const res = await api.get(`/workspaces/${sessionId}/`);
-        if (res.data.success && res.data.data) {
-          const status = res.data.data.status;
-          if (status === 'stopped' || status === 'error' || status === 'deleted') {
-            setDisconnectedByAdmin(true);
-          }
-        }
-      } catch (err) {
-        setDisconnectedByAdmin(true);
-      }
-    };
-    
-    wsInterval = setInterval(fetchWsStatus, 8000);
-    return () => clearInterval(wsInterval);
-  }, [type, sessionId]);
+    let intervalId;
+    let hardTimeoutId;
 
-    // Session Polling (for participants)
-    useEffect(() => {
-      if (type === 'workspace') return;
-      
-      let intervalId;
-      const fetchSessionStatus = async () => {
-        try {
+    // For workspaces during provisioning, we poll faster.
+    const pollInterval = (type === 'workspace' && wsLoading) ? 3000 : 8000;
+
+    const poll = async () => {
+      try {
+        if (type === 'workspace') {
+          const res = await api.get(`/workspaces/${sessionId}/`);
+          const wsData = res.data.data || res.data;
+          const status = wsData.vm_details?.status || wsData.status;
+          
+          if (status === 'error' || status === 'stopped' || status === 'deleted') {
+             setDisconnectedByAdmin(true);
+             if (wsLoading) setWsLoading(false);
+          } else if (status === 'running' || wsData.status === 'active') {
+             const url = wsData.vm_details?.guacamole_url;
+             if (url && status !== lastKnownStatus.current) {
+               lastKnownStatus.current = status;
+               setWorkspace(prev => ({
+                 ...prev,
+                 ...wsData,
+                 vm_details: {
+                   ...(prev?.vm_details || {}),
+                   ...wsData.vm_details,
+                   guacamole_url: prev?.vm_details?.guacamole_url || url,
+                   status: status
+                 }
+               }));
+               if (wsLoading) setWsLoading(false);
+             }
+          }
+        } else {
+          // Session polling
           const res = await sessionService.getLiveSession(sessionId);
           if (!res.data.success || !res.data.data || String(res.data.data.id) !== String(sessionId)) {
             setDisconnectedByAdmin(true);
@@ -178,30 +129,64 @@ export default function DesktopSessionPage() {
           }
           
           const myParticipant = sData.participants?.find(p => p.user?.id === user?.id);
-          
           if (myParticipant) {
-             if (myParticipant.status === 'removed' || myParticipant.status === 'disconnected' || myParticipant.vm_status === 'stopped') {
+             const pStatus = myParticipant.status;
+             const vmStatus = myParticipant.vm_status;
+             
+             if (pStatus === 'removed' || pStatus === 'disconnected' || vmStatus === 'stopped') {
                 setDisconnectedByAdmin(true);
                 return;
              }
              
-             setSessionData(prev => ({
-                ...prev,
-                guacamole_url: myParticipant.guacamole_url,
-                vm_status: myParticipant.vm_status,
-                session_scheduled_end_at: sData.scheduled_end_at
-             }));
+             setSessionData(prev => {
+                if (!prev) return prev;
+                
+                const newState = {
+                   ...prev,
+                   session_scheduled_end_at: sData.scheduled_end_at
+                };
+                
+                if (vmStatus !== lastKnownStatus.current) {
+                   lastKnownStatus.current = vmStatus;
+                   newState.guacamole_url = prev.guacamole_url || myParticipant.guacamole_url;
+                   newState.vm_status = vmStatus;
+                }
+                
+                return newState;
+             });
+          } else {
+             setDisconnectedByAdmin(true);
           }
-        } catch (err) {
-          setDisconnectedByAdmin(true);
         }
-      };
-      
-      intervalId = setInterval(fetchSessionStatus, 8000);
-      return () => clearInterval(intervalId);
-    }, [type, sessionId, user]);
+      } catch (err) {
+        // ignore single transient network errors
+      }
+    };
 
+    poll(); // Initial immediate poll
+    intervalId = setInterval(poll, pollInterval);
 
+    if (type === 'workspace' && wsLoading) {
+      hardTimeoutId = setTimeout(() => {
+        setWsLoading(false);
+        setDisconnectedByAdmin(true);
+        setWorkspace(prev => ({
+          ...prev,
+          vm_details: {
+            ...(prev?.vm_details || {}),
+            status: 'error',
+            isTimeout: true,
+            notes: "This workspace is taking longer than expected to start. On current infrastructure, cold starts can take up to 5 minutes."
+          }
+        }));
+      }, 330000);
+    }
+
+    return () => {
+      clearInterval(intervalId);
+      if (hardTimeoutId) clearTimeout(hardTimeoutId);
+    };
+  }, [type, sessionId, user, wsLoading]);
 
   // Session timer (countdown)
   const [timeLeft, setTimeLeft] = useState(null);
