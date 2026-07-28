@@ -290,7 +290,7 @@ export default function DesktopSessionPage() {
         <div className="flex flex-col items-center justify-center h-screen gap-6 bg-[#050B18]">
           <div className="w-10 h-10 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
           <div className="text-center">
-             <h2 className="text-[var(--text-primary)] text-xl font-semibold mb-2">Preparing your workspace...</h2>
+             <h2 className="text-[var(--text-primary)] text-xl font-semibold mb-2">Connecting to your workspace...</h2>
              <p className="text-[var(--text-secondary)]">{workspace?.vm_details?.notes || 'Starting virtual machine...'}</p>
           </div>
         </div>
@@ -422,7 +422,7 @@ export default function DesktopSessionPage() {
       <div className="flex flex-col items-center justify-center h-screen gap-6 bg-[#050B18]">
         <div className="w-10 h-10 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
         <div className="text-center">
-           <h2 className="text-[var(--text-primary)] text-xl font-semibold mb-2">Preparing your session...</h2>
+           <h2 className="text-[var(--text-primary)] text-xl font-semibold mb-2">Connecting to your session...</h2>
            <p className="text-[var(--text-secondary)]">
              {sessionData.vm_status === 'provisioning' 
                 ? 'Starting virtual machine...' 
