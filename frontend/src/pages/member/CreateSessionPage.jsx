@@ -110,7 +110,6 @@ export default function CreateSessionPage() {
   const [checkoutPayload, setCheckoutPayload] = useState(null);
   
   const [restrictions, setRestrictions] = useState({
-    internet_access: true,
     clipboard: true,
     file_transfer: true,
     screen_monitoring: false,
@@ -310,13 +309,7 @@ export default function CreateSessionPage() {
               flexDirection: 'column',
               gap: '12px',
             }}>
-              <ControlToggle 
-                label="Internet Access" 
-                description="Allow VM to reach external networks" 
-                value={restrictions.internet_access} 
-                onChange={v => setRestrictions({...restrictions, internet_access: v})} 
-                onColor="var(--accent-primary)" 
-              />
+              
               <ControlToggle 
                 label="Clipboard Sync" 
                 description="Allow copy/paste between local and VM" 
