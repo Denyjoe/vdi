@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { 
-  Monitor, Maximize2, Minimize2, LayoutGrid, Compass, BarChart2, AlertCircle, 
-  Code2, Palette, Network, Box, Wifi, Battery, Volume2, 
+import {
+  Monitor, Maximize2, Minimize2, LayoutGrid, Compass, BarChart2, AlertCircle,
+  Code2, Palette, Network, Box, Wifi, Battery, Volume2, Clock,
   Menu, X, Check, PanelRightOpen, PanelRightClose, Power, UserCheck, RefreshCw
 } from 'lucide-react';
 import { sessionService } from '../../services/sessionService';
@@ -210,15 +210,17 @@ export default function DesktopSessionPage() {
 
   // Session timer (countdown)
   const [timeLeft, setTimeLeft] = useState(null);
+  const [showTimeWarning, setShowTimeWarning] = useState(false);
+  const warningShownRef = useRef(false);
 
   useEffect(() => {
     if (!sessionData?.session_scheduled_end_at) return;
-    
+
     const interval = setInterval(() => {
       const end = new Date(sessionData.session_scheduled_end_at).getTime();
       const now = Date.now();
       const diff = end - now;
-      
+
       if (diff <= 0) {
         setTimeLeft('00:00:00');
         clearInterval(interval);
@@ -227,9 +229,14 @@ export default function DesktopSessionPage() {
         const m = Math.floor((diff % 3600000) / 60000);
         const s = Math.floor((diff % 60000) / 1000);
         setTimeLeft(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
+
+        if (diff <= 5 * 60 * 1000 && diff > 0 && !warningShownRef.current) {
+          setShowTimeWarning(true);
+          warningShownRef.current = true;
+        }
       }
     }, 1000);
-    
+
     return () => clearInterval(interval);
   }, [sessionData?.session_scheduled_end_at]);
 
@@ -507,6 +514,34 @@ export default function DesktopSessionPage() {
           </button>
         </div>
       </div>
+
+      {showTimeWarning && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          padding: '10px 16px',
+          background: 'var(--status-warning-bg)',
+          borderBottom: '1px solid var(--status-warning)',
+        }}>
+          <Clock size={14} style={{ color: 'var(--status-warning)' }} />
+          <span style={{
+            fontSize: '12px',
+            color: 'var(--status-warning)',
+            flex: 1,
+          }}>
+            5 minutes remaining in this session
+          </span>
+          <button onClick={() => setShowTimeWarning(false)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--status-warning)',
+            }}>
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       {/* Takeover overlay — shown when host is actively controlling this session */}
       {takenOverByHost && (
