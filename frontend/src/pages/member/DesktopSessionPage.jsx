@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   Monitor, Maximize2, Minimize2, LayoutGrid, Compass, BarChart2, AlertCircle,
-  Code2, Palette, Network, Box, Wifi, Battery, Volume2, Clock,
+  Code2, Palette, Network, Box, Wifi, Battery, Volume2, Clock, Megaphone,
   Menu, X, Check, PanelRightOpen, PanelRightClose, Power, UserCheck, RefreshCw
 } from 'lucide-react';
 import { sessionService } from '../../services/sessionService';
@@ -81,6 +81,9 @@ export default function DesktopSessionPage() {
   // Separate state for the host-takeover scenario so we show the right message
   const [takenOverByHost, setTakenOverByHost] = useState(false);
   const [reconnecting, setReconnecting] = useState(false);
+  const [broadcastToast, setBroadcastToast] = useState(null);
+  const lastSeenNotifId = useRef(null);
+  const broadcastToastTimeoutRef = useRef(null);
 
   // Consolidated Polling Loop
   useEffect(() => {
@@ -174,6 +177,28 @@ export default function DesktopSessionPage() {
                 
                 return newState;
              });
+
+             // Check for a new broadcast/system notification and surface it
+             // as a toast over the desktop stream — the bell alone is easy
+             // to miss while fully engaged with the VM.
+             try {
+               const notifRes = await api.get('/notifications/?limit=1');
+               const latest = notifRes.data?.data?.[0];
+               if (latest) {
+                 if (lastSeenNotifId.current === null) {
+                   // First check this session — just establish the baseline,
+                   // don't toast notifications that predate joining.
+                   lastSeenNotifId.current = latest.id;
+                 } else if (latest.id !== lastSeenNotifId.current) {
+                   lastSeenNotifId.current = latest.id;
+                   setBroadcastToast({ title: latest.title, message: latest.message });
+                   if (broadcastToastTimeoutRef.current) clearTimeout(broadcastToastTimeoutRef.current);
+                   broadcastToastTimeoutRef.current = setTimeout(() => setBroadcastToast(null), 8000);
+                 }
+               }
+             } catch (e) {
+               // non-critical — skip this cycle
+             }
           } else {
              setDisconnectedByAdmin(true);
           }
@@ -205,6 +230,7 @@ export default function DesktopSessionPage() {
     return () => {
       clearInterval(intervalId);
       if (hardTimeoutId) clearTimeout(hardTimeoutId);
+      if (broadcastToastTimeoutRef.current) clearTimeout(broadcastToastTimeoutRef.current);
     };
   }, [type, sessionId, user, wsLoading]);
 
@@ -623,6 +649,38 @@ export default function DesktopSessionPage() {
           <span className="text-xs font-semibold tracking-wide">Your instructor is currently interacting with your screen</span>
         </div>
       )}
+
+      {broadcastToast && (
+        <div
+          className="animate-in slide-in-from-top-4 fade-in duration-300"
+          style={{
+            position: 'absolute',
+            top: '70px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 50,
+            background: 'var(--accent-primary)',
+            color: '#fff',
+            padding: '14px 24px',
+            borderRadius: '12px',
+            boxShadow: 'var(--shadow-lg)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            maxWidth: '80%',
+          }}>
+          <Megaphone size={16} />
+          <div>
+            <div style={{ fontSize: '11px', opacity: 0.9 }}>{broadcastToast.title}</div>
+            <div style={{ fontSize: '13px', fontWeight: 600 }}>{broadcastToast.message}</div>
+          </div>
+          <button onClick={() => setBroadcastToast(null)}
+            style={{ background: 'none', border: 'none', color: '#fff', opacity: 0.8, cursor: 'pointer' }}>
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       <GuacamoleEmbed url={sessionData.guacamole_url} loadingText="Connecting to your session..." />
       
       <ConfirmModal
