@@ -14,22 +14,81 @@ const TemplateIcon = ({ icon, className, size = 16 }) => {
   }
 };
 
-const ControlToggle = ({ label, description, value, onChange, onColor = '#00FF87' }) => (
-  <div className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-300 ${value ? 'bg-card border-border' : 'bg-card border-border'}`}
-    style={value ? { backgroundColor: onColor + '08', borderColor: onColor + '25' } : {}}>
-    <div className="flex items-center gap-3 flex-1">
-      <div>
-        <p className="text-sm font-medium text-primary">{label}</p>
-        <p className="text-[11px] text-muted mt-0.5">{description}</p>
-      </div>
+const ControlToggle = ({ label, description, value, onChange, onColor = 'var(--accent-primary)' }) => (
+  <div style={{
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '14px 16px',
+    borderRadius: '12px',
+    background: value ? 'rgba(0,102,255,0.1)' : 'var(--bg-input)',
+    border: `1px solid ${value ? 'rgba(0,102,255,0.3)' : 'var(--border-subtle)'}`,
+    transition: 'all 0.2s'
+  }}>
+    <div>
+      <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>{label}</div>
+      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{description}</div>
     </div>
     <button onClick={() => onChange(!value)}
-      className={`relative w-11 h-6 rounded-full transition-all duration-300 active:scale-95 ${value ? '' : 'bg-[var(--border-strong)]'}`}
-      style={value ? { backgroundColor: onColor } : {}}>
-      <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-all duration-300 ${value ? 'left-[22px]' : 'left-0.5'}`} />
+      style={{
+        position: 'relative',
+        width: '44px',
+        height: '24px',
+        borderRadius: '12px',
+        background: value ? onColor : 'var(--border-strong)',
+        border: 'none',
+        cursor: 'pointer',
+        transition: 'all 0.3s'
+      }}>
+      <div style={{
+        position: 'absolute',
+        top: '2px',
+        left: value ? '22px' : '2px',
+        width: '20px',
+        height: '20px',
+        borderRadius: '50%',
+        background: '#fff',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+        transition: 'all 0.3s'
+      }} />
     </button>
   </div>
 );
+
+const sectionCard = {
+  background: 'var(--bg-card)',
+  border: '1px solid var(--border-color)',
+  borderRadius: '16px',
+  padding: '24px',
+};
+
+const sectionTitle = {
+  fontSize: '15px',
+  fontWeight: 700,
+  color: 'var(--text-primary)',
+  marginBottom: '20px',
+};
+
+const labelStyle = {
+  fontSize: '11px',
+  textTransform: 'uppercase',
+  letterSpacing: '0.5px',
+  color: 'var(--text-muted)',
+  fontWeight: 600,
+  display: 'block',
+  marginBottom: '8px',
+};
+
+const inputStyle = {
+  width: '100%',
+  padding: '12px 14px',
+  borderRadius: '10px',
+  border: '1px solid var(--border-color)',
+  background: 'var(--bg-input)',
+  color: 'var(--text-primary)',
+  fontSize: '14px',
+  outline: 'none',
+};
 
 export default function CreateSessionPage() {
   const navigate = useNavigate();
@@ -75,7 +134,6 @@ export default function CreateSessionPage() {
   const handleStartCheckout = () => {
     if (!canProceed()) return;
     
-    // Instead of using a normal plan, we mock a plan object for the CheckoutModal
     setCheckoutPayload({
       name: 'Custom Session',
       price: { TZS: hours * rate },
@@ -99,166 +157,265 @@ export default function CreateSessionPage() {
   };
 
   return (
-    <div className="max-w-[900px] mx-auto px-6 py-6">
-      
-      {/* Page header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-1">
-          <div className="w-9 h-9 rounded-xl bg-[#0066FF]/10 flex items-center justify-center">
-            <Radio size={18} className="text-[#0066FF]" />
+    <div style={{
+      maxWidth: '640px',
+      margin: '0 auto',
+      padding: '32px 24px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '20px',
+    }}>
+
+      {/* Header */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: '4px',
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '14px',
+        }}>
+          <div style={{
+            width: '44px', height: '44px',
+            borderRadius: '12px',
+            background: 'var(--accent-primary-soft)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <Radio size={20} style={{ color: 'var(--accent-primary)' }} />
           </div>
-          <h1 className="text-2xl font-bold text-primary tracking-tight">
-            Create Session
-          </h1>
+          <div>
+            <h1 style={{
+              fontSize: '22px',
+              fontWeight: 700,
+              color: 'var(--text-primary)',
+              margin: 0,
+            }}>Create Session</h1>
+            <p style={{
+              fontSize: '13px',
+              color: 'var(--text-muted)',
+              margin: 0,
+            }}>Set up a live session and pay per hour</p>
+          </div>
         </div>
-        <p className="text-sm text-muted ml-12">
-          Set up a live session and pay per hour
-        </p>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         
-        {/* Left Column: Details */}
-        <div className="space-y-6">
-          <div className="bg-card/70 backdrop-blur-sm border border-border rounded-2xl p-6">
-            <h3 className="text-sm font-semibold text-primary mb-4">Session Details</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-2">Session Name</label>
-                <input
-                  type="text"
-                  value={sessionName}
-                  onChange={e => setSessionName(e.target.value)}
-                  className="w-full bg-input border border-border-strong rounded-xl px-4 py-3 text-sm text-primary focus:outline-none focus:border-[#0066FF] transition-colors"
-                  placeholder="e.g. Intro to Python Lab"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-2">VM Template</label>
-                <div className="grid grid-cols-1 gap-2">
-                  {templates.map(t => (
-                    <div key={t.id}
-                      onClick={() => setSelectedTemplate(t)}
-                      className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${selectedTemplate?.id === t.id ? 'bg-[#0066FF]/10 border-[#0066FF]' : 'bg-input border-border-strong hover:border-slate-500'}`}>
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${selectedTemplate?.id === t.id ? 'bg-[#0066FF]/20 text-[#0066FF]' : 'bg-card text-muted'}`}>
-                        <TemplateIcon icon={t.icon} />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-primary">{t.name}</p>
-                        <p className="text-[11px] text-muted">{t.cpu_cores} vCPU • {t.ram_gb}GB RAM</p>
-                      </div>
-                      {selectedTemplate?.id === t.id && <Check size={16} className="text-[#0066FF]" />}
-                    </div>
-                  ))}
-                </div>
-              </div>
+        <button onClick={() => navigate(-1)} style={{
+           background: 'transparent', border: '1px solid var(--border-color)', 
+           color: 'var(--text-secondary)', padding: '8px 16px', borderRadius: '10px',
+           fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
+        }}>
+          <ArrowLeft size={16} /> Cancel
+        </button>
+      </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-2">Max Participants</label>
-                <input
-                  type="number"
-                  min="1" max="100"
-                  value={maxParticipants}
-                  onChange={e => setMaxParticipants(parseInt(e.target.value) || 1)}
-                  className="w-full bg-input border border-border-strong rounded-xl px-4 py-3 text-sm text-primary focus:outline-none focus:border-[#0066FF] transition-colors"
-                />
-              </div>
-            </div>
-          </div>
-          
+      {/* Card 1 — Session Details */}
+      <div style={sectionCard}>
+        <h3 style={sectionTitle}>
+          Session Details
+        </h3>
+        
+        <div style={{ marginBottom: '18px' }}>
+          <label style={labelStyle}>
+            Session Name
+          </label>
+          <input 
+            value={sessionName}
+            onChange={e => setSessionName(e.target.value)}
+            placeholder="e.g. Intro to Python Lab"
+            style={inputStyle} 
+          />
         </div>
-
-        {/* Right Column: Controls */}
-        <div className="space-y-6">
-          <div className="bg-card/70 backdrop-blur-sm border border-border rounded-2xl p-6">
-            <h3 className="text-sm font-semibold text-primary mb-4">Environment Controls</h3>
-            <div className="space-y-4">
-              <ControlToggle 
-                label="Clipboard Sync" 
-                description="Allow copy/paste between local and VM" 
-                value={restrictions.clipboard} 
-                onChange={v => setRestrictions({...restrictions, clipboard: v})} 
-                onColor="#00A3FF" 
-              />
-              <ControlToggle 
-                label="File Transfer" 
-                description="Allow uploading/downloading files" 
-                value={restrictions.file_transfer} 
-                onChange={v => setRestrictions({...restrictions, file_transfer: v})} 
-                onColor="#FFB800" 
-              />
-            </div>
-          </div>
-          
-          <div className="bg-card/70 backdrop-blur-sm border border-border rounded-2xl p-6">
-            <h3 className="text-sm font-semibold text-primary mb-4">Duration & Pricing</h3>
-            
-            <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-2">How long do you need?</label>
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
-              {[1, 2, 3].map(h => (
-                <button key={h}
-                  onClick={() => { setHours(h); setCustomHours(h.toString()); }}
-                  style={{
-                    flex: 1,
-                    padding: '16px',
-                    borderRadius: '12px',
-                    border: hours === h ? '2px solid var(--accent-primary)' : '1px solid var(--border-color)',
-                    background: hours === h ? 'var(--accent-primary-soft)' : 'var(--bg-input)',
+        
+        <div style={{ marginBottom: '18px' }}>
+          <label style={labelStyle}>
+            VM Template
+          </label>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '10px',
+          }}>
+            {templates.map(t => (
+              <button key={t.id}
+                onClick={() => setSelectedTemplate(t)}
+                style={{
+                  padding: '14px',
+                  borderRadius: '12px',
+                  border: selectedTemplate?.id === t.id
+                    ? '2px solid var(--accent-primary)'
+                    : '1px solid var(--border-color)',
+                  background: selectedTemplate?.id === t.id
+                    ? 'var(--accent-primary-soft)'
+                    : 'var(--bg-input)',
+                  textAlign: 'left',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  cursor: 'pointer'
+                }}>
+                <MonitorIcon size={18} style={{ color: selectedTemplate?.id === t.id ? 'var(--accent-primary)' : 'var(--text-secondary)' }} />
+                <div>
+                  <div style={{
+                    fontSize: '13px',
+                    fontWeight: 600,
                     color: 'var(--text-primary)',
-                    cursor: 'pointer'
+                  }}>{t.name}</div>
+                  <div style={{
+                    fontSize: '11px',
+                    color: 'var(--text-muted)',
                   }}>
-                  <div style={{ fontSize: '20px', fontWeight: 700 }}>{h}h</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    TZS {(h * rate).toLocaleString()}
+                    {t.cpu_cores} vCPU · {t.ram_gb}GB RAM
                   </div>
-                </button>
-              ))}
-            </div>
-            
-            <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-2">Or enter custom hours</label>
-            <input type="number" 
-              min="0.5" max="24" step="0.5"
-              value={customHours}
-              onChange={e => {
-                setCustomHours(e.target.value);
-                setHours(parseFloat(e.target.value) || 0);
-              }}
-              className="w-full bg-input border border-border-strong rounded-xl px-4 py-3 text-sm text-primary focus:outline-none focus:border-[#0066FF] transition-colors"
-            />
-            
-            <div style={{
-              padding: '16px',
-              borderRadius: '12px',
-              background: 'var(--bg-input)',
-              textAlign: 'center',
-              marginTop: '16px',
-            }}>
-              <p className="text-muted text-sm uppercase font-semibold">Total Cost</p>
-              <p style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)' }}>
-                TZS {(hours * rate).toLocaleString()}
-              </p>
-            </div>
+                </div>
+              </button>
+            ))}
           </div>
         </div>
-
-      </div>
-      
-      {/* Navigation buttons */}
-      <div className="flex justify-between mt-6">
-        <button onClick={() => navigate(-1)}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-nav-hover border border-border-strong text-secondary text-sm font-medium hover:border-slate-500 active:scale-95 transition-all">
-          <ArrowLeft size={15} />
-          Cancel
-        </button>
         
-        <button onClick={handleStartCheckout} disabled={!canProceed()}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#0066FF] text-white text-sm font-semibold hover:bg-[#0052CC] active:scale-95 transition-all shadow-lg shadow-blue-500/20 disabled:opacity-30 disabled:cursor-not-allowed">
-          <Rocket size={15} />
-          Pay & Start Session
-        </button>
+        <div>
+          <label style={labelStyle}>
+            Max Participants
+          </label>
+          <input type="number"
+            min="1" max="100"
+            value={maxParticipants}
+            onChange={e => setMaxParticipants(parseInt(e.target.value) || 1)}
+            style={inputStyle} 
+          />
+        </div>
       </div>
+
+      {/* Card 2 — Environment Controls */}
+      <div style={sectionCard}>
+        <h3 style={sectionTitle}>
+          Environment Controls
+        </h3>
+        
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}>
+          <ControlToggle 
+            label="Clipboard Sync" 
+            description="Allow copy/paste between local and VM" 
+            value={restrictions.clipboard} 
+            onChange={v => setRestrictions({...restrictions, clipboard: v})} 
+            onColor="var(--accent-primary)" 
+          />
+          <ControlToggle 
+            label="File Transfer" 
+            description="Allow uploading/downloading files" 
+            value={restrictions.file_transfer} 
+            onChange={v => setRestrictions({...restrictions, file_transfer: v})} 
+            onColor="var(--accent-primary)" 
+          />
+        </div>
+      </div>
+
+      {/* Card 3 — Duration & Pricing */}
+      <div style={sectionCard}>
+        <h3 style={sectionTitle}>
+          Duration & Pricing
+        </h3>
+        
+        <label style={labelStyle}>
+          How long do you need?
+        </label>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: '10px',
+          marginBottom: '16px',
+        }}>
+          {[1, 2, 3].map(h => (
+            <button key={h}
+              onClick={() => { setHours(h); setCustomHours(h.toString()); }}
+              style={{
+                padding: '16px',
+                borderRadius: '12px',
+                border: hours === h
+                  ? '2px solid var(--accent-primary)'
+                  : '1px solid var(--border-color)',
+                background: hours === h
+                  ? 'var(--accent-primary-soft)'
+                  : 'var(--bg-input)',
+                textAlign: 'center',
+                cursor: 'pointer'
+              }}>
+              <div style={{
+                fontSize: '20px',
+                fontWeight: 700,
+                color: 'var(--text-primary)',
+              }}>{h}h</div>
+              <div style={{
+                fontSize: '12px',
+                color: 'var(--text-muted)',
+              }}>
+                TZS {(h * rate).toLocaleString()}
+              </div>
+            </button>
+          ))}
+        </div>
+        
+        <label style={labelStyle}>Or enter custom hours</label>
+        <input type="number" 
+          min="0.5" max="24" step="0.5"
+          value={customHours}
+          onChange={e => {
+            setCustomHours(e.target.value);
+            setHours(parseFloat(e.target.value) || 0);
+          }}
+          style={{ ...inputStyle, marginBottom: '20px' }}
+        />
+
+        <div style={{
+          padding: '16px',
+          borderRadius: '12px',
+          background: 'var(--accent-primary-soft)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}>
+          <span style={{
+            fontSize: '13px',
+            fontWeight: 600,
+            color: 'var(--text-secondary)',
+          }}>Total Cost</span>
+          <span style={{
+            fontSize: '22px',
+            fontWeight: 800,
+            color: 'var(--accent-primary)',
+          }}>
+            TZS {(hours * rate).toLocaleString()}
+          </span>
+        </div>
+      </div>
+
+      {/* Pay button — full width, final action */}
+      <button onClick={handleStartCheckout} disabled={!canProceed()}
+        style={{
+          width: '100%',
+          padding: '16px',
+          borderRadius: '12px',
+          background: 'var(--accent-primary)',
+          color: '#fff',
+          border: 'none',
+          fontSize: '15px',
+          fontWeight: 700,
+          cursor: canProceed() ? 'pointer' : 'not-allowed',
+          opacity: canProceed() ? 1 : 0.5,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+        <Rocket size={18} /> Pay & Start Session
+      </button>
 
       {showCheckout && checkoutPayload && (
         <CheckoutSessionModal 
@@ -271,6 +428,7 @@ export default function CreateSessionPage() {
     </div>
   );
 }
+
 
 // Inline component extending CheckoutModal for sessions
 function CheckoutSessionModal({ payload, isOpen, onClose, onSuccess }) {
