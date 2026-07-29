@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Monitor, Users, Clock, Copy, X, Power, Eye, Shield, WifiOff, ClipboardX, Link2, ArrowLeft, UserMinus, Check, Send } from 'lucide-react';
+import { Monitor, Users, Clock, Copy, X, Power, Shield, WifiOff, ClipboardX, Link2, ArrowLeft, UserMinus, Check, Send } from 'lucide-react';
 import api from '../services/api';
 import GuacamoleEmbed from '../components/shared/GuacamoleEmbed';
 
@@ -22,7 +22,6 @@ export default function HostSessionPage() {
   const navigate = useNavigate();
   const [session, setSession] = useState({});
   const [participants, setParticipants] = useState([]);
-  const [screenModal, setScreenModal] = useState(null);
   const [controlSession, setControlSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [copiedCode, setCopiedCode] = useState(false);
@@ -128,9 +127,6 @@ export default function HostSessionPage() {
       await api.post(`/sessions/live/${sessionId}/remove/${participant.user?.id || participant.user_id}/`);
       // It will refresh on next poll
       setParticipants(p => p.filter(x => x.id !== participant.id));
-      if (screenModal && screenModal.id === participant.id) {
-        setScreenModal(null);
-      }
     } catch(e) {
       console.error(e);
     }
@@ -161,10 +157,6 @@ export default function HostSessionPage() {
     } catch(e) {
       console.error(e);
     }
-  };
-
-  const openScreenModal = (participant) => {
-    setScreenModal(participant);
   };
 
   if (loading) return (
@@ -406,15 +398,6 @@ export default function HostSessionPage() {
                         </div>
                       )}
                       
-                      {/* View Screen button */}
-                      <button
-                        onClick={() => openScreenModal(p)}
-                        disabled={!isConnected || !p.guacamole_url}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#6C63FF]/10 border border-[#6C63FF]/20 text-[#6C63FF] text-[11px] font-semibold hover:bg-[#6C63FF]/20 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed">
-                        <Eye size={13} />
-                        View Screen
-                      </button>
-                      
                       <button
                         onClick={() => handleTakeControl(p)}
                         disabled={!isConnected || !p.guacamole_url}
@@ -551,60 +534,20 @@ export default function HostSessionPage() {
           </div>
           
           {/* Screen Monitoring Card */}
-          <div className="bg-card/70 border border-[#6C63FF]/20 rounded-2xl p-5">
+          <div className="bg-card/70 border border-amber-500/20 rounded-2xl p-5">
             <div className="flex items-center gap-2 mb-2">
-              <Monitor size={14} className="text-[#6C63FF]" />
-              <h3 className="text-[10px] uppercase tracking-widest text-[#6C63FF] font-semibold">
+              <Monitor size={14} className="text-amber-500" />
+              <h3 className="text-[10px] uppercase tracking-widest text-amber-500 font-semibold">
                 Screen Monitoring
               </h3>
             </div>
             <p className="text-xs text-muted">
-              Click "View Screen" on any participant to see their desktop in real-time.
+              Click "Take Control" on any participant to see and interact with their desktop.
+              This temporarily disconnects them — there's no way to view a screen without it.
             </p>
           </div>
         </div>
       </div>
-
-      {/* SECTION D — VIEW SCREEN MODAL */}
-      {screenModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-          <div className="bg-card border border-border rounded-2xl overflow-hidden w-[95vw] sm:w-[85vw] h-[90vh] sm:h-[80vh] flex flex-col shadow-2xl">
-            
-            {/* Modal header */}
-            <div className="h-12 px-4 flex items-center justify-between bg-canvas border-b border-border-subtle">
-              <div className="flex items-center gap-3 truncate">
-                <Monitor size={16} className="text-[#6C63FF]" />
-                <span className="text-sm font-semibold text-primary truncate">
-                  Viewing: {screenModal.user?.first_name || screenModal.user?.email || 'User'}
-                </span>
-                <span className="text-xs text-muted hidden sm:inline">
-                  {screenModal.vm_template_name || 'Virtual Machine'} · {screenModal.ip_address || 'No IP'}
-                </span>
-              </div>
-              <button onClick={() => setScreenModal(null)}
-                className="p-1.5 rounded-lg hover:bg-slate-800 text-secondary hover:text-white active:scale-95 transition-all">
-                <X size={18} />
-              </button>
-            </div>
-            
-            {/* Guacamole iframe */}
-            <GuacamoleEmbed 
-              url={screenModal.guacamole_url}
-              title={`Screen: ${screenModal.user?.first_name || 'User'}`}
-            />
-            
-            {/* Modal footer */}
-            <div className="h-10 px-4 flex items-center justify-end gap-2 bg-canvas border-t border-border-subtle">
-              <button
-                onClick={() => handleRemoveParticipant(screenModal)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[11px] font-semibold active:scale-95 transition-all">
-                <UserMinus size={12} />
-                Remove from Session
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* SECTION E — TAKE CONTROL MODAL */}
       {controlSession && (
