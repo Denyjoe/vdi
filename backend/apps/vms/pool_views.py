@@ -373,6 +373,16 @@ class SystemStatsView(APIView):
                 'cpu_usage': round(node_info.get('cpu', 0) * 100, 1) if node_info else 0,
                 'ram_used': round(node_info.get('mem', 0) / (1024**3), 1) if node_info else 0,
                 'ram_total': round(node_info.get('maxmem', 0) / (1024**3), 1) if node_info else 0,
+                # 'storage_used'/'storage_total' never existed on this
+                # response at all — the frontend's Dashboard Storage gauge
+                # (AdminDashboard.jsx) reads systemStats.proxmox.storage_total,
+                # which was always undefined, so the gauge always rendered
+                # 0%/"—" regardless of real Proxmox state. This is root
+                # filesystem usage from the same /nodes list call already
+                # being made here (not the full local-lvm VM storage pool —
+                # that per-pool breakdown is what the Hardware page shows).
+                'storage_used': round(node_info.get('disk', 0) / (1024**3), 1) if node_info else 0,
+                'storage_total': round(node_info.get('maxdisk', 0) / (1024**3), 1) if node_info else 0,
                 'uptime_seconds': node_info.get('uptime', 0) if node_info else 0,
             },
             'vms': {
