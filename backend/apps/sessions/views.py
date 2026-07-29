@@ -454,3 +454,58 @@ class BroadcastMessageView(APIView):
             'success': True,
             'message': f'Sent to {sent_count} participant(s)'
         })
+
+class PauseAllParticipantsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            session = LiveSession.objects.get(id=pk)
+        except LiveSession.DoesNotExist:
+            return Response({'error': 'Not found'}, status=404)
+
+        if session.host_id != request.user.id:
+            return Response({
+                'success': False,
+                'message': 'Only the host can pause this session.'
+            }, status=403)
+
+        paused_count = 0
+        for participant in session.participants.filter(
+            status__in=['joined', 'connected'],
+            is_being_controlled=False,
+        ):
+            participant.is_being_controlled = True
+            participant.save(update_fields=['is_being_controlled'])
+            paused_count += 1
+
+        return Response({
+            'success': True,
+            'message': f'Paused {paused_count} participant(s)'
+        })
+
+class ResumeAllParticipantsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            session = LiveSession.objects.get(id=pk)
+        except LiveSession.DoesNotExist:
+            return Response({'error': 'Not found'}, status=404)
+
+        if session.host_id != request.user.id:
+            return Response({
+                'success': False,
+                'message': 'Only the host can resume this session.'
+            }, status=403)
+
+        resumed_count = 0
+        for participant in session.participants.filter(is_being_controlled=True):
+            participant.is_being_controlled = False
+            participant.save(update_fields=['is_being_controlled'])
+            resumed_count += 1
+
+        return Response({
+            'success': True,
+            'message': f'Resumed {resumed_count} participant(s)'
+        })
