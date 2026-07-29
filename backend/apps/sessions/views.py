@@ -425,7 +425,7 @@ class BroadcastMessageView(APIView):
         from apps.notifications.services import notify
 
         sent_count = 0
-        for participant in session.participants.filter(status__in=['joined', 'active']):
+        for participant in session.participants.filter(status__in=['joined', 'connected']):
             try:
                 notify(
                     user=participant.user,
