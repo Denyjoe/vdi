@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Monitor, Users, Clock, Copy, X, Power, Shield, WifiOff, ClipboardX, Link2, ArrowLeft, UserMinus, Check, Send } from 'lucide-react';
+import { Monitor, Users, Clock, Copy, X, Power, Shield, WifiOff, ClipboardX, Link2, ArrowLeft, UserMinus, Check, Send, Pause, Play } from 'lucide-react';
 import api from '../services/api';
 import GuacamoleEmbed from '../components/shared/GuacamoleEmbed';
 
@@ -30,24 +30,26 @@ export default function HostSessionPage() {
   const [broadcastSent, setBroadcastSent] = useState(false);
   const [showTimeWarning, setShowTimeWarning] = useState(false);
   const warningShownRef = useRef(false);
+  const [pauseBusy, setPauseBusy] = useState(false);
+
+  const fetchMonitor = useCallback(async () => {
+    try {
+      const res = await api.get(`/sessions/live/${sessionId}/monitor/`);
+      const data = res.data?.data || res.data;
+      if (data.session) setSession(data.session);
+      setParticipants(data.participants || []);
+    } catch(e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }, [sessionId]);
 
   useEffect(() => {
-    const fetchMonitor = async () => {
-      try {
-        const res = await api.get(`/sessions/live/${sessionId}/monitor/`);
-        const data = res.data?.data || res.data;
-        if (data.session) setSession(data.session);
-        setParticipants(data.participants || []);
-      } catch(e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchMonitor();
     const interval = setInterval(fetchMonitor, 5000);
     return () => clearInterval(interval);
-  }, [sessionId]);
+  }, [fetchMonitor]);
 
   const [timeLeft, setTimeLeft] = useState(null);
 
@@ -141,6 +143,37 @@ export default function HostSessionPage() {
       setTimeout(() => setBroadcastSent(false), 2000);
     } catch(e) {
       alert('Failed to send: ' + (e.response?.data?.message || e.message));
+    }
+  };
+
+  const anyPaused = participants.some(p => p.is_being_controlled);
+
+  const handlePauseAll = async () => {
+    if (!window.confirm(
+      'Pause all participants? They will see a message that their session ' +
+      'is paused for review. Their work is safe and time keeps counting ' +
+      'against your paid session.'
+    )) return;
+    setPauseBusy(true);
+    try {
+      await api.post(`/sessions/live/${sessionId}/pause-all/`);
+      await fetchMonitor();
+    } catch(e) {
+      alert('Failed to pause: ' + (e.response?.data?.message || e.message));
+    } finally {
+      setPauseBusy(false);
+    }
+  };
+
+  const handleResumeAll = async () => {
+    setPauseBusy(true);
+    try {
+      await api.post(`/sessions/live/${sessionId}/resume-all/`);
+      await fetchMonitor();
+    } catch(e) {
+      alert('Failed to resume: ' + (e.response?.data?.message || e.message));
+    } finally {
+      setPauseBusy(false);
     }
   };
 
@@ -281,6 +314,43 @@ export default function HostSessionPage() {
                 Live · updates every 5s
               </span>
             </div>
+          </div>
+
+          {/* Pause All / Resume All */}
+          <div style={{
+            display: 'flex', gap: '10px',
+            marginBottom: '16px',
+          }}>
+            <button onClick={handlePauseAll}
+              disabled={anyPaused || pauseBusy || participants.length === 0}
+              className="flex items-center justify-center gap-1.5 flex-1 disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{
+                padding: '10px 16px',
+                borderRadius: '10px',
+                background: 'var(--status-warning-bg, rgba(245, 158, 11, 0.1))',
+                border: '1px solid var(--status-warning)',
+                color: 'var(--status-warning)',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}>
+              <Pause size={14} /> Pause All (for review)
+            </button>
+            <button onClick={handleResumeAll}
+              disabled={!anyPaused || pauseBusy}
+              className="flex items-center justify-center gap-1.5 flex-1 disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{
+                padding: '10px 16px',
+                borderRadius: '10px',
+                background: 'var(--accent-primary)',
+                border: 'none',
+                color: '#fff',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}>
+              <Play size={14} /> Resume All
+            </button>
           </div>
 
           {/* Broadcast message box */}
