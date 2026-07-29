@@ -287,29 +287,79 @@ export default function HostSessionPage() {
 
       {showTimeWarning && (
         <div style={{
+          position: 'fixed', inset: 0,
+          zIndex: 75,
           display: 'flex',
           alignItems: 'center',
-          gap: '10px',
-          padding: '10px 16px',
-          background: 'var(--status-warning-bg)',
-          borderBottom: '1px solid var(--status-warning)',
+          justifyContent: 'center',
+          background: 'rgba(0,0,0,0.6)',
+          backdropFilter: 'blur(4px)',
         }}>
-          <Clock size={14} style={{ color: 'var(--status-warning)' }} />
-          <span style={{
-            fontSize: '12px',
-            color: 'var(--status-warning)',
-            flex: 1,
+          <div style={{
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '20px',
+            padding: '32px',
+            maxWidth: '400px',
+            width: '90vw',
+            textAlign: 'center',
+            boxShadow: 'var(--shadow-xl, 0 20px 25px -5px rgb(0 0 0 / 0.1))',
           }}>
-            5 minutes remaining in this session
-          </span>
-          <button onClick={() => setShowTimeWarning(false)}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--status-warning)',
+            <Clock size={32} style={{ color: 'var(--status-warning)' }} />
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: 700,
+              marginTop: '12px',
+              color: 'var(--text-primary)',
             }}>
-            <X size={14} />
-          </button>
+              5 minutes remaining
+            </h3>
+            <p style={{
+              fontSize: '13px',
+              color: 'var(--text-muted)',
+              marginTop: '8px',
+            }}>
+              Your session will end soon. Would you like to extend it?
+            </p>
+
+            <div style={{
+              display: 'flex',
+              gap: '10px',
+              marginTop: '20px',
+            }}>
+              <button onClick={() => setShowTimeWarning(false)}
+                className="flex-1"
+                style={{
+                  padding: '12px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-input, transparent)',
+                  color: 'var(--text-secondary)',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}>
+                Not Now
+              </button>
+              <button onClick={() => {
+                  setShowTimeWarning(false);
+                  setShowExtendModal(true);
+                }}
+                className="flex-1"
+                style={{
+                  padding: '12px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: 'var(--accent-primary)',
+                  color: '#fff',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}>
+                Extend Session
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
