@@ -25,12 +25,13 @@ class SessionParticipantSerializer(serializers.ModelSerializer):
     user = UserProfileSerializer(read_only=True)
     vm_status = serializers.CharField(source='vm.status', read_only=True)
     guacamole_url = serializers.SerializerMethodField()
+    guac_connected = serializers.SerializerMethodField()
     session_scheduled_end_at = serializers.DateTimeField(source='session.scheduled_end_at', read_only=True)
-    
+
     class Meta:
         model = SessionParticipant
         fields = [
-            'id', 'user', 'vm', 'vm_status', 'guacamole_url', 'status', 'joined_at',
+            'id', 'user', 'vm', 'vm_status', 'guacamole_url', 'guac_connected', 'status', 'joined_at',
             'submitted_at', 'submission_file', 'vm_snapshot_id', 'session_scheduled_end_at',
             'is_being_controlled',
         ]
@@ -44,3 +45,20 @@ class SessionParticipantSerializer(serializers.ModelSerializer):
             return gs.get_connection_url(obj.vm.guacamole_connection_id)
         except Exception:
             return None
+
+    def get_guac_connected(self, obj):
+        """Whether Guacamole currently has a live tunnel for this participant's VM.
+
+        This is the only genuine signal for an in-guest OS reboot/shutdown —
+        confirmed by direct testing that Proxmox VM status stays 'running'
+        throughout an in-guest reboot while Guacamole's activeConnections
+        entry disappears within the same polling cycle.
+        """
+        if not obj.vm or not obj.vm.guacamole_connection_id:
+            return False
+        try:
+            from apps.vms.services.guacamole_service import get_guacamole_service
+            gs = get_guacamole_service()
+            return gs.get_active_connection_id(obj.vm.guacamole_connection_id) is not None
+        except Exception:
+            return False

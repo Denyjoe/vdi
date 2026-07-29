@@ -92,13 +92,97 @@ export default function DesktopSessionPage() {
   // silently leaving Guacamole's own "disconnected" page in place.
   const [reconnectGeneration, setReconnectGeneration] = useState(0);
 
+  // Raw, unfiltered "does Guacamole currently have a live tunnel for this
+  // VM" signal from the backend (apps.vms.services.guacamole_service
+  // .get_active_connection_id), passed straight through to GuacamoleEmbed
+  // so its own cover only ever lifts on positive confirmation.
+  const [tunnelActive, setTunnelActive] = useState(false);
+  // Debounced, page-level "the connection was healthy and just broke"
+  // overlay — distinct from the initial-connect window, which is handled
+  // entirely by GuacamoleEmbed's own minimum-cover timer.
+  const [tunnelDown, setTunnelDown] = useState(false);
+  const guacDownStrikesRef = useRef(0);
+  const guacUpStrikesRef = useRef(0);
+  const everGuacConnectedRef = useRef(false);
+  const lastReconnectAttemptRef = useRef(0);
+  // Tracks is_being_controlled independently of sessionData, since the
+  // takeover branch below short-circuits before ever calling
+  // setSessionData — needed to detect the true->false "control released"
+  // transition and trigger a reconnect.
+  const wasControlledRef = useRef(false);
+
+  const CONFIRM_STRIKES = 2;
+
+  // Confirmed by direct testing (rebooting/powering off a live VM's guest
+  // OS via the qemu-guest-agent, equivalent to using Ubuntu/Zorin's own
+  // power menu): Proxmox VM status stays 'running' for the entire reboot
+  // (so vm_status alone can never detect it), and — separately — a dead
+  // Guacamole tunnel never comes back on its own; the only way to get a
+  // live one again is a fresh client actually opening the connection URL.
+  //
+  // Also confirmed by testing against a genuinely powered-off VM: a single
+  // positive guac_connected reading is NOT reliable on its own — Guacamole
+  // marks a tunnel "active" the instant guacd accepts a client, before the
+  // RDP handshake to the actual VM has succeeded OR failed. Our own retry
+  // attempts against a dead VM produced several of these doomed, briefly
+  // "active" tunnels. So confirmation requires CONFIRM_STRIKES consecutive
+  // positive polls before ever revealing the iframe — a single reading in
+  // either direction is not trusted, except a single negative reading
+  // immediately re-hides the iframe (fail fast on the way down; the more
+  // conservative direction).
+  const evaluateTunnelHealth = (guacConnectedNow, freshUrl) => {
+    if (guacConnectedNow) {
+      guacDownStrikesRef.current = 0;
+      guacUpStrikesRef.current += 1;
+      if (guacUpStrikesRef.current < CONFIRM_STRIKES) return;
+
+      everGuacConnectedRef.current = true;
+      setTunnelActive(true);
+      setTunnelDown(false);
+      return;
+    }
+
+    guacUpStrikesRef.current = 0;
+    setTunnelActive(false);
+
+    // Still doing the initial connect — GuacamoleEmbed's own minimum-cover
+    // timer already keeps the iframe hidden during this window, and a
+    // false reading here is expected, not a failure.
+    if (!everGuacConnectedRef.current) return;
+
+    guacDownStrikesRef.current += 1;
+    // Require 2 consecutive unhealthy polls (~5s at the 2.5-3s interval
+    // below) before showing the page-level "Connection Interrupted"
+    // message, so a single transient hiccup reaching Guacamole's own API
+    // doesn't flash it on an otherwise-fine session — the iframe itself is
+    // already hidden immediately above regardless of this debounce.
+    if (guacDownStrikesRef.current < CONFIRM_STRIKES) return;
+
+    setTunnelDown(true);
+
+    const now = Date.now();
+    if (now - lastReconnectAttemptRef.current > 12000) {
+      lastReconnectAttemptRef.current = now;
+      if (freshUrl) {
+        setSessionData(prev => (prev ? { ...prev, guacamole_url: freshUrl } : prev));
+        setWorkspace(prev => (prev ? {
+          ...prev,
+          vm_details: { ...(prev.vm_details || {}), guacamole_url: freshUrl },
+        } : prev));
+      }
+      setReconnectGeneration(g => g + 1);
+    }
+  };
+
   // Consolidated Polling Loop
   useEffect(() => {
     let intervalId;
     let hardTimeoutId;
 
-    // For workspaces during provisioning, we poll faster.
-    const pollInterval = (type === 'workspace' && wsLoading) ? 3000 : 8000;
+    // Poll every 2-3s across the board — fast enough to catch a dead
+    // tunnel (guest-OS reboot, network failure) before it lingers on
+    // screen, per the debounce above.
+    const pollInterval = (type === 'workspace' && wsLoading) ? 3000 : (type === 'workspace' ? 3000 : 2000);
 
     const poll = async () => {
       try {
@@ -126,6 +210,7 @@ export default function DesktopSessionPage() {
                }));
                if (wsLoading) setWsLoading(false);
              }
+             evaluateTunnelHealth(wsData.vm_details?.guac_connected, url);
           }
         } else {
           // Session polling
@@ -146,57 +231,83 @@ export default function DesktopSessionPage() {
              const pStatus = myParticipant.status;
              const vmStatus = myParticipant.vm_status;
              const beingControlled = myParticipant.is_being_controlled;
-             
-             if (pStatus === 'removed' || pStatus === 'disconnected' || vmStatus === 'stopped') {
-                // Distinguish takeover-disconnect from a genuine end/remove
-                if (beingControlled) {
-                  setTakenOverByHost(true);
-                } else {
-                  setDisconnectedByAdmin(true);
-                }
+
+             if (pStatus === 'removed' || (pStatus === 'disconnected' && !beingControlled) || (vmStatus === 'stopped' && !beingControlled)) {
+                setDisconnectedByAdmin(true);
+                wasControlledRef.current = false;
                 return;
              }
-             
+
+             if (beingControlled) {
+                // The host opens a second, simultaneous Guacamole connection
+                // to the SAME xrdp target to take control. xrdp only allows
+                // one active graphical session per account, so this kicks
+                // the participant's own RDP session out from under them —
+                // confirmed via the "confirmed xrdp protocol constraint"
+                // takeover work earlier today. That means Guacamole's raw
+                // "disconnected" UI is about to render inside the iframe.
+                //
+                // This branch used to be gated behind pStatus === 'disconnected',
+                // which the backend never actually sets during a takeover (only
+                // is_being_controlled flips) — so takenOverByHost never fired in
+                // practice and the only visible indicator was the small amber
+                // banner below, leaving the killed iframe fully visible. Cover
+                // immediately and unconditionally on is_being_controlled instead.
+                setTakenOverByHost(true);
+                setTunnelActive(false);
+                wasControlledRef.current = true;
+                setSessionData(prev => (prev ? {
+                  ...prev,
+                  session_scheduled_end_at: sData.scheduled_end_at,
+                  is_being_controlled: true,
+                } : prev));
+                return;
+             }
+
+             if (wasControlledRef.current) {
+                // Host released control — reconnect automatically.
+                wasControlledRef.current = false;
+                setTakenOverByHost(false);
+                setReconnecting(false);
+                setSessionData(prev => (prev ? {
+                  ...prev,
+                  session_scheduled_end_at: sData.scheduled_end_at,
+                  is_being_controlled: false,
+                  guacamole_url: myParticipant.guacamole_url || prev.guacamole_url,
+                } : prev));
+                // Force a remount even if the URL string is byte-identical
+                // to the stale one (same connection_id + cached token both
+                // commonly unchanged) — GuacamoleEmbed's key is tied to
+                // this, so React tears down the dead iframe and creates a
+                // fresh one that actually re-navigates.
+                setReconnectGeneration(g => g + 1);
+                // Skip the tunnel-health check this cycle — the freshly
+                // remounted iframe needs its own grace period first.
+                return;
+             }
+
              setSessionData(prev => {
                 if (!prev) return prev;
-                
+
                 const newState = {
                    ...prev,
-                   session_scheduled_end_at: sData.scheduled_end_at
+                   session_scheduled_end_at: sData.scheduled_end_at,
+                   is_being_controlled: false,
                 };
 
                 if (!prev.guacamole_url && myParticipant.guacamole_url) {
                     newState.guacamole_url = myParticipant.guacamole_url;
                 }
-                
+
                 if (vmStatus !== lastKnownStatus.current) {
                   lastKnownStatus.current = vmStatus;
                   newState.vm_status = vmStatus;
                }
-               newState.is_being_controlled = beingControlled;
 
-               // Host released control — reconnect automatically. This must
-               // NOT be gated on takenOverByHost: the backend only ever
-               // flips is_being_controlled, never participant.status, during
-               // a takeover, so takenOverByHost (which needs pStatus ===
-               // 'disconnected') never actually becomes true through
-               // polling in practice — gating on it here meant this branch
-               // was effectively dead code and the participant's killed
-               // Guacamole session never got a fresh iframe.
-               if (prev.is_being_controlled && !beingControlled) {
-                 setTakenOverByHost(false);
-                 setReconnecting(false);
-                 newState.guacamole_url = myParticipant.guacamole_url || prev.guacamole_url;
-                 // Force a remount even if the URL string is byte-identical
-                 // to the stale one (same connection_id + cached token both
-                 // commonly unchanged) — GuacamoleEmbed's key is tied to
-                 // this, so React tears down the dead iframe and creates a
-                 // fresh one that actually re-navigates.
-                 setReconnectGeneration(g => g + 1);
-               }
-                
                 return newState;
              });
+
+             evaluateTunnelHealth(myParticipant.guac_connected, myParticipant.guacamole_url);
 
              // Check for a new broadcast/system notification and surface it
              // as a toast over the desktop stream — the bell alone is easy
@@ -224,7 +335,14 @@ export default function DesktopSessionPage() {
           }
         }
       } catch (err) {
-        // ignore single transient network errors
+        // A failed poll means we have no current information about
+        // whether the connection is healthy — that's not the same as
+        // confirmed-healthy, so it feeds the same debounced tunnel-health
+        // path as an explicit guac_connected:false reading rather than
+        // being silently ignored. A single transient blip is absorbed by
+        // the existing 2-strike debounce; only sustained failures actually
+        // raise the overlay.
+        evaluateTunnelHealth(false, null);
       }
     };
 
@@ -498,7 +616,27 @@ export default function DesktopSessionPage() {
             </div>
           )}
 
-          <GuacamoleEmbed url={workspace.vm_details.guacamole_url} loadingText="Connecting to your workspace..." />
+          {!disconnectedByAdmin && tunnelDown && (
+            <div style={{
+              position: 'absolute', inset: 0,
+              zIndex: 100,
+              background: '#050B18',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              padding: '32px',
+            }}>
+              <RefreshCw size={40} className="text-indigo-400 mb-4 animate-spin" />
+              <h2 className="text-slate-300 text-xl font-semibold mb-2">Connection Interrupted</h2>
+              <p className="text-slate-500 mb-2 max-w-sm">
+                The desktop stream was interrupted — this can happen if the machine restarts. Reconnecting automatically…
+              </p>
+            </div>
+          )}
+
+          <GuacamoleEmbed key={reconnectGeneration} url={workspace.vm_details.guacamole_url} loadingText="Connecting to your workspace..." tunnelActive={tunnelActive} />
         </div>
       );
     }
@@ -664,10 +802,27 @@ export default function DesktopSessionPage() {
         </div>
       )}
 
-      {sessionData.is_being_controlled && !takenOverByHost && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 bg-amber-500/90 text-white rounded-full shadow-lg shadow-amber-500/20 backdrop-blur-sm animate-in slide-in-from-top-4">
-          <Monitor size={14} className="animate-pulse" />
-          <span className="text-xs font-semibold tracking-wide">Your instructor is currently interacting with your screen</span>
+      {/* Tunnel-down overlay — the connection was genuinely healthy and
+          just broke (e.g. a restart/shutdown triggered from inside the
+          guest OS itself), distinct from the takeover and admin-disconnect
+          cases above which have their own more specific messaging. */}
+      {!disconnectedByAdmin && !takenOverByHost && tunnelDown && (
+        <div style={{
+          position: 'absolute', inset: 0,
+          zIndex: 100,
+          background: '#050B18',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          textAlign: 'center',
+          padding: '32px',
+        }}>
+          <RefreshCw size={40} className="text-indigo-400 mb-4 animate-spin" />
+          <h2 className="text-slate-300 text-xl font-semibold mb-2">Connection Interrupted</h2>
+          <p className="text-slate-500 mb-2 max-w-sm">
+            The desktop stream was interrupted — this can happen if the machine restarts. Reconnecting automatically…
+          </p>
         </div>
       )}
 
@@ -702,7 +857,7 @@ export default function DesktopSessionPage() {
         </div>
       )}
 
-      <GuacamoleEmbed key={reconnectGeneration} url={sessionData.guacamole_url} loadingText="Connecting to your session..." />
+      <GuacamoleEmbed key={reconnectGeneration} url={sessionData.guacamole_url} loadingText="Connecting to your session..." tunnelActive={tunnelActive} />
       
       <ConfirmModal
         isOpen={showConfirm}
