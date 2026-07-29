@@ -199,7 +199,18 @@ class LiveSessionDetailView(APIView):
         
         if not is_host and not participant and not session.is_public:
             return Response({"success": False, "message": "Access denied"}, status=status.HTTP_403_FORBIDDEN)
-                
+
+        # Auto-end check — mirrors SessionMonitorView's fallback so a
+        # session genuinely ends on time even if the host doesn't have
+        # their monitor page open. Any active session has at least one
+        # participant polling this endpoint, so checking it here too means
+        # auto-end no longer depends on the host specifically being present.
+        from django.utils import timezone
+        if session.status == 'active' and session.scheduled_end_at and timezone.now() >= session.scheduled_end_at:
+            from apps.sessions.services.session_lifecycle_service import SessionLifecycleService
+            SessionLifecycleService.end_live_session(session)
+            session.refresh_from_db()
+
         session.participant_count = session.participants.count()
         data = LiveSessionSerializer(session).data
         data['participants'] = SessionParticipantSerializer(session.participants.all()[:50], many=True).data
@@ -241,15 +252,17 @@ class SessionMonitorView(APIView):
         if session.host != request.user:
             return Response({"success": False, "message": "Only host can monitor session"}, status=status.HTTP_403_FORBIDDEN)
             
-        # Auto-end check
+        # Auto-end check — scheduled_end_at is the single source of truth,
+        # set once at session creation. It's also the exact field the UI
+        # countdown timer reads, so checking anything else (e.g.
+        # recalculating from start_time + duration_hours) can drift out of
+        # sync and end a session before the countdown participants are
+        # watching reaches zero.
         from django.utils import timezone
-        import datetime
-        if session.status in ['active', 'scheduled'] and session.duration_hours and session.start_time:
-            end_time = session.start_time + datetime.timedelta(hours=session.duration_hours)
-            if timezone.now() > end_time:
-                from apps.sessions.services.session_lifecycle_service import SessionLifecycleService
-                SessionLifecycleService.end_live_session(session)
-                session.refresh_from_db()
+        if session.status == 'active' and session.scheduled_end_at and timezone.now() >= session.scheduled_end_at:
+            from apps.sessions.services.session_lifecycle_service import SessionLifecycleService
+            SessionLifecycleService.end_live_session(session)
+            session.refresh_from_db()
             
         participants = session.participants.all()
         return Response({
