@@ -202,6 +202,11 @@ class GuacamoleService:
         Returns:
             str or None: Connection identifier, or None on failure.
         """
+        # Must run before the URL below is built — it's an f-string
+        # evaluated eagerly as a call argument, so self.data_source has to
+        # be populated *before* this point, not inside _request().
+        self._ensure_authenticated()
+
         if username is None:
             username = VM_DEFAULT_USER
         if password is None:
@@ -289,6 +294,8 @@ class GuacamoleService:
         Raises:
             Exception: If the server returns a non-success status.
         """
+        self._ensure_authenticated()
+
         res = self._request(
             'DELETE',
             f'{self.base_url}/api/session/data/'
@@ -323,6 +330,8 @@ class GuacamoleService:
         Raises:
             Exception: If creation fails.
         """
+        self._ensure_authenticated()
+
         profile_name = f'shadow-{connection_id}-{"ro" if read_only else "rw"}'
 
         # STEP 1: Check if a profile already exists for this exact connection.
@@ -405,6 +414,8 @@ class GuacamoleService:
         Returns:
             str: Full URL to open this connection.
         """
+        self._ensure_authenticated()
+
         self._request(
             'GET',
             f'{self.base_url}/api/session/data/'
@@ -425,6 +436,8 @@ class GuacamoleService:
         Returns:
             str or None: Active connection key, or None if not found.
         """
+        self._ensure_authenticated()
+
         try:
             res = self._request(
                 'GET',
@@ -451,6 +464,8 @@ class GuacamoleService:
         Returns:
             str or None: Full share URL, or None on failure.
         """
+        self._ensure_authenticated()
+
         try:
             res = self._request(
                 'GET',
