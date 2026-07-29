@@ -392,13 +392,24 @@ class GuacamoleService:
         The Guacamole client identifier format is:
             base64( connection_id + NUL + 'c' + NUL + data_source )
 
+        Unlike a plain string-format method, this makes a real (cheap)
+        authenticated request first so a stale cached token gets caught
+        and refreshed via _request()'s retry-on-401 logic — otherwise a
+        dead token would be silently baked into the URL and the embedded
+        client would fall back to Guacamole's own login screen with no
+        way for the app to detect or recover from it.
+
         Args:
             connection_id (str): The connection identifier.
 
         Returns:
             str: Full URL to open this connection.
         """
-        self._ensure_authenticated()
+        self._request(
+            'GET',
+            f'{self.base_url}/api/session/data/'
+            f'{self.data_source}/connections/{connection_id}',
+        )
 
         identifier = f"{connection_id}\x00c\x00{self.data_source}"
         encoded = base64.b64encode(identifier.encode()).decode()
