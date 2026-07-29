@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 export default function GuacamoleEmbed({ url, title = "Virtual Desktop", className = "w-full flex-1 border-none bg-black", loadingText = "Connecting..." }) {
   const [connectionState, setConnectionState] = useState('connecting');
+  const iframeRef = useRef(null);
 
   useEffect(() => {
     if (!url) return;
@@ -20,6 +21,16 @@ export default function GuacamoleEmbed({ url, title = "Virtual Desktop", classNa
       if (elapsed > 4500) {
         setConnectionState('connected');
         clearInterval(interval);
+        // Guacamole captures keyboard input via listeners on its own iframe
+        // document, which only receive events once the iframe itself holds
+        // focus. Browsers don't grant that automatically for an embedded
+        // iframe — a real click over the canvas usually does, but a user
+        // who starts typing before ever clicking (or right after a
+        // reconnect swaps in a fresh iframe) gets silent, working mouse
+        // input and completely dead keyboard input. Force focus once the
+        // desktop is actually up so keyboard works without requiring a
+        // click first.
+        iframeRef.current?.focus();
       }
     }, 500);
 
@@ -34,7 +45,10 @@ export default function GuacamoleEmbed({ url, title = "Virtual Desktop", classNa
     .replace('127.0.0.1:8080', window.location.hostname + ':8080');
 
   return (
-    <div className="relative w-full h-full flex flex-col flex-1 bg-black">
+    <div
+      className="relative w-full h-full flex flex-col flex-1 bg-black"
+      onMouseDown={() => iframeRef.current?.focus()}
+    >
       {connectionState !== 'connected' && (
         <div style={{
           position: 'absolute',
@@ -51,6 +65,7 @@ export default function GuacamoleEmbed({ url, title = "Virtual Desktop", classNa
         </div>
       )}
       <iframe
+        ref={iframeRef}
         src={safeUrl}
         className={className}
         allow="clipboard-read; clipboard-write; fullscreen"
