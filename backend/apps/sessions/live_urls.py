@@ -17,4 +17,5 @@ urlpatterns = [
     path('<int:pk>/broadcast/', views.BroadcastMessageView.as_view(), name='live-session-broadcast'),
     path('<int:pk>/pause-all/', views.PauseAllParticipantsView.as_view(), name='live-session-pause-all'),
     path('<int:pk>/resume-all/', views.ResumeAllParticipantsView.as_view(), name='live-session-resume-all'),
+    path('<int:pk>/extend/', views.ExtendSessionView.as_view(), name='live-session-extend'),
 ]

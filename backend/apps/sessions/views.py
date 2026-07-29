@@ -509,3 +509,76 @@ class ResumeAllParticipantsView(APIView):
             'success': True,
             'message': f'Resumed {resumed_count} participant(s)'
         })
+
+class ExtendSessionView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        from apps.users.models import SystemConfig, Payment
+        from django.utils import timezone
+        from datetime import timedelta
+        import decimal
+        import uuid
+
+        try:
+            session = LiveSession.objects.get(id=pk)
+        except LiveSession.DoesNotExist:
+            return Response({'error': 'Not found'}, status=404)
+
+        if session.host_id != request.user.id:
+            return Response({
+                'success': False,
+                'message': 'Only the host can extend this session.'
+            }, status=403)
+
+        try:
+            extra_hours = decimal.Decimal(str(request.data.get('hours', 1)))
+        except (decimal.InvalidOperation, TypeError, ValueError):
+            return Response({'success': False, 'message': 'Invalid hours value'}, status=400)
+
+        if extra_hours <= 0 or extra_hours > 24:
+            return Response({
+                'success': False,
+                'message': 'Please select between 0.5 and 24 hours.'
+            }, status=400)
+
+        rate = decimal.Decimal(SystemConfig.get('session_hosting_rate_tzs', '5000'))
+        extra_price = extra_hours * rate
+
+        phone = request.data.get('phone_number')
+        provider = request.data.get('provider')
+
+        subscription = getattr(request.user, 'subscription', None)
+        if not subscription:
+            return Response({
+                'success': False,
+                'message': 'No active subscription found for this account.'
+            }, status=400)
+
+        # SANDBOX payment — instant success, same pattern as the real
+        # billing checkout flow. Deliberately NOT wrapped in a
+        # swallow-everything try/except: a payment that silently fails to
+        # save must not silently extend the session anyway.
+        transaction_id = f'EXT-{str(uuid.uuid4())[:8].upper()}'
+        Payment.objects.create(
+            user=request.user,
+            plan=subscription.plan,
+            amount_tzs=extra_price,
+            currency='TZS',
+            provider=provider,
+            phone_number=phone,
+            status='completed',
+            transaction_id=transaction_id,
+        )
+
+        base_time = session.scheduled_end_at or timezone.now()
+        session.scheduled_end_at = base_time + timedelta(hours=float(extra_hours))
+        session.hours_purchased = (session.hours_purchased or decimal.Decimal('0')) + extra_hours
+        session.amount_paid_tzs = (session.amount_paid_tzs or decimal.Decimal('0')) + extra_price
+        session.save()
+
+        return Response({
+            'success': True,
+            'message': f'Extended by {extra_hours} hour(s)',
+            'new_scheduled_end_at': session.scheduled_end_at.isoformat()
+        })

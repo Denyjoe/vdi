@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Monitor, Users, Clock, Copy, X, Power, Shield, WifiOff, ClipboardX, Link2, ArrowLeft, UserMinus, Check, Send, Pause, Play } from 'lucide-react';
+import { Monitor, Users, Clock, Copy, X, Power, Shield, WifiOff, ClipboardX, Link2, ArrowLeft, UserMinus, Check, Send, Pause, Play, PlusCircle } from 'lucide-react';
 import api from '../services/api';
 import GuacamoleEmbed from '../components/shared/GuacamoleEmbed';
+import ExtendSessionModal from '../components/shared/ExtendSessionModal';
 
 const formatDuration = (startedAt) => {
   if (!startedAt) return '00:00:00';
@@ -30,6 +31,7 @@ export default function HostSessionPage() {
   const [broadcastSent, setBroadcastSent] = useState(false);
   const [showTimeWarning, setShowTimeWarning] = useState(false);
   const warningShownRef = useRef(false);
+  const [showExtendModal, setShowExtendModal] = useState(false);
   const [pauseBusy, setPauseBusy] = useState(false);
 
   const fetchMonitor = useCallback(async () => {
@@ -177,6 +179,14 @@ export default function HostSessionPage() {
     }
   };
 
+  const handleExtendSuccess = (newScheduledEndAt) => {
+    setShowExtendModal(false);
+    setSession(prev => ({ ...prev, scheduled_end_at: newScheduledEndAt }));
+    // A fresh time window means the 5-minute warning is legitimately
+    // relevant again once we approach the NEW end time.
+    warningShownRef.current = false;
+  };
+
   const copyToClipboard = async (text, type) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -260,6 +270,12 @@ export default function HostSessionPage() {
               {session.invite_code}
             </span>
           </div>
+          <button
+            onClick={() => setShowExtendModal(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0066FF]/10 border border-[#0066FF]/20 text-[#0066FF] text-xs font-semibold hover:bg-[#0066FF]/20 active:scale-95 transition-all">
+            <PlusCircle size={14} />
+            Extend Session
+          </button>
           <button
             onClick={handleEndSession}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold hover:bg-red-500/20 active:scale-95 transition-all">
@@ -655,6 +671,13 @@ export default function HostSessionPage() {
           </div>
         </div>
       )}
+
+      <ExtendSessionModal
+        isOpen={showExtendModal}
+        onClose={() => setShowExtendModal(false)}
+        sessionId={sessionId}
+        onSuccess={handleExtendSuccess}
+      />
     </div>
   );
 }
