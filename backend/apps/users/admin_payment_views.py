@@ -8,9 +8,9 @@ from django.db.models import Sum
 class AdminPaymentStatsView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsAdmin]
     def get(self, request):
-        total_revenue = Payment.objects.filter(status='SUCCESS').aggregate(total=Sum('amount_tzs'))['total'] or 0
+        total_revenue = Payment.objects.filter(status='completed').aggregate(total=Sum('amount_tzs'))['total'] or 0
         total_transactions = Payment.objects.count()
-        successful_transactions = Payment.objects.filter(status='SUCCESS').count()
+        successful_transactions = Payment.objects.filter(status='completed').count()
         
         return Response({
             "success": True,

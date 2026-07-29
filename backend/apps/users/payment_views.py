@@ -240,8 +240,8 @@ class CheckPaymentStatusView(APIView):
         'success': True,
         'data': {
           'status': payment.status,
-          'plan': payment.plan.name,
-          'amount_tzs': 
+          'plan': payment.plan.name if payment.plan else None,
+          'amount_tzs':
             str(payment.amount_tzs),
           'completed_at': 
             payment.completed_at,
@@ -269,7 +269,7 @@ class PaymentHistoryView(APIView):
       'success': True,
       'data': [{
         'id': p.id,
-        'plan': p.plan.display_name,
+        'plan': p.plan.display_name if p.plan else 'Session hosting',
         'amount_tzs': str(p.amount_tzs),
         'provider': p.provider,
         'phone': p.phone_number,

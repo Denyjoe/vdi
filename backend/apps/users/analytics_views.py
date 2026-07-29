@@ -175,7 +175,7 @@ class RevenueMonthlyView(APIView):
             
             six_months_ago = timezone.now() - timedelta(days=180)
             
-            monthly = Payment.objects.filter(status='completed', created_at__gte=six_months_ago).annotate(month=TruncMonth('created_at')).values('month').annotate(total=Sum('amount')).order_by('month')
+            monthly = Payment.objects.filter(status='completed', created_at__gte=six_months_ago).annotate(month=TruncMonth('created_at')).values('month').annotate(total=Sum('amount_tzs')).order_by('month')
             
             result = []
             now = timezone.now()
@@ -192,7 +192,7 @@ class RevenueMonthlyView(APIView):
             
             return Response({
                 'revenue': result,
-                'total_all_time': float(Payment.objects.filter(status='completed').aggregate(t=Sum('amount'))['t'] or 0)
+                'total_all_time': float(Payment.objects.filter(status='completed').aggregate(t=Sum('amount_tzs'))['t'] or 0)
             })
         except Exception as e:
             return Response({'revenue': [], 'error': str(e)})
@@ -244,10 +244,14 @@ class RevenueBreakdownView(APIView):
             from apps.users.models import Payment
             
             all_payments = Payment.objects.filter(status='completed')
-            total = float(all_payments.aggregate(t=Sum('amount'))['t'] or 0)
-            
-            workspace_revenue = float(all_payments.filter(description__icontains='Desktop').aggregate(t=Sum('amount'))['t'] or 0) if hasattr(Payment, 'description') else 0
-            host_plan_revenue = float(all_payments.filter(description__icontains='Host').aggregate(t=Sum('amount'))['t'] or 0) if hasattr(Payment, 'description') else 0
+            total = float(all_payments.aggregate(t=Sum('amount_tzs'))['t'] or 0)
+
+            # plan is null for pay-per-hour session charges (hosting/
+            # extend) and set for subscription plan purchases — this is
+            # the real distinction now that the model has no
+            # 'description' field to filter on.
+            workspace_revenue = float(all_payments.filter(plan__isnull=True).aggregate(t=Sum('amount_tzs'))['t'] or 0)
+            host_plan_revenue = float(all_payments.filter(plan__isnull=False).aggregate(t=Sum('amount_tzs'))['t'] or 0)
             other_revenue = max(0, total - workspace_revenue - host_plan_revenue)
             
             return Response({
@@ -287,8 +291,8 @@ class PlatformStatsView(APIView):
             sessions_week = 0
         
         from django.db.models import Sum
-        total_revenue = float(Payment.objects.filter(status='completed').aggregate(t=Sum('amount'))['t'] or 0)
-        revenue_week = float(Payment.objects.filter(status='completed', created_at__gte=week_ago).aggregate(t=Sum('amount'))['t'] or 0)
+        total_revenue = float(Payment.objects.filter(status='completed').aggregate(t=Sum('amount_tzs'))['t'] or 0)
+        revenue_week = float(Payment.objects.filter(status='completed', created_at__gte=week_ago).aggregate(t=Sum('amount_tzs'))['t'] or 0)
         
         return Response({
             'success': True,
@@ -326,7 +330,7 @@ class AdminAnalyticsExportView(APIView):
         writer.writerow(['Total VMs', VirtualMachine.objects.count()])
         writer.writerow(['Total Workspaces', Workspace.objects.count()])
         
-        total_revenue = float(Payment.objects.filter(status='completed').aggregate(t=Sum('amount'))['t'] or 0)
+        total_revenue = float(Payment.objects.filter(status='completed').aggregate(t=Sum('amount_tzs'))['t'] or 0)
         writer.writerow(['Total Revenue (TZS)', total_revenue])
         
         writer.writerow([])

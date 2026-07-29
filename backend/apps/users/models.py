@@ -346,7 +346,11 @@ class Payment(models.Model):
         related_name='payments')
     plan = models.ForeignKey(
         SubscriptionPlan,
-        on_delete=models.PROTECT)
+        on_delete=models.PROTECT,
+        null=True, blank=True,
+        help_text="The subscription plan this payment purchased, if any. "
+                   "Null for non-subscription payments (session hosting, "
+                   "session extensions) that aren't tied to a plan tier.")
     amount_tzs = models.DecimalField(
         max_digits=12, decimal_places=2)
     amount_usd = models.DecimalField(

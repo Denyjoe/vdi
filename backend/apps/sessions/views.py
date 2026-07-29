@@ -88,20 +88,30 @@ class PayAndStartSessionView(APIView):
         except VMTemplate.DoesNotExist:
             return Response({'success': False, 'message': 'Invalid template'}, status=400)
         
-        # SANDBOX payment — instant success
+        # SANDBOX payment — instant success. plan=None: this is a
+        # pay-per-hour session charge, not tied to any subscription plan.
+        import uuid
+        transaction_id = f'CD-{str(uuid.uuid4())[:8].upper()}'
         try:
             Payment.objects.create(
                 user=request.user,
+                plan=None,
                 amount_tzs=total_price,
                 currency='TZS',
                 provider=provider,
                 phone_number=phone,
                 status='completed',
-                description=f'{hours}hr live session'
+                transaction_id=transaction_id,
             )
-        except Exception:
-            pass
-        
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f'FAILED to create payment record: {str(e)}', exc_info=True)
+            return Response({
+                'success': False,
+                'message': 'Payment could not be processed. Please try again.'
+            }, status=500)
+
         invite_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
         
         now = timezone.now()
@@ -548,21 +558,16 @@ class ExtendSessionView(APIView):
         phone = request.data.get('phone_number')
         provider = request.data.get('provider')
 
-        subscription = getattr(request.user, 'subscription', None)
-        if not subscription:
-            return Response({
-                'success': False,
-                'message': 'No active subscription found for this account.'
-            }, status=400)
-
         # SANDBOX payment — instant success, same pattern as the real
-        # billing checkout flow. Deliberately NOT wrapped in a
-        # swallow-everything try/except: a payment that silently fails to
-        # save must not silently extend the session anyway.
+        # billing checkout flow. plan=None: extending a session isn't tied
+        # to any subscription plan tier, it's a standalone hourly charge.
+        # Deliberately NOT wrapped in a swallow-everything try/except: a
+        # payment that silently fails to save must not silently extend
+        # the session anyway.
         transaction_id = f'EXT-{str(uuid.uuid4())[:8].upper()}'
         Payment.objects.create(
             user=request.user,
-            plan=subscription.plan,
+            plan=None,
             amount_tzs=extra_price,
             currency='TZS',
             provider=provider,

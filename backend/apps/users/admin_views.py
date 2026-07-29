@@ -121,7 +121,7 @@ class AdminUserDetailView(APIView):
         try:
             from apps.users.models import Payment
             from django.db.models import Sum
-            spent = Payment.objects.filter(user=u, status='completed').aggregate(total=Sum('amount'))['total']
+            spent = Payment.objects.filter(user=u, status='completed').aggregate(total=Sum('amount_tzs'))['total']
             total_spent = float(spent or 0)
         except Exception:
             pass

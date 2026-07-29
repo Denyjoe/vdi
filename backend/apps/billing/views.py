@@ -330,10 +330,10 @@ class CheckoutView(APIView):
                 'message': 'Plan not found'
             }, status=404)
         
-        # SANDBOX MODE — simulate instant payment success 
+        # SANDBOX MODE — simulate instant payment success
         import uuid
         transaction_id = f'CD-{str(uuid.uuid4())[:8].upper()}'
-        
+
         try:
             payment = Payment.objects.create(
                 user=request.user,
@@ -345,11 +345,18 @@ class CheckoutView(APIView):
                 phone_number=phone,
                 status='completed',
                 transaction_id=transaction_id,
-                description=f'{plan.display_name or plan.name} Host Plan subscription'
             )
-        except Exception:
-            pass  # Fallback if fields are different
-        
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f'FAILED to create payment record: {str(e)}', exc_info=True)
+            # Financial record — don't grant the subscription if we can't
+            # prove the payment was ever actually saved.
+            return Response({
+                'success': False,
+                'message': 'Payment could not be processed. Please try again.'
+            }, status=500)
+
         # Activate subscription immediately
         existing = UserSubscription.objects.filter(user=request.user).first()
         
