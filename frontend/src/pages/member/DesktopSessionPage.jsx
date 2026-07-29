@@ -84,6 +84,13 @@ export default function DesktopSessionPage() {
   const [broadcastToast, setBroadcastToast] = useState(null);
   const lastSeenNotifId = useRef(null);
   const broadcastToastTimeoutRef = useRef(null);
+  // Guacamole URLs are stable strings when the token hasn't rotated, so
+  // just reassigning guacamole_url after a takeover often won't change the
+  // iframe's src at all — the browser has no reason to reload it. This
+  // counter is bumped on every genuine reconnect so the key on
+  // GuacamoleEmbed changes, forcing React to remount the iframe instead of
+  // silently leaving Guacamole's own "disconnected" page in place.
+  const [reconnectGeneration, setReconnectGeneration] = useState(0);
 
   // Consolidated Polling Loop
   useEffect(() => {
@@ -167,12 +174,25 @@ export default function DesktopSessionPage() {
                   newState.vm_status = vmStatus;
                }
                newState.is_being_controlled = beingControlled;
-                
-               // Host released control — allow reconnect to restore
-               if (prev.is_being_controlled && !beingControlled && takenOverByHost) {
+
+               // Host released control — reconnect automatically. This must
+               // NOT be gated on takenOverByHost: the backend only ever
+               // flips is_being_controlled, never participant.status, during
+               // a takeover, so takenOverByHost (which needs pStatus ===
+               // 'disconnected') never actually becomes true through
+               // polling in practice — gating on it here meant this branch
+               // was effectively dead code and the participant's killed
+               // Guacamole session never got a fresh iframe.
+               if (prev.is_being_controlled && !beingControlled) {
                  setTakenOverByHost(false);
                  setReconnecting(false);
                  newState.guacamole_url = myParticipant.guacamole_url || prev.guacamole_url;
+                 // Force a remount even if the URL string is byte-identical
+                 // to the stale one (same connection_id + cached token both
+                 // commonly unchanged) — GuacamoleEmbed's key is tied to
+                 // this, so React tears down the dead iframe and creates a
+                 // fresh one that actually re-navigates.
+                 setReconnectGeneration(g => g + 1);
                }
                 
                 return newState;
@@ -309,6 +329,7 @@ export default function DesktopSessionPage() {
           }));
           setTakenOverByHost(false);
           setReconnecting(false);
+          setReconnectGeneration(g => g + 1);
           return;
         }
       }
@@ -681,7 +702,7 @@ export default function DesktopSessionPage() {
         </div>
       )}
 
-      <GuacamoleEmbed url={sessionData.guacamole_url} loadingText="Connecting to your session..." />
+      <GuacamoleEmbed key={reconnectGeneration} url={sessionData.guacamole_url} loadingText="Connecting to your session..." />
       
       <ConfirmModal
         isOpen={showConfirm}
