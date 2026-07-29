@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import { 
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
+  AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip as RechartsTooltip, ResponsiveContainer, Cell 
 } from 'recharts';
 import { useNavigate } from 'react-router-dom';
@@ -66,35 +66,23 @@ export default function AdminDashboard() {
   const [isRetrying, setIsRetrying] = useState(null);
   const [isBackingUp, setIsBackingUp] = useState(false);
 
-  // Mock data for charts - replaced with honest 0s as there's no historical API yet
-  const sessionsData = [
-    { name: 'Mon', count: 0 }, { name: 'Tue', count: 0 },
-    { name: 'Wed', count: 0 }, { name: 'Thu', count: 0 },
-    { name: 'Fri', count: 0 }, { name: 'Sat', count: 0 },
-    { name: 'Sun', count: 0 }
-  ];
-
-  const vmUsageData = [
-    { name: 'Mon', created: 0, destroyed: 0 },
-    { name: 'Tue', created: 0, destroyed: 0 },
-    { name: 'Wed', created: 0, destroyed: 0 },
-    { name: 'Thu', created: 0, destroyed: 0 },
-    { name: 'Fri', created: 0, destroyed: 0 },
-    { name: 'Sat', created: 0, destroyed: 0 },
-    { name: 'Sun', created: 0, destroyed: 0 }
-  ];
+  // Real data from /admin/analytics/sessions-daily/ — the same endpoint
+  // the Analytics page's "Sessions (Last 7 Days)" chart uses. Starts
+  // empty rather than hardcoded zeros; populated once the request lands.
+  const [sessionsData, setSessionsData] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [usersRes, sessionsRes, paymentsRes, poolRes, sysRes, attentionRes, activityRes] = await Promise.allSettled([
+        const [usersRes, sessionsRes, paymentsRes, poolRes, sysRes, attentionRes, activityRes, dailySessionsRes] = await Promise.allSettled([
           api.get('/users/admin/stats/'),
           api.get('/sessions/admin/stats/'),
           api.get('/payments/admin/stats/'),
           api.get('/vms/admin/pool/status/'),
           api.get('/vms/admin/system-stats/'),
           api.get('/admin/attention/'),
-          api.get('/admin/activity/')
+          api.get('/admin/activity/'),
+          api.get('/admin/analytics/sessions-daily/')
         ]);
 
         let userCount = 0;
@@ -126,6 +114,13 @@ export default function AdminDashboard() {
         }
         if (activityRes.status === 'fulfilled' && activityRes.value.data) {
           setRecentActivity(activityRes.value.data.activities || []);
+        }
+
+        if (dailySessionsRes.status === 'fulfilled' && dailySessionsRes.value.data.sessions) {
+          setSessionsData(dailySessionsRes.value.data.sessions.map(d => ({
+            name: d.day_label,
+            count: d.count,
+          })));
         }
 
         setStats(prev => ({
@@ -507,11 +502,18 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* SECTION C: Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* SECTION C: Chart Row — VM Usage Over Time (created vs destroyed)
+          removed: there's no backend concept matching it. Workspace
+          deletion (AdminDeleteWorkspaceView) is a hard delete with no
+          timestamp trail, so a "destroyed per day" series can't be built
+          from real data without new tracking infrastructure — genuinely
+          new work, not a wiring job. The real, working equivalent for
+          template/usage breakdown already exists on the Analytics page
+          ("Template Popularity", backed by real Workspace counts). */}
+      <div className="grid grid-cols-1 gap-6">
         <div className="bg-[var(--bg-card)]/80 backdrop-blur-md rounded-2xl shadow-lg border border-[var(--border-color)] p-6 h-96 flex flex-col">
           <div className="mb-6">
-            <h3 className="text-lg font-semibold text-[var(--text-primary)]">Platform usage over the last 14 days</h3>
+            <h3 className="text-lg font-semibold text-[var(--text-primary)]">Sessions over the last 7 days</h3>
           </div>
           <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
@@ -524,8 +526,8 @@ export default function AdminDashboard() {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid)" />
                 <XAxis dataKey="name" stroke="var(--chart-text)" axisLine={false} tickLine={false} />
-                <YAxis stroke="var(--chart-text)" axisLine={false} tickLine={false} />
-                <RechartsTooltip 
+                <YAxis stroke="var(--chart-text)" axisLine={false} tickLine={false} allowDecimals={false} />
+                <RechartsTooltip
                   contentStyle={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', boxShadow: 'var(--shadow-lg)' }}
                   itemStyle={{ color: 'var(--accent)' }}
                 />
@@ -534,40 +536,18 @@ export default function AdminDashboard() {
             </ResponsiveContainer>
           </div>
         </div>
-
-        <div className="bg-[var(--bg-card)]/80 backdrop-blur-md rounded-2xl shadow-lg border border-[var(--border-color)] p-6 h-96 flex flex-col">
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-[var(--text-primary)]">VM Usage Over Time</h3>
-          </div>
-          <div className="flex-1 min-h-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={vmUsageData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid)" />
-                <XAxis dataKey="name" stroke="var(--chart-text)" axisLine={false} tickLine={false} />
-                <YAxis stroke="var(--chart-text)" axisLine={false} tickLine={false} />
-                <RechartsTooltip 
-                  cursor={{ fill: 'var(--bg-elevated)' }}
-                  contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', boxShadow: 'var(--shadow-lg)' }}
-                  itemStyle={{ color: 'var(--text-primary)' }}
-                />
-                <Bar dataKey="created" fill="var(--chart-line)" radius={[4, 4, 0, 0]} maxBarSize={30} />
-                <Bar dataKey="destroyed" fill="var(--status-error)" radius={[4, 4, 0, 0]} maxBarSize={30} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
       </div>
 
       {/* SECTION D: Bottom Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-[var(--bg-card)]/80 backdrop-blur-md rounded-2xl shadow-lg border border-[var(--border-color)] flex flex-col min-h-[350px]">
-          <div className="px-6 py-5 border-b border-[var(--border-color)] flex items-center justify-between">
+        <div className="bg-[var(--bg-card)]/80 backdrop-blur-md rounded-2xl shadow-lg border border-[var(--border-color)] flex flex-col h-[420px]">
+          <div className="px-6 py-5 border-b border-[var(--border-color)] flex items-center justify-between shrink-0">
             <h3 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
               <Clock className="w-5 h-5 text-indigo-400" />
               Recent Activity
             </h3>
           </div>
-          <div className="p-6 flex-1 overflow-y-auto">
+          <div className="p-6 flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-[var(--border-strong)] scrollbar-track-transparent">
             <div className="space-y-6">
               {recentActivity.length > 0 ? recentActivity.map((log, i) => (
                 <div key={log.id} className="flex gap-4 relative">
@@ -591,15 +571,15 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="bg-[var(--bg-card)]/80 backdrop-blur-md rounded-2xl shadow-lg border border-[var(--border-color)] p-6">
-          <div className="mb-6">
+        <div className="bg-[var(--bg-card)]/80 backdrop-blur-md rounded-2xl shadow-lg border border-[var(--border-color)] p-6 h-[420px] flex flex-col">
+          <div className="mb-6 shrink-0">
             <h3 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
               <Terminal className="w-5 h-5 text-emerald-400" />
               Quick Actions
             </h3>
             <p className="text-sm text-[var(--text-secondary)] mt-1">Shortcuts to common administration tasks</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-[var(--border-strong)] scrollbar-track-transparent pr-2">
             {quickActions.map((action, idx) => (
               <button 
                 key={idx}
