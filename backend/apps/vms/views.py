@@ -78,5 +78,5 @@ class VMDeleteView(APIView):
     def delete(self, request, pk):
         vm = get_object_or_404(VirtualMachine, pk=pk, owner=request.user)
         orchestrator = VMOrchestrator()
-        res = orchestrator.delete_vm(vm)
+        res = orchestrator.deprovision_real_vm(vm)
         return Response({"success": res['success']})

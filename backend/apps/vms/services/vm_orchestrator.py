@@ -135,17 +135,6 @@ class VMOrchestrator:
             thread.daemon = True
             thread.start()
 
-    def delete_vm(self, vm):
-        """
-        Mark a VM as deleted.
-
-        Args:
-            vm (VirtualMachine): The VM to delete.
-        """
-        vm.status = 'deleted'
-        vm.save()
-        self._log_activity(vm, 'VM_DELETED')
-
     def get_vm_status(self, vm):
         """
         Get current VM status with simulated resource fluctuation.
@@ -548,6 +537,10 @@ class VMOrchestrator:
 
         Args:
             vm (VirtualMachine): The VM to tear down.
+
+        Returns:
+            dict: {'success': True} on success, or
+                  {'success': False, 'error': str} on failure.
         """
         from apps.vms.services.proxmox_service import get_proxmox_service
         from apps.vms.services.guacamole_service import get_guacamole_service
@@ -574,6 +567,7 @@ class VMOrchestrator:
             vm.status = 'deleted'
             vm.save()
             self._log_activity(vm, 'VM_REAL_DELETED')
+            return {'success': True}
 
         except Exception as exc:
             vm.notes = f'Deprovision error: {exc}'
@@ -581,6 +575,7 @@ class VMOrchestrator:
             vm.save()
             self._log_activity(vm, 'VM_DEPROVISION_FAILED',
                                {'error': str(exc)})
+            return {'success': False, 'error': str(exc)}
 
 
 orchestrator = VMOrchestrator()
