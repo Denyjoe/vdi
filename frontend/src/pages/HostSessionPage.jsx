@@ -706,9 +706,12 @@ export default function HostSessionPage() {
               </button>
             </div>
             
-            <GuacamoleEmbed 
+            <GuacamoleEmbed
               url={controlSession.controlUrl}
               title={`Controlling: ${controlSession.participant.user?.first_name || 'User'}`}
+              tunnelActive={
+                participants.find(p => p.id === controlSession.participant.id)?.guac_connected || false
+              }
             />
             
             <div className="h-10 px-4 flex items-center justify-end gap-2 bg-canvas border-t border-border-subtle">
