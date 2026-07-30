@@ -64,14 +64,19 @@ export default function AdminAnalyticsPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [statsRes, sessionsRes, revenueRes, growthRes, breakdownRes, templatesRes, usersListRes] = await Promise.allSettled([
-          api.get('/users/admin/platform-stats/'),
-          api.get('/users/admin/analytics/sessions-daily/'),
-          api.get('/users/admin/analytics/revenue-monthly/'),
-          api.get('/users/admin/analytics/user-growth/'),
-          api.get('/users/admin/analytics/revenue-breakdown/'),
-          api.get('/users/admin/analytics/vm-usage/'),
-          api.get('/users/admin/list/')
+        // These all live under analytics_urls.py, which config/urls.py mounts
+        // at 'api/admin/' — NOT 'api/users/admin/'. Every one of these calls
+        // was 404ing (confirmed directly against the running server), which
+        // is why this whole page silently showed all-zero/empty stats and
+        // charts: Promise.allSettled swallowed the rejections and every
+        // `if (X.status === 'fulfilled' ...)` check below just skipped.
+        const [statsRes, sessionsRes, revenueRes, growthRes, breakdownRes, templatesRes] = await Promise.allSettled([
+          api.get('/admin/platform-stats/'),
+          api.get('/admin/analytics/sessions-daily/'),
+          api.get('/admin/analytics/revenue-monthly/'),
+          api.get('/admin/analytics/user-growth/'),
+          api.get('/admin/analytics/revenue-breakdown/'),
+          api.get('/admin/analytics/vm-usage/'),
         ]);
 
         if (statsRes.status === 'fulfilled' && statsRes.value.data.success) {
@@ -103,16 +108,20 @@ export default function AdminAnalyticsPage() {
             count: t.vm_count || 0
           }));
           setVmTemplates(templates);
-        }
 
-        if (usersListRes.status === 'fulfilled' && usersListRes.value.data.success) {
-          const usersList = usersListRes.value.data.data.slice(0, 5).map(u => ({
-            name: `${u.first_name} ${u.last_name}`,
+          // Real per-user usage, ranked by workspace count — this used to
+          // read `usersListRes.data.success`, a field that endpoint never
+          // returns (it returns {users, total, counts}), so this branch
+          // never ran and "Top Users" silently showed "No activity
+          // recorded yet" regardless of real usage. The vm-usage endpoint
+          // above already computes the real ranking, so use that instead.
+          const realTopUsers = (templatesRes.value.data.data.top_users || []).map(u => ({
+            name: u.name,
             email: u.email,
-            vms: 0,
-            hours: 0
+            vms: u.vm_count || 0,
+            hours: u.total_session_hours || 0,
           }));
-          setTopUsers(usersList);
+          setTopUsers(realTopUsers);
         }
       } catch (err) {
         console.error('Failed to load analytics', err);
@@ -128,16 +137,16 @@ export default function AdminAnalyticsPage() {
   const handleExportReport = async () => {
     try {
       const token = localStorage.getItem('dit_access_token');
-      const response = await fetch('/api/users/admin/analytics/export/', {
+      const response = await fetch('/api/admin/analytics/export/', {
         headers: {
-          'Authorization': Bearer 
+          'Authorization': `Bearer ${token}`
         }
       });
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = clouddesk_analytics_.csv;
+      a.download = `clouddesk_analytics_${new Date().toISOString().slice(0, 10)}.csv`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -364,10 +373,10 @@ export default function AdminAnalyticsPage() {
                 <BarChart data={revenueMonthly} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
                   <XAxis dataKey="month" stroke="var(--text-faint)" fontSize={11} />
-                  <YAxis stroke="var(--text-faint)" fontSize={11} allowDecimals={false} tickFormatter={(v) => TZS } />
-                  <RechartsTooltip 
+                  <YAxis stroke="var(--text-faint)" fontSize={11} allowDecimals={false} tickFormatter={(v) => `TZS ${v.toLocaleString()}`} />
+                  <RechartsTooltip
                     contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
-                    formatter={(value) => [TZS , "Revenue"]}
+                    formatter={(value) => [`TZS ${value.toLocaleString()}`, "Revenue"]}
                   />
                   <Bar dataKey="revenue" fill="var(--chart-bar)" radius={[4, 4, 0, 0]} maxBarSize={40} />
                 </BarChart>

@@ -56,25 +56,49 @@ class AnalyticsVMUsageView(APIView):
     def get(self, request):
         from apps.vms.models import Workspace
         from django.db.models import Count
-        
+
         results = Workspace.objects.exclude(vm_template__isnull=True).values(
             'vm_template__name'
         ).annotate(vm_count=Count('id')).order_by('-vm_count')
-        
+
         by_template = [
             {"template_name": r['vm_template__name'], "vm_count": r['vm_count']}
             for r in results
         ]
 
+        # Real per-user usage, ranked by workspace count. This used to be
+        # hardcoded "John Doe / Jane Smith / Mike Ross" placeholder data
+        # that never reflected anything real — the frontend actually
+        # ignored this field entirely and built its own zero-filled table
+        # from the first 5 users in /users/admin/list/ instead, which is
+        # an equally fake "Top Users" table (real names, hardcoded
+        # vms=0/hours=0). Both are fixed here: this now returns the real
+        # ranking, and DashboardPage-side consumers should read this field.
+        top_users_qs = User.objects.annotate(
+            vm_count=Count('workspaces', distinct=True)
+        ).filter(vm_count__gt=0).order_by('-vm_count')[:5]
+
+        top_users = []
+        for u in top_users_qs:
+            hours = 0.0
+            try:
+                sub = getattr(u, 'subscription', None)
+                if sub:
+                    hours = float(getattr(sub, 'compute_hours_used', 0) or 0)
+            except Exception:
+                pass
+            top_users.append({
+                "name": f"{u.first_name} {u.last_name}".strip() or u.email,
+                "email": u.email,
+                "vm_count": u.vm_count,
+                "total_session_hours": round(hours, 1),
+            })
+
         return Response({
             "success": True,
             "data": {
                 "by_template": by_template,
-                "top_users": [
-                    {"name": "John Doe", "email": "john@example.com", "vm_count": 12, "total_session_hours": 45},
-                    {"name": "Jane Smith", "email": "jane@example.com", "vm_count": 8, "total_session_hours": 32},
-                    {"name": "Mike Ross", "email": "mike@example.com", "vm_count": 5, "total_session_hours": 20},
-                ]
+                "top_users": top_users,
             }
         })
 
@@ -280,8 +304,13 @@ class PlatformStatsView(APIView):
         total_users = User.objects.count()
         new_users_week = User.objects.filter(date_joined__gte=week_ago).count()
         
-        total_vms = VirtualMachine.objects.count()
-        
+        # Was VirtualMachine.objects.count() with no filter — counted every
+        # soft-deleted VM row too (test debris accumulates as
+        # status='deleted', never actually removed), so "Total VMs" always
+        # included long-gone infrastructure alongside anything genuinely
+        # live right now.
+        total_vms = VirtualMachine.objects.exclude(status='deleted').count()
+
         try:
             from apps.sessions.models import LiveSession
             total_sessions = LiveSession.objects.count()
@@ -327,7 +356,7 @@ class AdminAnalyticsExportView(APIView):
         writer.writerow([])
         writer.writerow(['Metric', 'Value'])
         writer.writerow(['Total Users', User.objects.count()])
-        writer.writerow(['Total VMs', VirtualMachine.objects.count()])
+        writer.writerow(['Total VMs', VirtualMachine.objects.exclude(status='deleted').count()])
         writer.writerow(['Total Workspaces', Workspace.objects.count()])
         
         total_revenue = float(Payment.objects.filter(status='completed').aggregate(t=Sum('amount_tzs'))['t'] or 0)
