@@ -20,6 +20,14 @@ export default function BillingPanel({ isOpen, onClose }) {
 
 
   useEffect(() => {
+    // BillingPanel is always mounted by Layout.jsx (isOpen only toggles its
+    // own visibility, it never unmounts) — so this effect used to run once
+    // for the entire app session, on the very first render, regardless of
+    // whether the panel had ever been opened. A payment or usage change
+    // made after that first render would never show up, even after
+    // closing and reopening. Re-fetch every time the panel actually opens.
+    if (!isOpen) return;
+
     const fetchAll = async () => {
       try {
         setLoading(true);
@@ -38,7 +46,7 @@ export default function BillingPanel({ isOpen, onClose }) {
       }
     };
     fetchAll();
-  }, []);
+  }, [isOpen]);
 
   const handleViewReceipt = async (paymentId) => {
     try {
@@ -121,7 +129,7 @@ export default function BillingPanel({ isOpen, onClose }) {
       {/* Stat cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
         
-        {/* Spent this month */}
+        {/* Total Spent — all-time, across ALL payment types */}
         <div className="relative overflow-hidden bg-card/70 backdrop-blur-sm border border-border rounded-2xl p-5 group hover:border-border-strong transition-all">
           <div className="absolute top-0 right-0 w-24 h-24 bg-[#6C63FF]/5 rounded-full -translate-y-8 translate-x-8" />
           <div className="relative">
@@ -130,7 +138,7 @@ export default function BillingPanel({ isOpen, onClose }) {
                 <Wallet size={20} className="text-[#6C63FF]" />
               </div>
               <span className="text-[9px] uppercase tracking-widest text-faint font-medium">
-                This Month
+                All Time
               </span>
             </div>
             <p className="text-2xl font-bold text-primary tracking-tight tabular-nums">
@@ -138,11 +146,17 @@ export default function BillingPanel({ isOpen, onClose }) {
             </p>
             <p className="text-[11px] text-muted mt-1">
               Total spent
+              {(overview?.this_month?.this_month_spent ?? 0) > 0 && (
+                <span className="ml-1 text-[#6C63FF]/70">
+                  · {formatCurrency(overview.this_month.this_month_spent)} this month
+                </span>
+              )}
             </p>
           </div>
         </div>
+
         
-        {/* Hours used */}
+        {/* Workspace free time remaining today */}
         <div className="relative overflow-hidden bg-card/70 backdrop-blur-sm border border-border rounded-2xl p-5 group hover:border-border-strong transition-all">
           <div className="absolute top-0 right-0 w-24 h-24 bg-[#00A3FF]/5 rounded-full -translate-y-8 translate-x-8" />
           <div className="relative">
@@ -151,19 +165,19 @@ export default function BillingPanel({ isOpen, onClose }) {
                 <Clock size={20} className="text-[#00A3FF]" />
               </div>
               <span className="text-[9px] uppercase tracking-widest text-faint font-medium">
-                Usage
+                Today
               </span>
             </div>
             <p className="text-2xl font-bold text-primary tracking-tight tabular-nums">
-              {overview?.this_month?.hours_used || 0}h
+              {overview?.workspace_subscription ? 'Unlimited' : `${overview?.workspace_free_minutes_remaining ?? 0}m`}
             </p>
             <p className="text-[11px] text-muted mt-1">
-              Hours consumed
+              {overview?.workspace_subscription ? 'Workspace subscription active' : 'Free workspace time remaining'}
             </p>
           </div>
         </div>
-        
-        {/* Free hours remaining */}
+
+        {/* Workspace subscription status */}
         <div className="relative overflow-hidden bg-card/70 backdrop-blur-sm border border-border rounded-2xl p-5 group hover:border-border-strong transition-all">
           <div className="absolute top-0 right-0 w-24 h-24 bg-[#00FF87]/5 rounded-full -translate-y-8 translate-x-8" />
           <div className="relative">
@@ -172,32 +186,23 @@ export default function BillingPanel({ isOpen, onClose }) {
                 <CreditCard size={20} className="text-[#00FF87]" />
               </div>
               <span className="text-[9px] uppercase tracking-widest text-faint font-medium">
-                Free Tier
+                Workspace
               </span>
             </div>
             <p className="text-2xl font-bold text-primary tracking-tight tabular-nums">
-              {overview?.this_month?.free_hours_remaining || 0}h
+              {overview?.workspace_subscription ? 'Active' : 'Pay-as-you-go'}
             </p>
             <p className="text-[11px] text-muted mt-1">
-              Free hours remaining
+              {overview?.workspace_subscription
+                ? `Renews ${new Date(overview.workspace_subscription.expires_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
+                : 'Subscribe for unlimited workspace access'}
             </p>
-            {/* Thin progress bar */}
-            <div className="mt-3 h-1 bg-nav-hover rounded-full overflow-hidden">
-              <div className="h-full rounded-full transition-all duration-1000"
-                style={{
-                  width: `${Math.min(100,
-                    ((overview?.this_month?.free_hours_total || 5) 
-                    - (overview?.this_month?.free_hours_remaining || 0)) 
-                    / (overview?.this_month?.free_hours_total || 5) * 100)}%`,
-                  background: 'linear-gradient(90deg, #00FF87, #00A3FF)',
-                }} />
-            </div>
           </div>
         </div>
       </div>
 
-      {/* Host plan banner — only if host */}
-      {overview?.host_plan && overview.host_plan.name !== 'Free' && (
+      {/* Workspace subscription banner */}
+      {overview?.workspace_subscription && (
         <div className="flex items-center gap-4 bg-card/70 border border-[#6C63FF]/20 rounded-2xl px-5 py-4 mb-8">
           <div className="w-10 h-10 rounded-xl bg-[#6C63FF]/10 flex items-center justify-center flex-shrink-0">
             <Monitor size={18} className="text-[#6C63FF]" />
@@ -205,14 +210,14 @@ export default function BillingPanel({ isOpen, onClose }) {
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-primary">
-                {overview.host_plan.name}
+                Workspace Unlimited
               </span>
               <span className="px-2 py-0.5 rounded-full bg-[#6C63FF]/10 text-[9px] font-bold text-[#6C63FF] uppercase tracking-wider">
                 Active
               </span>
             </div>
             <span className="text-xs text-muted mt-0.5">
-              {formatCurrency(overview.host_plan.price)}/month
+              Renews {new Date(overview.workspace_subscription.expires_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
             </span>
           </div>
         </div>

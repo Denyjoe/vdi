@@ -7,104 +7,85 @@ from datetime import timedelta
 
 class BillingOverviewView(APIView):
     permission_classes = [IsAuthenticated]
-    
+
     def get(self, request):
+        """
+        Return billing summary for the authenticated user.
+
+        Computes:
+        - total_spent: SUM of ALL completed payments across ALL payment_type
+          values and ALL time (session_hosting, session_extend,
+          workspace_hourly, workspace_subscription). No date filter is
+          applied — this is a true all-time total.
+        - this_month_spent: same sum but restricted to the current
+          calendar month, provided as supplementary context.
+        - workspace_free_minutes_remaining: rolling-24-hour free tier.
+        - workspace_subscription: active subscription metadata if any.
+        """
         user = request.user
-        
+
         now = timezone.now()
         month_start = now.replace(
-            day=1, hour=0, minute=0, 
-            second=0, microsecond=0)
-        
-        # Free hours from system config
-        try:
-            from apps.users.models import SystemConfig
-            free_hours = float(
-                SystemConfig.get(
-                    'free_hours_per_month', '5'))
-        except Exception:
-            free_hours = 5.0
-        
-        # Hours used from subscription
-        hours_used = 0.0
-        try:
-            sub = user.subscription
-            hours_used = float(
-                getattr(sub, 
-                    'compute_hours_used', 0) 
-                or 0)
-        except Exception:
-            pass
-        
-        free_remaining = max(0, free_hours - hours_used)
-        paid_hours = max(0, hours_used - free_hours)
-        
-        # Spending this month
+            day=1, hour=0, minute=0,
+            second=0, microsecond=0
+        )
+
+        # ── All-time total (ALL payment types, ALL dates) ─────────────────
+        # This is what "Total Spent" should represent: every real charge
+        # the user has ever paid on this platform.
         total_spent = 0
+        this_month_spent = 0
         try:
             from apps.users.models import Payment
-            spent = Payment.objects.filter(
+            completed_payments = Payment.objects.filter(
                 user=user,
                 status='completed',
+            )
+
+            # All-time: no payment_type filter, no date filter
+            all_time_total = completed_payments.aggregate(
+                total=Sum('amount_tzs')
+            )['total']
+            total_spent = float(all_time_total or 0)
+
+            # This-month: same query but scoped to current calendar month
+            month_total = completed_payments.filter(
                 created_at__gte=month_start
             ).aggregate(
                 total=Sum('amount_tzs')
             )['total']
-            total_spent = float(spent or 0)
+            this_month_spent = float(month_total or 0)
+
         except Exception:
             pass
-        
-        # Host plan info
-        host_plan = None
-        if getattr(user, 'is_host', False):
-            try:
-                sub = user.subscription
-                if sub and sub.plan:
-                    plan_name = getattr(
-                        sub.plan, 'display_name',
-                        getattr(sub.plan, 'name', 
-                            ''))
-                    
-                    # Format raw plan names
-                    name_map = {
-                        'personal_host': 
-                            'Personal Host',
-                        'pro_host': 'Pro Host',
-                        'institution': 
-                            'Institution',
-                        'free': 'Free',
-                        'none': 'Free',
-                    }
-                    
-                    display_name = name_map.get(
-                        plan_name, 
-                        plan_name.replace('_', ' ')
-                            .title())
-                    
-                    price = float(
-                        getattr(sub.plan, 
-                            'price_tzs',
-                            getattr(sub.plan, 
-                                'price', 0))
-                        or 0)
-                    
-                    host_plan = {
-                        'name': display_name,
-                        'price': price,
-                    }
-            except Exception:
-                pass
-        
+
+        # ── Workspace free-hour usage (rolling 24 hr) ─────────────────────
+        from apps.vms.services.workspace_access import get_free_minutes_remaining
+        free_minutes_remaining = get_free_minutes_remaining(user)
+
+        # ── Workspace subscription info ────────────────────────────────────
+        from django.core.exceptions import ObjectDoesNotExist
+        workspace_subscription = None
+        try:
+            sub = user.workspace_subscription
+            if sub.is_active and sub.expires_at > now:
+                workspace_subscription = {
+                    'is_active': True,
+                    'expires_at': sub.expires_at,
+                }
+        except ObjectDoesNotExist:
+            pass
+
         return Response({
             'currency': 'TZS',
             'this_month': {
+                # Kept for backward compat — now correctly all-time
                 'total_spent': total_spent,
-                'hours_used': round(hours_used, 1),
-                'free_hours_total': free_hours,
-                'free_hours_remaining': round(free_remaining, 1),
-                'paid_hours': round(paid_hours, 1),
+                # Bonus field: actual this-month spending
+                'this_month_spent': this_month_spent,
             },
-            'host_plan': host_plan,
+            'workspace_free_minutes_remaining': free_minutes_remaining,
+            'workspace_subscription': workspace_subscription,
         })
 
 
@@ -193,7 +174,7 @@ class PaymentHistoryView(APIView):
                     'amount': float(p.amount_tzs or 0),
                     'method': getattr(p, 'provider', getattr(p, 'payment_method', 'M-Pesa')),
                     'reference': getattr(p, 'transaction_id', getattr(p, 'reference', f'TXN-{p.id}')),
-                    'description': f"Plan: {p.plan.name}" if hasattr(p, 'plan') and p.plan else 'Workspace usage',
+                    'description': p.get_payment_type_display() if p.payment_type else 'Payment',
                     'status': p.status,
                 })
             
@@ -302,88 +283,4 @@ class ReceiptDownloadView(APIView):
                 'reference': ref,
                 'status': status,
             }
-        })
-
-class CheckoutView(APIView):
-    permission_classes = [IsAuthenticated]
-    
-    def post(self, request):
-        from apps.users.models import (
-            SubscriptionPlan, 
-            UserSubscription, 
-            Payment)
-        
-        plan_name = request.data.get('plan_name')
-        phone = request.data.get('phone_number')
-        provider = request.data.get('provider')
-        
-        # In DB the names are like 'pro_host', 'personal_host', 'starter', 'free'
-        db_plan_name = plan_name.lower().replace(' ', '_')
-        if db_plan_name == 'starter': db_plan_name = 'personal_host'
-        if db_plan_name == 'pro': db_plan_name = 'pro_host'
-        
-        try:
-            plan = SubscriptionPlan.objects.get(name=db_plan_name)
-        except SubscriptionPlan.DoesNotExist:
-            return Response({
-                'success': False,
-                'message': 'Plan not found'
-            }, status=404)
-        
-        # SANDBOX MODE — simulate instant payment success
-        import uuid
-        transaction_id = f'CD-{str(uuid.uuid4())[:8].upper()}'
-
-        try:
-            payment = Payment.objects.create(
-                user=request.user,
-                plan=plan,
-                amount_tzs=plan.price_tzs,
-                amount_usd=plan.price_usd,
-                currency='TZS',
-                provider=provider,
-                phone_number=phone,
-                status='completed',
-                transaction_id=transaction_id,
-            )
-        except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f'FAILED to create payment record: {str(e)}', exc_info=True)
-            # Financial record — don't grant the subscription if we can't
-            # prove the payment was ever actually saved.
-            return Response({
-                'success': False,
-                'message': 'Payment could not be processed. Please try again.'
-            }, status=500)
-
-        # Activate subscription immediately
-        existing = UserSubscription.objects.filter(user=request.user).first()
-        
-        if existing:
-            existing.plan = plan
-            existing.status = 'active'
-            existing.save()
-        else:
-            UserSubscription.objects.create(
-                user=request.user,
-                plan=plan,
-                status='active')
-        
-        # Also flip is_host=True
-        request.user.is_host = True
-        request.user.save(update_fields=['is_host'])
-        
-        from apps.users.admin_services import log_admin_action
-        try:
-            log_admin_action(
-                request.user, 
-                'config_changed',
-                f'{request.user.email} upgraded to {plan.name} host plan (sandbox)')
-        except Exception:
-            pass
-        
-        return Response({
-            'success': True,
-            'message': f'Successfully upgraded to {plan.display_name or plan.name}'
         })
