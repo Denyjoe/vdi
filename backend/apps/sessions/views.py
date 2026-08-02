@@ -6,7 +6,6 @@ from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from .models import LiveSession, SessionParticipant
 from .serializers import LiveSessionSerializer, SessionParticipantSerializer
-from apps.users.permissions import CanHostSessions
 
 class LiveSessionListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -82,20 +81,24 @@ class PayAndStartSessionView(APIView):
         template_id = request.data.get('vm_template')
         max_participants = request.data.get('max_participants', 10)
         restrictions = request.data.get('restrictions', {})
+
+        valid_session_types = dict(LiveSession.SESSION_TYPE_CHOICES)
+        session_type = request.data.get('session_type', 'workshop')
+        if session_type not in valid_session_types:
+            session_type = 'workshop'
         
         try:
             template = VMTemplate.objects.get(id=template_id)
         except VMTemplate.DoesNotExist:
             return Response({'success': False, 'message': 'Invalid template'}, status=400)
         
-        # SANDBOX payment — instant success. plan=None: this is a
-        # pay-per-hour session charge, not tied to any subscription plan.
+        # SANDBOX payment — instant success.
         import uuid
         transaction_id = f'CD-{str(uuid.uuid4())[:8].upper()}'
         try:
             Payment.objects.create(
                 user=request.user,
-                plan=None,
+                payment_type='session_hosting',
                 amount_tzs=total_price,
                 currency='TZS',
                 provider=provider,
@@ -120,6 +123,7 @@ class PayAndStartSessionView(APIView):
         session = LiveSession.objects.create(
             host=request.user,
             name=session_name,
+            session_type=session_type,
             required_vm_template=template,
             max_participants=max_participants,
             restrictions=restrictions,
@@ -176,8 +180,12 @@ class JoinSessionByCodeView(APIView):
             return Response({"success": False, "message": "Incorrect password"}, status=status.HTTP_401_UNAUTHORIZED)
             
         participant, created = SessionParticipant.objects.get_or_create(session=session, user=request.user)
-        
+
         from apps.sessions.services.session_lifecycle_service import SessionLifecycleService
+        if participant.vm and participant.vm.status in ('error', 'deleted'):
+            # Existing VM reference is dead (crashed/removed) - clear it so a fresh one gets provisioned.
+            participant.vm = None
+            participant.save(update_fields=['vm'])
         if not participant.vm:
             SessionLifecycleService.handle_participant_join(participant)
         
@@ -559,15 +567,14 @@ class ExtendSessionView(APIView):
         provider = request.data.get('provider')
 
         # SANDBOX payment — instant success, same pattern as the real
-        # billing checkout flow. plan=None: extending a session isn't tied
-        # to any subscription plan tier, it's a standalone hourly charge.
+        # billing checkout flow.
         # Deliberately NOT wrapped in a swallow-everything try/except: a
         # payment that silently fails to save must not silently extend
         # the session anyway.
         transaction_id = f'EXT-{str(uuid.uuid4())[:8].upper()}'
         Payment.objects.create(
             user=request.user,
-            plan=None,
+            payment_type='session_extend',
             amount_tzs=extra_price,
             currency='TZS',
             provider=provider,

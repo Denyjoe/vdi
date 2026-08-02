@@ -4,7 +4,16 @@ import { useNavigate } from 'react-router-dom';
 import { Radio, ArrowLeft, Rocket, Monitor as MonitorIcon, Database, Terminal, Check, X } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
-import CheckoutModal from '../../components/shared/CheckoutModal';
+
+const SESSION_TYPES = [
+  { value: 'workshop', label: 'Workshop' },
+  { value: 'lab', label: 'Lab' },
+  { value: 'exam', label: 'Exam' },
+  { value: 'lecture', label: 'Lecture' },
+  { value: 'study_group', label: 'Study Group' },
+  { value: 'training', label: 'Training' },
+  { value: 'other', label: 'Other' },
+];
 
 const TemplateIcon = ({ icon, className, size = 16 }) => {
   switch (icon) {
@@ -99,6 +108,7 @@ export default function CreateSessionPage() {
   const [sessionName, setSessionName] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [maxParticipants, setMaxParticipants] = useState(10);
+  const [sessionType, setSessionType] = useState('lecture');
   
   const [templates, setTemplates] = useState([]);
   
@@ -141,6 +151,7 @@ export default function CreateSessionPage() {
       price: { TZS: hours * rate },
       payload: {
         name: sessionName,
+        session_type: sessionType,
         vm_template: selectedTemplate.id,
         max_participants: maxParticipants,
         hours: hours,
@@ -224,14 +235,48 @@ export default function CreateSessionPage() {
             <label style={labelStyle}>
               Session Name
             </label>
-            <input 
+            <input
               value={sessionName}
               onChange={e => setSessionName(e.target.value)}
               placeholder="e.g. Intro to Python Lab"
-              style={inputStyle} 
+              style={inputStyle}
             />
           </div>
-          
+
+          <div style={{ marginBottom: '18px' }}>
+            <label style={labelStyle}>
+              Session Type
+            </label>
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '8px',
+            }}>
+              {SESSION_TYPES.map(t => (
+                <button key={t.value}
+                  onClick={() => setSessionType(t.value)}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '9999px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    border: sessionType === t.value
+                      ? '2px solid var(--accent-primary)'
+                      : '1px solid var(--border-color)',
+                    background: sessionType === t.value
+                      ? 'var(--accent-primary-soft)'
+                      : 'var(--bg-input)',
+                    color: sessionType === t.value
+                      ? 'var(--accent-primary)'
+                      : 'var(--text-secondary)',
+                    cursor: 'pointer'
+                  }}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div style={{ marginBottom: '18px' }}>
             <label style={labelStyle}>
               VM Template

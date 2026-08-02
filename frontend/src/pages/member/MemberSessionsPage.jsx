@@ -32,8 +32,18 @@ export default function MemberSessionsPage() {
   const [upcomingSessions, setUpcomingSessions] = useState([]);
   const [pastSessions, setPastSessions] = useState([]);
 
+  const [viewingSession, setViewingSession] = useState(null);
+  const [viewingParticipants, setViewingParticipants] = useState(null);
+  const [viewingLoading, setViewingLoading] = useState(false);
+
   useEffect(() => {
     fetchSessions();
+    // fetchSessions used to only ever run once — a session joined or
+    // started elsewhere (another tab, an invite-code join) never showed
+    // up here without a full page reload. Poll every 10s, matching the
+    // same cadence used on the Workspaces page.
+    const interval = setInterval(fetchSessions, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   // Update durations every second
@@ -112,6 +122,44 @@ export default function MemberSessionsPage() {
 
   const copyInviteCode = (code) => {
     navigator.clipboard.writeText(code);
+  };
+
+  // The list endpoint already returns everything needed for the summary
+  // (hours_purchased, amount_paid_tzs, restrictions, participant_count,
+  // session_type, timestamps) except the actual participant list — that's
+  // only attached by the single-session detail endpoint, so fetch it here
+  // rather than eagerly for every row in the table.
+  const handleViewSession = async (session) => {
+    setViewingSession(session);
+    setViewingParticipants(null);
+    setViewingLoading(true);
+    try {
+      const res = await api.get(`/sessions/live/${session.id}/`);
+      const data = res.data?.data || res.data;
+      setViewingParticipants(data?.participants || []);
+    } catch (e) {
+      console.error('Failed to load session detail:', e);
+      setViewingParticipants([]);
+    } finally {
+      setViewingLoading(false);
+    }
+  };
+
+  const closeViewSession = () => {
+    setViewingSession(null);
+    setViewingParticipants(null);
+  };
+
+  const formatSessionType = (type) => {
+    if (!type) return 'Custom';
+    return type.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
+  };
+
+  const RESTRICTION_LABELS = {
+    clipboard: 'Clipboard Sync',
+    file_transfer: 'File Transfer',
+    screen_monitoring: 'Screen Monitoring',
+    session_recording: 'Session Recording',
   };
 
   const getCount = (tab) => {
@@ -319,7 +367,9 @@ export default function MemberSessionsPage() {
                     </span>
                   </td>
                   <td className="px-5 py-4 whitespace-nowrap">
-                    <button className="text-xs text-muted hover:text-primary active:scale-95 transition-all">
+                    <button
+                      onClick={() => handleViewSession(s)}
+                      className="text-xs text-muted hover:text-primary active:scale-95 transition-all">
                       View
                     </button>
                   </td>
@@ -411,6 +461,91 @@ export default function MemberSessionsPage() {
       {activeTab === 'Active' && renderActiveList()}
       {activeTab === 'Upcoming' && renderUpcomingList()}
       {activeTab === 'Past' && renderPastList()}
+
+      {viewingSession && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) closeViewSession(); }}>
+          <div className="bg-card border border-border rounded-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="flex justify-between items-start p-6 border-b border-border">
+              <div>
+                <h2 className="text-lg font-bold text-primary">{viewingSession.name}</h2>
+                <p className="text-xs text-muted mt-1">
+                  {formatSessionType(viewingSession.session_type)} · {formatDate(viewingSession.start_time || viewingSession.created_at)}
+                </p>
+              </div>
+              <button onClick={closeViewSession} className="text-muted hover:text-primary transition-colors">
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-5">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-muted font-medium mb-1">Hours Purchased</p>
+                  <p className="text-sm font-semibold text-primary">{viewingSession.hours_purchased ?? '—'}h</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-muted font-medium mb-1">Session Duration</p>
+                  <p className="text-sm font-semibold text-primary">
+                    {viewingSession.start_time && viewingSession.scheduled_end_at
+                      ? `${((new Date(viewingSession.scheduled_end_at) - new Date(viewingSession.start_time)) / 3600000).toFixed(1)}h`
+                      : '—'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-muted font-medium mb-1">Amount Paid</p>
+                  <p className="text-sm font-semibold text-primary">
+                    {viewingSession.amount_paid_tzs != null ? `TZS ${Number(viewingSession.amount_paid_tzs).toLocaleString()}` : '—'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest text-muted font-medium mb-1">Status</p>
+                  <p className="text-sm font-semibold text-primary capitalize">{viewingSession.status || '—'}</p>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-muted font-medium mb-2">
+                  Participants ({viewingSession.participant_count ?? 0})
+                </p>
+                {viewingLoading ? (
+                  <p className="text-xs text-muted">Loading participants…</p>
+                ) : viewingParticipants && viewingParticipants.length > 0 ? (
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {viewingParticipants.map((p, i) => (
+                      <div key={p.id || i} className="flex items-center justify-between px-3 py-2 rounded-lg bg-[var(--bg-nav-hover)]">
+                        <span className="text-xs text-primary font-medium">
+                          {p.user?.first_name ? `${p.user.first_name} ${p.user.last_name || ''}`.trim() : (p.user?.email || 'Unknown')}
+                        </span>
+                        <span className="text-[10px] text-muted">{p.user?.email}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted">No participants joined this session.</p>
+                )}
+              </div>
+
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-muted font-medium mb-2">Restrictions Applied</p>
+                {viewingSession.restrictions && Object.keys(viewingSession.restrictions).length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(viewingSession.restrictions).map(([key, value]) => (
+                      <span key={key} className={`px-2.5 py-1 rounded-full text-[10px] font-medium ${
+                        value === true ? 'bg-emerald-500/10 text-emerald-400' : value === false ? 'bg-[var(--bg-nav-hover)] text-muted' : 'bg-[var(--bg-nav-hover)] text-secondary'
+                      }`}>
+                        {RESTRICTION_LABELS[key] || key}: {typeof value === 'boolean' ? (value ? 'On' : 'Off') : String(value)}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted">No restrictions recorded.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
