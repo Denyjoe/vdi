@@ -11,6 +11,7 @@ import useAuthStore from '../../store/authStore';
 import ConfirmModal from '../../components/shared/ConfirmModal';
 import Toast from '../../components/shared/Toast';
 import GuacamoleEmbed from '../../components/shared/GuacamoleEmbed';
+import LoadingLogo from '../../components/shared/LoadingLogo';
 
 export default function DesktopSessionPage() {
   const { id: sessionId } = useParams();
@@ -497,21 +498,34 @@ export default function DesktopSessionPage() {
   };
 
   const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      containerRef.current?.requestFullscreen().catch(e => {
-        console.error('Fullscreen request failed:', e);
-      });
-    } else {
+    const elem = containerRef.current;
+    const inFullscreen = document.fullscreenElement || document.webkitFullscreenElement;
+    if (!inFullscreen) {
+      if (elem?.requestFullscreen) {
+        elem.requestFullscreen().catch(e => {
+          console.error('Fullscreen request failed:', e);
+        });
+      } else if (elem?.webkitRequestFullscreen) {
+        // Safari/iOS
+        elem.webkitRequestFullscreen();
+      }
+    } else if (document.exitFullscreen) {
       document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
     }
   };
 
   useEffect(() => {
     const handler = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      setIsFullscreen(!!(document.fullscreenElement || document.webkitFullscreenElement));
     };
     document.addEventListener('fullscreenchange', handler);
-    return () => document.removeEventListener('fullscreenchange', handler);
+    document.addEventListener('webkitfullscreenchange', handler);
+    return () => {
+      document.removeEventListener('fullscreenchange', handler);
+      document.removeEventListener('webkitfullscreenchange', handler);
+    };
   }, []);
 
   // Keyboard shortcut: Ctrl+Shift+F for fullscreen
@@ -531,12 +545,8 @@ export default function DesktopSessionPage() {
   if (type === 'workspace') {
     if (wsLoading || workspace?.vm_details?.status === 'provisioning') {
       return (
-        <div className="flex flex-col items-center justify-center h-screen gap-6 bg-[#050B18]">
-          <div className="w-10 h-10 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
-          <div className="text-center">
-             <h2 className="text-[var(--text-primary)] text-xl font-semibold mb-2">Connecting to your workspace...</h2>
-             <p className="text-[var(--text-secondary)]">{workspace?.vm_details?.notes || 'Starting virtual machine...'}</p>
-          </div>
+        <div className="flex items-center justify-center h-screen" style={{ background: 'var(--bg-canvas, #050B18)' }}>
+          <LoadingLogo statusText={workspace?.vm_details?.notes || 'Starting virtual machine...'} />
         </div>
       );
     }
@@ -701,7 +711,7 @@ export default function DesktopSessionPage() {
             </div>
           )}
 
-          <GuacamoleEmbed key={reconnectGeneration} url={workspace.vm_details.guacamole_url} loadingText="Connecting to your workspace..." tunnelActive={tunnelActive} />
+          <GuacamoleEmbed key={reconnectGeneration} url={workspace.vm_details.guacamole_url} loadingText={workspace?.vm_details?.notes || "Connecting to your workspace..."} tunnelActive={tunnelActive} />
         </div>
       );
     }
@@ -711,16 +721,12 @@ export default function DesktopSessionPage() {
 
   if (!sessionData.guacamole_url) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen gap-6 bg-[#050B18]">
-        <div className="w-10 h-10 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
-        <div className="text-center">
-           <h2 className="text-[var(--text-primary)] text-xl font-semibold mb-2">Connecting to your session...</h2>
-           <p className="text-[var(--text-secondary)]">
-             {sessionData.vm_status === 'provisioning' 
-                ? 'Starting virtual machine...' 
-                : 'Waiting for virtual desktop to be ready...'}
-           </p>
-        </div>
+      <div className="flex items-center justify-center h-screen" style={{ background: 'var(--bg-canvas, #050B18)' }}>
+        <LoadingLogo statusText={
+          sessionData.vm_status === 'provisioning'
+            ? 'Starting virtual machine...'
+            : 'Waiting for virtual desktop to be ready...'
+        } />
       </div>
     );
   }
@@ -955,6 +961,10 @@ export default function DesktopSessionPage() {
       )}
 
       <GuacamoleEmbed key={reconnectGeneration} url={sessionData.guacamole_url} loadingText="Connecting to your session..." tunnelActive={tunnelActive} />
+      {/* Live-session participants don't have a per-VM `.notes` field like
+          personal workspaces do (SessionParticipant/VirtualMachine here
+          isn't populated with staged provisioning notes), so this stays a
+          real, honest static label rather than fabricating fake stages. */}
       
       <ConfirmModal
         isOpen={showConfirm}
