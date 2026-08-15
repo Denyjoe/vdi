@@ -5,8 +5,7 @@ import useThemeStore from '../../store/themeStore';
 import useUIStore from '../../store/uiStore';
 import useBreakpoint from '../../hooks/useBreakpoint';
 import NotificationBell from '../shared/NotificationBell';
-import OspaceLogo from '../shared/OspaceLogo';
-import { 
+import {
   Menu, Bell, Clock, Wifi, HelpCircle, BookOpen, Keyboard, 
   Mail, FileText, Shield, X, Monitor, MonitorPlay, Users, 
   Radio, Receipt 
@@ -165,13 +164,6 @@ export default function Navbar({ onMenuClick }) {
             >
               <Menu className="w-5 h-5" />
             </button>
-          )}
-
-          {isDesktop && (
-            <div className="hidden md:flex items-center gap-2">
-                <OspaceLogo size={24} />
-                <h1 className="text-primary font-bold text-lg leading-tight">Ospace</h1>
-            </div>
           )}
 
           <div className="flex items-center space-x-3">
