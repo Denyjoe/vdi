@@ -479,8 +479,10 @@ class NotificationPreferencesView(APIView):
             'payment': getattr(user, 'notify_payment', True),
             'session_invite': getattr(user, 'notify_session_invite', True),
             'announcements': getattr(user, 'notify_announcements', True),
+            'workspace_idle': getattr(user, 'notify_workspace_idle', True),
+            'direct_message': getattr(user, 'notify_direct_message', True),
         })
-    
+
     def put(self, request):
         user = request.user
         fields = {
@@ -489,6 +491,8 @@ class NotificationPreferencesView(APIView):
             'payment': 'notify_payment',
             'session_invite': 'notify_session_invite',
             'announcements': 'notify_announcements',
+            'workspace_idle': 'notify_workspace_idle',
+            'direct_message': 'notify_direct_message',
         }
         
         updated = []

@@ -6,10 +6,12 @@ User = get_user_model()
 class Notification(models.Model):
     NOTIFICATION_TYPES = (
         ('workspace_ready', 'Workspace Ready'),
-        ('hours_low', 'Hours Running Low'),
-        ('session_invite', 'Session Invite'),
         ('workspace_stopped', 'Workspace Stopped'),
+        ('hours_balance_low', 'Hours Balance Running Low'),
+        ('session_invite', 'Session Invite'),
         ('payment_confirmed', 'Payment Confirmed'),
+        ('workspace_idle', 'Workspace Idle Warning'),
+        ('direct_message', 'Direct Message'),
         ('system', 'System'),
     )
 

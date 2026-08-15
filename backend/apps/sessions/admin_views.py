@@ -179,7 +179,7 @@ class AdminSendMessageView(APIView):
         
         try:
             user = User.objects.get(id=user_id)
-            notify(user=user, title='Message from Admin', message=message, notification_type='system')
+            notify(user=user, title='Message from Admin', message=message, notification_type='direct_message')
             return Response({'success': True, 'message': 'Message sent'})
         except Exception as e:
             return Response({'success': False, 'message': str(e)}, status=500)

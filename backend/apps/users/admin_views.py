@@ -225,15 +225,44 @@ class SystemConfigView(APIView):
 
     def put(self, request):
         from apps.users.models import SystemConfig
+
+        # Read the announcement's PRIOR value before it gets overwritten
+        # below, so we can tell whether this request is genuinely setting
+        # a new one (vs. re-saving the same text, or some unrelated config
+        # key) — only a real change should notify anyone.
+        old_announcement = SystemConfig.get('system_announcement', '')
+
         for key, value in request.data.items():
             SystemConfig.set(key, value)
-            
+
         configs = SystemConfig.objects.all()
         data = {c.key: c.value for c in configs}
-        
+
+        # The banner itself (AnnouncementView) is public and unconditional
+        # by design — it's meant for things like maintenance windows that
+        # everyone needs to see regardless of preference. But the
+        # Notification-Preferences "System Announcements" toggle promises
+        # users a real, dismissible/opt-outable record of the same event,
+        # so a genuine change here also creates one, respecting each
+        # user's notify_announcements preference exactly like any other
+        # notification type.
+        new_announcement = data.get('system_announcement', old_announcement)
+        if 'system_announcement' in request.data and new_announcement and new_announcement != old_announcement:
+            from apps.notifications.services import notify
+            for user in User.objects.filter(is_active=True):
+                try:
+                    notify(
+                        user=user,
+                        title='System Announcement',
+                        message=new_announcement,
+                        notification_type='system',
+                    )
+                except Exception:
+                    pass
+
         from apps.users.admin_services import log_admin_action
         log_admin_action(request.user, 'config_changed', "Updated system configuration")
-        
+
         return Response({
             "success": True,
             "data": data,

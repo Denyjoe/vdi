@@ -61,7 +61,7 @@ def send_idle_warning(workspace, notification_type, days_remaining):
         user=workspace.owner,
         title="Workspace Deleted" if notification_type == 'deleted' else "Workspace Inactivity",
         message=messages[notification_type],
-        notification_type='system',
+        notification_type='workspace_idle',
     )
 
 

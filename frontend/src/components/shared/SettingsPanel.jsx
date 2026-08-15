@@ -559,6 +559,8 @@ function NotificationsTab() {
     payment: true,
     session_invite: true,
     announcements: true,
+    workspace_idle: true,
+    direct_message: true,
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -588,11 +590,13 @@ function NotificationsTab() {
   };
 
   const items = [
-    { key: 'workspace_ready', label: 'Workspace Ready', desc: 'When your virtual machine finishes provisioning' },
-    { key: 'hours_low', label: 'Free Hours Running Low', desc: 'When you have less than 1 hour remaining' },
+    { key: 'workspace_ready', label: 'Workspace Status Updates', desc: 'When a workspace launches or is stopped' },
+    { key: 'hours_low', label: 'Hours Balance Running Low', desc: 'When your per-template hours balance drops below 1 hour' },
     { key: 'payment', label: 'Payment Confirmed', desc: 'When a payment is successfully processed' },
-    { key: 'session_invite', label: 'Session Invitations', desc: 'When you receive a session invite' },
-    { key: 'announcements', label: 'System Announcements', desc: 'Platform updates and maintenance notices' },
+    { key: 'session_invite', label: 'Session Joins', desc: 'Confirmation when you join a session via invite code' },
+    { key: 'workspace_idle', label: 'Workspace Idle Warnings', desc: 'Before an inactive workspace is automatically deleted' },
+    { key: 'direct_message', label: 'Direct Messages', desc: 'Messages sent to you by an admin or session host' },
+    { key: 'announcements', label: 'System Announcements', desc: 'Platform-wide announcements posted by admins' },
   ];
 
   return (

@@ -82,9 +82,16 @@ class PayAndStartSessionView(APIView):
         max_participants = request.data.get('max_participants', 10)
         restrictions = request.data.get('restrictions', {})
         restrict_internet = bool(request.data.get('restrict_internet', False))
-        allowed_domains = request.data.get('allowed_domains', [])
-        if not isinstance(allowed_domains, list):
+        raw_allowed_domains = request.data.get('allowed_domains', [])
+        if isinstance(raw_allowed_domains, str):
+            allowed_domains = [d.strip() for d in raw_allowed_domains.split(',') if d.strip()]
+        elif isinstance(raw_allowed_domains, list):
+            allowed_domains = [str(d).strip() for d in raw_allowed_domains if str(d).strip()]
+        else:
             allowed_domains = []
+
+        if allowed_domains and not restrict_internet:
+            restrict_internet = True
 
         valid_session_types = dict(LiveSession.SESSION_TYPE_CHOICES)
         session_type = request.data.get('session_type', 'workshop')
@@ -468,7 +475,7 @@ class BroadcastMessageView(APIView):
                     user=participant.user,
                     title=f'Message from {request.user.first_name}',
                     message=message_text,
-                    notification_type='system',
+                    notification_type='direct_message',
                 )
                 sent_count += 1
             except Exception:

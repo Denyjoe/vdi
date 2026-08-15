@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { 
- X, Bell, Check, CheckCheck, 
- Monitor, Clock, CreditCard, 
- Users, Megaphone, Zap
+import {
+ X, Bell, Check, CheckCheck,
+ Monitor, Clock, CreditCard,
+ Users, Megaphone, Zap,
+ AlertTriangle, MessageSquare
 } from 'lucide-react';
 import api from '../../services/api';
 import useThemeStore from '../../store/themeStore';
@@ -71,10 +72,12 @@ export default function NotificationsDrawer({ isOpen, onClose }) {
  const isLight = theme === 'light';
  const icons = {
  workspace_ready: { icon: Monitor, color: isLight ? '#15803D' : '#00FF87', bg: isLight ? '#DCFCE7' : '#00FF8715' },
- hours_low: { icon: Clock, color: '#FF6B00', bg: '#FF6B0015' },
+ hours_balance_low: { icon: Clock, color: '#FF6B00', bg: '#FF6B0015' },
  payment_confirmed: { icon: CreditCard, color: '#6C63FF', bg: '#6C63FF15' },
  session_invite: { icon: Users, color: '#00A3FF', bg: '#00A3FF15' },
  workspace_stopped: { icon: Zap, color: isLight ? '#B91C1C' : '#FF3366', bg: isLight ? '#FEE2E2' : '#FF336615' },
+ workspace_idle: { icon: AlertTriangle, color: '#F59E0B', bg: '#F59E0B15' },
+ direct_message: { icon: MessageSquare, color: '#00A3FF', bg: '#00A3FF15' },
  system: { icon: Megaphone, color: '#64748B', bg: '#64748B15' },
  };
  return icons[type] || icons.system;

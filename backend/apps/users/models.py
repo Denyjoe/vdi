@@ -92,6 +92,8 @@ class User(AbstractUser):
     notify_hours_low = models.BooleanField(default=True)
     notify_payment = models.BooleanField(default=True)
     notify_session_invite = models.BooleanField(default=True)
+    notify_workspace_idle = models.BooleanField(default=True)
+    notify_direct_message = models.BooleanField(default=True)
 
     # Suspension Fields
     is_suspended = models.BooleanField(default=False)

@@ -101,8 +101,27 @@ def _perform_stop(workspace):
             balance, _ = WorkspaceHoursBalance.objects.get_or_create(
                 user=owner, template=workspace.vm_template
             )
+            LOW_BALANCE_THRESHOLD = Decimal('1')
+            was_above_threshold = balance.hours_remaining >= LOW_BALANCE_THRESHOLD
             balance.hours_remaining = max(Decimal('0'), balance.hours_remaining - Decimal(str(diff)))
             balance.save()
+
+            # Fire once, right as the balance actually crosses under the
+            # threshold from this real deduction — not on every subsequent
+            # stop while it stays low (that would spam the same warning
+            # repeatedly for a user who just keeps using their remaining
+            # minutes).
+            if was_above_threshold and balance.hours_remaining < LOW_BALANCE_THRESHOLD:
+                notify(
+                    user=owner,
+                    title='Hours Balance Running Low',
+                    message=(
+                        f'Only {balance.hours_remaining}h left for '
+                        f'{workspace.vm_template.name}. Top up to keep using it.'
+                    ),
+                    notification_type='hours_balance_low',
+                    link='/workspaces',
+                )
 
     workspace.access_reason = ''
     workspace.save()
