@@ -47,8 +47,15 @@ class User(AbstractUser):
         help_text="Contact phone number.",
     )
     firebase_uid = models.CharField(
-        max_length=128, blank=True, 
+        max_length=128, blank=True,
         default='', unique=False)
+    auth_provider = models.CharField(
+        max_length=20, blank=True, default='',
+        help_text="Which OAuth provider this account signed in with last "
+                   "('google' or 'github'), from Firebase's own "
+                   "sign_in_provider claim. Blank for accounts that "
+                   "predate this field or never used Firebase.",
+    )
     avatar_url = models.URLField(
         blank=True, default='')
     avatar = models.ImageField(
@@ -339,6 +346,30 @@ class LoginAttempt(models.Model):
     ip_address = models.CharField(max_length=45, blank=True, default='')
     user_agent = models.CharField(max_length=255, blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
+    class Meta:
+        ordering = ['-created_at']
+
+
+class UserSession(models.Model):
+    """Device/browser metadata for a real login, correlated 1:1 with the
+    SimpleJWT refresh+access token pair issued at that moment (via jti).
+
+    SimpleJWT's own OutstandingToken (rest_framework_simplejwt.token_blacklist)
+    is the actual source of truth for which sessions are live/revoked — this
+    table only adds the human-readable context (device, IP, when) that
+    OutstandingToken doesn't carry, and is looked up by jti alongside it.
+    Populated going forward from FirebaseLoginView; sessions issued before
+    this existed simply won't have a matching row here, and are shown
+    honestly as "Unknown device" rather than guessed.
+    """
+    user = models.ForeignKey(
+        'User', on_delete=models.CASCADE, related_name='login_sessions')
+    refresh_jti = models.CharField(max_length=255, unique=True)
+    access_jti = models.CharField(max_length=255, blank=True, default='')
+    user_agent = models.CharField(max_length=255, blank=True, default='')
+    ip_address = models.CharField(max_length=45, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
     class Meta:
         ordering = ['-created_at']

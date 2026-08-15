@@ -12,7 +12,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'id', 'first_name', 'last_name', 'email', 'role', 'avatar',
             'bio', 'website', 'country', 'timezone_preference', 'is_verified',
             'notification_email', 'notification_session', 'notification_usage',
-            'created_at'
+            'auth_provider', 'created_at'
         ]
 
     def get_avatar(self, obj):

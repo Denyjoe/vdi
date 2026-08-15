@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  X, User, Lock, Bell, Palette, Code, 
-  AlertTriangle, Camera, Shield, Key, 
+import {
+  X, User, Lock, Bell, Palette, Code,
+  AlertTriangle, Camera, Shield, Key,
   RefreshCw, Trash2, Check, Copy,
-  ChevronDown, Search, Eye, EyeOff
+  ChevronDown, Search, Eye, EyeOff,
+  Monitor, LogOut, ExternalLink, Smartphone
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
@@ -185,7 +186,7 @@ export default function SettingsPanel() {
           {/* Scrollable content */}
           <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
             {activeTab === 'profile' && <ProfileTab user={user} />}
-            {activeTab === 'security' && <SecurityTab />}
+            {activeTab === 'security' && <SecurityTab user={user} />}
             {activeTab === 'notifications' && <NotificationsTab user={user} />}
             {activeTab === 'appearance' && <AppearanceTab />}
             {activeTab === 'developer' && <DeveloperTab />}
@@ -462,92 +463,208 @@ function ProfileTab({ user }) {
   );
 }
 
-function SecurityTab() {
-  const [form, setForm] = useState({
-    current_password: '',
-    new_password: '',
-    confirm_password: '',
-  });
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState(null);
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew] = useState(false);
+const GoogleIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24">
+    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+  </svg>
+);
 
-  const handleSubmit = async () => {
-    if (form.new_password !== form.confirm_password) {
-      setMessage({ type: 'error', text: 'Passwords do not match' });
-      return;
-    }
-    if (form.new_password.length < 8) {
-      setMessage({ type: 'error', text: 'Password must be at least 8 characters' });
-      return;
-    }
+const GithubIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--text-primary)">
+    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+  </svg>
+);
+
+function ConnectedAccountSection({ user }) {
+  // Real provider from the Firebase sign_in_provider claim, captured at
+  // login (see FirebaseLoginView) — not guessed from anything client-side.
+  const provider = user?.auth_provider === 'github' ? 'github' : 'google';
+  const providerLabel = provider === 'github' ? 'GitHub' : 'Google';
+  const manageUrl = provider === 'github'
+    ? 'https://github.com/settings/security'
+    : 'https://myaccount.google.com/security';
+
+  return (
+    <div>
+      <h3 className="text-sm font-bold text-primary mb-1">Connected Account</h3>
+      <p className="text-xs text-muted mb-3">
+        Ospace uses OAuth sign-in only — there's no separate password on your account.
+      </p>
+      <div className="flex items-center gap-3 p-3.5 rounded-xl bg-canvas border border-border">
+        {provider === 'github' ? <GithubIcon /> : <GoogleIcon />}
+        <div className="min-w-0">
+          <div className="text-sm font-semibold text-primary">{providerLabel}</div>
+          <div className="text-xs text-muted truncate">{user?.email}</div>
+        </div>
+        <span className="ml-auto flex items-center gap-1.5 text-[11px] font-semibold text-[var(--status-online)] shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-online)]" />
+          Connected
+        </span>
+      </div>
+      <p className="text-xs text-muted mt-2.5 leading-relaxed">
+        Two-factor authentication and password security are managed by your {providerLabel} account.{' '}
+        <a href={manageUrl} target="_blank" rel="noopener noreferrer"
+          className="text-[#0066FF] font-medium hover:underline inline-flex items-center gap-1">
+          Manage on {providerLabel} <ExternalLink size={11} />
+        </a>
+      </p>
+    </div>
+  );
+}
+
+function ActiveSessionsSection() {
+  const [sessions, setSessions] = useState(null);
+  const [revokingId, setRevokingId] = useState(null);
+  const [revokingAll, setRevokingAll] = useState(false);
+  const [error, setError] = useState(null);
+
+  const load = () => {
+    api.get('/auth/sessions/')
+      .then(res => setSessions(res.data?.data || []))
+      .catch(() => setError('Could not load sessions'));
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const formatDate = (iso) => {
+    if (!iso) return '';
     try {
-      setSaving(true);
-      await api.post('/auth/change-password/', form);
-      setMessage({ type: 'success', text: 'Password updated' });
-      setForm({ current_password: '', new_password: '', confirm_password: '' });
-    } catch(e) {
-      setMessage({ type: 'error', text: e.response?.data?.message || 'Failed to update password' });
+      return new Date(iso).toLocaleString(undefined, {
+        month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',
+      });
+    } catch { return iso; }
+  };
+
+  const handleRevoke = async (id) => {
+    try {
+      setRevokingId(id);
+      await api.post(`/auth/sessions/${id}/revoke/`);
+      setSessions(prev => prev.filter(s => s.id !== id));
+    } catch (e) {
+      setError(e.response?.data?.message || 'Failed to revoke session');
     } finally {
-      setSaving(false);
+      setRevokingId(null);
     }
   };
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-sm font-bold text-primary mb-1">Change Password</h3>
-        <p className="text-xs text-muted">Update your password to keep your account secure</p>
-      </div>
+  const handleRevokeAll = async () => {
+    try {
+      setRevokingAll(true);
+      await api.post('/auth/sessions/revoke-all/');
+      load();
+    } catch (e) {
+      setError(e.response?.data?.message || 'Failed to revoke sessions');
+    } finally {
+      setRevokingAll(false);
+    }
+  };
 
-      {message && (
-        <div className={`px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2
-          ${message.type === 'success' ? 'bg-[#00FF87]/10 border border-[#00FF87]/20 text-[#00FF87]' : 'bg-red-500/10 border border-red-500/20 text-red-400'}`}>
-          {message.type === 'success' ? <Check size={14} /> : <AlertTriangle size={14} />}
-          {message.text}
+  const otherSessionsCount = (sessions || []).filter(s => !s.is_current).length;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <h3 className="text-sm font-bold text-primary">Active Sessions</h3>
+        {otherSessionsCount > 0 && (
+          <button onClick={handleRevokeAll} disabled={revokingAll}
+            className="text-[11px] font-semibold text-red-400 hover:text-red-300 active:scale-95 transition-all disabled:opacity-40">
+            {revokingAll ? 'Logging out...' : 'Log out of all other sessions'}
+          </button>
+        )}
+      </div>
+      <p className="text-xs text-muted mb-3">Devices currently signed in to your account</p>
+
+      {error && (
+        <div className="px-3 py-2 rounded-lg text-xs font-medium bg-red-500/10 border border-red-500/20 text-red-400 mb-3">
+          {error}
         </div>
       )}
 
-      <div>
-        <label className="text-[10px] uppercase tracking-widest text-muted font-semibold block mb-2">Current Password</label>
-        <div className="relative">
-          <input type={showCurrent ? 'text' : 'password'}
-            value={form.current_password}
-            onChange={e => setForm(f => ({ ...f, current_password: e.target.value }))}
-            className="w-full bg-card border border-border rounded-xl px-4 py-2.5 text-sm text-primary outline-none focus:border-blue-500 transition-colors pr-10" />
-          <button onClick={() => setShowCurrent(!showCurrent)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-secondary">
-            {showCurrent ? <EyeOff size={15} /> : <Eye size={15} />}
-          </button>
+      {sessions === null ? (
+        <p className="text-xs text-muted">Loading sessions...</p>
+      ) : sessions.length === 0 ? (
+        <p className="text-xs text-muted">No active sessions found.</p>
+      ) : (
+        <div className="space-y-2">
+          {sessions.map(s => (
+            <div key={s.id} className="flex items-center gap-3 p-3.5 rounded-xl bg-canvas border border-border">
+              <div className="w-9 h-9 rounded-lg bg-nav-hover flex items-center justify-center shrink-0">
+                {s.device.toLowerCase().includes('android') || s.device.toLowerCase().includes('ios')
+                  ? <Smartphone size={16} className="text-muted" />
+                  : <Monitor size={16} className="text-muted" />}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-primary truncate">{s.device}</span>
+                  {s.is_current && (
+                    <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-[var(--status-online-bg)] text-[var(--status-online)] shrink-0">
+                      This device
+                    </span>
+                  )}
+                </div>
+                <div className="text-[11px] text-muted mt-0.5">
+                  Signed in {formatDate(s.created_at)}
+                  {s.ip_address ? ` · ${s.ip_address}` : ''}
+                </div>
+              </div>
+              {!s.is_current && (
+                <button onClick={() => handleRevoke(s.id)} disabled={revokingId === s.id}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-red-400 hover:bg-red-500/10 active:scale-95 transition-all disabled:opacity-40 shrink-0">
+                  <LogOut size={12} />
+                  {revokingId === s.id ? 'Logging out...' : 'Log out'}
+                </button>
+              )}
+            </div>
+          ))}
         </div>
-      </div>
+      )}
+    </div>
+  );
+}
 
-      <div>
-        <label className="text-[10px] uppercase tracking-widest text-muted font-semibold block mb-2">New Password</label>
-        <div className="relative">
-          <input type={showNew ? 'text' : 'password'}
-            value={form.new_password}
-            onChange={e => setForm(f => ({ ...f, new_password: e.target.value }))}
-            className="w-full bg-card border border-border rounded-xl px-4 py-2.5 text-sm text-primary outline-none focus:border-blue-500 transition-colors pr-10" />
-          <button onClick={() => setShowNew(!showNew)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-secondary">
-            {showNew ? <EyeOff size={15} /> : <Eye size={15} />}
-          </button>
+function SecurityTab({ user }) {
+  const setTab = useSettingsStore(s => s.setTab);
+
+  return (
+    <div className="space-y-8">
+      <ConnectedAccountSection user={user} />
+
+      <div className="h-px bg-border" />
+
+      <ActiveSessionsSection />
+
+      <div className="h-px bg-border" />
+
+      <div className="flex items-center justify-between p-4 rounded-xl bg-canvas border border-border">
+        <div className="flex items-center gap-3">
+          <Key size={16} className="text-muted" />
+          <div>
+            <div className="text-sm font-medium text-primary">API Tokens</div>
+            <div className="text-xs text-muted">Manage your developer API tokens in the Developer tab</div>
+          </div>
         </div>
+        <button onClick={() => setTab('developer')}
+          className="text-xs font-semibold text-[#0066FF] hover:underline active:scale-95 transition-all shrink-0">
+          Go to Developer →
+        </button>
       </div>
 
-      <div>
-        <label className="text-[10px] uppercase tracking-widest text-muted font-semibold block mb-2">Confirm New Password</label>
-        <input type="password" value={form.confirm_password}
-          onChange={e => setForm(f => ({ ...f, confirm_password: e.target.value }))}
-          className="w-full bg-card border border-border rounded-xl px-4 py-2.5 text-sm text-primary outline-none focus:border-blue-500 transition-colors" />
+      <div className="flex items-center justify-between p-4 rounded-xl bg-red-500/5 border border-red-500/20">
+        <div className="flex items-center gap-3">
+          <AlertTriangle size={16} className="text-red-400" />
+          <div>
+            <div className="text-sm font-medium text-primary">Delete your account</div>
+            <div className="text-xs text-muted">Permanently remove your account and all data — see Account Removal tab</div>
+          </div>
+        </div>
+        <button onClick={() => setTab('danger')}
+          className="text-xs font-semibold text-red-400 hover:underline active:scale-95 transition-all shrink-0">
+          Go to Account Removal →
+        </button>
       </div>
-
-      <button onClick={handleSubmit} disabled={saving || !form.current_password || !form.new_password}
-        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0066FF] text-white text-sm font-semibold hover:bg-[#0052CC] active:scale-95 transition-all shadow-lg shadow-blue-500/20 disabled:opacity-30">
-        {saving ? 'Updating...' : 'Update Password'}
-      </button>
     </div>
   );
 }

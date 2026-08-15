@@ -21,4 +21,7 @@ urlpatterns = [
     path('api-token/generate/', views.APITokenGenerateView.as_view(), name='api-token-generate'),
     path('api-token/revoke/', views.APITokenRevokeView.as_view(), name='api-token-revoke'),
     path('delete-account/', views.DeleteAccountView.as_view(), name='delete-account'),
+    path('sessions/', views.SessionListView.as_view(), name='session-list'),
+    path('sessions/<int:pk>/revoke/', views.SessionRevokeView.as_view(), name='session-revoke'),
+    path('sessions/revoke-all/', views.SessionRevokeAllView.as_view(), name='session-revoke-all'),
 ]

@@ -313,19 +313,171 @@ class AvatarDeleteView(APIView):
         return Response({"success": True})
 
 class ChangePasswordView(APIView):
+    """Legacy, unreachable from the shipped frontend (which is Google/
+    GitHub-only via Firebase and never renders a password form) — kept
+    only in case anything still calls it directly. Fixed for correctness
+    regardless: previously read 'old_password' while every real caller of
+    a form like this would naturally send 'current_password', so this
+    endpoint could never actually succeed."""
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
         user = request.user
-        old_password = request.data.get('old_password')
+        old_password = request.data.get('current_password') or request.data.get('old_password')
         new_password = request.data.get('new_password')
-        
+
         if not user.check_password(old_password):
             return Response({"success": False, "message": "Incorrect old password"}, status=400)
-            
+
         user.set_password(new_password)
         user.save()
         return Response({"success": True})
+
+
+def _describe_user_agent(ua):
+    """Best-effort, dependency-free device/browser label from a raw
+    User-Agent string. Deliberately conservative — returns 'Unknown
+    device' rather than guessing when nothing recognizable matches,
+    instead of inventing a plausible-looking but fake label."""
+    if not ua:
+        return 'Unknown device'
+
+    ua_lower = ua.lower()
+
+    # iPhone/iPad UAs contain the literal substring "like Mac OS X" (for
+    # legacy compatibility with sniffers), so iOS/Android must be checked
+    # BEFORE the desktop-macOS check or every iPhone gets misreported as
+    # a Mac — checked this by hand against a real iPhone Safari UA string.
+    if 'iphone' in ua_lower or 'ipad' in ua_lower:
+        os_label = 'iOS'
+    elif 'android' in ua_lower:
+        os_label = 'Android'
+    elif 'windows' in ua_lower:
+        os_label = 'Windows'
+    elif 'mac os' in ua_lower or 'macintosh' in ua_lower:
+        os_label = 'macOS'
+    elif 'linux' in ua_lower:
+        os_label = 'Linux'
+    else:
+        os_label = None
+
+    if 'edg/' in ua_lower:
+        browser_label = 'Edge'
+    elif 'chrome/' in ua_lower and 'chromium' not in ua_lower:
+        browser_label = 'Chrome'
+    elif 'firefox/' in ua_lower:
+        browser_label = 'Firefox'
+    elif 'safari/' in ua_lower and 'chrome/' not in ua_lower:
+        browser_label = 'Safari'
+    else:
+        browser_label = None
+
+    if os_label and browser_label:
+        return f'{browser_label} on {os_label}'
+    if browser_label:
+        return browser_label
+    if os_label:
+        return os_label
+    return 'Unknown device'
+
+
+class SessionListView(APIView):
+    """Real active sessions for the current user, backed by SimpleJWT's
+    own OutstandingToken/BlacklistedToken tables (the actual source of
+    truth for which refresh tokens are still valid) — not a separate,
+    parallel notion of 'session' that could drift from what the tokens
+    actually allow."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+        from apps.users.models import UserSession
+
+        blacklisted_ids = set(
+            BlacklistedToken.objects.filter(token__user=request.user)
+            .values_list('token_id', flat=True)
+        )
+        outstanding = (
+            OutstandingToken.objects.filter(user=request.user)
+            .exclude(id__in=blacklisted_ids)
+            .order_by('-created_at')
+        )
+
+        # Current request's own access-token jti, to mark "This device" —
+        # correlated via UserSession since OutstandingToken only stores
+        # the REFRESH token's jti, not the access token's.
+        current_access_jti = None
+        if getattr(request, 'auth', None) is not None:
+            current_access_jti = request.auth.get('jti')
+
+        sessions_by_jti = {
+            s.refresh_jti: s
+            for s in UserSession.objects.filter(user=request.user, refresh_jti__in=[str(t.jti) for t in outstanding])
+        }
+
+        data = []
+        for token in outstanding:
+            meta = sessions_by_jti.get(str(token.jti))
+            data.append({
+                'id': token.id,
+                'device': _describe_user_agent(meta.user_agent) if meta else 'Unknown device',
+                'ip_address': meta.ip_address if meta else '',
+                'created_at': token.created_at,
+                'expires_at': token.expires_at,
+                'is_current': bool(meta and current_access_jti and meta.access_jti == current_access_jti),
+            })
+
+        return Response({'success': True, 'data': data})
+
+
+class SessionRevokeView(APIView):
+    """Blacklists one specific refresh token, ending that session. Any
+    access token already issued for it remains valid until its own
+    (short) expiry lapses — standard JWT-blacklist behavior, not a
+    shortcut: the access/refresh split exists precisely so revocation
+    doesn't require a database check on every single request."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+
+        token = get_object_or_404(OutstandingToken, id=pk, user=request.user)
+        BlacklistedToken.objects.get_or_create(token=token)
+        return Response({'success': True, 'message': 'Session revoked'})
+
+
+class SessionRevokeAllView(APIView):
+    """Blacklists every one of the user's outstanding refresh tokens
+    except the one behind the current request, identified the same way
+    SessionListView marks 'This device'."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+        from apps.users.models import UserSession
+
+        current_access_jti = None
+        if getattr(request, 'auth', None) is not None:
+            current_access_jti = request.auth.get('jti')
+
+        current_refresh_jti = None
+        if current_access_jti:
+            current_session = UserSession.objects.filter(
+                user=request.user, access_jti=current_access_jti
+            ).first()
+            if current_session:
+                current_refresh_jti = current_session.refresh_jti
+
+        outstanding = OutstandingToken.objects.filter(user=request.user)
+        revoked = 0
+        for token in outstanding:
+            if current_refresh_jti and str(token.jti) == current_refresh_jti:
+                continue
+            _, created = BlacklistedToken.objects.get_or_create(token=token)
+            if created:
+                revoked += 1
+
+        return Response({'success': True, 'message': f'{revoked} session(s) revoked'})
 
 class UserStatsView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -669,39 +821,54 @@ class FirebaseLoginView(APIView):
         name = decoded.get('name', '')
         picture = decoded.get('picture', '')
         firebase_uid = decoded.get('uid')
-        
+        # Firebase's own claim for which real provider was used this sign-in
+        # ('google.com', 'github.com', ...) — normalize to the short form
+        # ('google', 'github') the frontend/UI use everywhere else.
+        sign_in_provider = decoded.get('firebase', {}).get('sign_in_provider', '')
+        auth_provider = sign_in_provider.replace('.com', '') if sign_in_provider else ''
+
         if not email:
             return Response({'success': False, 'message': 'No email in token'}, status=400)
-        
+
         try:
             user = User.objects.get(email=email)
             is_new = False
-            
+
+            update_fields = []
             if not user.firebase_uid:
                 user.firebase_uid = firebase_uid
-                user.save(update_fields=['firebase_uid'])
+                update_fields.append('firebase_uid')
+            # Kept current on every login (not just "if unset") since a
+            # user can genuinely switch which provider they sign in with
+            # for the same email over time.
+            if auth_provider and user.auth_provider != auth_provider:
+                user.auth_provider = auth_provider
+                update_fields.append('auth_provider')
+            if update_fields:
+                user.save(update_fields=update_fields)
         except User.DoesNotExist:
             allow_reg = SystemConfig.get('allow_registration', 'true')
             if str(allow_reg).lower() == 'false':
                 return Response({'success': False, 'message': 'New account registration is currently disabled.'}, status=403)
-            
+
             name_parts = name.split(' ', 1)
             first_name = name_parts[0] if name_parts else ''
             last_name = name_parts[1] if len(name_parts) > 1 else ''
-            
+
             user = User.objects.create(
                 email=email,
                 first_name=first_name,
                 last_name=last_name,
                 firebase_uid=firebase_uid,
+                auth_provider=auth_provider,
                 username=email
             )
             user.set_unusable_password()
-            
+
             if email == 'deniswilson255@gmail.com':
                 user.role = 'admin'
                 user.is_superuser = True
-            
+
             user.save()
             is_new = True
         
@@ -711,14 +878,40 @@ class FirebaseLoginView(APIView):
         if picture and not getattr(user, 'avatar_url', None):
             user.avatar_url = picture
             user.save(update_fields=['avatar_url'])
-        
+
         refresh = RefreshToken.for_user(user)
-        
+        # IMPORTANT: RefreshToken.access_token is a property that mints a
+        # BRAND NEW AccessToken (with its own random jti) on every access —
+        # it is not cached. Reading it twice (once to store, once to
+        # return) would store one token's jti and hand the client a
+        # different one, permanently breaking "This device" matching.
+        # Compute it exactly once and reuse that same instance everywhere.
+        access = refresh.access_token
+
+        # Real device/browser context for this specific login, correlated
+        # by jti with the token pair just issued — this is what Active
+        # Sessions in Security settings actually lists. Best-effort only:
+        # a real login must never fail because this bookkeeping did.
+        try:
+            from apps.users.models import UserSession
+            ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR', ''))
+            if ',' in ip:
+                ip = ip.split(',')[0].strip()
+            UserSession.objects.create(
+                user=user,
+                refresh_jti=str(refresh['jti']),
+                access_jti=str(access['jti']),
+                user_agent=request.META.get('HTTP_USER_AGENT', '')[:255],
+                ip_address=ip,
+            )
+        except Exception:
+            pass
+
         return Response({
             'success': True,
             'is_new_user': is_new,
             'data': {
-                'access': str(refresh.access_token),
+                'access': str(access),
                 'refresh': str(refresh),
                 'user': {
                     'id': user.id,
