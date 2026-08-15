@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserPlus, Radio, Clock, Copy, Power, Eye, Users, MonitorPlay, LogOut, Activity } from 'lucide-react';
 import api from '../../services/api';
+import useBreakpoint from '../../hooks/useBreakpoint';
 
 const formatDuration = (startedAt) => {
   if (!startedAt) return '00:00:00';
@@ -22,6 +23,7 @@ const formatDate = (dateString) => {
 
 export default function MemberSessionsPage() {
   const navigate = useNavigate();
+  const { isMobile } = useBreakpoint();
   const [activeTab, setActiveTab] = useState('Active');
   const [joinCode, setJoinCode] = useState('');
   const [joining, setJoining] = useState(false);
@@ -37,12 +39,12 @@ export default function MemberSessionsPage() {
   const [viewingLoading, setViewingLoading] = useState(false);
 
   useEffect(() => {
-    fetchSessions();
+    fetchSessions(true);
     // fetchSessions used to only ever run once — a session joined or
     // started elsewhere (another tab, an invite-code join) never showed
     // up here without a full page reload. Poll every 10s, matching the
     // same cadence used on the Workspaces page.
-    const interval = setInterval(fetchSessions, 10000);
+    const interval = setInterval(() => fetchSessions(false), 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -53,9 +55,14 @@ export default function MemberSessionsPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const fetchSessions = async () => {
+  /**
+   * Fetches live sessions from the backend and categorizes them.
+   * @param {boolean} isInitial - If true, shows the full-page loading spinner.
+   *   Background polls pass false to update data silently without UI flicker.
+   */
+  const fetchSessions = async (isInitial = false) => {
     try {
-      setLoading(true);
+      if (isInitial) setLoading(true);
       const res = await api.get('/sessions/live/');
       const data = res.data?.data || res.data;
       
@@ -77,7 +84,7 @@ export default function MemberSessionsPage() {
     } catch(e) {
       console.error(e);
     } finally {
-      setLoading(false);
+      if (isInitial) setLoading(false);
     }
   };
 
@@ -330,6 +337,44 @@ export default function MemberSessionsPage() {
       {pastSessions.length === 0 ? (
         <div className="p-10 text-center">
           <p className="text-sm text-muted">No session history yet.</p>
+        </div>
+      ) : isMobile ? (
+        /* Real, measured mobile bug (Ospace responsive audit): this
+           table used to render at full desktop width inside a raw
+           overflow-x:auto wrapper - 6 whitespace-nowrap columns force
+           the table far wider than a 375px viewport, so reading a
+           past session meant scrolling horizontally with no visible
+           scrollbar affordance. On mobile it's now a stacked card per
+           session (same pattern already used by the Admin tables),
+           showing every field vertically instead. Desktop keeps the
+           original table unchanged. */
+        <div className="flex flex-col gap-3 p-3">
+          {pastSessions.map(s => (
+            <div key={s.id} className="border border-border rounded-xl p-4 bg-card/50">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <span className="text-sm font-semibold text-primary break-words">{s.name}</span>
+                <span className={`shrink-0 text-[9px] uppercase font-semibold ${s.is_host ? 'text-[#6C63FF]' : 'text-[#00A3FF]'}`}>
+                  {s.is_host ? 'Host' : 'Joined'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="px-2 py-0.5 rounded-full bg-[var(--bg-elevated)] text-[9px] text-secondary">
+                  {s.session_type || 'Custom'}
+                </span>
+              </div>
+              <div className="text-xs text-secondary mb-1">
+                <span className="text-muted">Date:</span> {formatDate(s.created_at)}
+              </div>
+              <div className="text-xs text-secondary mb-3">
+                <span className="text-muted">Participants:</span> {s.participant_count || 0}
+              </div>
+              <button
+                onClick={() => handleViewSession(s)}
+                className="w-full text-center text-xs font-semibold text-muted hover:text-primary active:scale-95 transition-all py-2 rounded-lg bg-canvas">
+                View
+              </button>
+            </div>
+          ))}
         </div>
       ) : (
         <div className="overflow-x-auto">

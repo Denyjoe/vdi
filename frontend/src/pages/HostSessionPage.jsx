@@ -4,6 +4,7 @@ import { Monitor, Users, Clock, Copy, X, Power, Shield, WifiOff, ClipboardX, Lin
 import api from '../services/api';
 import GuacamoleEmbed from '../components/shared/GuacamoleEmbed';
 import ExtendSessionModal from '../components/shared/ExtendSessionModal';
+import useBreakpoint from '../hooks/useBreakpoint';
 
 const formatDuration = (startedAt) => {
   if (!startedAt) return '00:00:00';
@@ -21,6 +22,7 @@ const formatDuration = (startedAt) => {
 export default function HostSessionPage() {
   const { sessionId } = useParams();
   const navigate = useNavigate();
+  const { isMobile } = useBreakpoint();
   const [session, setSession] = useState({});
   const [participants, setParticipants] = useState([]);
   const [controlSession, setControlSession] = useState(null);
@@ -211,7 +213,91 @@ export default function HostSessionPage() {
 
   return (
     <div className="min-h-screen bg-canvas flex flex-col">
-      {/* SECTION A — TOP BAR */}
+      {/* SECTION A — TOP BAR
+          Real, measured mobile bug (Ospace responsive audit): this whole
+          strip — back arrow, LIVE badge, session name, type badge, timer,
+          participant count, invite code, and two buttons — used to share
+          ONE h-14 horizontal row with no wrap. At 375px the session-name
+          element was squeezed into an 80px box, clipped 2.4px above the
+          viewport, colliding with the timer. Below, mobile gets a
+          genuinely different, stacked layout (title on its own line, then
+          a wrapping row of badges/chips, then full-width actions) instead
+          of trying to shrink the same horizontal row further. Desktop
+          layout is byte-for-byte the original. */}
+      {isMobile ? (
+        <div className="bg-canvas/90 backdrop-blur-md border-b border-border-subtle px-4 py-3">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <button onClick={() => navigate('/sessions/my')}
+                className="text-muted hover:text-primary active:scale-95 transition-all shrink-0"
+                style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: '-6px' }}>
+                <ArrowLeft size={18} />
+              </button>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <div className="w-2.5 h-2.5 rounded-full bg-[#00FF87] animate-pulse shadow-lg shadow-green-500/50" />
+                <span className="text-xs font-bold text-[#00FF87] uppercase tracking-wider">
+                  Live
+                </span>
+              </div>
+            </div>
+
+            <h1 className="text-sm font-bold text-primary" style={{ wordBreak: 'break-word' }}>
+              {session.name}
+            </h1>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span className="px-2 py-0.5 rounded-full bg-[var(--bg-card)] border border-[var(--border-color)] text-[9px] text-[var(--text-primary)] font-semibold uppercase">
+                {session.session_type || 'Custom'}
+              </span>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 10px',
+                borderRadius: '10px',
+                background: timeLeft && timeLeft.startsWith('00:0')
+                  ? 'var(--status-warning-bg, rgba(245, 158, 11, 0.1))'
+                  : 'var(--bg-input, transparent)',
+              }}>
+                <Clock size={12} className={timeLeft && timeLeft.startsWith('00:0') ? "text-[var(--status-warning)]" : "text-secondary"} />
+                <span style={{
+                  fontFamily: 'monospace',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  color: timeLeft && timeLeft.startsWith('00:0') ? 'var(--status-warning, #F59E0B)' : 'var(--text-primary)',
+                }}>{timeLeft || '--:--:--'}</span>
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>remaining</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-canvas rounded-lg">
+                <Users size={12} className="text-muted" />
+                <span className="text-xs font-mono text-secondary">
+                  {participants.length}/{session.max_participants || 0}
+                </span>
+              </div>
+              <div className="px-2.5 py-1 bg-canvas rounded-lg">
+                <span className="text-xs font-mono text-[#00A3FF] tracking-widest">
+                  {session.invite_code}
+                </span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => setShowExtendModal(true)}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#0066FF]/10 border border-[#0066FF]/20 text-[#0066FF] text-xs font-semibold active:scale-95 transition-all">
+                <PlusCircle size={14} />
+                Extend
+              </button>
+              <button
+                onClick={handleEndSession}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold active:scale-95 transition-all">
+                <Power size={14} />
+                End
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
       <div className="h-14 bg-canvas/90 backdrop-blur-md border-b border-border-subtle flex items-center justify-between px-4">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate('/sessions/my')}
@@ -232,7 +318,7 @@ export default function HostSessionPage() {
             {session.session_type || 'Custom'}
           </span>
         </div>
-        
+
         <div className="flex items-center gap-4">
           <div style={{
             display: 'flex',
@@ -240,7 +326,7 @@ export default function HostSessionPage() {
             gap: '8px',
             padding: '8px 16px',
             borderRadius: '10px',
-            background: timeLeft && timeLeft.startsWith('00:0') 
+            background: timeLeft && timeLeft.startsWith('00:0')
               ? 'var(--status-warning-bg, rgba(245, 158, 11, 0.1))'
               : 'var(--bg-input, transparent)',
           }}>
@@ -256,9 +342,9 @@ export default function HostSessionPage() {
               color: 'var(--text-muted)',
             }}>remaining</span>
           </div>
-          
 
-          
+
+
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-canvas rounded-lg">
             <Users size={12} className="text-muted" />
             <span className="text-xs font-mono text-secondary">
@@ -284,6 +370,7 @@ export default function HostSessionPage() {
           </button>
         </div>
       </div>
+      )}
 
       {showTimeWarning && (
         <div style={{

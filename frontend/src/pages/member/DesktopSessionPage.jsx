@@ -631,16 +631,17 @@ export default function DesktopSessionPage() {
             </div>
             
             <div className="flex items-center gap-4">
-              <button 
+              <button
                 onClick={toggleFullscreen}
-                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors flex items-center justify-center shrink-0"
+                style={{ width: '44px', height: '44px' }}
                 title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
               >
                 {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
               </button>
-              
-              <button 
-                onClick={handleEndSession} 
+
+              <button
+                onClick={handleEndSession}
                 disabled={isDisconnecting}
                 className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors border border-red-500/20 flex items-center gap-2"
               >
@@ -765,16 +766,17 @@ export default function DesktopSessionPage() {
         </div>
         
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={toggleFullscreen}
-            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors flex items-center justify-center shrink-0"
+            style={{ width: '44px', height: '44px' }}
             title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
           >
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </button>
-          
-          <button 
-            onClick={handleEndSession} 
+
+          <button
+            onClick={handleEndSession}
             disabled={isDisconnecting}
             className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors border border-red-500/20 flex items-center gap-2"
           >

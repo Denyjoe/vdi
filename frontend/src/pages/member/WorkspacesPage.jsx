@@ -359,7 +359,23 @@ export default function WorkspacesPage() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', paddingBottom: '16px', gap: '16px' }}>
-            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: isMobile ? '4px' : '0', scrollbarWidth: 'none' }} className="flex-nowrap">
+            {/* Real, measured mobile bug (Ospace responsive audit): this
+                row used to be flex-nowrap + overflow-x:auto with the
+                native scrollbar hidden (scrollbarWidth:'none') — content
+                genuinely overflowed its container (442px in a 239px box)
+                with zero visible affordance, so "Offline"/"Provisioning"
+                were undiscoverable by scrolling blind. On mobile it now
+                wraps onto multiple lines instead, so every filter is
+                always visible; desktop keeps the original single-row
+                scroll behavior unchanged. */}
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              flexWrap: isMobile ? 'wrap' : 'nowrap',
+              overflowX: isMobile ? 'visible' : 'auto',
+              paddingBottom: isMobile ? '0' : '0',
+              scrollbarWidth: isMobile ? undefined : 'none',
+            }}>
               {['All Nodes', 'Online', 'Offline', 'Provisioning'].map(tab => (
                 <button
                   key={tab}
