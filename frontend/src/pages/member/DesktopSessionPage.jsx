@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
-  Monitor, Maximize2, Minimize2, LayoutGrid, Compass, BarChart2, AlertCircle,
+  Maximize2, Minimize2, LayoutGrid, Compass, BarChart2, AlertCircle,
   Code2, Palette, Network, Box, Wifi, Battery, Volume2, Clock, Megaphone,
   Menu, X, Check, PanelRightOpen, PanelRightClose, Power, UserCheck, RefreshCw
 } from 'lucide-react';
@@ -13,6 +13,7 @@ import Toast from '../../components/shared/Toast';
 import GuacamoleEmbed from '../../components/shared/GuacamoleEmbed';
 import LoadingLogo from '../../components/shared/LoadingLogo';
 import PowerOnAnimation from '../../components/shared/PowerOnAnimation';
+import OspaceLogo from '../../components/shared/OspaceLogo';
 
 export default function DesktopSessionPage() {
   const { id: sessionId } = useParams();
@@ -586,7 +587,7 @@ export default function DesktopSessionPage() {
         <div ref={containerRef} className="relative w-screen h-screen overflow-hidden bg-black flex flex-col font-inter">
           <div className="h-12 bg-[var(--bg-primary)] border-b border-[var(--border-color)] flex items-center justify-between px-4 shrink-0 shadow-md relative z-50">
             <div className="flex items-center gap-4">
-              <Monitor className="w-5 h-5 text-indigo-400" />
+              <OspaceLogo size={20} />
               <span className="text-[var(--text-primary)] font-medium text-sm sm:text-base hidden sm:block">
                 {workspace.name}
               </span>
@@ -747,7 +748,7 @@ export default function DesktopSessionPage() {
     <div ref={containerRef} className="relative w-screen h-screen overflow-hidden bg-black flex flex-col font-inter">
       <div className="h-12 bg-[var(--bg-primary)] border-b border-[var(--border-color)] flex items-center justify-between px-4 shrink-0 shadow-md relative z-50">
         <div className="flex items-center gap-4">
-          <Monitor className="w-5 h-5 text-indigo-400" />
+          <OspaceLogo size={20} />
           <span className="text-[var(--text-primary)] font-medium text-sm sm:text-base hidden sm:block">
             {sessionData.vm_name}
           </span>
