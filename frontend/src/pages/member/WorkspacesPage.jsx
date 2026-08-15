@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { 
-  Monitor, Plus, Cpu, MemoryStick, HardDrive, 
-  Search, Globe, Copy, Power, MonitorPlay, 
+import {
+  Monitor, Plus, Cpu, MemoryStick, HardDrive,
+  Search, Globe, Copy, Power, MonitorPlay,
   AlertCircle, Trash2, Loader2, Database, X,
-  Terminal, AppWindow
+  Terminal, AppWindow, Clock, Crown
 } from 'lucide-react'
 import api from '../../services/api'
+import toast from 'react-hot-toast'
 import useAuthStore from '../../store/authStore'
 import useUIStore from '../../store/uiStore'
 import useThemeStore from '../../store/themeStore'
 import useBreakpoint from '../../hooks/useBreakpoint'
+import CheckoutModal from '../../components/shared/CheckoutModal'
 
 import OsIcon, { OS_ICONS } from '../../components/shared/OsIcon'
 
@@ -52,29 +54,61 @@ export default function WorkspacesPage() {
   const [activeFilter, setFilter] = useState('All Nodes')
   const [sortBy, setSortBy] = useState('Sort: Recent')
   const [wsStats, setWsStats] = useState({})
-  
+
+  // Per-template workspace access state — pricing/balance/subscription are
+  // ALL scoped per (user, template), never platform-wide.
+  const [templateAccess, setTemplateAccess] = useState({}) // { [templateId]: accessResult }
+  const [accessModal, setAccessModal] = useState(null) // { workspaceId, template }
+  const [accessModalHours, setAccessModalHours] = useState(1)
+  const [accessModalCustomHours, setAccessModalCustomHours] = useState('1')
+  const [buyHoursTarget, setBuyHoursTarget] = useState(null) // { workspaceId, template, hours, priceTzs }
+  const [subscribeTarget, setSubscribeTarget] = useState(null) // { workspaceId, template }
+
   const navigate = useNavigate()
-  useEffect(() => { 
-    fetchWorkspaces() 
+  useEffect(() => {
+    fetchWorkspaces()
   }, [])
+
+  const fetchAccessFor = async (templateId) => {
+    try {
+      const res = await api.get('/workspaces/access-check/', { params: { template_id: templateId } })
+      if (res.data?.success) {
+        setTemplateAccess(prev => ({ ...prev, [templateId]: res.data.data }))
+        return res.data.data
+      }
+    } catch (e) {
+      console.error('Failed to fetch access for template', templateId, e)
+    }
+    return null
+  }
 
   const fetchWorkspaces = async () => {
     try {
       const res = await api.get('/workspaces/')
-      setWorkspaces(Array.isArray(res.data) ? res.data : res.data?.data || [])
-    } catch(e) { 
-      console.error(e) 
-    } finally { 
-      setLoading(false) 
+      const list = Array.isArray(res.data) ? res.data : res.data?.data || []
+      setWorkspaces(list)
+      // Real per-template access status for every workspace's own template,
+      // so each card can show its genuine balance/subscription state.
+      const templateIds = [...new Set(list.map(w => w.vm_template_details?.id).filter(Boolean))]
+      templateIds.forEach(fetchAccessFor)
+    } catch(e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
     }
   }
 
   const fetchTemplates = async () => {
     try {
       const res = await api.get('/vms/templates/')
-      setTemplates(res.data?.data || [])
-    } catch(e) { 
-      console.error(e) 
+      const list = res.data?.data || []
+      setTemplates(list)
+      // Per-template access status shown on each template card — fetched
+      // for every real template so the picker never shows a stale/guessed
+      // price or balance.
+      list.filter(t => t.is_real).forEach(t => fetchAccessFor(t.id))
+    } catch(e) {
+      console.error(e)
     }
   }
 
@@ -98,6 +132,15 @@ export default function WorkspacesPage() {
     return () => clearInterval(interval)
   }, [workspaces])
 
+  // fetchWorkspaces only ever ran once, on mount — a workspace created or
+  // removed elsewhere (another tab, the launch flow completing async
+  // provisioning) never appeared here without a manual page reload. Poll
+  // the actual list on the same 10s cadence as the stats above.
+  useEffect(() => {
+    const interval = setInterval(fetchWorkspaces, 10000)
+    return () => clearInterval(interval)
+  }, [])
+
   const openCreateModal = async () => {
     fetchTemplates()
     setShowCreate(true)
@@ -109,22 +152,32 @@ export default function WorkspacesPage() {
     if (!selectedTemplate || !wsName.trim()) return;
     try {
       setCreating(true);
+
+      // Check access BEFORE creating anything, so we know the real
+      // per-template state and never surprise the user with a charge.
+      const access = await fetchAccessFor(selectedTemplate.id);
+
       const res = await api.post('/workspaces/create/', {
         vm_template: selectedTemplate.id,
         name: wsName.trim(),
       });
       const wsData = res.data?.data || res.data;
       const wsId = wsData?.id;
-      if (wsId) {
+
+      setShowCreate(false);
+      setWsName('');
+      setSelectedTemplate(null);
+
+      if (wsId && access && !access.can_launch) {
+        setAccessModal({ workspaceId: wsId, template: selectedTemplate });
+      } else if (wsId) {
         try {
-          await api.post(`/workspaces/${wsId}/launch/`);
+          const launchRes = await api.post(`/workspaces/${wsId}/launch/`);
+          notifyLaunchOutcome(launchRes.data);
         } catch(e) {
           console.error('Launch failed:', e);
         }
       }
-      setShowCreate(false);
-      setWsName('');
-      setSelectedTemplate(null);
       fetchWorkspaces();
     } catch(e) {
       console.error('Create failed:', e);
@@ -134,24 +187,75 @@ export default function WorkspacesPage() {
     }
   };
 
-  const handleLaunch = async (ws) => {
+  // Launching is honest by construction — the backend already refused with
+  // 402 before any VM was touched if payment was required (see catch below).
+  // This just makes the balance/subscription case explicit instead of
+  // silent, so usage never looks indistinguishable from a skipped charge.
+  const notifyLaunchOutcome = (data) => {
+    if (data?.access_reason === 'hours_balance') {
+      toast.success(`Launched — ${data.hours_remaining}h remaining on this template`)
+    } else if (data?.access_reason === 'subscription') {
+      toast.success('Launched — included in your template subscription')
+    }
+  }
+
+  const attemptLaunch = async (workspaceId) => {
     try {
-      setLaunchingId(ws.id)
-      await api.post(`/workspaces/${ws.id}/launch/`)
+      setLaunchingId(workspaceId)
+      const res = await api.post(`/workspaces/${workspaceId}/launch/`)
+      notifyLaunchOutcome(res.data)
       fetchWorkspaces()
+      return true
     } catch(e) {
-      console.error(e)
+      console.error('Launch failed:', e)
+      return false
     } finally {
       setLaunchingId(null)
     }
+  }
+
+  const handleLaunch = async (ws) => {
+    try {
+      setLaunchingId(ws.id)
+      const res = await api.post(`/workspaces/${ws.id}/launch/`)
+      notifyLaunchOutcome(res.data)
+      fetchWorkspaces()
+    } catch(e) {
+      if (e.response?.status === 402 && e.response?.data?.requires_payment) {
+        setAccessModal({ workspaceId: ws.id, template: ws.vm_template_details })
+      } else {
+        console.error(e)
+      }
+    } finally {
+      setLaunchingId(null)
+    }
+  }
+
+  const handleBuyHoursSuccess = async () => {
+    const target = buyHoursTarget
+    setBuyHoursTarget(null)
+    setAccessModal(null)
+    if (target?.template?.id) fetchAccessFor(target.template.id)
+    if (target?.workspaceId) await attemptLaunch(target.workspaceId)
+    fetchWorkspaces()
+  }
+
+  const handleSubscribeSuccess = async () => {
+    const target = subscribeTarget
+    setSubscribeTarget(null)
+    setAccessModal(null)
+    if (target?.template?.id) fetchAccessFor(target.template.id)
+    if (target?.workspaceId) await attemptLaunch(target.workspaceId)
+    fetchWorkspaces()
   }
 
   const handleStop = async (ws) => {
     try {
       await api.post(`/workspaces/${ws.id}/stop/`)
       fetchWorkspaces()
-    } catch(e) { 
-      console.error(e) 
+      if (ws.vm_template_details?.id) fetchAccessFor(ws.vm_template_details.id)
+    } catch(e) {
+      console.error(e)
     }
   }
 
@@ -235,19 +339,24 @@ export default function WorkspacesPage() {
         }
       `}</style>
 
-      <div className="bg-card/80 backdrop-blur-sm border-b border-border sticky top-14 z-40 transition-colors duration-300">
+      <div className="border-b border-border transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: isMobile ? 'flex-start' : 'space-between', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? '16px' : '0', padding: isMobile ? '24px 0' : '24px 0 16px 0' }}>
+          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: isMobile ? 'flex-start' : 'space-between', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? '16px' : '16px', padding: isMobile ? '24px 0' : '24px 0 16px 0' }}>
             <div>
               <h1 className="text-2xl font-bold text-primary tracking-tight">My Workspaces</h1>
               <p className="text-sm text-secondary mt-1">Manage and access your cloud development environments</p>
             </div>
-            <button onClick={openCreateModal} className="flex items-center justify-center gap-2 px-5 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-xl font-bold transition-all active:scale-95 shadow-md shadow-blue-500/20">
-              <Plus size={16} />
-              New Workspace
-            </button>
+            <div className="relative w-full md:w-64 shrink-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted w-4 h-4" />
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search workspaces..."
+                className="w-full bg-card border border-border rounded-xl pl-9 pr-4 py-2.5 text-sm text-secondary placeholder-muted outline-none focus:border-blue-500 transition-colors"
+              />
+            </div>
           </div>
-          
+
           <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', paddingBottom: '16px', gap: '16px' }}>
             <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: isMobile ? '4px' : '0', scrollbarWidth: 'none' }} className="flex-nowrap">
               {['All Nodes', 'Online', 'Offline', 'Provisioning'].map(tab => (
@@ -263,17 +372,10 @@ export default function WorkspacesPage() {
                 </button>
               ))}
             </div>
-            <div style={{ display: 'flex', gap: '12px', flexDirection: isMobile ? 'column' : 'row' }}>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted w-4 h-4" />
-                <input
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  placeholder="Search workspace..."
-                  className="bg-card border border-border rounded-xl pl-9 pr-4 py-2 text-sm text-secondary placeholder-muted outline-none focus:border-blue-500 transition-colors w-full md:w-56"
-                />
-              </div>
-            </div>
+            <button onClick={openCreateModal} className="w-full md:w-64 flex items-center justify-center gap-2 px-5 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-xl text-sm font-bold transition-all active:scale-95 shadow-md shadow-blue-500/20 shrink-0">
+              <Plus size={16} />
+              New Workspace
+            </button>
           </div>
         </div>
       </div>
@@ -285,18 +387,8 @@ export default function WorkspacesPage() {
             <p className="text-muted font-medium">Loading your workspaces...</p>
           </div>
         ) : workspaces.length === 0 ? (
-          <div className="bg-card border border-border rounded-2xl p-12 text-center max-w-2xl mx-auto">
-            <div className="w-20 h-20 bg-canvas rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
-              <Monitor size={32} className="text-muted" />
-            </div>
-            <h2 className="text-xl font-bold text-primary mb-2">No workspaces yet</h2>
-            <p className="text-secondary mb-8 leading-relaxed">
-              Create your first cloud environment to get started. Choose from a variety of optimized templates for your workload.
-            </p>
-            <button onClick={openCreateModal} className="inline-flex items-center gap-2 px-6 py-3 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-xl font-bold transition-all hover:scale-105 active:scale-95 shadow-lg shadow-blue-500/25">
-              <Plus size={18} />
-              Launch First Workspace
-            </button>
+          <div className="bg-card/50 border border-border rounded-2xl py-12 px-6 flex items-center justify-center text-center shadow-sm">
+            <p className="text-muted text-sm font-medium">No workspaces yet. Create your first cloud environment to get started.</p>
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-20">
@@ -489,12 +581,52 @@ export default function WorkspacesPage() {
                       <span className="text-[10px] font-semibold text-[#FF6B00] uppercase tracking-wider">Offline</span>
                     </div>
                   </div>
-                  
+
+                  {ws.idle_warning && (
+                    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg mb-4 ${
+                      ws.idle_warning.level === 'final_warning' ? 'bg-red-500/10 border border-red-500/20' : 'bg-yellow-500/10 border border-yellow-500/20'
+                    }`}>
+                      <AlertCircle size={13} className={ws.idle_warning.level === 'final_warning' ? 'text-red-400' : 'text-yellow-400'} />
+                      <span className={`text-[10px] font-semibold ${ws.idle_warning.level === 'final_warning' ? 'text-red-400' : 'text-yellow-400'}`}>
+                        ⚠ Idle — will be deleted in {ws.idle_warning.days_remaining} day{ws.idle_warning.days_remaining === 1 ? '' : 's'} unless used
+                      </span>
+                    </div>
+                  )}
+
+                  {(() => {
+                    const acc = templateAccess[ws.vm_template_details?.id]
+                    if (!acc) return null
+                    if (acc.reason === 'subscription') {
+                      return (
+                        <div className="flex items-center gap-2 mb-4 px-3 py-1.5 rounded-lg bg-[#6C63FF]/10 border border-[#6C63FF]/20 w-fit">
+                          <Crown size={12} className="text-[#6C63FF]" />
+                          <span className="text-[10px] font-semibold text-[#6C63FF]">Unlimited — subscribed</span>
+                        </div>
+                      )
+                    }
+                    if (acc.reason === 'hours_balance') {
+                      return (
+                        <div className="flex items-center gap-2 mb-4 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 w-fit">
+                          <Clock size={12} className="text-emerald-400" />
+                          <span className="text-[10px] font-semibold text-emerald-400">{acc.hours_remaining}h remaining</span>
+                        </div>
+                      )
+                    }
+                    return (
+                      <div className="flex items-center gap-2 mb-4 px-3 py-1.5 rounded-lg bg-[#FF6B00]/10 border border-[#FF6B00]/20 w-fit">
+                        <AlertCircle size={12} className="text-[#FF6B00]" />
+                        <span className="text-[10px] font-semibold text-[#FF6B00]">
+                          Out of hours — TZS {Number(acc.price_per_hour).toLocaleString()}/hr
+                        </span>
+                      </div>
+                    )
+                  })()}
+
                   <div className="flex items-center gap-2 mb-4 px-3 py-1.5 bg-canvas rounded-lg w-fit">
                     <Globe size={12} className="text-faint" />
                     <span className="text-xs font-mono text-muted">{ws.vm_details?.ip_address || '—.—.—.—'}</span>
                   </div>
-                  
+
                   <div className="grid grid-cols-3 gap-3 mb-4">
                     <div className="bg-canvas/30 rounded-lg p-2.5 text-center opacity-70">
                       <Cpu size={14} className="text-muted mx-auto mb-1" />
@@ -512,12 +644,12 @@ export default function WorkspacesPage() {
                       <p className="text-[9px] text-faint uppercase">SSD</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-2 px-3 py-2 bg-canvas/30 rounded-lg mb-4 flex-1">
                     <AlertCircle size={13} className="text-faint" />
                     <span className="text-[10px] uppercase tracking-wider text-faint font-medium">Hypervisor Suspended</span>
                   </div>
-                  
+
                   <div className="flex gap-2 mt-auto">
                     <button onClick={() => handleDelete(ws)} className="px-4 py-2.5 rounded-xl bg-nav-hover border border-border-strong text-muted hover:text-red-400 hover:border-red-500/30 active:scale-95 transition-all duration-200">
                       <Trash2 size={14} />
@@ -599,7 +731,15 @@ export default function WorkspacesPage() {
                         </div>
                         <h4 className="font-bold text-primary mb-1">{template.name}</h4>
                         <p className="text-xs text-secondary mb-3">{template.cpu_cores} vCPU · {template.ram_gb}GB RAM · {template.storage_gb}GB</p>
-                        <div className="text-xs font-semibold text-secondary">{template.hourly_cost_tzs > 0 ? `TZS ${template.hourly_cost_tzs}/hr` : 'Free'}</div>
+                        <div className="text-xs font-semibold text-secondary">
+                          {(() => {
+                            const acc = templateAccess[template.id]
+                            if (!acc) return `TZS ${Number(template.price_per_hour || 0).toLocaleString()}/hr`
+                            if (acc.reason === 'subscription') return 'Included in your subscription'
+                            if (acc.reason === 'hours_balance') return `${acc.hours_remaining}h remaining`
+                            return `TZS ${Number(acc.price_per_hour).toLocaleString()}/hr or TZS ${Number(acc.price_per_month).toLocaleString()}/mo`
+                          })()}
+                        </div>
                         
                         {isSelected && (
                           <div className="absolute top-0 right-0 w-8 h-8 bg-[#0066FF] rounded-bl-xl flex items-center justify-center">
@@ -622,7 +762,7 @@ export default function WorkspacesPage() {
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={handleCreate}
                 disabled={!selectedTemplate || !wsName.trim() || creating}
                 className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg ${
@@ -637,6 +777,103 @@ export default function WorkspacesPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Access required — real per-template choice: buy hours or subscribe */}
+      {accessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setAccessModal(null); }}>
+          <div className="bg-card border border-border rounded-2xl w-full max-w-md overflow-hidden">
+            <div className="flex justify-between items-center p-6 border-b border-border">
+              <div>
+                <h2 className="text-lg font-bold text-primary">You're out of hours</h2>
+                <p className="text-xs text-muted mt-0.5">for {accessModal.template?.name}</p>
+              </div>
+              <button onClick={() => setAccessModal(null)} className="text-muted hover:text-primary transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6">
+              <label className="block text-xs font-semibold text-secondary uppercase tracking-wider mb-2">Buy hours</label>
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                {[1, 2, 3].map(h => (
+                  <button key={h}
+                    onClick={() => { setAccessModalHours(h); setAccessModalCustomHours(h.toString()); }}
+                    className="p-3 rounded-xl border text-center"
+                    style={{
+                      border: accessModalHours === h ? '2px solid var(--accent-primary, #0066FF)' : '1px solid var(--border-color)',
+                      background: accessModalHours === h ? 'var(--accent-primary-soft, rgba(0,102,255,0.1))' : 'var(--bg-input)',
+                    }}>
+                    <div className="text-lg font-bold text-primary">{h}h</div>
+                    <div className="text-[11px] text-muted">
+                      TZS {(h * (templateAccess[accessModal.template?.id]?.price_per_hour || accessModal.template?.price_per_hour || 0)).toLocaleString()}
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <input type="number" min="0.5" step="0.5" value={accessModalCustomHours}
+                onChange={e => { setAccessModalCustomHours(e.target.value); setAccessModalHours(parseFloat(e.target.value) || 0); }}
+                className="w-full bg-canvas border border-border rounded-xl px-4 py-2.5 text-primary outline-none focus:border-blue-500 transition-colors mb-4"
+                placeholder="Custom hours"
+              />
+
+              <button
+                onClick={() => setBuyHoursTarget({
+                  workspaceId: accessModal.workspaceId,
+                  template: accessModal.template,
+                  hours: accessModalHours,
+                  priceTzs: accessModalHours * (templateAccess[accessModal.template?.id]?.price_per_hour || accessModal.template?.price_per_hour || 0),
+                })}
+                disabled={!accessModalHours || accessModalHours <= 0}
+                className="w-full py-3 rounded-xl bg-[#0066FF] text-white font-semibold hover:bg-[#0052CC] active:scale-95 transition-all disabled:opacity-40 mb-3"
+              >
+                Buy {accessModalHours || 0}h — TZS {(accessModalHours * (templateAccess[accessModal.template?.id]?.price_per_hour || accessModal.template?.price_per_hour || 0)).toLocaleString()}
+              </button>
+
+              <div className="flex items-center gap-3 my-3">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-[10px] text-muted uppercase tracking-wider">or</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+
+              <button
+                onClick={() => setSubscribeTarget({ workspaceId: accessModal.workspaceId, template: accessModal.template })}
+                className="w-full py-3 rounded-xl border border-[#6C63FF]/40 text-[#6C63FF] font-semibold hover:bg-[#6C63FF]/10 active:scale-95 transition-all"
+              >
+                Subscribe monthly — TZS {Number(templateAccess[accessModal.template?.id]?.price_per_month || accessModal.template?.price_per_month || 0).toLocaleString()}/mo, unlimited
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hours purchase payment */}
+      {buyHoursTarget && (
+        <CheckoutModal
+          isOpen={true}
+          onClose={() => setBuyHoursTarget(null)}
+          onSuccess={handleBuyHoursSuccess}
+          title={`Buy ${buyHoursTarget.hours}h — ${buyHoursTarget.template?.name}`}
+          amountTzs={buyHoursTarget.priceTzs}
+          endpoint="/workspaces/purchase-hours/"
+          extraPayload={{ template_id: buyHoursTarget.template?.id, hours: buyHoursTarget.hours }}
+          successMessage="Hours added!"
+        />
+      )}
+
+      {/* Template subscription payment */}
+      {subscribeTarget && (
+        <CheckoutModal
+          isOpen={true}
+          onClose={() => setSubscribeTarget(null)}
+          onSuccess={handleSubscribeSuccess}
+          title={`Subscribe — ${subscribeTarget.template?.name}`}
+          amountTzs={templateAccess[subscribeTarget.template?.id]?.price_per_month || subscribeTarget.template?.price_per_month}
+          endpoint="/workspaces/subscribe-template/"
+          extraPayload={{ template_id: subscribeTarget.template?.id }}
+          successMessage="Unlimited access active!"
+        />
       )}
 
     </div>

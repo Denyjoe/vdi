@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { 
   Monitor, Video, Zap, Clock, Users, Play, ArrowUp, ArrowDown, 
   Search, Power, MonitorPlay, Activity, Eye, Radio,
-  Cpu, HardDrive, Server, AppWindow, Code, Database, Compass, Terminal, Palette, Network, Shield, Smartphone, Globe, Film
+  Cpu, HardDrive, Server, AppWindow, Code, Database, Compass, Terminal, Palette, Network, Shield, Smartphone, Globe, Film, Smile
 } from 'lucide-react'
 import useAuthStore from '../store/authStore'
 import useThemeStore from "../store/themeStore"
@@ -275,8 +275,9 @@ export default function DashboardPage() {
         <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '24px' : '0', minHeight: '220px' }}>
           
           <div style={{ flex: isMobile ? 'none' : '0 0 60%', padding: '24px 4px', zIndex: 10 }}>
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-primary tracking-tight mb-3">
-              Welcome back, {user?.first_name || 'Student'} 👋
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-primary tracking-tight mb-3 flex items-center flex-wrap gap-2">
+              Welcome back, {user?.first_name || 'Student'} 
+              <Smile className="text-yellow-500 animate-bounce" size={36} strokeWidth={2.5} />
             </h1>
             <p className="text-lg text-secondary mb-8 max-w-xl leading-relaxed">
               Your virtual lab environment is ready. Pick up right where you left off or start a new session.
@@ -304,8 +305,8 @@ export default function DashboardPage() {
       </div>
 
       {/* SECTION 2 — STAT CARDS ROW */}
-      <div className="p-6">
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: '16px' }}>
+      <div className="mt-6 mb-8">
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: '16px' }}>
           <div style={{
             background: 'var(--bg-card)',
             border: '1px solid var(--border-color)',
@@ -614,8 +615,8 @@ export default function DashboardPage() {
             <h2 className="text-lg font-bold text-primary tracking-tight mb-5">
               Recent Activity
             </h2>
-            <div className="space-y-4">
-              {activities.slice(0, 10).map((a, i) => (
+            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-[var(--border-strong)] scrollbar-track-transparent">
+              {activities.map((a, i) => (
                 <div key={i} className="flex items-start gap-3">
                   <div className="flex flex-col items-center">
                     <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
@@ -625,7 +626,7 @@ export default function DashboardPage() {
                       : a.notification_type === 'workspace_stopped' ? 'bg-[#FF6B00]'
                       : 'bg-slate-600'
                     }`} />
-                    {i < activities.slice(0, 10).length - 1 && (
+                    {i < activities.length - 1 && (
                       <div className="w-[1px] h-full min-h-[32px] bg-nav-hover mt-1" />
                     )}
                   </div>

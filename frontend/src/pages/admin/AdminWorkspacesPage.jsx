@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { HardDrive, Search, RefreshCw } from 'lucide-react';
 import api from '../../services/api';
 import useBreakpoint from '../../hooks/useBreakpoint';
+import toast from 'react-hot-toast';
 
 function formatTimeAgo(dateString) {
   if (!dateString) return 'Never';
@@ -30,20 +31,27 @@ export default function AdminWorkspacesPage() {
   const [selectedDetail, setSelectedDetail] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchWorkspaces = async () => {
+  const fetchWorkspaces = async (isManual = false) => {
     try {
-      setRefreshing(true);
+      if (isManual) setRefreshing(true);
       const params = new URLSearchParams();
       if (search) params.set('search', search);
       if (statusFilter !== 'all') params.set('status', statusFilter);
+      params.set('t', Date.now()); // Prevent caching
       
       const res = await api.get(`/admin/workspaces/?${params.toString()}`);
       setWorkspaces(res.data.workspaces || []);
       setCounts(res.data.counts || counts);
+      if (isManual) toast.success('Workspaces refreshed');
     } catch(e) {
       console.error(e);
+      if (isManual) toast.error('Failed to refresh workspaces');
     } finally {
-      setRefreshing(false);
+      if (isManual) {
+        setTimeout(() => setRefreshing(false), 500);
+      } else {
+        setRefreshing(false);
+      }
     }
   };
 
@@ -122,7 +130,7 @@ export default function AdminWorkspacesPage() {
             Global view of all workspaces across the platform
           </p>
         </div>
-        <button onClick={fetchWorkspaces}
+        <button onClick={() => fetchWorkspaces(true)}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -136,7 +144,13 @@ export default function AdminWorkspacesPage() {
             fontWeight: 600,
           }}>
           <RefreshCw size={14} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
-          Refresh
+          {refreshing ? 'Refreshing...' : 'Refresh'}
+          <style>{`
+            @keyframes spin {
+              from { transform: rotate(0deg); }
+              to { transform: rotate(360deg); }
+            }
+          `}</style>
         </button>
       </div>
       

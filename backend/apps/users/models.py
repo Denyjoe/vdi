@@ -40,17 +40,6 @@ class User(AbstractUser):
         default=Role.USER,
         help_text="Determines which dashboard and permissions this user has.",
     )
-    is_host = models.BooleanField(default=False)
-    host_plan = models.CharField(
-        max_length=20,
-        choices=[
-            ('none', 'No Host Plan'),
-            ('personal', 'Personal Host'),
-            ('pro', 'Pro Host'),
-            ('institution', 'Institution'),
-        ],
-        default='none'
-    )
     phone = models.CharField(
         max_length=20,
         blank=True,
@@ -139,13 +128,6 @@ class User(AbstractUser):
     @property
     def is_admin(self):
         return self.role == 'admin'
-
-    @property
-    def subscription_plan(self):
-        try:
-            return self.subscription.plan.name
-        except:
-            return 'free'
 
 import secrets
 import hashlib
@@ -242,75 +224,6 @@ class SystemConfig(models.Model):
         return obj
 
 
-class SubscriptionPlan(models.Model):
-    PLAN_CHOICES = [
-        ('free', 'Free'),
-        ('personal_host', 'Personal Host'),
-        ('pro_host', 'Pro Host'),
-        ('institution', 'Institution'),
-    ]
-    name = models.CharField(
-        max_length=50,
-        choices=PLAN_CHOICES,
-        unique=True)
-    display_name = models.CharField(max_length=100)
-    price_usd = models.DecimalField(
-        max_digits=8, decimal_places=2,
-        default=0)
-    price_tzs = models.DecimalField(
-        max_digits=12, decimal_places=0,
-        default=0)
-    compute_hours_per_month = models.IntegerField(
-        default=5)
-        # -1 means unlimited
-    can_host_sessions = models.BooleanField(
-        default=False)
-    max_session_participants = models.IntegerField(
-        default=0)
-    features = models.JSONField(default=list)
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-class UserSubscription(models.Model):
-    STATUS_CHOICES = [
-        ('active', 'Active'),
-        ('expired', 'Expired'),
-        ('cancelled', 'Cancelled'),
-        ('trial', 'Trial'),
-    ]
-    user = models.OneToOneField(
-        User, on_delete=models.CASCADE,
-        related_name='subscription')
-    plan = models.ForeignKey(
-        SubscriptionPlan, on_delete=models.PROTECT)
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default='active')
-    started_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField(
-        null=True, blank=True)
-    compute_hours_used = models.FloatField(default=0)
-    last_reset_at = models.DateTimeField(
-        auto_now_add=True)
-
-    @property
-    def hours_remaining(self):
-        plan_hours = self.plan.compute_hours_per_month
-        if plan_hours == -1:
-            return float('inf')
-        return max(0,
-            plan_hours - self.compute_hours_used)
-
-    @property
-    def is_valid(self):
-        if self.status != 'active':
-            return False
-        if self.expires_at:
-            from django.utils import timezone
-            return timezone.now() < self.expires_at
-        return True
-
 class ComputeUsageLog(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE,
@@ -344,13 +257,6 @@ class Payment(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE,
         related_name='payments')
-    plan = models.ForeignKey(
-        SubscriptionPlan,
-        on_delete=models.PROTECT,
-        null=True, blank=True,
-        help_text="The subscription plan this payment purchased, if any. "
-                   "Null for non-subscription payments (session hosting, "
-                   "session extensions) that aren't tied to a plan tier.")
     amount_tzs = models.DecimalField(
         max_digits=12, decimal_places=2)
     amount_usd = models.DecimalField(
@@ -371,6 +277,15 @@ class Payment(models.Model):
         max_length=20,
         choices=STATUS_CHOICES,
         default='pending')
+    payment_type = models.CharField(
+        max_length=40,
+        choices=[
+            ('session_hosting', 'Session Hosting'),
+            ('session_extend', 'Session Extend'),
+            ('workspace_hours_purchase', 'Workspace Hours Purchase'),
+            ('workspace_template_subscription', 'Workspace Template Subscription'),
+        ],
+        null=True, blank=True)
     created_at = models.DateTimeField(
         auto_now_add=True)
     completed_at = models.DateTimeField(

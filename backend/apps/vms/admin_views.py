@@ -16,6 +16,8 @@ class AdminTemplatePricingView(views.APIView):
         
         if 'price_per_hour' in request.data:
             template.price_per_hour = request.data['price_per_hour']
+        if 'price_per_month' in request.data:
+            template.price_per_month = request.data['price_per_month']
         if 'monthly_cap' in request.data:
             template.monthly_cap = request.data['monthly_cap']
         if 'is_available' in request.data:
@@ -28,6 +30,82 @@ class AdminTemplatePricingView(views.APIView):
             "data": VMTemplateSerializer(template).data,
             "message": "Template pricing updated"
         })
+
+class AdminRunIdleCheckView(views.APIView):
+    """Manual trigger for the idle-workspace warning/deletion sweep —
+    the same function CELERY_BEAT_SCHEDULE calls at 3am daily. Genuinely
+    useful for real ops (run it on demand) and the only way to demonstrate
+    this feature firing live without waiting for the scheduled time."""
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        from apps.vms.services.idle_cleanup_service import check_and_process_idle_workspaces
+        result = check_and_process_idle_workspaces()
+        return Response({"success": True, "data": result})
+
+
+class AdminIdleWorkspacesSummaryView(views.APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        from django.utils import timezone
+        from datetime import timedelta
+        from apps.users.models import SystemConfig
+        from .models import Workspace
+
+        now = timezone.now()
+        warning_days = int(SystemConfig.get('workspace_idle_warning_days', '23'))
+        final_warning_days = int(SystemConfig.get('workspace_idle_final_warning_days', '29'))
+        deletion_days = int(SystemConfig.get('workspace_idle_deletion_days', '30'))
+
+        warning_cutoff = now - timedelta(days=warning_days)
+        final_cutoff = now - timedelta(days=final_warning_days)
+        delete_cutoff = now - timedelta(days=deletion_days)
+
+        active_workspaces = Workspace.objects.filter(status__in=['active', 'stopped'])
+
+        past_deletion_threshold = active_workspaces.filter(last_accessed_at__lte=delete_cutoff)
+        final_warning_stage = active_workspaces.filter(
+            last_accessed_at__lte=final_cutoff, last_accessed_at__gt=delete_cutoff
+        )
+        first_warning_stage = active_workspaces.filter(
+            last_accessed_at__lte=warning_cutoff, last_accessed_at__gt=final_cutoff
+        )
+        healthy = active_workspaces.filter(last_accessed_at__gt=warning_cutoff)
+
+        # Real disk usage per stage, from Proxmox itself — not estimated.
+        def stage_disk_gb(qs):
+            from apps.vms.services.proxmox_service import get_proxmox_service
+            total_bytes = 0
+            try:
+                ps = get_proxmox_service()
+                for ws in qs.select_related('vm'):
+                    if not ws.vm or not ws.vm.proxmox_vm_id:
+                        continue
+                    try:
+                        status = ps.proxmox.nodes(ps.node).qemu(ws.vm.proxmox_vm_id).status.current.get()
+                        total_bytes += status.get('maxdisk', 0) or 0
+                    except Exception:
+                        continue
+            except Exception:
+                return None
+            return round(total_bytes / (1024 ** 3), 1)
+
+        return Response({
+            "success": True,
+            "data": {
+                "healthy": {"count": healthy.count(), "disk_gb": stage_disk_gb(healthy)},
+                "first_warning": {"count": first_warning_stage.count(), "disk_gb": stage_disk_gb(first_warning_stage)},
+                "final_warning": {"count": final_warning_stage.count(), "disk_gb": stage_disk_gb(final_warning_stage)},
+                "past_deletion_threshold": {"count": past_deletion_threshold.count(), "disk_gb": stage_disk_gb(past_deletion_threshold)},
+                "thresholds": {
+                    "warning_days": warning_days,
+                    "final_warning_days": final_warning_days,
+                    "deletion_days": deletion_days,
+                },
+            }
+        })
+
 
 class AdminWorkspacesListView(views.APIView):
     permission_classes = [IsAdminUser]
@@ -86,20 +164,20 @@ class AdminForceStopWorkspaceView(views.APIView):
     def post(self, request, workspace_id):
         try:
             from apps.vms.models import Workspace
-            from apps.vms.services.pool_service import VMPoolService
-            
+            from apps.vms.workspace_views import _perform_stop
+
             ws = Workspace.objects.get(id=workspace_id)
-            
-            if ws.vm:
-                pool = VMPoolService()
-                try:
-                    pool.release_vm(ws.vm)
-                except Exception:
-                    pass
-            
-            ws.status = 'stopped'
-            ws.save()
-            
+
+            if ws.status == 'active' and ws.vm:
+                # Reuses the exact same stop+deduct path as a user-initiated
+                # stop, attributed to the workspace owner (not this admin),
+                # so hours-balance deduction is identical regardless of who
+                # or what actually stopped it.
+                _perform_stop(ws)
+            else:
+                ws.status = 'stopped'
+                ws.save()
+
             from apps.users.admin_services import log_admin_action
             log_admin_action(
                 request.user, 
@@ -309,69 +387,130 @@ class AdminHardwareView(views.APIView):
 
     def get(self, request):
         from apps.vms.models import Workspace
-        import random
 
         total_vms = Workspace.objects.exclude(status='deleted').count()
         running_vms = Workspace.objects.filter(status__in=['active', 'running']).count()
         stopped_vms = Workspace.objects.filter(status='stopped').count()
         provisioning_vms = Workspace.objects.filter(status='provisioning').count()
 
-        cpu_percent = round(random.uniform(10, 40), 1)
-        ram_percent = round(random.uniform(30, 60), 1)
+        # This used to be 100% fabricated (hardcoded 32GB RAM, random
+        # cpu/network numbers, fake storage pool sizes) — confirmed by
+        # direct testing that it contradicted the REAL Proxmox capacity
+        # shown elsewhere in the admin UI (VM Pool's 7.7GB vs this page's
+        # fake 32GB). Every number below now comes from a live Proxmox
+        # API call; if that call fails, we say so honestly instead of
+        # falling back to made-up numbers.
+        try:
+            from apps.vms.services.proxmox_service import get_proxmox_service
+            ps = get_proxmox_service()
+            node_status = ps.proxmox.nodes(ps.node).status.get()
+            storages = ps.proxmox.nodes(ps.node).storage.get()
 
-        data = {
-            "proxmox_version": "8.0.3 (Simulated)",
-            "uptime_days": 12,
-            "cpu_percent": cpu_percent,
-            "ram_percent": ram_percent,
-            "ram_used_gb": 16.4,
-            "ram_total_gb": 32.0,
-            "network": {
-                "interface": "vmbr0",
-                "bytes_in_per_sec": random.randint(10000, 500000),
-                "bytes_out_per_sec": random.randint(10000, 500000),
-            },
-            "vm_summary": {
-                "total": total_vms,
-                "running": running_vms,
-                "stopped": stopped_vms,
-                "provisioning": provisioning_vms,
-            },
-            "nodes": [
-                {
-                    "name": "pve-node-01",
+            # Instantaneous throughput isn't in the status endpoint — the
+            # most recent RRD (round-robin database) sample has it, same
+            # source Proxmox's own UI graphs use.
+            bytes_in, bytes_out = 0, 0
+            try:
+                rrd = ps.proxmox.nodes(ps.node).rrddata.get(timeframe='hour')
+                if rrd:
+                    latest = rrd[-1]
+                    bytes_in = round(latest.get('netin') or 0)
+                    bytes_out = round(latest.get('netout') or 0)
+            except Exception:
+                pass
+
+            mem = node_status.get('memory', {})
+            ram_total_gb = round(mem.get('total', 0) / (1024**3), 1)
+            ram_used_gb = round(mem.get('used', 0) / (1024**3), 1)
+            ram_percent = round((mem.get('used', 0) / mem['total']) * 100, 1) if mem.get('total') else 0
+            cpu_percent = round(node_status.get('cpu', 0) * 100, 1)
+
+            storage_pools = [{
+                "name": s.get('storage'),
+                "type": s.get('type'),
+                "used_gb": round(s.get('used', 0) / (1024**3), 1),
+                "total_gb": round(s.get('total', 0) / (1024**3), 1),
+            } for s in storages if s.get('total')]
+
+            data = {
+                "proxmox_version": node_status.get('pveversion', 'unknown'),
+                "uptime_days": round(node_status.get('uptime', 0) / 86400, 1),
+                "cpu_percent": cpu_percent,
+                "ram_percent": ram_percent,
+                "ram_used_gb": ram_used_gb,
+                "ram_total_gb": ram_total_gb,
+                "network": {
+                    "interface": "vmbr0",
+                    "bytes_in_per_sec": bytes_in,
+                    "bytes_out_per_sec": bytes_out,
+                },
+                "vm_summary": {
+                    "total": total_vms,
+                    "running": running_vms,
+                    "stopped": stopped_vms,
+                    "provisioning": provisioning_vms,
+                },
+                "nodes": [{
+                    "name": ps.node,
                     "status": "online",
                     "cpu_percent": cpu_percent,
                     "ram_percent": ram_percent,
                     "vm_count": total_vms,
+                }],
+                "storage_pools": storage_pools,
+            }
+            return Response({"success": True, "data": data})
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f'AdminHardwareView: Proxmox query failed: {e}', exc_info=True)
+            return Response({
+                "success": False,
+                "message": f"Could not reach Proxmox: {str(e)}",
+                "data": {
+                    "proxmox_version": "unreachable",
+                    "uptime_days": 0,
+                    "cpu_percent": 0,
+                    "ram_percent": 0,
+                    "ram_used_gb": 0,
+                    "ram_total_gb": 0,
+                    "network": {"interface": "vmbr0", "bytes_in_per_sec": 0, "bytes_out_per_sec": 0},
+                    "vm_summary": {
+                        "total": total_vms,
+                        "running": running_vms,
+                        "stopped": stopped_vms,
+                        "provisioning": provisioning_vms,
+                    },
+                    "nodes": [{"name": "unknown", "status": "offline", "cpu_percent": 0, "ram_percent": 0, "vm_count": total_vms}],
+                    "storage_pools": [],
                 }
-            ],
-            "storage_pools": [
-                {
-                    "name": "local-lvm",
-                    "type": "lvmthin",
-                    "used_gb": 120,
-                    "total_gb": 500,
-                },
-                {
-                    "name": "nfs-storage",
-                    "type": "nfs",
-                    "used_gb": 850,
-                    "total_gb": 2000,
-                }
-            ]
-        }
-        return Response({"success": True, "data": data})
+            }, status=200)
 
 class AdminHardwareCpuHistoryView(views.APIView):
     permission_classes = [IsAdminUser]
 
     def get(self, request):
-        import time, random
-        now_str = time.strftime('%H:%M')
-        data = [{
-            "time": now_str,
-            "cpu": round(random.uniform(10, 40), 1),
-            "ram": round(random.uniform(30, 60), 1)
-        }]
-        return Response({"success": True, "data": data})
+        import time
+
+        # Was 100% random.uniform() data — replaced with real Proxmox RRD
+        # (round-robin database) history, the same mechanism Proxmox's own
+        # UI graphs use.
+        try:
+            from apps.vms.services.proxmox_service import get_proxmox_service
+            ps = get_proxmox_service()
+            rrd = ps.proxmox.nodes(ps.node).rrddata.get(timeframe='hour')
+
+            data = []
+            # Sample every 5th point so the chart isn't overloaded with the
+            # full 60-entry hour of data.
+            for point in rrd[::5]:
+                mem_total = point.get('memtotal') or 1
+                data.append({
+                    "time": time.strftime('%H:%M', time.localtime(point.get('time', 0))),
+                    "cpu": round((point.get('cpu') or 0) * 100, 1),
+                    "ram": round((point.get('memused') or 0) / mem_total * 100, 1),
+                })
+            return Response({"success": True, "data": data})
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f'AdminHardwareCpuHistoryView: Proxmox RRD query failed: {e}', exc_info=True)
+            return Response({"success": False, "message": str(e), "data": []})

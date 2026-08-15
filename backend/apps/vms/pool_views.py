@@ -285,7 +285,7 @@ class TemplateLinkView(APIView):
 
     Body: {"proxmox_template_id": 9000}
 
-    Link a CloudDesk template to a Proxmox template VM.
+    Link a Ospace template to a Proxmox template VM.
     """
 
     permission_classes = [IsAuthenticated, IsAdmin]
@@ -295,7 +295,7 @@ class TemplateLinkView(APIView):
         Link or unlink a template to a Proxmox template ID.
 
         Args:
-            template_id (int): The CloudDesk template ID.
+            template_id (int): The Ospace template ID.
             request.data: Must contain proxmox_template_id (int or null).
 
         Returns:
@@ -584,6 +584,7 @@ class AdminTemplateCreateView(APIView):
             ram_gb=data.get('ram_gb'),
             storage_gb=data.get('storage_gb'),
             price_per_hour=data.get('price_per_hour', 0),
+            price_per_month=data.get('price_per_month', 0),
             monthly_cap=data.get('monthly_cap', 0),
             software_list=data.get('software_list', []),
             description=data.get('description', ''),
@@ -624,6 +625,7 @@ class AdminTemplateDetailView(APIView):
         if 'ram_gb' in data: t.ram_gb = data['ram_gb']
         if 'storage_gb' in data: t.storage_gb = data['storage_gb']
         if 'price_per_hour' in data: t.price_per_hour = data['price_per_hour']
+        if 'price_per_month' in data: t.price_per_month = data['price_per_month']
         if 'monthly_cap' in data: t.monthly_cap = data['monthly_cap']
         if 'software_list' in data: t.software_list = data['software_list']
         if 'description' in data: t.description = data['description']

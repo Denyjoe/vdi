@@ -9,6 +9,7 @@ provisioning logic is routed through apps/vms/services/vm_orchestrator.py
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 
 class VMTemplate(models.Model):
@@ -86,6 +87,11 @@ class VMTemplate(models.Model):
         max_digits=10, decimal_places=2,
         default=0,
         help_text="Price per hour in TZS"
+    )
+    price_per_month = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        default=0,
+        help_text="Flat monthly subscription price in TZS for unlimited access to this template"
     )
     monthly_cap = models.DecimalField(
         max_digits=10, decimal_places=2,
@@ -241,12 +247,83 @@ class Workspace(models.Model):
   compute_hours_used = models.FloatField(
     default=0)
   last_accessed_at = models.DateTimeField(
-    null=True, blank=True)
+    default=timezone.now,
+    help_text="Last genuine launch (any launch path — free, paid, subscription, "
+              "or power-up). The activity signal for idle-workspace detection.")
   created_at = models.DateTimeField(
     auto_now_add=True)
+  access_reason = models.CharField(
+    max_length=20, blank=True, default='',
+    help_text="How the current/last launch was granted: 'subscription', 'free_hour', or 'paid'. "
+              "Used at stop time to decide whether to log free-hour usage.")
 
   class Meta:
     unique_together = ['owner', 'name']
+
+
+class TemplateSubscription(models.Model):
+    """Monthly unlimited-access subscription, scoped to ONE template.
+
+    Calendar-based: expires_at is set 30 days out at purchase/renewal time
+    and is NEVER extended or paused by usage — heavy use during the month
+    doesn't push the expiry back, light use doesn't refund unused days.
+    Separate from session hosting, which remains pure pay-per-hour with no
+    subscription requirement. One per (user, template) pair.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='template_subscriptions')
+    template = models.ForeignKey(
+        'VMTemplate', on_delete=models.CASCADE)
+    is_active = models.BooleanField(default=True)
+    started_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    class Meta:
+        unique_together = ['user', 'template']
+
+    def is_valid(self):
+        from django.utils import timezone
+        return self.is_active and self.expires_at > timezone.now()
+
+
+class WorkspaceHoursBalance(models.Model):
+    """Purchased-hours balance, scoped to ONE (user, template) pair.
+
+    Usage-metered: deducted at STOP time by real elapsed wall-clock time
+    the VM was running (VirtualMachine.started_at -> stopped_at), by
+    whichever path actually stopped it — user action, admin force-stop,
+    or crash recovery all deduct identically.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='hours_balances')
+    template = models.ForeignKey(
+        'VMTemplate', on_delete=models.CASCADE)
+    hours_remaining = models.DecimalField(
+        max_digits=6, decimal_places=2, default=0)
+
+    class Meta:
+        unique_together = ['user', 'template']
+
+
+class WorkspaceIdleNotification(models.Model):
+    """Tracks which idle-lifecycle notifications a workspace has already
+    received, so the daily idle-check never re-sends the same warning."""
+    NOTIFICATION_TYPE_CHOICES = [
+        ('first_warning', 'First Warning'),
+        ('final_warning', 'Final Warning'),
+        ('deleted', 'Deleted'),
+    ]
+    workspace = models.ForeignKey(
+        Workspace, on_delete=models.CASCADE,
+        related_name='idle_notifications')
+    notification_type = models.CharField(
+        max_length=20, choices=NOTIFICATION_TYPE_CHOICES)
+    sent_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['workspace', 'notification_type']
 
 
 class VMPoolEntry(models.Model):

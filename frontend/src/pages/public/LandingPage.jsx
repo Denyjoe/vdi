@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import JoinByCodeModal from '../../components/shared/JoinByCodeModal';
 import NetworkGlobe from '../../components/shared/NetworkGlobe';
+import OspaceLogo from '../../components/shared/OspaceLogo';
+import logoWhite from '../../assets/ospace-logo-white.png';
 import api from '../../services/api';
 
 const TRUST_CATEGORIES = [
@@ -15,12 +17,12 @@ const TRUST_CATEGORIES = [
 
 const FAQ_ITEMS = [
   {
-    q: 'What is CloudDesk, and why should I choose it?',
-    a: 'CloudDesk is a browser-based virtual desktop platform. Launch CAD, Data Science, or Programming environments instantly no local installs, no hardware upgrades, just a browser tab.',
+    q: 'What is Ospace, and why should I choose it?',
+    a: 'Ospace is a browser-based virtual desktop platform. Launch CAD, Data Science, or Programming environments instantly no local installs, no hardware upgrades, just a browser tab.',
   },
   {
     q: 'How does pricing work?',
-    a: 'Joining sessions is free. Hosting plans are billed monthly and include a set number of workspace hours, with usage tracked transparently in your dashboard.',
+    a: 'Joining sessions is always free. Hosting a live session is pay-per-hour, billed only when you start one. Personal workspaces are priced per VM type — buy exactly the hours you need, or subscribe to a specific template for unlimited monthly access.',
   },
   {
     q: 'What is Exam Mode?',
@@ -36,12 +38,10 @@ const FAQ_ITEMS = [
   },
 ];
 
-const FALLBACK_PLANS = [
-  { id: 'free', name: 'free', display_name: 'Free', price_usd: 0, compute_hours_per_month: 5, can_host_sessions: false, max_session_participants: 0 },
-  { id: 'personal_host', name: 'personal_host', display_name: 'Personal Host', price_usd: 9, compute_hours_per_month: 20, can_host_sessions: true, max_session_participants: 10 },
-  { id: 'pro_host', name: 'pro_host', display_name: 'Pro Host', price_usd: 19, compute_hours_per_month: 80, can_host_sessions: true, max_session_participants: 50 },
-  { id: 'institution', name: 'institution', display_name: 'Institution', price_usd: 99, compute_hours_per_month: -1, can_host_sessions: true, max_session_participants: 200 },
-];
+const FALLBACK_PRICING = {
+  session_hosting_rate_tzs: 5000,
+  templates: [],
+};
 
 // ---------- small animation helpers ----------
 
@@ -445,7 +445,7 @@ function FaqItem({ item, isOpen, onToggle }) {
 export default function LandingPage() {
   const navigate = useNavigate();
   const [showJoinModal, setShowJoinModal] = useState(false);
-  const [plans, setPlans] = useState([]);
+  const [pricing, setPricing] = useState(FALLBACK_PRICING);
   const [loadingPricing, setLoadingPricing] = useState(true);
   const [activeSection, setActiveSection] = useState('');
   const [isScrolled, setIsScrolled] = useState(false);
@@ -457,14 +457,14 @@ export default function LandingPage() {
     const fetchPricing = async () => {
       try {
         const res = await api.get('/pricing/', { timeout: 6000 });
-        if (res.data.success && res.data.data.plans?.length) {
+        if (res.data.success && res.data.data) {
           settled = true;
-          setPlans(res.data.data.plans);
+          setPricing(res.data.data);
         }
       } catch (err) {
-        console.error('Failed to fetch pricing, using fallback plans', err);
+        console.error('Failed to fetch pricing, using fallback pricing', err);
       } finally {
-        if (!settled) setPlans(FALLBACK_PLANS);
+        if (!settled) setPricing(FALLBACK_PRICING);
         setLoadingPricing(false);
       }
     };
@@ -512,8 +512,8 @@ export default function LandingPage() {
       <nav className={`fixed top-0 w-full z-40 transition-all duration-300 ${isScrolled ? 'bg-[#17132B]/90 backdrop-blur-md border-b border-white/10 py-0' : 'bg-transparent border-b border-transparent py-2'}`}>
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <Link to="/" onClick={(e) => scrollToSection(e, 'hero')} className="flex items-center gap-2">
-            <Monitor className="w-7 h-7 text-[#8B85FF]" />
-            <span className="text-lg font-bold text-white tracking-tight" style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}>CloudDesk</span>
+            <img src={logoWhite} alt="Ospace" style={{ height: 28, width: 'auto' }} />
+            <span className="text-lg font-bold text-white tracking-tight" style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}>Ospace</span>
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
@@ -587,7 +587,7 @@ export default function LandingPage() {
           </h1>
 
           <p className="text-lg text-slate-300 mb-10 max-w-2xl mx-auto leading-relaxed">
-            CloudDesk is a browser-based virtual desktop platform launch powerful environments instantly,
+            Ospace is a browser-based virtual desktop platform launch powerful environments instantly,
             join live sessions for free, or upgrade to host your own.
           </p>
 
@@ -660,7 +660,7 @@ export default function LandingPage() {
               Simple. Fast. Built for you.
             </h2>
             <p className="text-[#475569] dark:text-slate-300">
-              CloudDesk gives you the workspace infrastructure you need, without the complexity you don't.
+              Ospace gives you the workspace infrastructure you need, without the complexity you don't.
             </p>
           </Reveal>
 
@@ -680,7 +680,7 @@ export default function LandingPage() {
               Everything you need to teach, host, and build
             </h2>
             <p className="text-[#475569] dark:text-slate-300">
-              From instant templates to live proctored sessions CloudDesk gives you the building blocks, with a clean experience.
+              From instant templates to live proctored sessions Ospace gives you the building blocks, with a clean experience.
             </p>
           </Reveal>
 
@@ -701,49 +701,92 @@ export default function LandingPage() {
             <h2 className="text-3xl lg:text-4xl font-normal text-[#0F172A] dark:text-white mb-4" style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}>
               Transparent, affordable pricing
             </h2>
-            <p className="text-[#475569] dark:text-slate-300">Join for free. Upgrade whenever you're ready to host.</p>
+            <p className="text-[#475569] dark:text-slate-300">Two ways to pay. No subscriptions required for either.</p>
           </Reveal>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
             {loadingPricing ? (
               <div className="col-span-full flex justify-center py-12"><div className="w-8 h-8 rounded-full border-4 border-[#6C63FF] border-t-transparent animate-spin"></div></div>
             ) : (
-              plans.map((plan, i) => (
-                <Reveal key={plan.id} delay={i * 80}>
-                  <div className="p-8 rounded-lg bg-white dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-slate-800 hover:border-[#6C63FF]/40 hover:-translate-y-1 transition-all duration-300 relative flex flex-col h-full">
-                    {plan.name === 'pro_host' && (
-                      <div className="absolute top-0 right-8 -translate-y-1/2 px-3 py-1 bg-[#6C63FF] text-white text-[10px] font-mono font-bold rounded uppercase tracking-wider">
-                        Most Popular
-                      </div>
-                    )}
-                    <h3 className="text-xl font-bold text-[#0F172A] dark:text-white mb-1">{plan.display_name}</h3>
-                    <p className="text-[#475569] dark:text-slate-300 mb-6 capitalize text-sm">{plan.name.replace('_', ' ')} plan</p>
+              <>
+                <Reveal delay={0}>
+                  <div className="p-8 rounded-lg bg-white dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-slate-800 hover:border-[#6C63FF]/40 hover:-translate-y-1 transition-all duration-300 flex flex-col h-full">
+                    <h3 className="text-xl font-bold text-[#0F172A] dark:text-white mb-1">Session Hosting</h3>
+                    <p className="text-[#475569] dark:text-slate-300 mb-6 text-sm">Pay only when you host a live session</p>
                     <div className="mb-8">
-                      <span className="text-4xl font-bold text-[#0F172A] dark:text-white">${plan.price_usd}</span>
-                      <span className="text-sm text-[#475569] dark:text-slate-400 font-mono ml-1">/mo</span>
+                      <span className="text-4xl font-bold text-[#0F172A] dark:text-white">TZS {Number(pricing.session_hosting_rate_tzs || 0).toLocaleString()}</span>
+                      <span className="text-sm text-[#475569] dark:text-slate-400 font-mono ml-1">/hour</span>
                     </div>
-
                     <ul className="space-y-3 mb-8 flex-1">
                       <li className="flex items-center gap-3 text-sm text-[#0F172A] dark:text-white">
-                        <CheckCircle size={18} className="text-[#6C63FF] shrink-0" /> {plan.can_host_sessions ? `Host up to ${plan.max_session_participants} users` : 'Join unlimited sessions'}
+                        <CheckCircle size={18} className="text-[#6C63FF] shrink-0" /> Invite participants by code
                       </li>
                       <li className="flex items-center gap-3 text-sm text-[#0F172A] dark:text-white">
-                        <CheckCircle size={18} className="text-[#6C63FF] shrink-0" /> {plan.compute_hours_per_month === -1 ? 'Unlimited' : plan.compute_hours_per_month} workspace hours/mo
+                        <CheckCircle size={18} className="text-[#6C63FF] shrink-0" /> Extend anytime, pay-per-hour
                       </li>
                       <li className="flex items-center gap-3 text-sm text-[#0F172A] dark:text-white">
-                        <CheckCircle size={18} className="text-[#6C63FF] shrink-0" /> Access to VM templates
+                        <CheckCircle size={18} className="text-[#6C63FF] shrink-0" /> No subscription required
                       </li>
                     </ul>
-
-                    <Link
-                      to="/signin"
-                      className={`block w-full py-3 text-center rounded font-mono text-xs uppercase tracking-wider font-semibold transition-all ${plan.name === 'pro_host' ? 'bg-[#6C63FF] hover:bg-[#5b53e6] text-white' : 'bg-transparent hover:bg-[#F8FAFC] dark:hover:bg-[#050B18] text-[#0F172A] dark:text-white border border-[#E2E8F0] dark:border-slate-800'}`}
-                    >
-                      Get Started
+                    <Link to="/signin" className="block w-full py-3 text-center rounded font-mono text-xs uppercase tracking-wider font-semibold transition-all bg-transparent hover:bg-[#F8FAFC] dark:hover:bg-[#050B18] text-[#0F172A] dark:text-white border border-[#E2E8F0] dark:border-slate-800">
+                      Host a Session
                     </Link>
                   </div>
                 </Reveal>
-              ))
+
+                <Reveal delay={80}>
+                  <div className="p-8 rounded-lg bg-white dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-slate-800 hover:border-[#6C63FF]/40 hover:-translate-y-1 transition-all duration-300 flex flex-col h-full">
+                    <h3 className="text-xl font-bold text-[#0F172A] dark:text-white mb-1">Personal Workspace</h3>
+                    <p className="text-[#475569] dark:text-slate-300 mb-6 text-sm">Buy hours for the VM type you need, pay only for time used</p>
+                    <div className="mb-8">
+                      <span className="text-4xl font-bold text-[#0F172A] dark:text-white">Per Hour</span>
+                      <span className="text-sm text-[#475569] dark:text-slate-400 font-mono ml-1">— set per template</span>
+                    </div>
+                    <ul className="space-y-3 mb-8 flex-1">
+                      <li className="flex items-center gap-3 text-sm text-[#0F172A] dark:text-white">
+                        <CheckCircle size={18} className="text-[#6C63FF] shrink-0" /> Buy exactly the hours you need
+                      </li>
+                      <li className="flex items-center gap-3 text-sm text-[#0F172A] dark:text-white">
+                        <CheckCircle size={18} className="text-[#6C63FF] shrink-0" /> Usage pauses the moment you stop
+                      </li>
+                      <li className="flex items-center gap-3 text-sm text-[#0F172A] dark:text-white">
+                        <CheckCircle size={18} className="text-[#6C63FF] shrink-0" /> Each VM type has its own real hourly rate
+                      </li>
+                    </ul>
+                    <Link to="/signin" className="block w-full py-3 text-center rounded font-mono text-xs uppercase tracking-wider font-semibold transition-all bg-transparent hover:bg-[#F8FAFC] dark:hover:bg-[#050B18] text-[#0F172A] dark:text-white border border-[#E2E8F0] dark:border-slate-800">
+                      Launch a Workspace
+                    </Link>
+                  </div>
+                </Reveal>
+
+                <Reveal delay={160}>
+                  <div className="p-8 rounded-lg bg-white dark:bg-[#0F172A] border-2 border-[#6C63FF]/50 hover:-translate-y-1 transition-all duration-300 relative flex flex-col h-full">
+                    <div className="absolute top-0 right-8 -translate-y-1/2 px-3 py-1 bg-[#6C63FF] text-white text-[10px] font-mono font-bold rounded uppercase tracking-wider">
+                      Best Value
+                    </div>
+                    <h3 className="text-xl font-bold text-[#0F172A] dark:text-white mb-1">Per-Template Unlimited</h3>
+                    <p className="text-[#475569] dark:text-slate-300 mb-6 text-sm">Subscribe to a specific VM type for unlimited monthly access</p>
+                    <div className="mb-8">
+                      <span className="text-4xl font-bold text-[#0F172A] dark:text-white">Per Month</span>
+                      <span className="text-sm text-[#475569] dark:text-slate-400 font-mono ml-1">— set per template</span>
+                    </div>
+                    <ul className="space-y-3 mb-8 flex-1">
+                      <li className="flex items-center gap-3 text-sm text-[#0F172A] dark:text-white">
+                        <CheckCircle size={18} className="text-[#6C63FF] shrink-0" /> Unlimited hours on that VM type
+                      </li>
+                      <li className="flex items-center gap-3 text-sm text-[#0F172A] dark:text-white">
+                        <CheckCircle size={18} className="text-[#6C63FF] shrink-0" /> Flat monthly fee, no per-hour charges
+                      </li>
+                      <li className="flex items-center gap-3 text-sm text-[#0F172A] dark:text-white">
+                        <CheckCircle size={18} className="text-[#6C63FF] shrink-0" /> Subscribe to as many templates as you need
+                      </li>
+                    </ul>
+                    <Link to="/signin" className="block w-full py-3 text-center rounded font-mono text-xs uppercase tracking-wider font-semibold transition-all bg-[#6C63FF] hover:bg-[#5b53e6] text-white">
+                      Go Unlimited
+                    </Link>
+                  </div>
+                </Reveal>
+              </>
             )}
           </div>
         </div>
@@ -788,7 +831,7 @@ export default function LandingPage() {
               Get Started <ArrowRight size={16} />
             </Link>
             <a
-              href="mailto:support@clouddesk.io"
+              href="mailto:support@ospace.io"
               className="w-full sm:w-auto px-7 py-3.5 bg-transparent hover:bg-white/5 text-white border border-white/20 rounded font-mono text-xs uppercase tracking-wider font-semibold transition-all"
             >
               Contact Sales
@@ -801,15 +844,15 @@ export default function LandingPage() {
       <footer className="py-12 bg-[#F8FAFC] dark:bg-[#050B18] border-t border-[#E2E8F0] dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <Monitor className="w-6 h-6 text-[#6C63FF]" />
-            <span className="text-lg font-bold text-[#0F172A] dark:text-white" style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}>CloudDesk</span>
+            <OspaceLogo size={24} />
+            <span className="text-lg font-bold text-[#0F172A] dark:text-white" style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}>Ospace</span>
           </div>
           <div className="flex gap-6 font-mono text-xs uppercase tracking-wider">
             <Link to="/terms" className="text-[#475569] dark:text-slate-300 hover:text-[#6C63FF] transition-colors">Terms</Link>
             <Link to="/privacy" className="text-[#475569] dark:text-slate-300 hover:text-[#6C63FF] transition-colors">Privacy</Link>
-            <a href="mailto:support@clouddesk.io" className="text-[#475569] dark:text-slate-300 hover:text-[#6C63FF] transition-colors">Contact</a>
+            <a href="mailto:support@ospace.io" className="text-[#475569] dark:text-slate-300 hover:text-[#6C63FF] transition-colors">Contact</a>
           </div>
-          <p className="text-xs text-[#94A3B8] dark:text-slate-500 font-mono">CloudDesk © {new Date().getFullYear()}</p>
+          <p className="text-xs text-[#94A3B8] dark:text-slate-500 font-mono">Ospace © {new Date().getFullYear()}</p>
         </div>
       </footer>
 

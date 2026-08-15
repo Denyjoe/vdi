@@ -189,17 +189,17 @@ function UserDetailDrawer({ userId, onClose, onSuspend, onReactivate }) {
                 <X size={16} />
               </button>
             </div>
-            
             <div style={{ padding: '24px' }}>
               <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
                 <span style={{
                   padding: '4px 12px',
                   borderRadius: '9999px',
                   fontSize: '11px', fontWeight: 600,
-                  background: 'var(--accent-primary-soft)',
-                  color: 'var(--accent-primary)',
+                  background: detail.role === 'admin' ? 'var(--status-info-bg)' : detail.workspace_subscription_active ? 'rgba(108, 99, 255, 0.15)' : 'var(--bg-input)',
+                  color: detail.role === 'admin' ? 'var(--status-info)' : detail.workspace_subscription_active ? '#8B83FF' : 'var(--text-muted)',
+                  border: detail.workspace_subscription_active ? '1px solid rgba(108, 99, 255, 0.3)' : '1px solid var(--border-color)',
                 }}>
-                  {detail.role === 'admin' ? 'Admin' : detail.is_host ? 'Host' : 'Free User'}
+                  {detail.role === 'admin' ? 'Admin' : detail.workspace_subscription_active ? 'Workspace Unlimited' : 'Pay-as-you-go'}
                 </span>
                 <span style={{
                   padding: '4px 12px',
@@ -316,7 +316,7 @@ function UserDetailDrawer({ userId, onClose, onSuspend, onReactivate }) {
 export default function AdminUsersPage() {
   const { isMobile } = useBreakpoint();
   const [users, setUsers] = useState([]);
-  const [counts, setCounts] = useState({ all: 0, free: 0, hosts: 0, admins: 0, active: 0, suspended: 0 });
+  const [counts, setCounts] = useState({ all: 0, subscribers: 0, admins: 0, active: 0, suspended: 0 });
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -358,7 +358,7 @@ export default function AdminUsersPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `clouddesk_users_${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = `ospace_users_${new Date().toISOString().split('T')[0]}.csv`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -500,8 +500,7 @@ export default function AdminUsersPage() {
       <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
         {[
           { key: 'all', label: 'All', count: counts.all },
-          { key: 'free', label: 'Free Users', count: counts.free },
-          { key: 'host', label: 'Hosts', count: counts.hosts },
+          { key: 'subscriber', label: 'Workspace Subscribers', count: counts.subscribers },
           { key: 'admin', label: 'Admins', count: counts.admins },
         ].map(f => (
           <button key={f.key} onClick={() => setRoleFilter(f.key)}
@@ -561,13 +560,6 @@ export default function AdminUsersPage() {
             }}>
             Reactivate Selected
           </button>
-          <button onClick={() => handleBulkAction('make_host')}
-            style={{
-              padding: '6px 14px', borderRadius: '8px', background: 'var(--bg-card)',
-              color: 'var(--text-primary)', border: '1px solid var(--border-color)', fontSize: '12px', fontWeight: 600, cursor: 'pointer'
-            }}>
-            Make Host
-          </button>
           <button onClick={() => setSelectedIds([])}
             style={{
               marginLeft: 'auto', color: 'var(--text-muted)', fontSize: '12px',
@@ -604,7 +596,7 @@ export default function AdminUsersPage() {
                     )}
                     <span style={{ color: 'var(--text-primary)', fontSize: '14px', fontWeight: 600 }}>{u.first_name} {u.last_name}</span>
                     {u.role === 'admin' && <span style={{ fontSize: '9px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: 'var(--status-info-bg)', color: 'var(--status-info)' }}>ADMIN</span>}
-                    {u.is_host && u.role !== 'admin' && <span style={{ fontSize: '9px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: 'var(--accent-primary-soft)', color: 'var(--accent-primary)' }}>HOST</span>}
+                    {u.plan === 'Workspace Unlimited' && u.role !== 'admin' && <span style={{ fontSize: '9px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: 'var(--accent-primary-soft)', color: 'var(--accent-primary)' }}>UNLIMITED</span>}
                   </div>
                   <span style={{ padding: '3px 10px', borderRadius: '9999px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', background: u.is_suspended ? 'var(--status-error-bg)' : 'var(--status-online-bg)', color: u.is_suspended ? 'var(--status-error)' : 'var(--status-online)' }}>
                     {u.is_suspended ? 'Suspended' : 'Active'}
@@ -614,7 +606,13 @@ export default function AdminUsersPage() {
                   <span style={{ fontWeight: 600 }}>Email:</span> {u.email}
                 </div>
                 <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-                  <span style={{ fontWeight: 600 }}>Plan:</span> {u.subscription?.plan_name ? u.subscription.plan_name.replace('_', ' ') : 'Free'}
+                  <span style={{ fontWeight: 600 }}>Plan:</span>{' '}
+                  <span style={{
+                    color: u.plan === 'Workspace Unlimited' ? 'var(--accent-primary)' : 'var(--text-muted)',
+                    fontWeight: u.plan === 'Workspace Unlimited' ? 600 : 400
+                  }}>
+                    {u.plan || 'Pay-as-you-go'}
+                  </span>
                 </div>
                 <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
                   <span style={{ fontWeight: 600 }}>Joined:</span> {formatDate(u.date_joined)}
@@ -699,8 +697,23 @@ export default function AdminUsersPage() {
                   <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-secondary)' }}>
                     {u.email}
                   </td>
-                  <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                    {u.plan || 'Free'}
+                  <td style={{ padding: '12px 16px', fontSize: '12px' }}>
+                    {u.plan === 'Workspace Unlimited' ? (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '4px',
+                        padding: '2px 8px', borderRadius: '9999px',
+                        fontSize: '11px', fontWeight: 600,
+                        background: 'rgba(108, 99, 255, 0.12)',
+                        color: 'var(--accent-primary)',
+                        border: '1px solid rgba(108, 99, 255, 0.25)'
+                      }}>
+                        Workspace Unlimited
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)' }}>
+                        Pay-as-you-go
+                      </span>
+                    )}
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     <span style={{

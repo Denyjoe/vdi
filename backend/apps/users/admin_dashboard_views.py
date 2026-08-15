@@ -51,7 +51,11 @@ class AdminAttentionView(APIView):
         # Pool running low
         try:
             from apps.vms.models import VMPoolEntry
-            available_pool = VMPoolEntry.objects.filter(status='available').count()
+            # VMPoolEntry.STATUS_CHOICES is creating/ready/assigned/error —
+            # 'available' was never a real value, so this always read 0
+            # regardless of actual pool health, making "Low VM Pool" fire
+            # unconditionally as a false alarm.
+            available_pool = VMPoolEntry.objects.filter(status='ready').count()
             if available_pool < 2:
                 issues.append({
                     'type': 'low_pool',
@@ -140,20 +144,41 @@ class TriggerBackupView(APIView):
     def post(self, request):
         import subprocess
         import os
+        import shutil
+        import glob
         from datetime import datetime
-        
+
         try:
             backup_dir = os.path.join(settings.BASE_DIR, 'backups')
             os.makedirs(backup_dir, exist_ok=True)
-            
+
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = f'clouddesk_backup_{timestamp}.sql'
+            filename = f'ospace_backup_{timestamp}.sql'
             filepath = os.path.join(backup_dir, filename)
-            
+
             db_config = settings.DATABASES['default']
-            
+
+            # subprocess.run() doesn't search Windows' typical PostgreSQL
+            # install locations the way a shell with PATH configured would
+            # — shutil.which() finds it if it's genuinely on PATH (the
+            # normal case on Linux deployments), otherwise fall back to
+            # the standard Windows install directory pattern.
+            pg_dump_path = shutil.which('pg_dump')
+            if not pg_dump_path:
+                candidates = sorted(
+                    glob.glob(r'C:\Program Files\PostgreSQL\*\bin\pg_dump.exe'),
+                    reverse=True,
+                )
+                if candidates:
+                    pg_dump_path = candidates[0]
+            if not pg_dump_path:
+                return Response({
+                    'success': False,
+                    'error': 'pg_dump was not found on PATH or in the standard PostgreSQL install location.',
+                }, status=500)
+
             cmd = [
-                'pg_dump',
+                pg_dump_path,
                 '-h', db_config.get('HOST', 'localhost'),
                 '-U', db_config['USER'],
                 '-d', db_config['NAME'],

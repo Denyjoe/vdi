@@ -257,7 +257,7 @@ export default function AdminDashboard() {
     <div className="p-6 max-w-7xl mx-auto space-y-8 animate-[fadeIn_0.4s_ease-out]">
       <div className="mb-8">
         <h2 className="text-2xl font-semibold text-[var(--text-primary)]">Welcome back, {user?.first_name}</h2>
-        <p className="text-[var(--text-secondary)] mt-1">CloudDesk Administration</p>
+        <p className="text-[var(--text-secondary)] mt-1">Ospace Administration</p>
       </div>
 
       {/* SECTION A.1: Needs Attention */}
@@ -462,7 +462,7 @@ export default function AdminDashboard() {
               </thead>
               <tbody className="divide-y divide-white/5">
                 {[
-                  { name: 'CloudDesk API', status: true, port: '8000', canRetry: false },
+                  { name: 'Ospace API', status: true, port: '8000', canRetry: false },
                   { name: 'Proxmox VE', status: systemStats?.proxmox?.status === 'online', port: '8006', canRetry: true, id: 'proxmox' },
                   { name: 'Guacamole', status: systemStats?.guacamole?.status === 'online', port: '8080', canRetry: true, id: 'guacamole' },
                   { name: 'PostgreSQL', status: true, port: '5432', canRetry: false },

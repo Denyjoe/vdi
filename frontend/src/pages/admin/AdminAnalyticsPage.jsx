@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Users, Monitor, Activity, DollarSign, Wifi, TrendingUp, Clock, Server, Video, Wallet, Download } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, LineChart, Line, Cell } from 'recharts';
+import { Users, Monitor, Activity, DollarSign, Wifi, TrendingUp, Server, Video, Wallet, Download } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, LineChart, Line, Cell, PieChart, Pie } from 'recharts';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -47,7 +47,7 @@ export default function AdminAnalyticsPage() {
   const [stats, setStats] = useState({
     total_users: 0,
     new_users_week: 0,
-    total_vms: 0,
+    total_workspaces: 0,
     total_sessions: 0,
     sessions_week: 0,
     total_revenue_tzs: 0,
@@ -56,10 +56,12 @@ export default function AdminAnalyticsPage() {
 
   const [sessionsDaily, setSessionsDaily] = useState([]);
   const [revenueMonthly, setRevenueMonthly] = useState([]);
+  const [revenueTimeFilter, setRevenueTimeFilter] = useState('6m');
   const [userGrowth, setUserGrowth] = useState([]);
   const [revenueBreakdown, setRevenueBreakdown] = useState({ total: 0, breakdown: [] });
   const [vmTemplates, setVmTemplates] = useState([]);
   const [topUsers, setTopUsers] = useState([]);
+  const [revenueByTemplate, setRevenueByTemplate] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -70,13 +72,13 @@ export default function AdminAnalyticsPage() {
         // is why this whole page silently showed all-zero/empty stats and
         // charts: Promise.allSettled swallowed the rejections and every
         // `if (X.status === 'fulfilled' ...)` check below just skipped.
-        const [statsRes, sessionsRes, revenueRes, growthRes, breakdownRes, templatesRes] = await Promise.allSettled([
+        const [statsRes, sessionsRes, growthRes, breakdownRes, templatesRes, revByTemplateRes] = await Promise.allSettled([
           api.get('/admin/platform-stats/'),
           api.get('/admin/analytics/sessions-daily/'),
-          api.get('/admin/analytics/revenue-monthly/'),
           api.get('/admin/analytics/user-growth/'),
           api.get('/admin/analytics/revenue-breakdown/'),
           api.get('/admin/analytics/vm-usage/'),
+          api.get('/admin/analytics/revenue-by-template/'),
         ]);
 
         if (statsRes.status === 'fulfilled' && statsRes.value.data.success) {
@@ -85,10 +87,6 @@ export default function AdminAnalyticsPage() {
 
         if (sessionsRes.status === 'fulfilled' && sessionsRes.value.data.sessions) {
           setSessionsDaily(sessionsRes.value.data.sessions);
-        }
-
-        if (revenueRes.status === 'fulfilled' && revenueRes.value.data.revenue) {
-          setRevenueMonthly(revenueRes.value.data.revenue);
         }
 
         if (growthRes.status === 'fulfilled' && growthRes.value.data.growth) {
@@ -123,6 +121,10 @@ export default function AdminAnalyticsPage() {
           }));
           setTopUsers(realTopUsers);
         }
+
+        if (revByTemplateRes.status === 'fulfilled' && revByTemplateRes.value.data.success) {
+          setRevenueByTemplate(revByTemplateRes.value.data.data);
+        }
       } catch (err) {
         console.error('Failed to load analytics', err);
         toast.error('Failed to load some analytics data');
@@ -133,6 +135,20 @@ export default function AdminAnalyticsPage() {
 
     fetchData();
   }, []);
+
+  useEffect(() => {
+    const fetchRevenueData = async () => {
+      try {
+        const res = await api.get(`/admin/analytics/revenue-monthly/?range=${revenueTimeFilter}`);
+        if (res.data.revenue) {
+          setRevenueMonthly(res.data.revenue);
+        }
+      } catch (err) {
+        console.error('Failed to load revenue data', err);
+      }
+    };
+    fetchRevenueData();
+  }, [revenueTimeFilter]);
 
   const handleExportReport = async () => {
     try {
@@ -146,7 +162,7 @@ export default function AdminAnalyticsPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `clouddesk_analytics_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.download = `ospace_analytics_${new Date().toISOString().slice(0, 10)}.csv`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -235,7 +251,7 @@ export default function AdminAnalyticsPage() {
           )}
         </div>
 
-        {/* Total VMs */}
+        {/* Total Workspaces */}
         <div style={{
           background: 'var(--bg-card)',
           border: '1px solid var(--border-color)',
@@ -249,13 +265,13 @@ export default function AdminAnalyticsPage() {
             letterSpacing: '1px',
             color: 'var(--text-muted)',
             fontWeight: 600,
-          }}>Total VMs</p>
+          }}>Total Workspaces</p>
           <p style={{
             fontSize: '26px',
             fontWeight: 700,
             color: 'var(--text-primary)',
             marginTop: '6px',
-          }}>{stats.total_vms}</p>
+          }}>{stats.total_workspaces || 0}</p>
         </div>
 
         {/* Total Sessions */}
@@ -366,14 +382,27 @@ export default function AdminAnalyticsPage() {
         </div>
 
         <div className="bg-[var(--bg-card)] rounded-xl shadow-md border border-[var(--border-color)] p-6 flex flex-col">
-          <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-6">Revenue Over Time</h3>
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-semibold text-[var(--text-primary)]">Revenue Over Time</h3>
+            <select
+              value={revenueTimeFilter}
+              onChange={(e) => setRevenueTimeFilter(e.target.value)}
+              className="bg-[var(--bg-input)] border border-[var(--border-color)] text-[var(--text-primary)] text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-indigo-500"
+            >
+              <option value="1d">Today (Hourly)</option>
+              <option value="7d">Last 7 Days</option>
+              <option value="30d">Last 30 Days</option>
+              <option value="6m">Last 6 Months</option>
+              <option value="1y">This Year</option>
+            </select>
+          </div>
           <div className="h-[300px]">
             {hasRevenueData ? (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={revenueMonthly} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <BarChart data={revenueMonthly} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
                   <XAxis dataKey="month" stroke="var(--text-faint)" fontSize={11} />
-                  <YAxis stroke="var(--text-faint)" fontSize={11} allowDecimals={false} tickFormatter={(v) => `TZS ${v.toLocaleString()}`} />
+                  <YAxis stroke="var(--text-faint)" fontSize={11} allowDecimals={false} width={85} tickFormatter={(v) => `TZS ${v.toLocaleString()}`} />
                   <RechartsTooltip
                     contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
                     formatter={(value) => [`TZS ${value.toLocaleString()}`, "Revenue"]}
@@ -460,23 +489,48 @@ export default function AdminAnalyticsPage() {
           }}>Revenue Breakdown</h3>
           
           {revenueBreakdown.total > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {revenueBreakdown.breakdown.map(item => {
-                const pct = revenueBreakdown.total > 0 ? Math.round((item.amount / revenueBreakdown.total) * 100) : 0;
-                return (
-                  <div key={item.label}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{item.label}</span>
-                      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                        TZS {item.amount.toLocaleString()} ({pct}%)
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', height: '100%' }}>
+              <div style={{ height: '220px', width: '100%' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={revenueBreakdown.breakdown}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="amount"
+                      nameKey="label"
+                    >
+                      {revenueBreakdown.breakdown.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={index === 0 ? 'var(--accent-primary)' : index === 1 ? 'var(--status-info)' : 'var(--status-warning)'} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip 
+                      formatter={(value) => `TZS ${value.toLocaleString()}`}
+                      contentStyle={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', boxShadow: 'var(--shadow-lg)' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {revenueBreakdown.breakdown.map((item, index) => {
+                  const pct = revenueBreakdown.total > 0 ? Math.round((item.amount / revenueBreakdown.total) * 100) : 0;
+                  const color = index === 0 ? 'var(--accent-primary)' : index === 1 ? 'var(--status-info)' : 'var(--status-warning)';
+                  return (
+                    <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: color }} />
+                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{item.label}</span>
+                      </div>
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        TZS {item.amount.toLocaleString()} <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: '4px' }}>({pct}%)</span>
                       </span>
                     </div>
-                    <div style={{ height: '6px', borderRadius: '3px', background: 'var(--bg-input)', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${pct}%`, background: 'var(--accent-primary)', borderRadius: '3px', transition: 'width 0.5s' }} />
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           ) : (
             <EmptyChartState 
@@ -523,6 +577,49 @@ export default function AdminAnalyticsPage() {
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
+
+      {/* Row 5: Revenue by Template — hours purchases vs subscriptions, separately */}
+      <div className="bg-[var(--bg-card)] rounded-xl shadow-md border border-[var(--border-color)] overflow-hidden flex flex-col">
+        <div className="px-6 py-5 border-b border-[var(--border-color)]">
+          <h3 className="text-lg font-semibold text-[var(--text-primary)]">Workspace Revenue by Template</h3>
+          <p className="text-xs text-[var(--text-secondary)] mt-1">Hours-purchase revenue vs subscription revenue, per VM type</p>
+        </div>
+        <div className="flex-1 overflow-x-auto">
+          {revenueByTemplate.length > 0 ? (
+            <table className="w-full text-left text-sm">
+              <thead className="bg-[var(--bg-primary)]/50 text-[var(--text-primary)]">
+                <tr>
+                  <th className="px-6 py-4 font-medium">Template</th>
+                  <th className="px-6 py-4 font-medium text-right">Hours Purchases</th>
+                  <th className="px-6 py-4 font-medium text-right">Subscriptions</th>
+                  <th className="px-6 py-4 font-medium text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--border-color)] text-[var(--text-primary)]">
+                {revenueByTemplate.map((row) => (
+                  <tr key={row.template_id} className="hover:bg-[var(--bg-primary)] transition-colors">
+                    <td className="px-6 py-4 font-medium">{row.template_name}</td>
+                    <td className="px-6 py-4 text-right text-[var(--text-secondary)]">
+                      TZS {row.hours_purchase_revenue.toLocaleString()}
+                      <span className="text-[10px] text-[var(--text-muted)] ml-1">({row.hours_purchase_count})</span>
+                    </td>
+                    <td className="px-6 py-4 text-right text-[var(--text-secondary)]">
+                      TZS {row.subscription_revenue.toLocaleString()}
+                      <span className="text-[10px] text-[var(--text-muted)] ml-1">({row.subscription_count})</span>
+                    </td>
+                    <td className="px-6 py-4 text-right font-medium text-[var(--accent-primary)]">TZS {row.total_revenue.toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <EmptyChartState
+              icon={Monitor}
+              message="No workspace revenue yet"
+              submessage="Revenue per VM template will appear here once users buy hours or subscribe" />
+          )}
         </div>
       </div>
     </div>

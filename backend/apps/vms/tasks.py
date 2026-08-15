@@ -137,6 +137,19 @@ def cleanup_stale_vms():
 
 
 @shared_task
+def check_idle_workspaces_task():
+  """
+  Daily activity-based idle-workspace warning/deletion sweep.
+  See apps/vms/services/idle_cleanup_service.py for the actual logic —
+  this task is a thin Celery wrapper so it can run on CELERY_BEAT_SCHEDULE.
+  Also callable directly (bypassing Celery) via the admin manual-trigger
+  endpoint — see apps/vms/admin_views.py::AdminRunIdleCheckView.
+  """
+  from apps.vms.services.idle_cleanup_service import check_and_process_idle_workspaces
+  return check_and_process_idle_workspaces()
+
+
+@shared_task
 def cleanup_expired_sessions():
   """
   Periodic task to disconnect 

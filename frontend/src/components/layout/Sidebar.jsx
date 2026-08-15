@@ -9,7 +9,8 @@ import useLiveSession from '../../hooks/useLiveSession';
 import { toast } from 'react-hot-toast';
 import { signOutFirebase } from '../../config/firebase';
 import useBreakpoint from '../../hooks/useBreakpoint';
-import { 
+import OspaceLogo from '../shared/OspaceLogo';
+import {
   LayoutDashboard, Monitor, Video, Plus, BarChart3, ChevronLeft,
   X, 
   ChevronRight, Radio, ChevronUp, LogOut, Settings, Receipt,
@@ -115,7 +116,7 @@ export default function Sidebar() {
     
     const fetchLiveCount = async () => {
       try {
-        const res = await api.get('/admin/sessions/live/');
+        const res = await api.get('/sessions/admin/live/');
         setLiveSessionCount(res.data.total_active || 0);
       } catch(e) {
         // Silent fail — badge just won't show
@@ -146,16 +147,12 @@ export default function Sidebar() {
       <div className={`h-14 flex items-center border-b flex-shrink-0 ${collapsed ? 'justify-center px-0' : 'px-5'}`} style={{ borderColor: 'var(--border-subtle)' }}>
         
         {collapsed ? (
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#6C63FF] to-[#0066FF] flex items-center justify-center">
-            <span className="text-primary text-xs font-extrabold">C</span>
-          </div>
+          <OspaceLogo size={28} />
         ) : (
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#6C63FF] to-[#0066FF] flex items-center justify-center flex-shrink-0">
-              <span className="text-primary text-xs font-extrabold">C</span>
-            </div>
+            <OspaceLogo size={28} className="flex-shrink-0" />
             <span className="text-[15px] font-extrabold text-primary tracking-tight">
-              CloudDesk
+              Ospace
             </span>
           </div>
         )}
@@ -282,11 +279,6 @@ export default function Sidebar() {
               <p className="text-[11px] text-muted truncate">
                 {user?.email}
               </p>
-              {user?.is_host && (
-                <span className="inline-flex mt-1.5 px-2 py-0.5 rounded-full bg-[#6C63FF]/10 text-[9px] font-bold text-[#6C63FF] uppercase tracking-wider">
-                  HOST
-                </span>
-              )}
             </div>
             
             {/* Menu items */}

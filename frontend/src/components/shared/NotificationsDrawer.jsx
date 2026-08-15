@@ -194,7 +194,7 @@ export default function NotificationsDrawer({ isOpen, onClose }) {
  <p className="text-[11px] text-[#64748B] dark:text-slate-400 mt-1.5 leading-relaxed max-w-[220px]">
  {filter === 'unread'
  ? 'You are all caught up'
- : 'Activity will appear here as you use CloudDesk'}
+ : 'Activity will appear here as you use Ospace'}
  </p>
  </div>
  ) : (

@@ -5,11 +5,6 @@ class IsAdmin(BasePermission):
     def has_permission(self, request, view):
         return (request.user.is_authenticated and request.user.role == 'admin')
 
-class CanHostSessions(BasePermission):
-    message = "Login required."
-    def has_permission(self, request, view):
-        return request.user and request.user.is_authenticated
-
 class IsSessionHost(BasePermission):
     message = "Only the session host."
     def has_object_permission(self, request, view, obj):

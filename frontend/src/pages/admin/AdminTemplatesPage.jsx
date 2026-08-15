@@ -45,6 +45,7 @@ const EMPTY_FORM = {
   ram_gb: 4,
   storage_gb: 40,
   price_per_hour: 0,
+  price_per_month: 0,
   monthly_cap: 0,
   software_list: [],
   icon: 'Monitor',
@@ -69,15 +70,17 @@ export default function AdminTemplatesPage() {
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
   const [linkModalTemplate, setLinkModalTemplate] = useState(null);
 
-  const fetchTemplates = async () => {
-    setLoading(true);
+  const fetchTemplates = async (isManual = false) => {
+    if (!isManual) setLoading(true);
     try {
-      const res = await api.get('/vms/admin/templates/');
+      const res = await api.get('/vms/admin/templates/', { params: { t: Date.now() } }); // Prevent caching
       setTemplates(res.data.data);
+      if (isManual) showToast('Templates refreshed', 'success');
     } catch {
-      showToast('Failed to load templates', 'error');
+      if (!isManual) showToast('Failed to load templates', 'error');
+      else showToast('Failed to refresh templates', 'error');
     } finally {
-      setLoading(false);
+      if (!isManual) setLoading(false);
     }
   };
 
@@ -85,8 +88,10 @@ export default function AdminTemplatesPage() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await fetchTemplates();
-    setRefreshing(false);
+    await fetchTemplates(true);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 500); // 500ms min delay so spinner animation is visible
   };
 
   const showToast = (msg, type = 'success') => {
@@ -116,6 +121,7 @@ export default function AdminTemplatesPage() {
       ram_gb: template.ram_gb || 4,
       storage_gb: template.storage_gb || 40,
       price_per_hour: parseFloat(template.price_per_hour) || 0,
+      price_per_month: parseFloat(template.price_per_month) || 0,
       monthly_cap: parseFloat(template.monthly_cap) || 0,
       software_list: template.software_list || [],
       icon: template.icon || 'Monitor',
@@ -309,11 +315,16 @@ export default function AdminTemplatesPage() {
                 <div><label style={labelStyle}>Storage (GB)</label><input style={inputStyle} type="number" min="10" max="2000" value={form.storage_gb} onChange={e => setForm(f => ({ ...f, storage_gb: parseInt(e.target.value)||10 }))} /></div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px', gridColumn: '1 / -1' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px', gridColumn: '1 / -1' }}>
                 <div>
                   <label style={labelStyle}>Price per Hour (TZS)</label>
                   <input type="number" min={0} value={form.price_per_hour} onChange={e => setForm(f => ({ ...f, price_per_hour: parseFloat(e.target.value) || 0 }))} placeholder="0" style={inputStyle} />
-                  <p style={{ fontSize: '10px', color: 'var(--text-faint)', marginTop: '4px' }}>Set to 0 for free tier</p>
+                  <p style={{ fontSize: '10px', color: 'var(--text-faint)', marginTop: '4px' }}>Charged when a user buys hours</p>
+                </div>
+                <div>
+                  <label style={labelStyle}>Price per Month (TZS)</label>
+                  <input type="number" min={0} value={form.price_per_month} onChange={e => setForm(f => ({ ...f, price_per_month: parseFloat(e.target.value) || 0 }))} placeholder="0" style={inputStyle} />
+                  <p style={{ fontSize: '10px', color: 'var(--text-faint)', marginTop: '4px' }}>Flat monthly subscription for unlimited access</p>
                 </div>
                 <div>
                   <label style={labelStyle}>Monthly Cap (TZS)</label>
@@ -397,7 +408,10 @@ export default function AdminTemplatesPage() {
                     {t.cpu_cores} vCPU · {t.ram_gb}GB · {t.storage_gb}GB
                   </td>
                   <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-primary)', fontWeight: 600 }}>
-                    {t.price_per_hour > 0 ? `TZS ${t.price_per_hour.toLocaleString()}/hr` : 'Free'}
+                    <div>{t.price_per_hour > 0 ? `TZS ${t.price_per_hour.toLocaleString()}/hr` : 'TZS 0/hr'}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400 }}>
+                      {t.price_per_month > 0 ? `TZS ${t.price_per_month.toLocaleString()}/mo` : 'no subscription'}
+                    </div>
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     {t.proxmox_template_id ? (

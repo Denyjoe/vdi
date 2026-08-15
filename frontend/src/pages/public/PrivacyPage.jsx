@@ -1,6 +1,6 @@
 import React from 'react';
-import { Monitor } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import OspaceLogo from '../../components/shared/OspaceLogo';
 
 export default function PrivacyPage() {
   return (
@@ -8,8 +8,8 @@ export default function PrivacyPage() {
       <nav className="fixed top-0 w-full z-40 bg-[#F8FAFC]/80 dark:bg-[#050B18]/80 backdrop-blur-md border-b border-[#E2E8F0] dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <Monitor className="w-8 h-8 text-indigo-500" />
-            <span className="text-xl font-bold tracking-tight text-[#0F172A] dark:text-white">CloudDesk</span>
+            <OspaceLogo size={32} />
+            <span className="text-xl font-bold tracking-tight text-[#0F172A] dark:text-white">Ospace</span>
           </Link>
           <div className="flex items-center gap-4">
             <Link to="/signin" className="text-sm font-medium text-[#475569] dark:text-slate-300 hover:text-[#0F172A] dark:hover:text-white dark:text-white transition-colors">Sign in</Link>
@@ -42,8 +42,8 @@ export default function PrivacyPage() {
       <footer className="py-12 bg-[#F8FAFC] dark:bg-[#050B18] border-t border-[#E2E8F0] dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between">
           <div className="flex items-center gap-2 mb-4 md:mb-0">
-            <Monitor className="w-6 h-6 text-indigo-500" />
-            <span className="text-lg font-bold text-[#0F172A] dark:text-white">CloudDesk</span>
+            <OspaceLogo size={24} />
+            <span className="text-lg font-bold text-[#0F172A] dark:text-white">Ospace</span>
           </div>
           <div className="flex gap-6">
             <Link to="/terms" className="text-sm text-[#475569] dark:text-slate-300 hover:text-[#0F172A] dark:hover:text-white dark:text-white transition-colors">Terms of Service</Link>

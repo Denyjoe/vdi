@@ -5,6 +5,7 @@ import useThemeStore from '../../store/themeStore';
 import useUIStore from '../../store/uiStore';
 import useBreakpoint from '../../hooks/useBreakpoint';
 import NotificationBell from '../shared/NotificationBell';
+import OspaceLogo from '../shared/OspaceLogo';
 import { 
   Menu, Bell, Clock, Wifi, HelpCircle, BookOpen, Keyboard, 
   Mail, FileText, Shield, X, Monitor, MonitorPlay, Users, 
@@ -168,8 +169,8 @@ export default function Navbar({ onMenuClick }) {
 
           {isDesktop && (
             <div className="hidden md:flex items-center gap-2">
-                <Monitor className="w-6 h-6 text-[#0066FF]" />
-                <h1 className="text-primary font-bold text-lg leading-tight">CloudDesk</h1>
+                <OspaceLogo size={24} />
+                <h1 className="text-primary font-bold text-lg leading-tight">Ospace</h1>
             </div>
           )}
 
@@ -261,7 +262,7 @@ export default function Navbar({ onMenuClick }) {
                 <div className="px-4 py-3 border-b border-border-subtle">
                   <h3 className="text-sm font-bold text-primary">Help & Resources</h3>
                   <p className="text-[10px] text-muted mt-0.5">
-                    Get started with CloudDesk
+                    Get started with Ospace
                   </p>
                 </div>
                 
@@ -295,7 +296,7 @@ export default function Navbar({ onMenuClick }) {
                     </div>
                   </button>
                   
-                  <a href="mailto:support@clouddesk.io"
+                  <a href="mailto:support@ospace.io"
                     onClick={() => setShowHelp(false)}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-secondary hover:bg-nav-hover transition-colors">
                     <div className="w-7 h-7 rounded-lg bg-[#16A34A]/10 flex items-center justify-center flex-shrink-0">
@@ -303,7 +304,7 @@ export default function Navbar({ onMenuClick }) {
                     </div>
                     <div className="text-left">
                       <p className="font-medium">Contact Support</p>
-                      <p className="text-[10px] text-muted mt-0.5">support@clouddesk.io</p>
+                      <p className="text-[10px] text-muted mt-0.5">support@ospace.io</p>
                     </div>
                   </a>
                   
@@ -337,7 +338,7 @@ export default function Navbar({ onMenuClick }) {
                 {/* Footer */}
                 <div className="px-4 py-3 border-t border-border-subtle bg-canvas">
                   <p className="text-[9px] text-faint text-center">
-                    CloudDesk v1.0.0 · Made in Tanzania
+                    Ospace v1.0.0 · Made in Tanzania
                   </p>
                 </div>
               </div>
@@ -353,10 +354,8 @@ export default function Navbar({ onMenuClick }) {
             <p className="text-xs text-[var(--text-secondary)] flex items-center gap-2">
               {user?.role === 'admin' ? (
                   <span className="text-purple-400 font-bold tracking-wide uppercase">Admin</span>
-              ) : user?.is_host ? (
-                  <span className="text-blue-400 font-bold tracking-wide uppercase">Host</span>
               ) : (
-                  <span className="text-muted uppercase tracking-wide font-medium">Free</span>
+                  <span className="text-muted uppercase tracking-wide font-medium">Member</span>
               )}
             </p>
           </div>

@@ -25,33 +25,36 @@ class AdminUserListView(APIView):
                 Q(last_name__icontains=search) |
                 Q(email__icontains=search))
         
-        if role_filter == 'host':
-            users = users.filter(is_host=True)
-        elif role_filter == 'admin':
+        if role_filter == 'admin':
             users = users.filter(role='admin')
-        elif role_filter == 'free':
-            users = users.exclude(role='admin').filter(is_host=False)
-        
+        elif role_filter == 'subscriber':
+            users = users.filter(template_subscriptions__is_active=True).distinct()
+
         if status_filter == 'active':
             users = users.filter(is_suspended=False)
         elif status_filter == 'suspended':
             users = users.filter(is_suspended=True)
-        
+
         users = users.order_by(sort)
-        
+
+        from django.utils import timezone
         results = []
         for u in users:
             avatar_url = None
             if hasattr(u, 'avatar') and u.avatar:
                 avatar_url = request.build_absolute_uri(u.avatar.url)
-            
-            plan_name = 'Free'
-            try:
-                if u.subscription and u.subscription.plan:
-                    plan_name = getattr(u.subscription.plan, 'display_name', getattr(u.subscription.plan, 'name', 'Free'))
-            except Exception:
-                pass
-            
+
+            plan_name = 'Pay-as-you-go'
+            has_sub = False
+            sub_expires = None
+            active_sub = u.template_subscriptions.filter(
+                is_active=True, expires_at__gt=timezone.now()
+            ).select_related('template').order_by('expires_at').first()
+            if active_sub:
+                plan_name = f'Unlimited: {active_sub.template.name}'
+                has_sub = True
+                sub_expires = active_sub.expires_at.isoformat()
+
             results.append({
                 'id': u.id,
                 'first_name': u.first_name,
@@ -59,19 +62,20 @@ class AdminUserListView(APIView):
                 'email': u.email,
                 'avatar': avatar_url,
                 'plan': plan_name,
-                'is_host': getattr(u, 'is_host', False),
+                'has_subscription': has_sub,
+                'subscription_expires_at': sub_expires,
                 'role': getattr(u, 'role', 'user'),
                 'is_suspended': getattr(u, 'is_suspended', False),
                 'date_joined': u.date_joined.isoformat() if hasattr(u, 'date_joined') and u.date_joined else None,
             })
-        
+
+        from apps.vms.models import TemplateSubscription
         return Response({
             'users': results,
             'total': len(results),
             'counts': {
                 'all': User.objects.count(),
-                'free': User.objects.filter(is_host=False).exclude(role='admin').count(),
-                'hosts': User.objects.filter(is_host=True).count(),
+                'subscribers': TemplateSubscription.objects.filter(is_active=True, expires_at__gt=timezone.now()).values('user').distinct().count(),
                 'admins': User.objects.filter(role='admin').count(),
                 'active': User.objects.filter(is_suspended=False).count(),
                 'suspended': User.objects.filter(is_suspended=True).count(),
@@ -81,16 +85,18 @@ class AdminUserListView(APIView):
 class AdminUserStatsView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsAdmin]
     def get(self, request):
+        from django.utils import timezone
+        from apps.vms.models import TemplateSubscription
         total_users = User.objects.count()
-        hosts = User.objects.filter(is_host=True).count()
+        subscribers = TemplateSubscription.objects.filter(is_active=True, expires_at__gt=timezone.now()).values('user').distinct().count()
         admins = User.objects.filter(role='admin').count()
         active_users = User.objects.filter(is_active=True).count()
-        
+
         return Response({
             "success": True,
             "data": {
                 "total_users": total_users,
-                "hosts": hosts,
+                "subscribers": subscribers,
                 "admins": admins,
                 "active_users": active_users
             }
@@ -100,27 +106,26 @@ class AdminUserDetailView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsAdmin]
     
     def get(self, request, pk):
-        from apps.users.models import User
+        from apps.users.models import User, ComputeUsageLog, Payment
         from apps.vms.models import Workspace
+        from django.db.models import Sum
         
         try:
             u = User.objects.get(id=pk)
         except User.DoesNotExist:
             return Response({'error': 'Not found'}, status=404)
         
-        # Usage stats
-        hours_used = 0
-        total_spent = 0
+        # Real compute usage hours from logs
+        hours_used = 0.0
         try:
-            sub = getattr(u, 'subscription', None)
-            if sub:
-                hours_used = float(getattr(sub, 'compute_hours_used', 0) or 0)
+            h = ComputeUsageLog.objects.filter(user=u).aggregate(total=Sum('hours_used'))['total']
+            hours_used = round(float(h or 0), 1)
         except Exception:
             pass
         
+        # Real all-time payments total
+        total_spent = 0.0
         try:
-            from apps.users.models import Payment
-            from django.db.models import Sum
             spent = Payment.objects.filter(user=u, status='completed').aggregate(total=Sum('amount_tzs'))['total']
             total_spent = float(spent or 0)
         except Exception:
@@ -144,15 +149,28 @@ class AdminUserDetailView(APIView):
         sessions_hosted = 0
         sessions_joined = 0
         try:
-            from apps.sessions.models import LiveSession
+            from apps.sessions.models import LiveSession, SessionParticipant
             sessions_hosted = LiveSession.objects.filter(host=u).count()
+            sessions_joined = SessionParticipant.objects.filter(user=u).count()
         except Exception:
             pass
         
         avatar_url = None
         if hasattr(u, 'avatar') and u.avatar:
             avatar_url = request.build_absolute_uri(u.avatar.url)
-        
+
+        from django.utils import timezone
+        has_active_subscription = False
+        sub_expires = None
+        plan_name = 'Pay-as-you-go'
+        active_sub = u.template_subscriptions.filter(
+            is_active=True, expires_at__gt=timezone.now()
+        ).select_related('template').order_by('expires_at').first()
+        if active_sub:
+            has_active_subscription = True
+            sub_expires = active_sub.expires_at.isoformat()
+            plan_name = f'Unlimited: {active_sub.template.name}'
+
         return Response({
             'id': u.id,
             'first_name': u.first_name,
@@ -160,7 +178,9 @@ class AdminUserDetailView(APIView):
             'email': u.email,
             'avatar': avatar_url,
             'country': getattr(u, 'country', ''),
-            'is_host': getattr(u, 'is_host', False),
+            'plan': plan_name,
+            'workspace_subscription_active': has_active_subscription,
+            'subscription_expires_at': sub_expires,
             'role': getattr(u, 'role', 'user'),
             'is_suspended': getattr(u, 'is_suspended', False),
             'suspended_reason': getattr(u, 'suspended_reason', ''),
@@ -374,11 +394,6 @@ class AdminBulkActionView(APIView):
                 u.is_suspended = False
                 u.save()
                 count += 1
-        elif action == 'make_host':
-            for u in users:
-                u.is_host = True
-                u.save()
-                count += 1
         
         from apps.users.admin_services import log_admin_action
         log_admin_action(
@@ -400,17 +415,25 @@ class AdminExportUsersView(APIView):
         from apps.users.models import User
         
         response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="clouddesk_users.csv"'
+        response['Content-Disposition'] = 'attachment; filename="ospace_users.csv"'
         
+        from django.utils import timezone
+
         writer = csv.writer(response)
-        writer.writerow(['Name', 'Email', 'Role', 'Is Host', 'Status', 'Joined'])
-        
+        writer.writerow(['Name', 'Email', 'Role', 'Plan / Subscription', 'Status', 'Joined'])
+
         for u in User.objects.all():
+            plan_name = 'Pay-as-you-go'
+            active_sub = u.template_subscriptions.filter(
+                is_active=True, expires_at__gt=timezone.now()
+            ).select_related('template').order_by('expires_at').first()
+            if active_sub:
+                plan_name = f'Unlimited: {active_sub.template.name} (Expires: {active_sub.expires_at.strftime("%Y-%m-%d")})'
             writer.writerow([
-                f'{u.first_name} {u.last_name}',
+                f'{u.first_name} {u.last_name}'.strip() or u.username,
                 u.email,
                 getattr(u, 'role', 'user'),
-                'Yes' if getattr(u, 'is_host', False) else 'No',
+                plan_name,
                 'Suspended' if getattr(u, 'is_suspended', False) else 'Active',
                 u.date_joined.strftime('%Y-%m-%d') if hasattr(u, 'date_joined') and u.date_joined else '',
             ])
@@ -532,6 +555,35 @@ class AuditLogView(APIView):
             'page': page,
             'total_pages': max(1, (total + page_size - 1) // page_size),
         })
+
+class AdminLogsView(APIView):
+    """Feeds AdminLogsPage.jsx (GET /api/admin/logs/) — was never wired to
+    any URL at all, so this page has always shown nothing regardless of
+    real activity. Reuses the same AdminActionLog data as AuditLogView,
+    adapted to the {success, data: [...]} shape the page expects."""
+    permission_classes = [permissions.IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        from apps.users.models import AdminActionLog
+
+        logs = AdminActionLog.objects.select_related('admin').order_by('-created_at')[:200]
+
+        return Response({
+            'success': True,
+            'data': [{
+                'id': l.id,
+                'timestamp': l.created_at.isoformat(),
+                'user': f'{l.admin.first_name} {l.admin.last_name}'.strip() if l.admin else 'System',
+                'user_email': l.admin.email if l.admin else '',
+                'action': l.get_action_type_display() if hasattr(l, 'get_action_type_display') else l.action_type,
+                'description': l.description,
+                # Admin actions aren't tracked with an IP address (unlike
+                # LoginAttempt, which is), so this is honestly empty
+                # rather than fabricated.
+                'ip_address': '',
+            } for l in logs],
+        })
+
 
 class AdminAPITokensView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsAdmin]

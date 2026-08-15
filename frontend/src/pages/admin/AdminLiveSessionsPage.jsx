@@ -328,6 +328,24 @@ function AdminLiveSessionsPage() {
                         }}>
                           Live
                         </span>
+                        {s.network_locked && (
+                          <span title={s.allowed_domains?.length ? `Whitelisted: ${s.allowed_domains.join(', ')}` : 'No domains whitelisted'}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '2px 8px',
+                              borderRadius: '9999px',
+                              fontSize: '9px',
+                              fontWeight: 700,
+                              textTransform: 'uppercase',
+                              background: 'var(--status-warning-bg)',
+                              color: 'var(--status-warning)',
+                            }}>
+                            <Shield size={9} />
+                            Locked
+                          </span>
+                        )}
                       </div>
                       <p style={{
                         fontSize: '12px',

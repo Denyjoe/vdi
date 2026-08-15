@@ -33,6 +33,7 @@ class SessionLifecycleService:
                         res = orchestrator.provision_real_vm(vm_instance)
                         if res and 'error' not in res:
                             part_instance.status = 'connected'
+                            SessionLifecycleService._apply_network_lockdown(part_instance)
                         else:
                             part_instance.status = 'error'
                     except Exception as e:
@@ -73,11 +74,40 @@ class SessionLifecycleService:
         participant.save()
 
     @staticmethod
+    def _apply_network_lockdown(participant):
+        """Enable network lockdown on a participant's VM if the session requires it."""
+        if not participant.vm or not getattr(participant.vm, 'proxmox_vm_id', None):
+            return
+        session = participant.session
+        if not session.restrict_internet:
+            return
+        try:
+            from apps.vms.services.proxmox_service import ProxmoxService
+            ProxmoxService().enable_vm_lockdown(
+                participant.vm.proxmox_vm_id,
+                allowed_domains=session.allowed_domains,
+            )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(
+                f'Network lockdown failed for participant {participant.id}: {str(e)}',
+                exc_info=True,
+            )
+
+    @staticmethod
     def _cleanup_participant_vm(participant):
         """Helper to cleanly delete a participant's VM from Proxmox and Guacamole."""
         if not participant.vm:
             return
-            
+
+        try:
+            from apps.vms.services.proxmox_service import ProxmoxService
+            if getattr(participant.vm, 'proxmox_vm_id', None):
+                ProxmoxService().disable_vm_lockdown(participant.vm.proxmox_vm_id)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f'Network lockdown removal failed: {str(e)}')
+
         try:
             from apps.vms.services.guacamole_service import GuacamoleService
             if getattr(participant.vm, 'guacamole_connection_id', None):

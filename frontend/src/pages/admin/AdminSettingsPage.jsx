@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Server, Shield, CreditCard, Save, Activity, RefreshCw, X, Lock, Database, Search, Key, AlertTriangle } from 'lucide-react';
+import { Settings as SettingsIcon, Server, Shield, CreditCard, Save, Activity, RefreshCw, Lock, Database, Search, Key, AlertTriangle, Clock, Trash2 } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -9,8 +9,8 @@ export default function AdminSettingsPage() {
   
   // Platform Config
   const [platformConfig, setPlatformConfig] = useState({
-    platform_name: 'CloudDesk',
-    support_email: 'admin@clouddesk.io',
+    platform_name: 'Ospace',
+    support_email: 'admin@ospace.io',
     allow_registration: true,
     maintenance_mode: false,
     system_announcement: ''
@@ -29,17 +29,21 @@ export default function AdminSettingsPage() {
   const [infraStats, setInfraStats] = useState(null);
   const [testingInfra, setTestingInfra] = useState(false);
 
-  // Plans
-  const [plans, setPlans] = useState([]);
-  const [editingPlan, setEditingPlan] = useState(null);
-  const [planForm, setPlanForm] = useState({
-    name: '',
-    price_usd: 0,
-    price_tzs: 0,
-    max_hours: 0,
-    max_participants: 0,
-    can_host: false
+  // Pricing (session hosting rate — workspace pricing is now per-template,
+  // set on each template in Admin Templates, not here)
+  const [pricingConfig, setPricingConfig] = useState({
+    session_hosting_rate_tzs: 5000,
   });
+
+  // Idle workspace cleanup timers + dashboard
+  const [idleTimers, setIdleTimers] = useState({
+    workspace_idle_warning_days: 23,
+    workspace_idle_final_warning_days: 29,
+    workspace_idle_deletion_days: 30,
+  });
+  const [idleSummary, setIdleSummary] = useState(null);
+  const [runningIdleCheck, setRunningIdleCheck] = useState(false);
+  const [lastIdleCheckResult, setLastIdleCheckResult] = useState(null);
 
   // Change Password
   const [passwordForm, setPasswordForm] = useState({
@@ -58,11 +62,11 @@ export default function AdminSettingsPage() {
   useEffect(() => {
     fetchConfig();
     testConnections();
-    fetchPlans();
     fetchBackups();
     fetchSecurityLogs();
     fetchAuditLogs(1);
     fetchApiTokens();
+    fetchIdleSummary();
   }, []);
 
   const fetchBackups = async () => {
@@ -155,27 +159,57 @@ export default function AdminSettingsPage() {
           idle_timeout_mins: res.data.data.idle_timeout_mins !== undefined ? res.data.data.idle_timeout_mins : prev.idle_timeout_mins,
           auto_shutdown_idle: res.data.data.auto_shutdown_idle !== undefined ? res.data.data.auto_shutdown_idle === 'true' || res.data.data.auto_shutdown_idle === true : prev.auto_shutdown_idle
         }));
+        setPricingConfig(prev => ({
+          ...prev,
+          session_hosting_rate_tzs: res.data.data.session_hosting_rate_tzs !== undefined ? res.data.data.session_hosting_rate_tzs : prev.session_hosting_rate_tzs,
+        }));
+        setIdleTimers(prev => ({
+          ...prev,
+          workspace_idle_warning_days: res.data.data.workspace_idle_warning_days !== undefined ? res.data.data.workspace_idle_warning_days : prev.workspace_idle_warning_days,
+          workspace_idle_final_warning_days: res.data.data.workspace_idle_final_warning_days !== undefined ? res.data.data.workspace_idle_final_warning_days : prev.workspace_idle_final_warning_days,
+          workspace_idle_deletion_days: res.data.data.workspace_idle_deletion_days !== undefined ? res.data.data.workspace_idle_deletion_days : prev.workspace_idle_deletion_days,
+        }));
       }
     } catch (err) {
       console.error('Failed to fetch config');
     }
   };
 
-  const fetchPlans = async () => {
+  const fetchIdleSummary = async () => {
     try {
-      const res = await api.get('/subscriptions/plans/');
-      if (res.data.success && res.data.data) {
-        setPlans(res.data.data);
-      } else if (Array.isArray(res.data)) {
-        setPlans(res.data);
-      }
+      const res = await api.get('/admin/idle-workspaces/summary/');
+      if (res.data.success) setIdleSummary(res.data.data);
     } catch (err) {
-      toast.error('Failed to fetch subscription plans');
+      console.error('Failed to fetch idle workspace summary');
+    }
+  };
+
+  const runIdleCheckNow = async () => {
+    setRunningIdleCheck(true);
+    setLastIdleCheckResult(null);
+    try {
+      const res = await api.post('/admin/idle-workspaces/run-check/');
+      if (res.data.success) {
+        setLastIdleCheckResult(res.data.data);
+        const { first_warnings_sent, final_warnings_sent, deleted, errors } = res.data.data;
+        if (errors && errors.length > 0) {
+          toast.error(`Idle check finished with ${errors.length} error(s)`);
+        } else {
+          toast.success(`Idle check complete — ${first_warnings_sent} first warning(s), ${final_warnings_sent} final warning(s), ${deleted} deleted`);
+        }
+        fetchIdleSummary();
+      }
+    } catch (e) {
+      toast.error('Failed to run idle check');
+    } finally {
+      setRunningIdleCheck(false);
     }
   };
 
   const handlePlatformChange = (k, v) => setPlatformConfig(p => ({ ...p, [k]: v }));
   const handleLimitChange = (k, v) => setResourceLimits(p => ({ ...p, [k]: v }));
+  const handlePricingChange = (k, v) => setPricingConfig(p => ({ ...p, [k]: v }));
+  const handleIdleTimerChange = (k, v) => setIdleTimers(p => ({ ...p, [k]: v }));
 
   const savePlatformConfig = async () => {
     setSavingSection('platform');
@@ -201,41 +235,47 @@ export default function AdminSettingsPage() {
     }
   };
 
-  const testConnections = async () => {
-    setTestingInfra(true);
+  const savePricingConfig = async () => {
+    setSavingSection('pricing');
     try {
-      const res = await api.get('/vms/admin/system-stats/');
-      if (res.data.success) {
-        setInfraStats(res.data);
-      }
-    } catch (err) {
-      toast.error('Failed to contact infrastructure');
+      await api.put('/admin/config/', pricingConfig);
+      toast.success('Pricing saved');
+    } catch (e) {
+      toast.error('Failed to save pricing');
     } finally {
-      setTestingInfra(false);
+      setSavingSection(null);
     }
   };
 
-  const openPlanEdit = (plan) => {
-    setEditingPlan(plan);
-    setPlanForm({
-      name: plan.name || plan.display_name,
-      price_usd: plan.price_usd || plan.price || 0,
-      price_tzs: plan.price_tzs || 0,
-      max_hours: plan.max_hours || plan.compute_hours_per_month || 0,
-      max_participants: plan.max_participants || plan.max_session_participants || 0,
-      can_host: plan.can_host || plan.can_host_sessions || false
-    });
+  const saveIdleTimers = async () => {
+    setSavingSection('idle');
+    try {
+      await api.put('/admin/config/', idleTimers);
+      toast.success('Idle workspace timers saved');
+      fetchIdleSummary();
+    } catch (e) {
+      toast.error('Failed to save idle timers');
+    } finally {
+      setSavingSection(null);
+    }
   };
 
-  const savePlan = async () => {
-    if (!editingPlan) return;
+  const testConnections = async (isManual = false) => {
+    setTestingInfra(true);
     try {
-      await api.put(`/subscriptions/plans/${editingPlan.id}/`, planForm);
-      toast.success(`Plan "${planForm.name}" updated successfully`);
-      setEditingPlan(null);
-      fetchPlans();
+      const res = await api.get('/vms/admin/system-stats/', { params: { t: Date.now() } }); // Prevent caching
+      if (res.data.success) {
+        setInfraStats(res.data);
+        if (isManual === true) toast.success('Connections tested successfully');
+      }
     } catch (err) {
-      toast.error('Failed to update plan');
+      if (isManual === true) toast.error('Failed to contact infrastructure');
+    } finally {
+      if (isManual === true) {
+        setTimeout(() => setTestingInfra(false), 500);
+      } else {
+        setTestingInfra(false);
+      }
     }
   };
 
@@ -324,34 +364,99 @@ export default function AdminSettingsPage() {
           </div>
         </section>
 
-        {/* SECTION 2: Subscription Plans */}
+        {/* SECTION 2: Pricing */}
         <section className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl overflow-hidden">
           <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-nav-hover)] flex items-center gap-2">
             <CreditCard className="w-5 h-5 text-emerald-400" />
-            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Subscription Plans</h2>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Pricing</h2>
           </div>
-          <div className="p-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {plans.length === 0 ? (
-                <div className="col-span-full text-center text-[var(--text-secondary)] p-4">No plans found. Loading...</div>
-              ) : plans.map(p => (
-                <div key={p.id} className="bg-[var(--bg-nav-hover)] border border-[var(--border-color)] rounded-lg p-5 flex flex-col text-center hover:border-indigo-500/50 transition-colors group">
-                  <h3 className="text-lg font-bold text-[var(--text-primary)] mb-2">{p.display_name || p.name}</h3>
-                  <p className="text-2xl font-bold text-indigo-400 mb-4">TZS {(p.price_tzs || p.price || 0).toLocaleString()}/mo</p>
-                  <div className="space-y-2 mb-6 flex-1">
-                    <p className="text-sm text-[var(--text-primary)]">
-                      {(p.max_hours || p.compute_hours_per_month) === -1 ? 'Unlimited hrs' : `${p.max_hours || p.compute_hours_per_month} hrs/mo`}
-                    </p>
-                    <p className="text-sm text-[var(--text-secondary)]">
-                      {p.can_host_sessions || p.can_host ? `${p.max_participants || p.max_session_participants || 0} participants` : 'No hosting'}
-                    </p>
-                  </div>
-                  <button onClick={() => openPlanEdit(p)} className="w-full py-2 bg-[var(--bg-card)] group-hover:bg-indigo-600 text-[var(--text-primary)] group-hover:text-white rounded-md text-sm font-medium transition-colors border border-[var(--border-color)] group-hover:border-indigo-500">
-                    Edit Plan
-                  </button>
+          <div className="p-6 space-y-4">
+            <div>
+              <label className="block text-sm text-[var(--text-secondary)] mb-1">Session Hosting Rate (TZS/hour)</label>
+              <input type="number" className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)] max-w-xs"
+                value={pricingConfig.session_hosting_rate_tzs} onChange={e => handlePricingChange('session_hosting_rate_tzs', e.target.value)} />
+              <p className="text-xs text-[var(--text-muted)] mt-1">Charged per hour to host a live session.</p>
+            </div>
+            <p className="text-xs text-[var(--text-muted)]">
+              Workspace pricing (both pay-per-hour and monthly subscription) is set per-template in Admin → Templates — there is no platform-wide workspace price.
+            </p>
+          </div>
+          <div className="px-6 py-4 border-t border-[var(--border-color)] bg-[var(--bg-nav-hover)] flex justify-end">
+            <button onClick={savePricingConfig} disabled={savingSection === 'pricing'} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+              <Save size={16} />
+              {savingSection === 'pricing' ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </section>
+
+        {/* SECTION 2B: Idle Workspace Cleanup */}
+        <section className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-nav-hover)] flex items-center gap-2">
+            <Clock className="w-5 h-5 text-orange-400" />
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Idle Workspace Cleanup</h2>
+          </div>
+          <div className="p-6 space-y-6">
+            <p className="text-xs text-[var(--text-muted)]">
+              Activity-based, not payment-based — a workspace's clock only resets when it's genuinely launched
+              (free, paid, or subscription). Production requires Celery Beat running daily; see the note below.
+            </p>
+
+            {/* Stage summary */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { key: 'healthy', label: 'Healthy', color: 'text-emerald-400' },
+                { key: 'first_warning', label: 'First Warning', color: 'text-yellow-400' },
+                { key: 'final_warning', label: 'Final Warning', color: 'text-orange-400' },
+                { key: 'past_deletion_threshold', label: 'Past Threshold', color: 'text-red-400' },
+              ].map(stage => (
+                <div key={stage.key} className="bg-[var(--bg-nav-hover)] border border-[var(--border-color)]/50 rounded-lg p-4 text-center">
+                  <p className={`text-2xl font-bold ${stage.color}`}>
+                    {idleSummary ? idleSummary[stage.key].count : '—'}
+                  </p>
+                  <p className="text-xs text-[var(--text-secondary)] mt-1">{stage.label}</p>
+                  <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
+                    {idleSummary && idleSummary[stage.key].disk_gb != null ? `${idleSummary[stage.key].disk_gb} GB` : ''}
+                  </p>
                 </div>
               ))}
             </div>
+
+            {/* Timers */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm text-[var(--text-secondary)] mb-1">First Warning (days idle)</label>
+                <input type="number" min="1" className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
+                  value={idleTimers.workspace_idle_warning_days} onChange={e => handleIdleTimerChange('workspace_idle_warning_days', e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-sm text-[var(--text-secondary)] mb-1">Final Warning (days idle)</label>
+                <input type="number" min="1" className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
+                  value={idleTimers.workspace_idle_final_warning_days} onChange={e => handleIdleTimerChange('workspace_idle_final_warning_days', e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-sm text-[var(--text-secondary)] mb-1">Deletion (days idle)</label>
+                <input type="number" min="1" className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
+                  value={idleTimers.workspace_idle_deletion_days} onChange={e => handleIdleTimerChange('workspace_idle_deletion_days', e.target.value)} />
+              </div>
+            </div>
+
+            {lastIdleCheckResult && (
+              <div className="text-xs text-[var(--text-secondary)] bg-[var(--bg-nav-hover)] rounded-lg p-3">
+                Last run: {lastIdleCheckResult.first_warnings_sent} first warning(s), {lastIdleCheckResult.final_warnings_sent} final warning(s), {lastIdleCheckResult.deleted} deleted
+                {lastIdleCheckResult.errors.length > 0 && <span className="text-red-400"> — {lastIdleCheckResult.errors.length} error(s)</span>}
+              </div>
+            )}
+          </div>
+          <div className="px-6 py-4 border-t border-[var(--border-color)] bg-[var(--bg-nav-hover)] flex justify-between items-center flex-wrap gap-3">
+            <button onClick={runIdleCheckNow} disabled={runningIdleCheck}
+              className="flex items-center gap-2 bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-orange-400 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+              <Trash2 size={16} className="text-orange-400" />
+              {runningIdleCheck ? 'Running...' : 'Run Idle Check Now'}
+            </button>
+            <button onClick={saveIdleTimers} disabled={savingSection === 'idle'} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+              <Save size={16} />
+              {savingSection === 'idle' ? 'Saving...' : 'Save Timers'}
+            </button>
           </div>
         </section>
 
@@ -434,7 +539,7 @@ export default function AdminSettingsPage() {
               </div>
             </div>
             <div className="px-6 py-4 border-t border-[var(--border-color)] bg-[var(--bg-nav-hover)]">
-              <button onClick={testConnections} disabled={testingInfra} className="w-full flex justify-center items-center gap-2 bg-[var(--bg-nav-hover)] hover:bg-slate-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+              <button onClick={() => testConnections(true)} disabled={testingInfra} className="w-full flex justify-center items-center gap-2 bg-[var(--bg-nav-hover)] hover:bg-slate-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                 <RefreshCw size={16} className={testingInfra ? "animate-spin" : ""} />
                 Test Connections
               </button>
@@ -726,66 +831,6 @@ export default function AdminSettingsPage() {
         </section>
 
       </div>
-
-      {/* Edit Plan Modal */}
-      {editingPlan && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl max-w-md w-full shadow-2xl animate-fade-in">
-            <div className="flex justify-between items-center px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-nav-hover)]">
-              <h3 className="text-lg font-bold text-[var(--text-primary)]">Edit Plan: "{editingPlan.display_name || editingPlan.name}"</h3>
-              <button onClick={() => setEditingPlan(null)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
-                <X size={20} />
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm text-[var(--text-secondary)] mb-1">Plan Name</label>
-                <input type="text" className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
-                  value={planForm.name} onChange={e => setPlanForm({...planForm, name: e.target.value})} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-[var(--text-secondary)] mb-1">Price (USD)</label>
-                  <input type="number" className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
-                    value={planForm.price_usd} onChange={e => setPlanForm({...planForm, price_usd: parseFloat(e.target.value) || 0})} />
-                </div>
-                <div>
-                  <label className="block text-sm text-[var(--text-secondary)] mb-1">Price (TZS)</label>
-                  <input type="number" className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
-                    value={planForm.price_tzs} onChange={e => setPlanForm({...planForm, price_tzs: parseInt(e.target.value) || 0})} />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-[var(--text-secondary)] mb-1">Max Hours/Month (-1=unl)</label>
-                  <input type="number" className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
-                    value={planForm.max_hours} onChange={e => setPlanForm({...planForm, max_hours: parseInt(e.target.value) || 0})} />
-                </div>
-                <div>
-                  <label className="block text-sm text-[var(--text-secondary)] mb-1">Max Participants</label>
-                  <input type="number" className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-[var(--text-primary)]"
-                    value={planForm.max_participants} onChange={e => setPlanForm({...planForm, max_participants: parseInt(e.target.value) || 0})} />
-                </div>
-              </div>
-              <div className="flex items-center justify-between p-4 bg-[var(--bg-nav-hover)] rounded-lg border border-[var(--border-color)]/50">
-                <span className="text-sm text-[var(--text-primary)] font-medium">Can Host Sessions</span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" className="sr-only peer" checked={planForm.can_host} onChange={e => setPlanForm({...planForm, can_host: e.target.checked})} />
-                  <div className="w-11 h-6 bg-[var(--bg-nav-hover)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
-                </label>
-              </div>
-            </div>
-            <div className="px-6 py-4 border-t border-[var(--border-color)] bg-[var(--bg-nav-hover)] flex justify-end gap-3">
-              <button onClick={() => setEditingPlan(null)} className="px-4 py-2 text-[var(--text-primary)] hover:text-[var(--text-primary)] transition-colors text-sm font-medium">
-                Cancel
-              </button>
-              <button onClick={savePlan} className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors">
-                Save Changes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -101,10 +101,22 @@ export default function DesktopSessionPage() {
   // overlay — distinct from the initial-connect window, which is handled
   // entirely by GuacamoleEmbed's own minimum-cover timer.
   const [tunnelDown, setTunnelDown] = useState(false);
+  // A guest-initiated Power Off (unlike Restart) leaves the VM genuinely
+  // off — nothing in this app currently syncs VirtualMachine.status from
+  // Proxmox's live state for an externally-triggered shutdown (confirmed:
+  // the only periodic VM-status task, cleanup_stale_vms, only handles VMs
+  // stuck in 'provisioning'), so there is no backend signal that
+  // distinguishes "will come back" from "gone for good". Retrying forever
+  // would show "Reconnecting automatically…" indefinitely for a VM that's
+  // never coming back. After a reasonable window, stop retrying and tell
+  // the user honestly instead of guessing which case it is.
+  const [reconnectGaveUp, setReconnectGaveUp] = useState(false);
   const guacDownStrikesRef = useRef(0);
   const guacUpStrikesRef = useRef(0);
   const everGuacConnectedRef = useRef(false);
   const lastReconnectAttemptRef = useRef(0);
+  const tunnelDownSinceRef = useRef(null);
+  const RECONNECT_GIVE_UP_MS = 90000;
   // Tracks is_being_controlled independently of sessionData, since the
   // takeover branch below short-circuits before ever calling
   // setSessionData — needed to detect the true->false "control released"
@@ -137,8 +149,10 @@ export default function DesktopSessionPage() {
       if (guacUpStrikesRef.current < CONFIRM_STRIKES) return;
 
       everGuacConnectedRef.current = true;
+      tunnelDownSinceRef.current = null;
       setTunnelActive(true);
       setTunnelDown(false);
+      setReconnectGaveUp(false);
       return;
     }
 
@@ -159,6 +173,19 @@ export default function DesktopSessionPage() {
     if (guacDownStrikesRef.current < CONFIRM_STRIKES) return;
 
     setTunnelDown(true);
+    if (tunnelDownSinceRef.current === null) {
+      tunnelDownSinceRef.current = Date.now();
+    }
+
+    // A guest-initiated Restart typically reconnects well within this
+    // window; a genuine Power Off never will, since there's nothing to
+    // reconnect to. Once we've been down this long, stop guessing and
+    // stop retrying — give the user an honest, actionable state instead
+    // of silently hammering a target that may be gone for good.
+    if (Date.now() - tunnelDownSinceRef.current > RECONNECT_GIVE_UP_MS) {
+      setReconnectGaveUp(true);
+      return;
+    }
 
     const now = Date.now();
     if (now - lastReconnectAttemptRef.current > 12000) {
@@ -172,6 +199,16 @@ export default function DesktopSessionPage() {
       }
       setReconnectGeneration(g => g + 1);
     }
+  };
+
+  // "Try Again" after giving up — resets the give-up window and forces an
+  // immediate fresh reconnect attempt rather than waiting for the next
+  // poll cycle.
+  const handleManualReconnectRetry = () => {
+    tunnelDownSinceRef.current = Date.now();
+    lastReconnectAttemptRef.current = 0;
+    setReconnectGaveUp(false);
+    setReconnectGeneration(g => g + 1);
   };
 
   // Consolidated Polling Loop
@@ -616,7 +653,7 @@ export default function DesktopSessionPage() {
             </div>
           )}
 
-          {!disconnectedByAdmin && tunnelDown && (
+          {!disconnectedByAdmin && tunnelDown && !reconnectGaveUp && (
             <div style={{
               position: 'absolute', inset: 0,
               zIndex: 100,
@@ -633,6 +670,34 @@ export default function DesktopSessionPage() {
               <p className="text-slate-500 mb-2 max-w-sm">
                 The desktop stream was interrupted — this can happen if the machine restarts. Reconnecting automatically…
               </p>
+            </div>
+          )}
+
+          {!disconnectedByAdmin && reconnectGaveUp && (
+            <div style={{
+              position: 'absolute', inset: 0,
+              zIndex: 100,
+              background: '#050B18',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              padding: '32px',
+            }}>
+              <AlertCircle size={40} className="text-amber-400 mb-4" />
+              <h2 className="text-slate-300 text-xl font-semibold mb-2">Still Having Trouble Reconnecting</h2>
+              <p className="text-slate-500 mb-6 max-w-sm">
+                We're having trouble reconnecting to your workspace. It may have been shut down. You can try again or head back to your workspaces.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => navigate('/workspaces')} className="px-6 py-3 bg-transparent text-[var(--text-primary)] rounded-xl font-medium hover:bg-white/5 transition-colors border border-[var(--border-color)]">
+                  Back to Workspaces
+                </button>
+                <button onClick={handleManualReconnectRetry} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors shadow-lg">
+                  Try Again
+                </button>
+              </div>
             </div>
           )}
 
@@ -806,7 +871,7 @@ export default function DesktopSessionPage() {
           just broke (e.g. a restart/shutdown triggered from inside the
           guest OS itself), distinct from the takeover and admin-disconnect
           cases above which have their own more specific messaging. */}
-      {!disconnectedByAdmin && !takenOverByHost && tunnelDown && (
+      {!disconnectedByAdmin && !takenOverByHost && tunnelDown && !reconnectGaveUp && (
         <div style={{
           position: 'absolute', inset: 0,
           zIndex: 100,
@@ -823,6 +888,38 @@ export default function DesktopSessionPage() {
           <p className="text-slate-500 mb-2 max-w-sm">
             The desktop stream was interrupted — this can happen if the machine restarts. Reconnecting automatically…
           </p>
+        </div>
+      )}
+
+      {/* Give-up state — a genuine guest-initiated Power Off leaves the VM
+          off for good, and nothing currently syncs that back to us, so we
+          can't tell restart-recovering from powered-off-forever. After a
+          reasonable window, stop guessing and stop retrying. */}
+      {!disconnectedByAdmin && !takenOverByHost && reconnectGaveUp && (
+        <div style={{
+          position: 'absolute', inset: 0,
+          zIndex: 100,
+          background: '#050B18',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          textAlign: 'center',
+          padding: '32px',
+        }}>
+          <AlertCircle size={40} className="text-amber-400 mb-4" />
+          <h2 className="text-slate-300 text-xl font-semibold mb-2">Still Having Trouble Reconnecting</h2>
+          <p className="text-slate-500 mb-6 max-w-sm">
+            We're having trouble reconnecting to your session. It may have been shut down. You can try again or head back to your workspaces.
+          </p>
+          <div className="flex gap-3">
+            <button onClick={() => navigate('/workspaces')} className="px-6 py-3 bg-transparent text-[var(--text-primary)] rounded-xl font-medium hover:bg-white/5 transition-colors border border-[var(--border-color)]">
+              Back to Workspaces
+            </button>
+            <button onClick={handleManualReconnectRetry} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors shadow-lg">
+              Try Again
+            </button>
+          </div>
         </div>
       )}
 

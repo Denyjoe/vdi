@@ -22,7 +22,6 @@ import AnnouncementBanner from "./AnnouncementBanner";
 import { NotificationProvider } from "../../context/NotificationContext";
 import useUIStore from "../../store/uiStore";
 import useSettingsStore from "../../store/settingsStore";
-import UpgradeModal from "../shared/UpgradeModal";
 import SettingsPanel from "../shared/SettingsPanel";
 import BillingPanel from "../shared/BillingPanel";
 import NotificationsDrawer from "../shared/NotificationsDrawer";
@@ -30,9 +29,7 @@ import NotificationsDrawer from "../shared/NotificationsDrawer";
 export default function Layout({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { 
-    showUpgradeModal, 
-    closeUpgradeModal,
+  const {
     showCreateSessionModal,
     closeCreateSessionModal,
     showBilling,
@@ -58,15 +55,6 @@ export default function Layout({ children }) {
           <main className="flex-1 overflow-auto p-4 sm:p-6">{children ? children : <Outlet />}</main>
         </div>
       </div>
-      {showUpgradeModal && (
-        <UpgradeModal
-          onClose={closeUpgradeModal}
-          onUpgraded={() => {
-            closeUpgradeModal()
-            window.location.reload()
-          }}
-        />
-      )}
       {useSettingsStore(s => s.isOpen) && <SettingsPanel />}
       <BillingPanel isOpen={showBilling} onClose={closeBilling} />
       <NotificationsDrawer isOpen={showNotifications} onClose={closeNotifications} />

@@ -205,6 +205,9 @@ class LiveSession(models.Model):
         null=True, blank=True)
     restrict_internet = models.BooleanField(
         default=False)
+    allowed_domains = models.JSONField(
+        default=list, blank=True,
+        help_text="Domains reachable through the network lockdown when restrict_internet is on")
     restrict_copy_paste = models.BooleanField(
         default=False)
     allow_late_submission = models.BooleanField(

@@ -156,7 +156,7 @@ export default function BillingPanel({ isOpen, onClose }) {
         </div>
 
         
-        {/* Workspace free time remaining today */}
+        {/* Workspace hours balances — per template, no platform-wide free tier */}
         <div className="relative overflow-hidden bg-card/70 backdrop-blur-sm border border-border rounded-2xl p-5 group hover:border-border-strong transition-all">
           <div className="absolute top-0 right-0 w-24 h-24 bg-[#00A3FF]/5 rounded-full -translate-y-8 translate-x-8" />
           <div className="relative">
@@ -165,19 +165,21 @@ export default function BillingPanel({ isOpen, onClose }) {
                 <Clock size={20} className="text-[#00A3FF]" />
               </div>
               <span className="text-[9px] uppercase tracking-widest text-faint font-medium">
-                Today
+                Hours Balance
               </span>
             </div>
             <p className="text-2xl font-bold text-primary tracking-tight tabular-nums">
-              {overview?.workspace_subscription ? 'Unlimited' : `${overview?.workspace_free_minutes_remaining ?? 0}m`}
+              {(overview?.workspace_balances || []).length}
             </p>
             <p className="text-[11px] text-muted mt-1">
-              {overview?.workspace_subscription ? 'Workspace subscription active' : 'Free workspace time remaining'}
+              {(overview?.workspace_balances || []).length > 0
+                ? (overview.workspace_balances || []).map(b => `${b.template_name}: ${b.hours_remaining}h`).join(' · ')
+                : 'No paid hours remaining on any template'}
             </p>
           </div>
         </div>
 
-        {/* Workspace subscription status */}
+        {/* Workspace subscriptions — per template */}
         <div className="relative overflow-hidden bg-card/70 backdrop-blur-sm border border-border rounded-2xl p-5 group hover:border-border-strong transition-all">
           <div className="absolute top-0 right-0 w-24 h-24 bg-[#00FF87]/5 rounded-full -translate-y-8 translate-x-8" />
           <div className="relative">
@@ -186,42 +188,43 @@ export default function BillingPanel({ isOpen, onClose }) {
                 <CreditCard size={20} className="text-[#00FF87]" />
               </div>
               <span className="text-[9px] uppercase tracking-widest text-faint font-medium">
-                Workspace
+                Subscriptions
               </span>
             </div>
             <p className="text-2xl font-bold text-primary tracking-tight tabular-nums">
-              {overview?.workspace_subscription ? 'Active' : 'Pay-as-you-go'}
+              {(overview?.workspace_subscriptions || []).length > 0 ? 'Active' : 'None'}
             </p>
             <p className="text-[11px] text-muted mt-1">
-              {overview?.workspace_subscription
-                ? `Renews ${new Date(overview.workspace_subscription.expires_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
-                : 'Subscribe for unlimited workspace access'}
+              {(overview?.workspace_subscriptions || []).length > 0
+                ? (overview.workspace_subscriptions || []).map(s => s.template_name).join(', ')
+                : 'No active template subscriptions'}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Workspace subscription banner */}
-      {overview?.workspace_subscription && (
-        <div className="flex items-center gap-4 bg-card/70 border border-[#6C63FF]/20 rounded-2xl px-5 py-4 mb-8">
+      {/* Workspace subscription banners — one per subscribed template */}
+      {(overview?.workspace_subscriptions || []).map(sub => (
+        <div key={sub.template_id} className="flex items-center gap-4 bg-card/70 border border-[#6C63FF]/20 rounded-2xl px-5 py-4 mb-4">
           <div className="w-10 h-10 rounded-xl bg-[#6C63FF]/10 flex items-center justify-center flex-shrink-0">
             <Monitor size={18} className="text-[#6C63FF]" />
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-primary">
-                Workspace Unlimited
+                {sub.template_name} — Unlimited
               </span>
               <span className="px-2 py-0.5 rounded-full bg-[#6C63FF]/10 text-[9px] font-bold text-[#6C63FF] uppercase tracking-wider">
                 Active
               </span>
             </div>
             <span className="text-xs text-muted mt-0.5">
-              Renews {new Date(overview.workspace_subscription.expires_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+              Renews {new Date(sub.expires_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
             </span>
           </div>
         </div>
-      )}
+      ))}
+      {(overview?.workspace_subscriptions || []).length > 0 && <div className="mb-4" />}
 
       {/* Tabs */}
       <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
@@ -484,7 +487,7 @@ export default function BillingPanel({ isOpen, onClose }) {
                 <div className="relative flex justify-between items-start">
                   <div>
                     <h1 className="text-[22px] font-extrabold text-primary tracking-tight">
-                      CloudDesk
+                      Ospace
                     </h1>
                     <p className="text-[10px] text-primary/60 uppercase tracking-[3px] mt-1 font-medium">
                       Cloud Virtual Desktops
@@ -570,10 +573,10 @@ export default function BillingPanel({ isOpen, onClose }) {
               {/* Footer */}
               <div className="text-center px-10 py-6 border-t border-border bg-sidebar">
                 <p className="text-[11px] text-muted font-semibold">
-                  CloudDesk — Cloud Virtual Desktop Infrastructure
+                  Ospace — Cloud Virtual Desktop Infrastructure
                 </p>
                 <p className="text-[11px] text-faint mt-1">Dar es Salaam, Tanzania</p>
-                <p className="text-[11px] text-faint">support@clouddesk.io</p>
+                <p className="text-[11px] text-faint">support@ospace.io</p>
                 <p className="text-[10px] text-[#6C63FF] mt-3 font-medium">
                   Please keep this receipt for your records
                 </p>
@@ -598,7 +601,7 @@ export default function BillingPanel({ isOpen, onClose }) {
                     <!DOCTYPE html>
                     <html>
                     <head>
-                    <title>CloudDesk Receipt ${r.receipt_number}</title>
+                    <title>Ospace Receipt ${r.receipt_number}</title>
                     <style>
                       * { margin: 0; padding: 0; 
                         box-sizing: border-box; }
@@ -711,7 +714,7 @@ export default function BillingPanel({ isOpen, onClose }) {
                     
                     <div class="header">
                       <div class="logo">
-                        CloudDesk
+                        Ospace
                         <span>Cloud Virtual Desktops</span>
                       </div>
                       <div class="receipt-id">
@@ -792,11 +795,11 @@ export default function BillingPanel({ isOpen, onClose }) {
                     </div>
                     
                     <div class="footer">
-                      <p><strong>CloudDesk</strong> — 
+                      <p><strong>Ospace</strong> — 
                         Cloud Virtual Desktop 
                         Infrastructure</p>
                       <p>Dar es Salaam, Tanzania · 
-                        support@clouddesk.io</p>
+                        support@ospace.io</p>
                       <p class="keep">Please keep this 
                         receipt for your records</p>
                       <p class="disclaimer">

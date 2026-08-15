@@ -1,5 +1,5 @@
 /**
- * App — root component for the CloudDesk frontend.
+ * App — root component for the Ospace frontend.
  *
  * Sets up react-router-dom routes for all pages:
  *   - /         → LandingPage

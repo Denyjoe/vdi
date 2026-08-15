@@ -26,7 +26,7 @@ class RegisterView(APIView):
         if allow_reg == 'false':
             return Response({
                 'success': False,
-                'message': 'New account registration is currently disabled. Please contact support@clouddesk.io'
+                'message': 'New account registration is currently disabled. Please contact support@ospace.io'
             }, status=403)
 
         email = request.data.get('email')
@@ -89,7 +89,7 @@ class LoginView(APIView):
                     'message': (
                         'Your account has been '
                         'suspended. Contact support '
-                        'at support@clouddesk.io')
+                        'at support@ospace.io')
                 }, status=403)
                 
             if not user.is_active or not user.is_approved:
@@ -286,17 +286,19 @@ class PricingView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        from apps.users.models import SubscriptionPlan
+        from apps.users.models import SystemConfig
         from apps.vms.models import VMTemplate
         from apps.vms.serializers import VMTemplateSerializer
-        
-        plans = SubscriptionPlan.objects.all().values()
+
         templates = VMTemplate.objects.filter(is_available=True)
         return Response({
             "success": True,
             "data": {
-                "plans": list(plans),
-                "templates": VMTemplateSerializer(templates, many=True).data
+                "session_hosting_rate_tzs": float(SystemConfig.get('session_hosting_rate_tzs', '5000')),
+                # Workspace pricing is now genuinely per-template — see each
+                # entry's price_per_hour / price_per_month below. No more
+                # platform-wide workspace price or free tier.
+                "templates": VMTemplateSerializer(templates, many=True).data,
             }
         })
 
@@ -338,8 +340,8 @@ class UserStatsView(APIView):
                 'sessions_joined': SessionParticipant.objects.filter(user=user).count(),
                 'workspaces': Workspace.objects.filter(owner=user).count(),
                 'total_vms': VirtualMachine.objects.filter(owner=user).count(),
-                'hours_used_this_month': user.subscription.compute_hours_used if hasattr(user, 'subscription') else 0,
-                'hours_remaining': user.subscription.hours_remaining if hasattr(user, 'subscription') else 0,
+                'hours_used_this_month': round(float(ComputeUsageLog.objects.filter(user=user).aggregate(total=models.Sum('hours_used'))['total'] or 0), 1),
+                'hours_remaining': 0,
                 'member_since': user.created_at
             }
         elif user.role == 'instructor':
@@ -408,11 +410,7 @@ class GoogleAuthView(APIView):
                 user.set_unusable_password()
                 user.save()
 
-                from apps.users.models import SubscriptionPlan, UserSubscription, ActivityLog
-
-
-                free_plan = SubscriptionPlan.objects.get(name='free')
-                UserSubscription.objects.create(user=user, plan=free_plan, status='active')
+                from apps.users.models import ActivityLog
 
                 ActivityLog.objects.create(user=user, action='USER_REGISTERED_GOOGLE', description=f'Google signup: {email}')
             else:
@@ -429,7 +427,7 @@ class GoogleAuthView(APIView):
                     'refresh': str(refresh),
                     'is_new_user': created
                 },
-                'message': 'Welcome to CloudDesk!'
+                'message': 'Welcome to Ospace!'
             })
 
         except Exception as e:
@@ -632,8 +630,10 @@ class ProfileStatsView(APIView):
             
         hours_used = 0.0
         try:
-            sub = user.subscription
-            hours_used = float(getattr(sub, 'compute_hours_used', 0) or 0)
+            from apps.users.models import ComputeUsageLog
+            from django.db.models import Sum
+            h = ComputeUsageLog.objects.filter(user=user).aggregate(total=Sum('hours_used'))['total']
+            hours_used = round(float(h or 0), 1)
         except Exception:
             pass
             
@@ -722,7 +722,6 @@ class FirebaseLoginView(APIView):
                     'first_name': user.first_name,
                     'last_name': user.last_name,
                     'role': user.role,
-                    'is_host': getattr(user, 'is_host', False),
                     'avatar': getattr(user, 'avatar_url', None),
                 }
             }

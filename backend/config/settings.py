@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY & SITE INFO
 # ─────────────────────────────────────────────────────────────────────────────
 
-SITE_NAME = 'CloudDesk'
+SITE_NAME = 'Ospace'
 SITE_TAGLINE = 'Your workspace, anywhere'
 
 SECRET_KEY = config("SECRET_KEY")
@@ -277,6 +277,10 @@ CELERY_BEAT_SCHEDULE = {
   'end-expired-live-sessions': {
     'task': 'apps.sessions.tasks.end_expired_sessions',
     'schedule': crontab(minute='*'),
+  },
+  'check-idle-workspaces': {
+    'task': 'apps.vms.tasks.check_idle_workspaces_task',
+    'schedule': crontab(hour=3, minute=0),  # 3am daily
   },
 }
 

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { signInWithGoogle, signInWithGithub } from '../../config/firebase';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import OspaceLogo from '../../components/shared/OspaceLogo';
 
 export default function SignInPage() {
   const navigate = useNavigate();
@@ -64,27 +65,13 @@ export default function SignInPage() {
           gap: '10px',
           marginBottom: '32px',
         }}>
-          <div style={{
-            width: '40px', 
-            height: '40px',
-            borderRadius: '14px',
-            background: 'linear-gradient(135deg, #6C63FF, #0066FF)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <span style={{
-              color: 'white',
-              fontSize: '18px',
-              fontWeight: 800,
-            }}>C</span>
-          </div>
+          <OspaceLogo size={40} />
           <span style={{
             fontSize: '20px',
             fontWeight: 800,
             color: 'var(--text-primary)',
             letterSpacing: '-0.5px',
-          }}>CloudDesk</span>
+          }}>Ospace</span>
         </div>
         
         <h1 style={{

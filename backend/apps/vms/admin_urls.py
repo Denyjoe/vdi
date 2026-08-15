@@ -10,4 +10,6 @@ urlpatterns = [
     path('workspaces/<int:workspace_id>/detail/', admin_views.AdminWorkspaceDetailView.as_view(), name='admin-workspaces-detail'),
     path('hardware/', admin_views.AdminHardwareView.as_view(), name='admin-hardware'),
     path('hardware/cpu-history/', admin_views.AdminHardwareCpuHistoryView.as_view(), name='admin-hardware-cpu-history'),
+    path('idle-workspaces/summary/', admin_views.AdminIdleWorkspacesSummaryView.as_view(), name='admin-idle-workspaces-summary'),
+    path('idle-workspaces/run-check/', admin_views.AdminRunIdleCheckView.as_view(), name='admin-idle-workspaces-run-check'),
 ]

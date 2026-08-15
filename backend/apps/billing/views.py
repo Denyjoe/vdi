@@ -15,12 +15,13 @@ class BillingOverviewView(APIView):
         Computes:
         - total_spent: SUM of ALL completed payments across ALL payment_type
           values and ALL time (session_hosting, session_extend,
-          workspace_hourly, workspace_subscription). No date filter is
-          applied — this is a true all-time total.
+          workspace_hours_purchase, workspace_template_subscription). No
+          date filter is applied — this is a true all-time total.
         - this_month_spent: same sum but restricted to the current
           calendar month, provided as supplementary context.
-        - workspace_free_minutes_remaining: rolling-24-hour free tier.
-        - workspace_subscription: active subscription metadata if any.
+        - workspace_balances: per-template hours remaining (only entries
+          with a positive balance).
+        - workspace_subscriptions: per-template active subscriptions.
         """
         user = request.user
 
@@ -59,22 +60,28 @@ class BillingOverviewView(APIView):
         except Exception:
             pass
 
-        # ── Workspace free-hour usage (rolling 24 hr) ─────────────────────
-        from apps.vms.services.workspace_access import get_free_minutes_remaining
-        free_minutes_remaining = get_free_minutes_remaining(user)
+        # ── Per-template hours balances (only positive ones) ──────────────
+        from apps.vms.models import WorkspaceHoursBalance, TemplateSubscription
+        workspace_balances = [
+            {
+                'template_id': b.template_id,
+                'template_name': b.template.name,
+                'hours_remaining': float(b.hours_remaining),
+            }
+            for b in WorkspaceHoursBalance.objects.filter(user=user, hours_remaining__gt=0).select_related('template')
+        ]
 
-        # ── Workspace subscription info ────────────────────────────────────
-        from django.core.exceptions import ObjectDoesNotExist
-        workspace_subscription = None
-        try:
-            sub = user.workspace_subscription
-            if sub.is_active and sub.expires_at > now:
-                workspace_subscription = {
-                    'is_active': True,
-                    'expires_at': sub.expires_at,
-                }
-        except ObjectDoesNotExist:
-            pass
+        # ── Per-template active subscriptions ──────────────────────────────
+        workspace_subscriptions = [
+            {
+                'template_id': s.template_id,
+                'template_name': s.template.name,
+                'expires_at': s.expires_at,
+            }
+            for s in TemplateSubscription.objects.filter(
+                user=user, is_active=True, expires_at__gt=now
+            ).select_related('template')
+        ]
 
         return Response({
             'currency': 'TZS',
@@ -84,8 +91,8 @@ class BillingOverviewView(APIView):
                 # Bonus field: actual this-month spending
                 'this_month_spent': this_month_spent,
             },
-            'workspace_free_minutes_remaining': free_minutes_remaining,
-            'workspace_subscription': workspace_subscription,
+            'workspace_balances': workspace_balances,
+            'workspace_subscriptions': workspace_subscriptions,
         })
 
 
@@ -234,11 +241,11 @@ class ReceiptDownloadView(APIView):
                 if plan:
                     desc = getattr(plan, 
                         'name', 
-                        'CloudDesk Service')
+                        'Ospace Service')
                 else:
-                    desc = 'CloudDesk Service'
+                    desc = 'Ospace Service'
             except:
-                desc = 'CloudDesk Service'
+                desc = 'Ospace Service'
         
         method = str(
             getattr(payment, 'provider',

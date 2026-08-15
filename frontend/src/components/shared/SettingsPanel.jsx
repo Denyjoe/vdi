@@ -642,7 +642,7 @@ function AppearanceTab() {
     <div className="space-y-6">
       <div>
         <h3 className="text-sm font-bold text-primary mb-1">Appearance</h3>
-        <p className="text-xs text-muted">Customize how CloudDesk looks</p>
+        <p className="text-xs text-muted">Customize how Ospace looks</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -763,7 +763,7 @@ function DeveloperTab() {
         
         <h2 className="text-base font-bold text-primary mb-1">API Access</h2>
         <p className="text-xs text-muted mb-6">
-          Use API tokens to access CloudDesk programmatically. Integrate with your tools, automate workspace provisioning, or build custom workflows.
+          Use API tokens to access Ospace programmatically. Integrate with your tools, automate workspace provisioning, or build custom workflows.
         </p>
         
         {/* Security warning */}
@@ -841,7 +841,7 @@ function DeveloperTab() {
             <Code size={32} className="text-faint mx-auto mb-3" />
             <p className="text-sm text-secondary mb-1">No API token generated</p>
             <p className="text-xs text-muted mb-5 max-w-sm mx-auto">
-              Generate a token to access CloudDesk API from scripts, integrations, or custom tools.
+              Generate a token to access Ospace API from scripts, integrations, or custom tools.
             </p>
             <button onClick={() => {
                 console.log('Generate clicked');
@@ -860,7 +860,7 @@ function DeveloperTab() {
           <div className="bg-sidebar rounded-xl p-4 border border-border-subtle overflow-x-auto">
             <code className="text-[11px] font-mono text-secondary leading-relaxed whitespace-pre-wrap">
 {`curl -X GET \\
-  https://clouddesk.io/api/workspaces/ \\
+  https://ospace.io/api/workspaces/ \\
   -H "X-API-Key: sk-cd-your-token-here"`}
             </code>
           </div>
@@ -921,7 +921,7 @@ function DangerTab() {
           <div>
             <h3 className="text-sm font-bold text-red-400">Delete Your Account</h3>
             <p className="text-xs text-secondary mt-1 leading-relaxed">
-              If you no longer need your CloudDesk account, you can permanently remove it here. All your workspaces, session history, and billing data will be deleted.
+              If you no longer need your Ospace account, you can permanently remove it here. All your workspaces, session history, and billing data will be deleted.
             </p>
           </div>
         </div>

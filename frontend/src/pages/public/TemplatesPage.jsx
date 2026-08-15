@@ -200,7 +200,7 @@ export default function TemplatesPage() {
 
       <footer className="py-8 bg-[#050B18] border-t border-[var(--border-color)]">
         <div className="max-w-7xl mx-auto px-6 text-center text-[var(--text-secondary)] text-sm">
-          <p>© 2026 CloudDesk. All rights reserved.</p>
+          <p>© 2026 Ospace. All rights reserved.</p>
         </div>
       </footer>
     </div>

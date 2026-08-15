@@ -289,6 +289,107 @@ class ProxmoxService:
         logger.warning("VM %s did not get IP within %ss", vmid, max_wait)
         return None
 
+    def enable_vm_lockdown(self, vmid, allowed_domains=None):
+        """
+        Lock a VM down to no outbound internet access except essential
+        gateway/DNS traffic and an optional domain whitelist.
+
+        Rebuilds the VM's firewall rule set from scratch every call, so
+        it is safe to call repeatedly (e.g. re-applied after a resume).
+
+        Essential connectivity is a single ACCEPT rule for the platform's
+        LAN gateway (also the real DNS server in this environment — see
+        SystemConfig key 'network_lockdown_allowlist_ips'). Guacamole and
+        Proxmox are deliberately NOT whitelisted: Guacamole connects
+        INBOUND to the VM (governed by policy_in=ACCEPT, not outbound
+        rules) and the guest agent uses QEMU's virtio-serial channel, not
+        the network, so neither needs an outbound path from the guest.
+
+        Domain whitelisting resolves each domain to its current IP(s) at
+        activation time and adds one ACCEPT rule per IP. This is a
+        snapshot: a domain that later answers with a different IP (e.g.
+        a multi-IP CDN rotating addresses) will not be reachable until
+        lockdown is re-applied. This is an inherent limitation of
+        IP-based firewalling, not a bug.
+
+        Args:
+            vmid (int): The Proxmox VM ID to lock down.
+            allowed_domains (list[str] or None): Domains to whitelist in
+                addition to the essential gateway/DNS access.
+        """
+        import socket
+        from apps.users.models import SystemConfig
+
+        node = self.proxmox.nodes(self.node)
+
+        # Per-VM rules only take effect if the interface opts in.
+        cfg = node.qemu(vmid).config.get()
+        net0 = cfg.get('net0', '')
+        if net0 and 'firewall=1' not in net0:
+            node.qemu(vmid).config.post(net0=net0 + ',firewall=1')
+
+        # Rebuild from a clean slate so re-applying (e.g. after resume)
+        # never stacks duplicate or stale rules.
+        existing_rules = node.qemu(vmid).firewall.rules.get()
+        for _ in existing_rules:
+            node.qemu(vmid).firewall.rules(0).delete()
+
+        essential_ips = [
+            ip.strip() for ip in
+            SystemConfig.get('network_lockdown_allowlist_ips', '192.168.1.1').split(',')
+            if ip.strip()
+        ]
+        for ip in essential_ips:
+            node.qemu(vmid).firewall.rules.post(
+                type='out', action='ACCEPT', dest=ip, enable=1,
+                comment='Essential gateway/DNS connectivity',
+            )
+
+        resolved_ips = set()
+        for domain in (allowed_domains or []):
+            domain = domain.strip()
+            if not domain:
+                continue
+            try:
+                addrinfo = socket.getaddrinfo(domain, None, socket.AF_INET)
+                domain_ips = {info[4][0] for info in addrinfo}
+            except socket.gaierror as e:
+                logger.warning("Could not resolve whitelisted domain %s: %s", domain, e)
+                continue
+            for ip in domain_ips:
+                if ip in resolved_ips:
+                    continue
+                resolved_ips.add(ip)
+                node.qemu(vmid).firewall.rules.post(
+                    type='out', action='ACCEPT', dest=ip, enable=1,
+                    comment=f'Whitelisted domain: {domain}',
+                )
+
+        node.qemu(vmid).firewall.options.put(
+            enable=1, policy_in='ACCEPT', policy_out='DROP',
+        )
+        logger.info(
+            "Network lockdown enabled on VM %s (essential=%s, domains=%s -> %s)",
+            vmid, essential_ips, allowed_domains, sorted(resolved_ips),
+        )
+
+    def disable_vm_lockdown(self, vmid):
+        """
+        Fully lift network lockdown on a VM, restoring unrestricted
+        outbound access.
+
+        Args:
+            vmid (int): The Proxmox VM ID to unlock.
+        """
+        node = self.proxmox.nodes(self.node)
+        node.qemu(vmid).firewall.options.put(enable=0)
+
+        existing_rules = node.qemu(vmid).firewall.rules.get()
+        for _ in existing_rules:
+            node.qemu(vmid).firewall.rules(0).delete()
+
+        logger.info("Network lockdown disabled on VM %s", vmid)
+
     def get_vm_status(self, vmid):
         """
         Get the current status of a VM.

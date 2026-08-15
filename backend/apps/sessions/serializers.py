@@ -13,6 +13,7 @@ class LiveSessionSerializer(serializers.ModelSerializer):
             'session_type', 'required_vm_template', 'invite_code', 'invite_link',
             'is_public', 'is_exam_mode', 'max_participants', 'start_time',
             'end_time', 'submission_deadline', 'restrict_internet',
+            'allowed_domains',
             'restrict_copy_paste', 'allow_late_submission', 'submission_type',
             'instructions', 'status', 'created_at', 'participant_count',
             'password', 'allow_participant_chat', 'record_session', 'show_participant_list',

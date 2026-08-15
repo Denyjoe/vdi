@@ -127,6 +127,9 @@ export default function CreateSessionPage() {
     interaction_mode: 'full_control',
   });
 
+  const [restrictInternet, setRestrictInternet] = useState(false);
+  const [allowedDomainsInput, setAllowedDomainsInput] = useState('');
+
   useEffect(() => {
     api.get('/vms/templates/').then(res => {
       const data = Array.isArray(res.data) ? res.data : res.data?.data || [];
@@ -155,7 +158,12 @@ export default function CreateSessionPage() {
         vm_template: selectedTemplate.id,
         max_participants: maxParticipants,
         hours: hours,
-        restrictions: restrictions
+        restrictions: restrictions,
+        restrict_internet: restrictInternet,
+        allowed_domains: allowedDomainsInput
+          .split(',')
+          .map(d => d.trim())
+          .filter(Boolean)
       }
     });
     
@@ -362,13 +370,33 @@ export default function CreateSessionPage() {
                 onChange={v => setRestrictions({...restrictions, clipboard: v})} 
                 onColor="var(--accent-primary)" 
               />
-              <ControlToggle 
-                label="File Transfer" 
-                description="Allow uploading/downloading files" 
-                value={restrictions.file_transfer} 
-                onChange={v => setRestrictions({...restrictions, file_transfer: v})} 
-                onColor="var(--accent-primary)" 
+              <ControlToggle
+                label="File Transfer"
+                description="Allow uploading/downloading files"
+                value={restrictions.file_transfer}
+                onChange={v => setRestrictions({...restrictions, file_transfer: v})}
+                onColor="var(--accent-primary)"
               />
+              <ControlToggle
+                label="Network Lockdown"
+                description="Block all internet access from participant VMs except whitelisted domains"
+                value={restrictInternet}
+                onChange={setRestrictInternet}
+                onColor="var(--accent-primary)"
+              />
+              {restrictInternet && (
+                <div>
+                  <label style={labelStyle}>
+                    Allowed Domains (comma-separated)
+                  </label>
+                  <input
+                    value={allowedDomainsInput}
+                    onChange={e => setAllowedDomainsInput(e.target.value)}
+                    placeholder="e.g. github.com, docs.python.org"
+                    style={inputStyle}
+                  />
+                </div>
+              )}
             </div>
           </div>
 

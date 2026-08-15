@@ -1,129 +1,100 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check } from 'lucide-react';
 import PublicNavbar from '../../components/public/PublicNavbar';
 import useAuthStore from '../../store/authStore';
-import CheckoutModal from '../../components/shared/CheckoutModal';
+import api from '../../services/api';
+
+const FALLBACK_PRICING = {
+  session_hosting_rate_tzs: 5000,
+  templates: [],
+};
 
 export default function PricingPage() {
-  const [currency, setCurrency] = useState('USD');
-  const [billing, setBilling] = useState('monthly');
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuthStore();
-  const [checkoutPlan, setCheckoutPlan] = useState(null);
-  const [showCheckout, setShowCheckout] = useState(false);
+  const { isAuthenticated } = useAuthStore();
+  const [pricing, setPricing] = useState(FALLBACK_PRICING);
+  const [loading, setLoading] = useState(true);
 
-  const handlePlanClick = (plan) => {
-    if (!isAuthenticated) {
-      navigate('/signin');
-      return;
-    }
-    
-    if (plan.name === 'Free') {
-      navigate('/dashboard');
-      return;
-    }
-    
-    if (plan.name === 'Institution') {
-      window.location.href = 'mailto:support@clouddesk.io?subject=Institution Plan Inquiry';
-      return;
-    }
-    
-    setCheckoutPlan(plan);
-    setShowCheckout(true);
-  };
+  useEffect(() => {
+    let settled = false;
+    api.get('/pricing/', { timeout: 6000 })
+      .then(res => {
+        if (res.data.success && res.data.data) {
+          settled = true;
+          setPricing(res.data.data);
+        }
+      })
+      .catch(err => console.error('Failed to fetch pricing', err))
+      .finally(() => {
+        if (!settled) setPricing(FALLBACK_PRICING);
+        setLoading(false);
+      });
+  }, []);
 
-  const handleCheckoutSuccess = () => {
-    setShowCheckout(false);
-    navigate('/create-session');
-  };
+  const goToApp = () => navigate(isAuthenticated ? '/dashboard' : '/signin');
 
-  const plans = [
+  const streams = [
     {
-      name: 'Free',
-      price: { USD: 0, TZS: 0 },
-      period: '/month',
-      description: 'Perfect for exploring the platform and quick edits.',
+      name: 'Session Hosting',
+      tagline: 'Pay only when you host a live session',
+      price: `TZS ${Number(pricing.session_hosting_rate_tzs || 0).toLocaleString()}`,
+      period: '/hour',
       features: [
-        '5 compute hours/month',
-        'Access 12+ VM templates',
-        'Join public sessions',
-        'Join groups with invite code',
-        'Basic support'
-      ],
-      ctaText: 'Get Started Free',
-      ctaStyle: 'border border-white/20 hover:border-white/40 bg-transparent text-primary'
-    },
-    {
-      name: 'Starter',
-      price: { USD: 9, TZS: 23000 },
-      period: '/month',
-      description: 'For students and professionals needing regular access.',
-      badge: 'Most Popular',
-      badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-      features: [
-        '20 compute hours/month',
-        'Create unlimited groups',
-        'Share materials and assignments',
-        '3 persistent workspaces',
-        'Priority support'
-      ],
-      ctaText: 'Start Starter',
-      ctaStyle: 'border border-white/20 hover:border-white/40 bg-transparent text-[var(--text-primary)]'
-    },
-    {
-      name: 'Pro',
-      price: { USD: 19, TZS: 49000 },
-      period: '/month',
-      description: 'For instructors and heavy users hosting sessions.',
-      isPro: true,
-      features: [
-        '80 compute hours/month',
-        'Create live sessions',
-        'Up to 50 participants/session',
+        'Invite participants by code',
+        'Extend anytime, pay-per-hour',
+        'No subscription required',
         'Session monitoring dashboard',
-        '10 persistent workspaces',
-        'Analytics and reports'
       ],
-      ctaText: 'Go Pro',
-      ctaStyle: 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.4)]'
+      cta: 'Host a Session',
+      highlight: false,
     },
     {
-      name: 'Institution',
-      price: { USD: 99, TZS: 255000 },
-      period: '/month',
-      description: 'For schools, universities, and corporate training.',
-      badge: 'Best Value',
-      badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+      name: 'Personal Workspace — Hours',
+      tagline: 'Buy hours for the specific VM type you need',
+      price: 'Per Hour',
+      period: 'real rate set per template',
       features: [
-        'Unlimited compute hours',
-        'Unlimited users',
-        'Custom VM templates',
-        'Bulk user management',
-        'Dedicated support',
-        'Full usage analytics'
+        'Buy exactly the hours you need',
+        'Usage pauses the moment you stop the VM',
+        'Each VM type has its own real hourly rate',
+        'Never expires, never auto-renews',
       ],
-      ctaText: 'Contact Us',
-      ctaStyle: 'border border-white/20 hover:border-white/40 bg-transparent text-primary'
-    }
+      cta: 'Launch a Workspace',
+      highlight: false,
+    },
+    {
+      name: 'Personal Workspace — Unlimited',
+      tagline: 'Subscribe to one VM type for unlimited monthly access',
+      price: 'Per Month',
+      period: 'real rate set per template',
+      features: [
+        'Unlimited hours on that specific VM type',
+        'Flat monthly fee, no per-hour charges',
+        'Expires 30 days after purchase — calendar based',
+        'Subscribe to multiple templates independently',
+      ],
+      cta: 'Go Unlimited',
+      highlight: true,
+    },
   ];
 
   const faqs = [
     {
-      q: 'What is a compute hour?',
-      a: 'A compute hour is 60 minutes of active VM usage. Time is only tracked when your VM is actually running. When you stop your VM, you stop using your compute hours.'
+      q: 'Do I need a subscription to host a session?',
+      a: 'No. Hosting is pure pay-per-hour — pay for exactly the hours you need, when you need them. There is no monthly plan required.'
     },
     {
-      q: 'Can I carry over unused hours?',
-      a: 'No, compute hours reset at the beginning of each billing cycle to keep our pricing predictable and simple.'
+      q: 'How does workspace pricing work?',
+      a: 'Every VM template has its own hourly and monthly price, set by the platform. You either buy a specific number of hours (usage-metered — time only counts while the VM is actually running) or subscribe to that specific template for unlimited monthly access.'
     },
     {
-      q: 'Do I need a credit card for the free plan?',
-      a: 'No! The free plan is completely free forever. We only ask for a credit card when you decide to upgrade to a paid plan.'
+      q: 'Is the workspace price the same for every VM type?',
+      a: 'No. Each VM template has its own hourly and monthly price. Heavier templates may cost more than lighter ones, and a subscription only covers the one template you subscribed to.'
     },
     {
-      q: 'Can I switch between USD and TZS?',
-      a: 'Yes, you can choose your preferred currency at checkout. TZS pricing is specifically optimized for East African users.'
+      q: 'What happens when my purchased hours run out?',
+      a: "Your workspace simply can't be launched until you buy more hours or subscribe — it is never deleted for running out of balance. It's only removed if it goes genuinely unused for 30 days, regardless of any remaining balance."
     }
   ];
 
@@ -135,104 +106,66 @@ export default function PricingPage() {
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h1 className="text-4xl md:text-5xl font-bold text-[var(--text-primary)] mb-6">Simple, transparent pricing</h1>
           <p className="text-lg text-[var(--text-secondary)] mb-8">
-            Start free, scale as you grow. No hidden fees. Pay in USD or TZS.
+            Two revenue streams, no hidden fees. Pay only for what you use, or go unlimited.
           </p>
-          
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-            <div className="inline-flex items-center p-1 bg-white/5 rounded-full border border-[var(--border-color)]">
-              <button 
-                onClick={() => setBilling('monthly')}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${billing === 'monthly' ? 'bg-indigo-600 text-white' : 'text-[var(--text-secondary)] hover:text-white'}`}
-              >
-                Monthly
-              </button>
-              <button 
-                onClick={() => setBilling('annually')}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${billing === 'annually' ? 'bg-indigo-600 text-white' : 'text-[var(--text-secondary)] hover:text-white'}`}
-              >
-                Annually
-                <span className="text-[10px] uppercase font-bold px-2 py-0.5 bg-green-500/20 text-green-400 rounded-full border border-green-500/20">Save 20%</span>
-              </button>
-            </div>
-            
-            <div className="inline-flex items-center p-1 bg-white/5 rounded-full border border-[var(--border-color)]">
-              <button 
-                onClick={() => setCurrency('USD')}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${currency === 'USD' ? 'bg-white/10 text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
-              >
-                USD
-              </button>
-              <button 
-                onClick={() => setCurrency('TZS')}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${currency === 'TZS' ? 'bg-white/10 text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
-              >
-                TZS
-              </button>
-            </div>
-          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {plans.map((plan) => {
-            const price = plan.price[currency];
-            const displayPrice = billing === 'annually' && price > 0 ? Math.floor(price * 0.8) : price;
-            const currencySymbol = currency === 'USD' ? '$' : 'TZS ';
-            
-            return (
-              <div 
-                key={plan.name} 
-                className={`relative rounded-2xl p-6 ${
-                  plan.isPro 
-                    ? 'bg-indigo-900/20 border-2 border-indigo-500/50 glow-primary transform md:-translate-y-4' 
+        {loading ? (
+          <div className="flex justify-center py-12"><div className="w-8 h-8 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin"></div></div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {streams.map((s) => (
+              <div
+                key={s.name}
+                className={`relative rounded-2xl p-6 flex flex-col ${
+                  s.highlight
+                    ? 'bg-indigo-900/20 border-2 border-indigo-500/50 glow-primary'
                     : 'glass-card'
                 }`}
               >
-                {plan.badge && (
+                {s.highlight && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className={`text-xs font-bold px-3 py-1 rounded-full border ${plan.badgeColor}`}>
-                      {plan.badge}
+                    <span className="text-xs font-bold px-3 py-1 rounded-full border bg-indigo-500/20 text-indigo-300 border-indigo-500/30">
+                      Best Value
                     </span>
                   </div>
                 )}
-                
-                <div className="mb-8">
-                  <h3 className="text-xl font-semibold text-[var(--text-primary)] mb-2">{plan.name}</h3>
-                  <p className="text-sm text-[var(--text-secondary)] h-10">{plan.description}</p>
+
+                <div className="mb-6">
+                  <h3 className="text-xl font-semibold text-[var(--text-primary)] mb-2">{s.name}</h3>
+                  <p className="text-sm text-[var(--text-secondary)] h-10">{s.tagline}</p>
                 </div>
-                
+
                 <div className="mb-8">
                   <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-bold text-[var(--text-primary)]">
-                      {currencySymbol}{displayPrice.toLocaleString()}
-                    </span>
-                    <span className="text-[var(--text-secondary)]">{plan.period}</span>
+                    <span className="text-3xl font-bold text-[var(--text-primary)]">{s.price}</span>
                   </div>
-                  {billing === 'annually' && price > 0 && (
-                    <p className="text-sm text-green-400 mt-1">Billed annually</p>
-                  )}
+                  <p className="text-xs text-[var(--text-secondary)] mt-1">{s.period}</p>
                 </div>
-                
+
                 <ul className="space-y-4 mb-8 flex-1">
-                  {plan.features.map((feature, i) => (
+                  {s.features.map((feature, i) => (
                     <li key={i} className="flex items-start gap-3 text-sm text-[var(--text-primary)]">
                       <Check className="w-5 h-5 text-indigo-400 shrink-0" />
                       <span>{feature}</span>
                     </li>
                   ))}
                 </ul>
-                
-                <div className="mt-auto">
-                  <button 
-                    onClick={() => handlePlanClick(plan)}
-                    className={`block w-full text-center py-3 px-4 rounded-xl font-medium transition-all duration-300 ${plan.ctaStyle}`}
-                  >
-                    {plan.ctaText}
-                  </button>
-                </div>
+
+                <button
+                  onClick={goToApp}
+                  className={`block w-full text-center py-3 px-4 rounded-xl font-medium transition-all duration-300 ${
+                    s.highlight
+                      ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.4)]'
+                      : 'border border-white/20 hover:border-white/40 bg-transparent text-[var(--text-primary)]'
+                  }`}
+                >
+                  {s.cta}
+                </button>
               </div>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="border-t border-[var(--border-color)] bg-white/[0.02] py-24">
@@ -240,7 +173,7 @@ export default function PricingPage() {
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-[var(--text-primary)] mb-4">Frequently asked questions</h2>
           </div>
-          
+
           <div className="space-y-6">
             {faqs.map((faq, i) => (
               <div key={i} className="glass-card rounded-xl p-6">
@@ -251,13 +184,6 @@ export default function PricingPage() {
           </div>
         </div>
       </div>
-      
-      <CheckoutModal 
-        plan={checkoutPlan}
-        isOpen={showCheckout}
-        onClose={() => setShowCheckout(false)}
-        onSuccess={handleCheckoutSuccess} 
-      />
     </div>
   );
 }

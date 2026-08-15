@@ -54,37 +54,31 @@ class AnalyticsSessionTrendsView(APIView):
 class AnalyticsVMUsageView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
     def get(self, request):
-        from apps.vms.models import Workspace
+        from apps.vms.models import VirtualMachine
         from django.db.models import Count
 
-        results = Workspace.objects.exclude(vm_template__isnull=True).values(
-            'vm_template__name'
+        results = VirtualMachine.objects.exclude(template__isnull=True).values(
+            'template__name'
         ).annotate(vm_count=Count('id')).order_by('-vm_count')
 
         by_template = [
-            {"template_name": r['vm_template__name'], "vm_count": r['vm_count']}
+            {"template_name": r['template__name'], "vm_count": r['vm_count']}
             for r in results
         ]
 
-        # Real per-user usage, ranked by workspace count. This used to be
-        # hardcoded "John Doe / Jane Smith / Mike Ross" placeholder data
-        # that never reflected anything real — the frontend actually
-        # ignored this field entirely and built its own zero-filled table
-        # from the first 5 users in /users/admin/list/ instead, which is
-        # an equally fake "Top Users" table (real names, hardcoded
-        # vms=0/hours=0). Both are fixed here: this now returns the real
-        # ranking, and DashboardPage-side consumers should read this field.
+        # Real per-user usage, ranked by workspace count.
         top_users_qs = User.objects.annotate(
-            vm_count=Count('workspaces', distinct=True)
+            vm_count=Count('virtual_machines', distinct=True)
         ).filter(vm_count__gt=0).order_by('-vm_count')[:5]
 
         top_users = []
         for u in top_users_qs:
             hours = 0.0
             try:
-                sub = getattr(u, 'subscription', None)
-                if sub:
-                    hours = float(getattr(sub, 'compute_hours_used', 0) or 0)
+                from apps.users.models import ComputeUsageLog
+                from django.db.models import Sum
+                h = ComputeUsageLog.objects.filter(user=u).aggregate(total=Sum('hours_used'))['total']
+                hours = float(h or 0)
             except Exception:
                 pass
             top_users.append({
@@ -191,28 +185,69 @@ class RevenueMonthlyView(APIView):
         from django.utils import timezone
         from datetime import timedelta
         from django.db.models import Sum
-        from django.db.models.functions import TruncMonth
+        from django.db.models.functions import TruncMonth, TruncDate
         import calendar
+        
+        time_range = request.GET.get('range', '6m')
         
         try:
             from apps.users.models import Payment
             
-            six_months_ago = timezone.now() - timedelta(days=180)
-            
-            monthly = Payment.objects.filter(status='completed', created_at__gte=six_months_ago).annotate(month=TruncMonth('created_at')).values('month').annotate(total=Sum('amount_tzs')).order_by('month')
-            
-            result = []
             now = timezone.now()
-            for i in range(5, -1, -1):
-                target_month = (now.month - i - 1) % 12 + 1
-                target_year = now.year + ((now.month - i - 1) // 12)
-                
-                found = next((m for m in monthly if m['month'].month == target_month and m['month'].year == target_year), None)
-                
-                result.append({
-                    'month': calendar.month_abbr[target_month],
-                    'revenue': float(found['total']) if found else 0,
-                })
+            result = []
+            
+            if time_range == '1d':
+                from django.db.models.functions import TruncHour
+                start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+                hourly = Payment.objects.filter(status='completed', created_at__gte=start_date).annotate(hour=TruncHour('created_at')).values('hour').annotate(total=Sum('amount_tzs')).order_by('hour')
+                for i in range(24):
+                    target_hour = start_date + timedelta(hours=i)
+                    found = next((h for h in hourly if h['hour'].hour == target_hour.hour), None)
+                    result.append({
+                        'month': target_hour.strftime('%H:00'),
+                        'revenue': float(found['total']) if found else 0,
+                    })
+            elif time_range == '7d':
+                start_date = now - timedelta(days=7)
+                daily = Payment.objects.filter(status='completed', created_at__gte=start_date).annotate(date=TruncDate('created_at')).values('date').annotate(total=Sum('amount_tzs')).order_by('date')
+                for i in range(6, -1, -1):
+                    target_date = (now - timedelta(days=i)).date()
+                    found = next((d for d in daily if d['date'] == target_date), None)
+                    result.append({
+                        'month': target_date.strftime('%a'), # Use short day name for x-axis
+                        'revenue': float(found['total']) if found else 0,
+                    })
+            elif time_range == '30d':
+                start_date = now - timedelta(days=30)
+                daily = Payment.objects.filter(status='completed', created_at__gte=start_date).annotate(date=TruncDate('created_at')).values('date').annotate(total=Sum('amount_tzs')).order_by('date')
+                # For 30 days, maybe group every 3-4 days or just show all 30 days. Recharts can handle 30 points.
+                for i in range(29, -1, -1):
+                    target_date = (now - timedelta(days=i)).date()
+                    found = next((d for d in daily if d['date'] == target_date), None)
+                    result.append({
+                        'month': target_date.strftime('%d %b'),
+                        'revenue': float(found['total']) if found else 0,
+                    })
+            elif time_range == '1y':
+                start_date = now.replace(month=1, day=1, hour=0, minute=0, second=0)
+                monthly = Payment.objects.filter(status='completed', created_at__gte=start_date).annotate(month=TruncMonth('created_at')).values('month').annotate(total=Sum('amount_tzs')).order_by('month')
+                for i in range(1, 13):
+                    found = next((m for m in monthly if m['month'].month == i and m['month'].year == now.year), None)
+                    result.append({
+                        'month': calendar.month_abbr[i],
+                        'revenue': float(found['total']) if found else 0,
+                    })
+            else: # default 6m
+                six_months_ago = now - timedelta(days=180)
+                monthly = Payment.objects.filter(status='completed', created_at__gte=six_months_ago).annotate(month=TruncMonth('created_at')).values('month').annotate(total=Sum('amount_tzs')).order_by('month')
+                for i in range(5, -1, -1):
+                    target_month = (now.month - i - 1) % 12 + 1
+                    target_year = now.year + ((now.month - i - 1) // 12)
+                    found = next((m for m in monthly if m['month'].month == target_month and m['month'].year == target_year), None)
+                    result.append({
+                        'month': calendar.month_abbr[target_month],
+                        'revenue': float(found['total']) if found else 0,
+                    })
             
             return Response({
                 'revenue': result,
@@ -260,34 +295,87 @@ class UserGrowthView(APIView):
 
 class RevenueBreakdownView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
-    
+
     def get(self, request):
         from django.db.models import Sum
-        
-        try:
-            from apps.users.models import Payment
-            
-            all_payments = Payment.objects.filter(status='completed')
-            total = float(all_payments.aggregate(t=Sum('amount_tzs'))['t'] or 0)
+        from apps.users.models import Payment
 
-            # plan is null for pay-per-hour session charges (hosting/
-            # extend) and set for subscription plan purchases — this is
-            # the real distinction now that the model has no
-            # 'description' field to filter on.
-            workspace_revenue = float(all_payments.filter(plan__isnull=True).aggregate(t=Sum('amount_tzs'))['t'] or 0)
-            host_plan_revenue = float(all_payments.filter(plan__isnull=False).aggregate(t=Sum('amount_tzs'))['t'] or 0)
-            other_revenue = max(0, total - workspace_revenue - host_plan_revenue)
-            
-            return Response({
-                'total': total,
-                'breakdown': [
-                    {'label': 'Workspace Usage', 'amount': workspace_revenue},
-                    {'label': 'Host Subscriptions', 'amount': host_plan_revenue},
-                    {'label': 'Other', 'amount': other_revenue},
-                ]
+        all_payments = Payment.objects.filter(status='completed')
+        total = float(all_payments.aggregate(t=Sum('amount_tzs'))['t'] or 0)
+
+        by_type = {
+            row['payment_type']: float(row['total'] or 0)
+            for row in all_payments.values('payment_type').annotate(total=Sum('amount_tzs'))
+        }
+
+        session_hosting = by_type.get('session_hosting', 0) + by_type.get('session_extend', 0)
+        workspace_hours_purchases = by_type.get('workspace_hours_purchase', 0)
+        workspace_template_subscriptions = by_type.get('workspace_template_subscription', 0)
+        # Payments predating the payment_type field (payment_type is null) or any
+        # other unclassified value — surfaced honestly rather than folded silently
+        # into one of the three real categories.
+        uncategorized = total - session_hosting - workspace_hours_purchases - workspace_template_subscriptions
+
+        breakdown = [
+            {'label': 'Session Hosting', 'amount': session_hosting},
+            {'label': 'Workspace Hours Purchases', 'amount': workspace_hours_purchases},
+            {'label': 'Workspace Template Subscriptions', 'amount': workspace_template_subscriptions},
+        ]
+        if round(uncategorized, 2) != 0:
+            breakdown.append({'label': 'Uncategorized', 'amount': uncategorized})
+
+        return Response({
+            'total': total,
+            'breakdown': breakdown,
+        })
+
+
+class RevenueByTemplateView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        from django.db.models import Sum, Count
+        from apps.users.models import Payment
+
+        def by_template(payment_type):
+            rows = Payment.objects.filter(
+                status='completed',
+                payment_type=payment_type,
+            ).exclude(metadata__template_id__isnull=True).values(
+                'metadata__template_id', 'metadata__template_name'
+            ).annotate(
+                total_revenue=Sum('amount_tzs'),
+                payment_count=Count('id'),
+            ).order_by('-total_revenue')
+            return {
+                r['metadata__template_id']: {
+                    'template_name': r['metadata__template_name'] or 'Unknown',
+                    'total_revenue': float(r['total_revenue'] or 0),
+                    'payment_count': r['payment_count'],
+                }
+                for r in rows
+            }
+
+        hours = by_template('workspace_hours_purchase')
+        subs = by_template('workspace_template_subscription')
+
+        template_ids = set(hours.keys()) | set(subs.keys())
+        data = []
+        for tid in template_ids:
+            h = hours.get(tid, {'template_name': subs.get(tid, {}).get('template_name', 'Unknown'), 'total_revenue': 0, 'payment_count': 0})
+            s = subs.get(tid, {'template_name': hours.get(tid, {}).get('template_name', 'Unknown'), 'total_revenue': 0, 'payment_count': 0})
+            data.append({
+                'template_id': tid,
+                'template_name': h['template_name'],
+                'hours_purchase_revenue': h['total_revenue'],
+                'hours_purchase_count': h['payment_count'],
+                'subscription_revenue': s['total_revenue'],
+                'subscription_count': s['payment_count'],
+                'total_revenue': h['total_revenue'] + s['total_revenue'],
             })
-        except Exception as e:
-            return Response({'total': 0, 'breakdown': [], 'error': str(e)})
+        data.sort(key=lambda d: -d['total_revenue'])
+
+        return Response({'success': True, 'data': data})
 
 class PlatformStatsView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
@@ -304,12 +392,10 @@ class PlatformStatsView(APIView):
         total_users = User.objects.count()
         new_users_week = User.objects.filter(date_joined__gte=week_ago).count()
         
-        # Was VirtualMachine.objects.count() with no filter — counted every
-        # soft-deleted VM row too (test debris accumulates as
-        # status='deleted', never actually removed), so "Total VMs" always
-        # included long-gone infrastructure alongside anything genuinely
-        # live right now.
-        total_vms = VirtualMachine.objects.exclude(status='deleted').count()
+        # In this system, user workspaces are modelled as VirtualMachine instances.
+        # We don't exclude 'deleted' here because we want this "Total" to reflect 
+        # the all-time historical count to match the Template Popularity chart.
+        total_workspaces = VirtualMachine.objects.count()
 
         try:
             from apps.sessions.models import LiveSession
@@ -328,7 +414,7 @@ class PlatformStatsView(APIView):
             'data': {
                 'total_users': total_users,
                 'new_users_week': new_users_week,
-                'total_vms': total_vms,
+                'total_workspaces': total_workspaces,
                 'total_sessions': total_sessions,
                 'sessions_week': sessions_week,
                 'total_revenue_tzs': total_revenue,
@@ -345,14 +431,14 @@ class AdminAnalyticsExportView(APIView):
         from django.db.models import Count, Sum
         
         response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="clouddesk_analytics_report.csv"'
+        response['Content-Disposition'] = 'attachment; filename="ospace_analytics_report.csv"'
         
         writer = csv.writer(response)
         
         from apps.users.models import User, Payment
         from apps.vms.models import VirtualMachine, Workspace
         
-        writer.writerow(['CloudDesk Analytics Report'])
+        writer.writerow(['Ospace Analytics Report'])
         writer.writerow([])
         writer.writerow(['Metric', 'Value'])
         writer.writerow(['Total Users', User.objects.count()])

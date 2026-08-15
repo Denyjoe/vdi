@@ -1,10 +1,14 @@
 import { useState } from 'react';
 import { X, CreditCard, Check } from 'lucide-react';
 import api from '../../services/api';
-import useAuthStore from '../../store/authStore';
 
-export default function CheckoutModal({ plan, isOpen, onClose, onSuccess }) {
-  const [step, setStep] = useState('payment'); 
+/**
+ * Generic instant-activation checkout modal. Posts { phone_number, provider,
+ * ...extraPayload } to `endpoint` and reports success/failure — reused for
+ * workspace pay-per-hour launches and the workspace unlimited subscription.
+ */
+export default function CheckoutModal({ isOpen, onClose, onSuccess, title, amountTzs, endpoint, extraPayload, successMessage }) {
+  const [step, setStep] = useState('payment');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [provider, setProvider] = useState('mpesa');
   const [error, setError] = useState(null);
@@ -14,41 +18,33 @@ export default function CheckoutModal({ plan, isOpen, onClose, onSuccess }) {
       setError('Please enter your mobile money number');
       return;
     }
-    
+
     setStep('processing');
     setError(null);
-    
+
     try {
-      const res = await api.post('/billing/checkout/', {
-        plan_name: plan.name,
+      const res = await api.post(endpoint, {
+        ...extraPayload,
         phone_number: phoneNumber,
         provider: provider,
       });
-      
+
       if (res.data.success) {
-        try {
-          const profileRes = await api.get('/auth/me/');
-          const userData = profileRes.data?.data || profileRes.data;
-          useAuthStore.getState().setUser(userData);
-        } catch(e) {
-          console.error('Failed to update auth store after checkout', e);
-        }
-        
         setStep('success');
         setTimeout(() => {
-          onSuccess();
-        }, 2000);
+          onSuccess(res.data.data);
+        }, 1500);
       } else {
         setError(res.data.message || 'Payment failed');
         setStep('payment');
       }
-    } catch(e) {
+    } catch (e) {
       setError(e.response?.data?.message || 'Payment failed. Please try again.');
       setStep('payment');
     }
   };
 
-  if (!isOpen || !plan) return null;
+  if (!isOpen) return null;
 
   return (
     <div style={{
@@ -60,7 +56,7 @@ export default function CheckoutModal({ plan, isOpen, onClose, onSuccess }) {
       background: 'rgba(0,0,0,0.6)',
       backdropFilter: 'blur(4px)',
     }} onClick={(e) => {
-      if (e.target === e.currentTarget && step !== 'processing') 
+      if (e.target === e.currentTarget && step !== 'processing')
         onClose();
     }}>
       <div style={{
@@ -84,7 +80,7 @@ export default function CheckoutModal({ plan, isOpen, onClose, onSuccess }) {
             fontWeight: 700,
             color: 'var(--text-primary, #F8FAFC)',
           }}>
-            Upgrade to {plan.name}
+            {title}
           </h3>
           {step !== 'processing' && (
             <button onClick={onClose}
@@ -118,12 +114,7 @@ export default function CheckoutModal({ plan, isOpen, onClose, onSuccess }) {
                   fontWeight: 800,
                   color: 'var(--text-primary, #F8FAFC)',
                 }}>
-                  TZS {(plan.price?.TZS || 0).toLocaleString()}
-                  <span style={{
-                    fontSize: '13px',
-                    fontWeight: 500,
-                    color: 'var(--text-muted, #94A3B8)',
-                  }}>/month</span>
+                  TZS {Number(amountTzs || 0).toLocaleString()}
                 </p>
               </div>
 
@@ -177,7 +168,7 @@ export default function CheckoutModal({ plan, isOpen, onClose, onSuccess }) {
               }}>
                 Mobile Number
               </label>
-              <input 
+              <input
                 value={phoneNumber}
                 onChange={e => setPhoneNumber(e.target.value)}
                 placeholder="e.g. 0712345678"
@@ -192,7 +183,7 @@ export default function CheckoutModal({ plan, isOpen, onClose, onSuccess }) {
                   marginBottom: '8px',
                 }}
               />
-              
+
               <p style={{
                 fontSize: '10px',
                 color: 'var(--text-faint, #475569)',
@@ -209,7 +200,7 @@ export default function CheckoutModal({ plan, isOpen, onClose, onSuccess }) {
                 }}>{error}</p>
               )}
 
-              <button 
+              <button
                 onClick={handlePay}
                 style={{
                   width: '100%',
@@ -227,7 +218,7 @@ export default function CheckoutModal({ plan, isOpen, onClose, onSuccess }) {
                   cursor: 'pointer',
                 }}>
                 <CreditCard size={16} />
-                Pay TZS {(plan.price?.TZS || 0).toLocaleString()}
+                Pay TZS {Number(amountTzs || 0).toLocaleString()}
               </button>
             </>
           )}
@@ -240,9 +231,9 @@ export default function CheckoutModal({ plan, isOpen, onClose, onSuccess }) {
               padding: '40px 0',
               gap: '16px',
             }}>
-              <div className="spinner" 
+              <div className="spinner"
                 style={{
-                width: '32px', 
+                width: '32px',
                 height: '32px',
                 border: '3px solid var(--border-color, #334155)',
                 borderTopColor: 'var(--accent-primary, #0066FF)',
@@ -267,7 +258,7 @@ export default function CheckoutModal({ plan, isOpen, onClose, onSuccess }) {
               gap: '12px',
             }}>
               <div style={{
-                width: '56px', 
+                width: '56px',
                 height: '56px',
                 borderRadius: '50%',
                 background: 'var(--status-online-bg, rgba(34, 197, 94, 0.1))',
@@ -282,13 +273,7 @@ export default function CheckoutModal({ plan, isOpen, onClose, onSuccess }) {
                 fontWeight: 700,
                 color: 'var(--text-primary, #F8FAFC)',
               }}>
-                You're now a {plan.name} host!
-              </p>
-              <p style={{
-                fontSize: '13px',
-                color: 'var(--text-muted, #94A3B8)',
-              }}>
-                Redirecting you now...
+                {successMessage || 'Payment confirmed!'}
               </p>
             </div>
           )}

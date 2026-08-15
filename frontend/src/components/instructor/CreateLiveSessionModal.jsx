@@ -98,7 +98,7 @@ export default function CreateLiveSessionModal({ onClose, onCreated }) {
 
     const handleCopyLink = () => {
         if (successData?.invite_code) {
-            navigator.clipboard.writeText(`https://app.clouddesk.io/join/session/${successData.invite_code}`);
+            navigator.clipboard.writeText(`https://app.ospace.io/join/session/${successData.invite_code}`);
             setCopiedLink(true);
             setTimeout(() => setCopiedLink(false), 2000);
         }
@@ -129,7 +129,7 @@ export default function CreateLiveSessionModal({ onClose, onCreated }) {
                         
                         <div className="flex items-center justify-between bg-[#050B18] p-3 rounded-lg border border-[var(--border-color)] mb-8">
                             <span className="text-xs text-[var(--text-secondary)] truncate max-w-[200px]">
-                                app.clouddesk.io/join/session/{successData.invite_code}
+                                app.ospace.io/join/session/{successData.invite_code}
                             </span>
                             <button onClick={handleCopyLink} className="text-indigo-400 hover:text-indigo-300 text-sm font-medium flex items-center gap-1">
                                 {copiedLink ? <CheckCircle className="w-4 h-4" /> : <LinkIcon className="w-4 h-4" />}

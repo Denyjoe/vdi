@@ -11,17 +11,32 @@ export default function AdminVMsPage() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
 
-  const fetchVMs = async () => {
-    setLoading(true);
+  const fetchVMs = async (isManual = false) => {
+    if (!isManual) setLoading(true);
     try {
-      const res = await vmService.adminGetAllVMs();
+      const res = await vmService.adminGetAllVMs({ t: Date.now() }); // Prevent caching
       setVms(res.data.data);
+      if (isManual) {
+        setToast({ show: true, message: 'VM Pool refreshed', type: 'success' });
+      }
     } catch (error) {
       console.error("Failed to fetch VMs:", error);
-      setToast({ show: true, message: 'Failed to load VMs', type: 'error' });
+      if (isManual) {
+        setToast({ show: true, message: 'Failed to refresh VMs', type: 'error' });
+      } else {
+        setToast({ show: true, message: 'Failed to load VMs', type: 'error' });
+      }
     } finally {
-      setLoading(false);
+      if (!isManual) setLoading(false);
     }
+  };
+
+  const handleManualRefresh = () => {
+    // Show spinner in the button artificially for UX
+    setLoading(true);
+    fetchVMs(true).finally(() => {
+      setTimeout(() => setLoading(false), 500);
+    });
   };
 
   useEffect(() => {
@@ -65,7 +80,7 @@ export default function AdminVMsPage() {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-[var(--text-primary)] font-inter">All Virtual Machines</h1>
         <button 
-          onClick={fetchVMs}
+          onClick={handleManualRefresh}
           className="bg-[var(--bg-card-hover)] hover:bg-slate-600 text-[var(--text-primary)] px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />

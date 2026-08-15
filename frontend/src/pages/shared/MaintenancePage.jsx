@@ -16,7 +16,7 @@ export default function MaintenancePage() {
         </h1>
         
         <p className="mb-6 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-          CloudDesk is currently undergoing scheduled maintenance to improve our services.
+          Ospace is currently undergoing scheduled maintenance to improve our services.
           We will be back online shortly. Thank you for your patience!
         </p>
         

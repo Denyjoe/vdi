@@ -12,9 +12,14 @@ import base64
 class AdminSessionStatsView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsAdmin]
     def get(self, request):
-        total_sessions = RemoteSession.objects.count()
-        live_sessions = RemoteSession.objects.filter(status='active').count()
-        completed_sessions = RemoteSession.objects.filter(status='completed').count()
+        # RemoteSession is dead code — it's only ever imported by an old
+        # standalone test script (test_phase4.py), never by any real view,
+        # so it has zero rows in production. Every actual live/hosted
+        # session is a LiveSession, which is what this endpoint should
+        # have been reading all along.
+        total_sessions = LiveSession.objects.count()
+        live_sessions = LiveSession.objects.filter(status='active').count()
+        completed_sessions = LiveSession.objects.filter(status='ended').count()
         
         return Response({
             "success": True,
@@ -50,6 +55,8 @@ class AdminLiveSessionsView(APIView):
                 'started_at': s.created_at.isoformat() if hasattr(s, 'created_at') and s.created_at else None,
                 'session_type': getattr(s, 'session_type', 'workshop'),
                 'restrictions': getattr(s, 'restrictions', {}),
+                'network_locked': s.restrict_internet,
+                'allowed_domains': s.allowed_domains,
             })
         
         return Response({

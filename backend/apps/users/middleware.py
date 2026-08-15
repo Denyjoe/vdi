@@ -38,7 +38,7 @@ class MaintenanceModeMiddleware:
                 return JsonResponse({
                     'success': False,
                     'maintenance': True,
-                    'message': 'CloudDesk is currently under maintenance. Please check back shortly.'
+                    'message': 'Ospace is currently under maintenance. Please check back shortly.'
                 }, status=503)
         
         return self.get_response(request)

@@ -70,12 +70,48 @@ class VirtualMachineSerializer(serializers.ModelSerializer):
 class WorkspaceSerializer(serializers.ModelSerializer):
     vm_template_details = VMTemplateSerializer(source='vm_template', read_only=True)
     vm_details = VirtualMachineSerializer(source='vm', read_only=True)
-    
+    idle_warning = serializers.SerializerMethodField()
+
     class Meta:
         model = Workspace
         fields = [
             'id', 'owner', 'name', 'vm_template', 'vm_template_details',
             'vm', 'vm_details', 'status', 'compute_hours_used',
-            'last_accessed_at', 'created_at'
+            'last_accessed_at', 'created_at', 'access_reason', 'idle_warning'
         ]
-        read_only_fields = ['owner', 'vm', 'status', 'compute_hours_used', 'last_accessed_at']
+        read_only_fields = ['owner', 'vm', 'status', 'compute_hours_used', 'last_accessed_at', 'access_reason']
+
+    def get_idle_warning(self, obj):
+        """Active idle-lifecycle warning for this workspace, if any.
+
+        Returns None once the workspace is used again — the notification
+        rows are historical and don't get deleted, but last_accessed_at
+        moving past the relevant cutoff is what actually clears the badge.
+        """
+        from django.utils import timezone
+        from apps.users.models import SystemConfig
+
+        latest = obj.idle_notifications.filter(
+            notification_type__in=['first_warning', 'final_warning']
+        ).order_by('-sent_at').first()
+        if not latest:
+            return None
+
+        deletion_days = int(SystemConfig.get('workspace_idle_deletion_days', '30'))
+        idle_days = (timezone.now() - obj.last_accessed_at).days
+        days_remaining = max(0, deletion_days - idle_days)
+
+        # The warning is only still "active" if the workspace hasn't been
+        # used since — otherwise last_accessed_at would already be recent.
+        cutoff_field = (
+            'workspace_idle_warning_days' if latest.notification_type == 'first_warning'
+            else 'workspace_idle_final_warning_days'
+        )
+        threshold_days = int(SystemConfig.get(cutoff_field, '23' if latest.notification_type == 'first_warning' else '29'))
+        if idle_days < threshold_days:
+            return None
+
+        return {
+            'level': latest.notification_type,
+            'days_remaining': days_remaining,
+        }

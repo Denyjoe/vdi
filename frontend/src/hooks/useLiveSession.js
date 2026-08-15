@@ -5,8 +5,8 @@ export default function useLiveSession(user) {
   const [liveSession, setLiveSession] = useState(null);
   
   useEffect(() => {
-    if (!user?.is_host) return;
-    
+    if (!user) return;
+
     const check = async () => {
       try {
         const res = await api.get('/sessions/live/');

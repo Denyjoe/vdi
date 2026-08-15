@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Monitor, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
+import logoWhite from '../../assets/ospace-logo-white.png';
 
 export default function PublicNavbar() {
   const { user } = useAuthStore();
@@ -21,8 +22,8 @@ export default function PublicNavbar() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <Monitor className="w-8 h-8 text-indigo-500" />
-            <span className="text-xl font-bold text-[var(--text-primary)] tracking-tight">CloudDesk</span>
+            <img src={logoWhite} alt="Ospace" style={{ height: 32, width: 'auto' }} />
+            <span className="text-xl font-bold text-[var(--text-primary)] tracking-tight">Ospace</span>
           </Link>
 
           {/* Desktop Nav Links */}

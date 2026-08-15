@@ -71,6 +71,15 @@ class VMStartView(APIView):
         vm = get_object_or_404(VirtualMachine, pk=pk, owner=request.user)
         orchestrator = VMOrchestrator()
         res = orchestrator.start_vm(vm)
+
+        # This bypasses Workspace._perform_launch (it operates on a raw VM,
+        # not a Workspace), so it must independently refresh the owning
+        # workspace's activity timestamp — otherwise starting a VM through
+        # this legacy path would silently look idle to the cleanup job.
+        from .models import Workspace
+        from django.utils import timezone
+        Workspace.objects.filter(vm=vm).update(last_accessed_at=timezone.now())
+
         return Response({"success": res['success']})
 
 class VMDeleteView(APIView):

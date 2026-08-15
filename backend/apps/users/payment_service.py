@@ -14,7 +14,7 @@ class AzamPayService:
       'AZAMPAY_CLIENT_SECRET')
     self.app_name = config(
       'AZAMPAY_APP_NAME',
-      default='CloudDesk')
+      default='Ospace')
     self.token = None
   
   def get_token(self):
@@ -88,7 +88,7 @@ class AzamPayService:
           'accountNumber': account_number 
             or phone_number,
           'additionalProperties': {
-            'clouddesk_reference': 
+            'ospace_reference':
               transaction_id
           },
           'amount': str(amount),

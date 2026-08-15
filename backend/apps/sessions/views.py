@@ -81,6 +81,10 @@ class PayAndStartSessionView(APIView):
         template_id = request.data.get('vm_template')
         max_participants = request.data.get('max_participants', 10)
         restrictions = request.data.get('restrictions', {})
+        restrict_internet = bool(request.data.get('restrict_internet', False))
+        allowed_domains = request.data.get('allowed_domains', [])
+        if not isinstance(allowed_domains, list):
+            allowed_domains = []
 
         valid_session_types = dict(LiveSession.SESSION_TYPE_CHOICES)
         session_type = request.data.get('session_type', 'workshop')
@@ -127,6 +131,8 @@ class PayAndStartSessionView(APIView):
             required_vm_template=template,
             max_participants=max_participants,
             restrictions=restrictions,
+            restrict_internet=restrict_internet,
+            allowed_domains=allowed_domains,
             invite_code=invite_code,
             status='active',
             hours_purchased=hours,
