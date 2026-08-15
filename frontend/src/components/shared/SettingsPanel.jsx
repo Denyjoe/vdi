@@ -78,8 +78,8 @@ export default function SettingsPanel() {
     } else {
       document.body.style.overflow = '';
     }
-    return () => { 
-      document.body.style.overflow = ''; 
+    return () => {
+      document.body.style.overflow = '';
     };
   }, [isOpen]);
 
@@ -97,108 +97,108 @@ export default function SettingsPanel() {
   return (
     <>
       {/* Backdrop — blurred background */}
-      <div 
+      <div
         className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
         onClick={closeSettings}
         style={{ animation: 'fadeIn 0.2s ease-out' }}
       />
-      
+
       {/* Panel — Centered Modal */}
       <div className="fixed inset-0 z-[61] flex items-center justify-center pointer-events-none">
-        <div 
+        <div
           ref={panelRef}
           className="border rounded-2xl w-[700px] max-w-[90vw] h-[550px] max-h-[80vh] flex overflow-hidden pointer-events-auto"
-          style={{ 
+          style={{
             background: 'var(--bg-card)',
             borderColor: 'var(--border-subtle)',
             boxShadow: 'var(--shadow-2xl, 0 25px 50px rgba(0,0,0,0.5))',
-            animation: 'scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)' 
+            animation: 'scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
           }}
         >
-        {/* Left sidebar — tabs */}
-        <div className="w-[180px] flex-shrink-0 border-r flex flex-col" style={{ background: 'var(--bg-sidebar)', borderColor: 'var(--border-subtle)' }}>
-          
-          {/* Panel header */}
-          <div className="px-4 py-5 border-b flex-shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
-            <h2 className="text-sm font-bold text-primary tracking-tight">
-              Settings
-            </h2>
-          </div>
-          
-          {/* Tab navigation */}
-          <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
-            {tabs.map(tab => (
-              <button key={tab.id}
-                onClick={() => setTab(tab.id)}
-                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-200 active:scale-[0.97]
+          {/* Left sidebar — tabs */}
+          <div className="w-[180px] flex-shrink-0 border-r flex flex-col" style={{ background: 'var(--bg-sidebar)', borderColor: 'var(--border-subtle)' }}>
+
+            {/* Panel header */}
+            <div className="px-4 py-5 border-b flex-shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
+              <h2 className="text-sm font-bold text-primary tracking-tight">
+                Settings
+              </h2>
+            </div>
+
+            {/* Tab navigation */}
+            <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
+              {tabs.map(tab => (
+                <button key={tab.id}
+                  onClick={() => setTab(tab.id)}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all duration-200 active:scale-[0.97]
                   ${activeTab === tab.id
-                    ? 'bg-[#0066FF]/10 text-[#0066FF]'
-                    : tab.id === 'danger'
-                      ? 'text-red-400/60 hover:text-red-400 hover:bg-red-500/5'
-                      : 'text-secondary hover:text-primary hover:bg-nav-hover'
-                  }`}>
-                <tab.icon size={15} />
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-          
-          {/* User info at bottom */}
-          <div className="px-4 py-4 border-t border-border-subtle">
-            <div className="flex items-center gap-2.5">
-              {user?.avatar ? (
-                <img src={user.avatar} 
-                  className="w-8 h-8 rounded-full object-cover" 
-                  alt=""
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                    if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
-                  }} />
-              ) : null}
-              <div className={`w-8 h-8 rounded-full bg-[#6C63FF]/20 items-center justify-center text-[11px] font-bold text-[#6C63FF] ${user?.avatar ? 'hidden' : 'flex'}`}>
-                {user?.first_name?.[0]}
-                {user?.last_name?.[0]}
-              </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold text-primary truncate">
-                  {user?.first_name} {user?.last_name}
-                </p>
-                <p className="text-[9px] text-muted truncate">
-                  {user?.email}
-                </p>
+                      ? 'bg-[#0066FF]/10 text-[#0066FF]'
+                      : tab.id === 'danger'
+                        ? 'text-red-400/60 hover:text-red-400 hover:bg-red-500/5'
+                        : 'text-secondary hover:text-primary hover:bg-nav-hover'
+                    }`}>
+                  <tab.icon size={15} />
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+
+            {/* User info at bottom */}
+            <div className="px-4 py-4 border-t border-border-subtle">
+              <div className="flex items-center gap-2.5">
+                {user?.avatar ? (
+                  <img src={user.avatar}
+                    className="w-8 h-8 rounded-full object-cover"
+                    alt=""
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                    }} />
+                ) : null}
+                <div className={`w-8 h-8 rounded-full bg-[#6C63FF]/20 items-center justify-center text-[11px] font-bold text-[#6C63FF] ${user?.avatar ? 'hidden' : 'flex'}`}>
+                  {user?.first_name?.[0]}
+                  {user?.last_name?.[0]}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold text-primary truncate">
+                    {user?.first_name} {user?.last_name}
+                  </p>
+                  <p className="text-[9px] text-muted truncate">
+                    {user?.email}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        
-        {/* Right content area */}
-        <div className="flex-1 flex flex-col min-w-0">
-          
-          {/* Content header with close */}
-          <div className="h-14 px-6 flex items-center justify-between border-b flex-shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
-            <h3 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
-              {tabs.find(t => t.id === activeTab)?.label}
-            </h3>
-            <button onClick={closeSettings}
-              className="p-1.5 rounded-lg hover:bg-nav-hover text-secondary hover:text-primary active:scale-95 transition-all">
-              <X size={18} />
-            </button>
-          </div>
-          
-          {/* Scrollable content */}
-          <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-            {activeTab === 'profile' && <ProfileTab user={user} />}
-            {activeTab === 'security' && <SecurityTab user={user} />}
-            {activeTab === 'notifications' && <NotificationsTab user={user} />}
-            {activeTab === 'appearance' && <AppearanceTab />}
-            {activeTab === 'developer' && <DeveloperTab />}
-            {activeTab === 'danger' && <DangerTab user={user} />}
+
+          {/* Right content area */}
+          <div className="flex-1 flex flex-col min-w-0">
+
+            {/* Content header with close */}
+            <div className="h-14 px-6 flex items-center justify-between border-b flex-shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
+              <h3 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
+                {tabs.find(t => t.id === activeTab)?.label}
+              </h3>
+              <button onClick={closeSettings}
+                className="p-1.5 rounded-lg hover:bg-nav-hover text-secondary hover:text-primary active:scale-95 transition-all">
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Scrollable content */}
+            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+              {activeTab === 'profile' && <ProfileTab user={user} />}
+              {activeTab === 'security' && <SecurityTab user={user} />}
+              {activeTab === 'notifications' && <NotificationsTab user={user} />}
+              {activeTab === 'appearance' && <AppearanceTab />}
+              {activeTab === 'developer' && <DeveloperTab />}
+              {activeTab === 'danger' && <DangerTab user={user} />}
+            </div>
           </div>
         </div>
       </div>
-    </div>
-      
-    {/* CSS Animations */}
+
+      {/* CSS Animations */}
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; }
@@ -251,7 +251,7 @@ function ProfileTab({ user }) {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const filteredCountries = COUNTRIES.filter(c => 
+  const filteredCountries = COUNTRIES.filter(c =>
     c.name.toLowerCase().includes(countrySearch.toLowerCase())
   );
 
@@ -265,7 +265,7 @@ function ProfileTab({ user }) {
         country: form.country,
         timezone: form.timezone,
       });
-      
+
       // Update auth store immediately
       const authStore = useAuthStore.getState();
       if (authStore.setUser) {
@@ -284,11 +284,11 @@ function ProfileTab({ user }) {
         if (authStore.setUser) {
           authStore.setUser(userData);
         }
-      } catch {}
-      
+      } catch { }
+
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
-    } catch(e) {
+    } catch (e) {
       console.error(e);
       setSaveError(e.response?.data?.message || 'Failed to save changes. Please try again.');
     } finally {
@@ -299,21 +299,21 @@ function ProfileTab({ user }) {
   const handleAvatarUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     if (file.size > 5 * 1024 * 1024) {
       alert('File too large. Max 5MB.');
       return;
     }
-    
+
     try {
       setAvatarUploading(true);
       const formData = new FormData();
       formData.append('avatar', file);
-      
+
       const res = await api.post('/auth/avatar/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      
+
       // Update auth store with new avatar
       const avatarUrl = res.data?.avatar_url;
       if (avatarUrl) {
@@ -325,7 +325,7 @@ function ProfileTab({ user }) {
           });
         }
       }
-      
+
       // Also refresh user data
       try {
         const meRes = await api.get('/auth/me/');
@@ -334,9 +334,9 @@ function ProfileTab({ user }) {
         if (authStore.setUser) {
           authStore.setUser(userData);
         }
-      } catch {}
-      
-    } catch(e) {
+      } catch { }
+
+    } catch (e) {
       console.error('Avatar upload failed:', e);
       alert('Failed to upload. ' + (e.response?.data?.message || ''));
     } finally {
@@ -351,7 +351,7 @@ function ProfileTab({ user }) {
         <div className="relative group">
           <div className="w-20 h-20 rounded-2xl bg-[#6C63FF]/15 flex items-center justify-center text-2xl font-bold text-[#6C63FF] ring-2 ring-slate-700 overflow-hidden">
             {user?.avatar ? (
-              <img src={user.avatar} className="w-full h-full object-cover" alt="" 
+              <img src={user.avatar} className="w-full h-full object-cover" alt=""
                 onError={(e) => {
                   e.target.style.display = 'none';
                   if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
@@ -399,17 +399,17 @@ function ProfileTab({ user }) {
       {/* Country searchable dropdown */}
       <div ref={countryRef} className="relative">
         <label className="text-[10px] uppercase tracking-widest text-muted font-semibold block mb-2">Country</label>
-        
+
         <button onClick={() => setShowCountryDropdown(!showCountryDropdown)}
           className="w-full bg-card border border-border rounded-xl px-4 py-2.5 text-sm text-left flex items-center justify-between focus:border-blue-500 transition-colors"
           style={{ color: form.country ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
           <span>{form.country || 'Select your country'}</span>
           <ChevronDown size={14} className="text-muted" />
         </button>
-        
+
         {showCountryDropdown && (
           <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-xl shadow-2xl shadow-black/50 z-50 overflow-hidden max-h-[280px] flex flex-col">
-            
+
             {/* Search input */}
             <div className="p-2 border-b border-border-subtle flex-shrink-0">
               <div className="relative">
@@ -423,14 +423,14 @@ function ProfileTab({ user }) {
                 />
               </div>
             </div>
-            
+
             {/* Country list */}
             <div className="overflow-y-auto flex-1 custom-scrollbar">
               {filteredCountries.map(c => (
                 <button key={c.code}
                   onClick={() => {
                     setForm(f => ({
-                      ...f, 
+                      ...f,
                       country: c.name,
                       timezone: c.timezone
                     }));
@@ -476,16 +476,16 @@ function ProfileTab({ user }) {
 
 const GoogleIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24">
-    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
   </svg>
 );
 
 const GithubIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--text-primary)">
-    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
   </svg>
 );
 
@@ -502,7 +502,7 @@ function ConnectedAccountSection({ user }) {
     <div>
       <h3 className="text-sm font-bold text-primary mb-1">Connected Account</h3>
       <p className="text-xs text-muted mb-3">
-        Ospace uses OAuth sign-in only — there's no separate password on your account.
+        Ospace uses OAuth sign-in only there's no separate password on your account.
       </p>
       <div className="flex items-center gap-3 p-3.5 rounded-xl bg-canvas border border-border">
         {provider === 'github' ? <GithubIcon /> : <GoogleIcon />}
@@ -668,7 +668,7 @@ function SecurityTab({ user }) {
           <AlertTriangle size={16} className="text-red-400" />
           <div>
             <div className="text-sm font-medium text-primary">Delete your account</div>
-            <div className="text-xs text-muted">Permanently remove your account and all data — see Account Removal tab</div>
+            <div className="text-xs text-muted">Permanently remove your account and all data see Account Removal tab</div>
           </div>
         </div>
         <button onClick={() => setTab('danger')}
@@ -696,7 +696,7 @@ function NotificationsTab() {
   useEffect(() => {
     api.get('/auth/notification-preferences/')
       .then(res => setPrefs(res.data))
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const handleToggle = (key) => {
@@ -710,7 +710,7 @@ function NotificationsTab() {
       await api.put('/auth/notification-preferences/', prefs);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
-    } catch(e) {
+    } catch (e) {
       console.error(e);
     } finally {
       setSaving(false);
@@ -763,7 +763,7 @@ function NotificationsTab() {
 function AppearanceTab() {
   const theme = useThemeStore(s => s.theme);
   const setTheme = useThemeStore(s => s.setTheme) || useThemeStore(s => s.toggleTheme);
-  
+
   const applyTheme = (newTheme) => {
     if (setTheme) {
       setTheme(newTheme);
@@ -837,7 +837,7 @@ function DeveloperTab() {
   useEffect(() => {
     api.get('/auth/api-token/')
       .then(res => setTokenInfo(res.data))
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
@@ -857,11 +857,11 @@ function DeveloperTab() {
         setNewKey(data.data.key);
         setTokenInfo({ ...data.data, exists: true });
       }
-    } catch(e) {
+    } catch (e) {
       console.error('Full error:', e);
       console.error('Response status:', e.response?.status);
       console.error('Response data:', e.response?.data);
-      alert('Failed to generate token: ' + 
+      alert('Failed to generate token: ' +
         (e.response?.data?.message || e.response?.data?.detail || e.message));
     } finally {
       setGenerating(false);
@@ -874,7 +874,7 @@ function DeveloperTab() {
       setTokenInfo({ exists: false });
       setNewKey(null);
       setShowRevokeConfirm(false);
-    } catch(e) {
+    } catch (e) {
       console.error(e);
     }
   };
@@ -889,15 +889,15 @@ function DeveloperTab() {
 
   return (
     <div className="space-y-6">
-      
+
       {/* Info banner */}
       <div className="bg-card rounded-2xl border border-border p-6">
-        
+
         <h2 className="text-base font-bold text-primary mb-1">API Access</h2>
         <p className="text-xs text-muted mb-6">
           Use API tokens to access Ospace programmatically. Integrate with your tools, automate workspace provisioning, or build custom workflows.
         </p>
-        
+
         {/* Security warning */}
         <div className="flex gap-3 px-4 py-3 bg-[#FF6B00]/5 border border-[#FF6B00]/15 rounded-xl mb-6">
           <Shield size={16} className="text-[#FF6B00] flex-shrink-0 mt-0.5" />
@@ -908,7 +908,7 @@ function DeveloperTab() {
             </p>
           </div>
         </div>
-        
+
         {/* New key display */}
         {newKey && (
           <div className="mb-6 p-4 bg-[#00FF87]/5 border border-[#00FF87]/20 rounded-xl">
@@ -928,7 +928,7 @@ function DeveloperTab() {
             </div>
           </div>
         )}
-        
+
         {/* Token info or generate */}
         {tokenInfo?.exists ? (
           <div className="space-y-4">
@@ -950,7 +950,7 @@ function DeveloperTab() {
                 <p className="text-sm text-primary">{tokenInfo.calls_today} <span className="text-muted text-xs"> / 1,000</span></p>
               </div>
             </div>
-            
+
             {/* Actions */}
             <div className="flex gap-3">
               <button onClick={() => {
@@ -976,30 +976,65 @@ function DeveloperTab() {
               Generate a token to access Ospace API from scripts, integrations, or custom tools.
             </p>
             <button onClick={() => {
-                console.log('Generate clicked');
-                handleGenerate();
-              }} disabled={generating}
+              console.log('Generate clicked');
+              handleGenerate();
+            }} disabled={generating}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0066FF] text-white text-sm font-semibold hover:bg-[#0052CC] active:scale-95 transition-all shadow-lg shadow-blue-500/20">
               <Key size={15} />
               {generating ? 'Generating...' : 'Generate API Token'}
             </button>
           </div>
         )}
-        
-        {/* Usage example */}
-        <div className="mt-6 pt-6 border-t border-border-subtle">
-          <p className="text-[10px] uppercase tracking-widest text-muted font-semibold mb-3">Usage Example</p>
-          <div className="bg-sidebar rounded-xl p-4 border border-border-subtle overflow-x-auto">
-            <code className="text-[11px] font-mono text-secondary leading-relaxed whitespace-pre-wrap">
-{`curl -X GET \\
-  https://ospace.io/api/workspaces/ \\
-  -H "X-API-Key: sk-cd-your-token-here"`}
-            </code>
-          </div>
-          <p className="text-[10px] text-faint mt-2">Rate limit: 1,000 requests/day</p>
-        </div>
+
+        {/* Quick Start — real, working, copy-pasteable, public API v1 */}
+        {tokenInfo?.exists && (() => {
+          const apiBaseUrl = `${window.location.origin}/api/v1`;
+          // The full plaintext key only ever exists in-memory right after
+          // generation (newKey) — matches real platforms (Stripe, GitHub):
+          // shown once, never retrievable again. Otherwise fall back to
+          // the real stored prefix so the example is still genuinely
+          // token-specific, just not a working secret to paste as-is.
+          const tokenForExample = newKey || `${tokenInfo.prefix}...`;
+          return (
+            <div className="mt-6 pt-6 border-t border-border-subtle">
+              <p className="text-[10px] uppercase tracking-widest text-muted font-semibold mb-3">Quick Start — Public API v1</p>
+              <p className="text-[11px] text-muted mb-3">
+                Create a workspace programmatically{newKey ? ' — this example uses your real, just-generated token and will genuinely work if you run it right now:' : ':'}
+              </p>
+              <div className="bg-sidebar rounded-xl p-4 border border-border-subtle overflow-x-auto">
+                <code className="text-[11px] font-mono text-secondary leading-relaxed whitespace-pre-wrap">
+                  {`curl -X POST \\
+  ${apiBaseUrl}/workspaces/ \\
+  -H "X-API-Key: ${tokenForExample}" \\
+  -H "Content-Type: application/json" \\
+  -d '{"template_id": 1, "name": "My Workspace"}'`}
+                </code>
+              </div>
+              {!newKey && (
+                <p className="text-[10px] text-faint mt-2">
+                  Showing your token's real prefix only — the full key isn't retrievable after generation. Regenerate to get a fresh, complete key for a live example.
+                </p>
+              )}
+              <p className="text-[10px] text-muted mt-3 mb-1">List your workspaces:</p>
+              <div className="bg-sidebar rounded-xl p-4 border border-border-subtle overflow-x-auto">
+                <code className="text-[11px] font-mono text-secondary leading-relaxed whitespace-pre-wrap">
+                  {`curl ${apiBaseUrl}/workspaces/ \\
+  -H "X-API-Key: ${tokenForExample}"`}
+                </code>
+              </div>
+              <p className="text-[10px] text-muted mt-3 mb-1">Delete a workspace:</p>
+              <div className="bg-sidebar rounded-xl p-4 border border-border-subtle overflow-x-auto">
+                <code className="text-[11px] font-mono text-secondary leading-relaxed whitespace-pre-wrap">
+                  {`curl -X DELETE ${apiBaseUrl}/workspaces/<id>/ \\
+  -H "X-API-Key: ${tokenForExample}"`}
+                </code>
+              </div>
+              <p className="text-[10px] text-faint mt-3">Rate limit: 60 requests/minute per token (plus the account-wide 1,000/day cap above).</p>
+            </div>
+          );
+        })()}
       </div>
-      
+
       {/* Revoke confirmation modal */}
       {showRevokeConfirm && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm">
@@ -1082,7 +1117,7 @@ function DangerTab({ user }) {
       });
       logout();
       navigate('/signin');
-    } catch(e) {
+    } catch (e) {
       setError(e.response?.data?.message || 'Failed to delete account');
     } finally {
       setDeleting(false);

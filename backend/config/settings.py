@@ -217,6 +217,11 @@ REST_FRAMEWORK = {
     ),
     # Consistent JSON response structure is enforced in views/services
     "EXCEPTION_HANDLER": "apps.users.utils.custom_exception_handler",
+    # 'api_token' scope used by apps.api.v1_views.ApiTokenRateThrottle —
+    # basic, real, per-token limiting for the public API.
+    "DEFAULT_THROTTLE_RATES": {
+        "api_token": "60/min",
+    },
 }
 
 

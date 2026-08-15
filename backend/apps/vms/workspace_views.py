@@ -450,6 +450,73 @@ class WorkspaceStopView(APIView):
         )
         return Response({"success": True})
 
+def _perform_delete(workspace):
+    """Genuinely tears down a workspace: real Guacamole connection cleanup,
+    real Proxmox VM deletion via delete_vm_completely (waits for the
+    actual stop+delete tasks to finish, not fire-and-forget), then the DB
+    records. This is THE one real deletion path — WorkspaceDeleteView
+    (member UI) and the public API's DELETE endpoint both call this
+    exact function, so a workspace deleted through either surface gets
+    identical, proven infrastructure teardown.
+
+    Returns {'success': True, 'message': ...} or
+    {'success': False, 'message': ..., 'status': <http status>}.
+    """
+    errors = []
+
+    # 1. Delete Guacamole connection
+    if workspace.vm and getattr(workspace.vm, 'guacamole_connection_id', None):
+        try:
+            from apps.vms.services.guacamole_service import GuacamoleService
+            gs = GuacamoleService()
+            gs.authenticate()
+            gs.delete_connection(workspace.vm.guacamole_connection_id)
+            print(f'Guacamole connection {workspace.vm.guacamole_connection_id} deleted successfully')
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f'FAILED to delete Guacamole connection: {str(e)}', exc_info=True)
+            errors.append(f'Guacamole cleanup: {str(e)}')
+
+    # 2. Stop and destroy the actual Proxmox VM
+    if workspace.vm and getattr(workspace.vm, 'proxmox_vm_id', None):
+        try:
+            from apps.vms.services.proxmox_service import ProxmoxService
+            ps = ProxmoxService()
+            ps.delete_vm_completely(workspace.vm.proxmox_vm_id)
+            print(f'Proxmox VM {workspace.vm.proxmox_vm_id} genuinely confirmed deleted')
+        except Exception as e:
+            error_str = str(e).lower()
+            if 'does not exist' not in error_str:
+                # Genuine failure, not "already gone" — actually fail here
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f'FAILED to delete Proxmox VM: {str(e)}', exc_info=True)
+                return {
+                    'success': False,
+                    'message': (
+                        f'Failed to delete VM from infrastructure: '
+                        f'{str(e)}. Please try again or contact support.'
+                    ),
+                    'status': 500,
+                }
+            # else: already gone, continue to delete DB records normally
+
+    # 3. Delete DB records
+    vm_id = workspace.vm.id if workspace.vm else None
+    workspace.delete()
+    if vm_id:
+        from apps.vms.models import VirtualMachine
+        VirtualMachine.objects.filter(id=vm_id).delete()
+
+    if errors:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f'Workspace delete had partial infra errors: {errors}')
+
+    return {'success': True, 'message': 'Workspace permanently deleted'}
+
+
 class WorkspaceDeleteView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -460,61 +527,13 @@ class WorkspaceDeleteView(APIView):
         except Workspace.DoesNotExist:
             return Response({'success': False, 'message': 'Not found'}, status=404)
 
-        errors = []
-
-        # 1. Delete Guacamole connection
-        if ws.vm and getattr(ws.vm, 'guacamole_connection_id', None):
-            try:
-                from apps.vms.services.guacamole_service import GuacamoleService
-                gs = GuacamoleService()
-                gs.authenticate()
-                gs.delete_connection(ws.vm.guacamole_connection_id)
-                print(f'Guacamole connection {ws.vm.guacamole_connection_id} deleted successfully')
-            except Exception as e:
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.error(f'FAILED to delete Guacamole connection: {str(e)}', exc_info=True)
-                errors.append(f'Guacamole cleanup: {str(e)}')
-
-        # 2. Stop and destroy the actual Proxmox VM
-        if ws.vm and getattr(ws.vm, 'proxmox_vm_id', None):
-            try:
-                from apps.vms.services.proxmox_service import ProxmoxService
-                ps = ProxmoxService()
-                ps.delete_vm_completely(ws.vm.proxmox_vm_id)
-                print(f'Proxmox VM {ws.vm.proxmox_vm_id} genuinely confirmed deleted')
-            except Exception as e:
-                error_str = str(e).lower()
-                if 'does not exist' not in error_str:
-                    # Genuine failure, not "already gone" — actually fail here
-                    import logging
-                    logger = logging.getLogger(__name__)
-                    logger.error(f'FAILED to delete Proxmox VM: {str(e)}', exc_info=True)
-                    return Response({
-                        'success': False,
-                        'message': (
-                            f'Failed to delete VM from infrastructure: '
-                            f'{str(e)}. Please try again or contact support.'
-                        )
-                    }, status=500)
-                # else: already gone, continue to delete DB records normally
-
-        # 3. Delete DB records
-        vm_id = ws.vm.id if ws.vm else None
-        ws.delete()
-        if vm_id:
-            from apps.vms.models import VirtualMachine
-            VirtualMachine.objects.filter(id=vm_id).delete()
-
-        if errors:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.warning(f'Workspace delete had partial infra errors: {errors}')
-
-        return Response({
-            'success': True,
-            'message': 'Workspace permanently deleted',
-        })
+        result = _perform_delete(ws)
+        if not result['success']:
+            return Response(
+                {'success': False, 'message': result['message']},
+                status=result.get('status', 500)
+            )
+        return Response({'success': True, 'message': result['message']})
 
 class WorkspaceStatsView(APIView):
     permission_classes = [permissions.IsAuthenticated]

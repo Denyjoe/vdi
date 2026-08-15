@@ -10,11 +10,26 @@ from django.contrib import admin
 from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path, include
+from django.http import JsonResponse
 
 from apps.users.views import HealthCheckView
 import apps.users.views
 
+
+def api_root(request):
+    """Root endpoint — returns API metadata. Prevents 404 on bare domain hits (e.g. ngrok)."""
+    return JsonResponse({
+        "service": "DIT VDI System API",
+        "version": "1.0.0",
+        "status": "online",
+        "docs": "/api/health/",
+    })
+
+
 urlpatterns = [
+    # Root — returns a clean JSON response instead of 404 (e.g. on ngrok bare domain)
+    path("", api_root, name="api-root"),
+
     # Django admin panel
     path("admin/", admin.site.urls),
 
@@ -43,6 +58,10 @@ urlpatterns = [
     path("api/payments/admin/", include("apps.users.admin_payment_urls")),
     path("api/billing/", include("apps.billing.urls")),
     path("api/pricing/", apps.users.views.PricingView.as_view(), name="public-pricing"),
+
+    # ── Public API v1 — programmatic workspace management, authenticated
+    # via the existing Developer-tab API tokens (X-API-Key header) ──────
+    path("api/v1/", include("apps.api.urls")),
 ]
 
 # Serve uploaded media files during development.

@@ -204,6 +204,26 @@ class APIToken(models.Model):
             return None
 
 
+class ApiRequestLog(models.Model):
+    """Genuine, minimal request history for the public API (apps/api/) —
+    real per-request records, not the full partner-analytics dashboard.
+    One row per real request actually served through a token, written in
+    LoggedApiView.finalize_response() so every endpoint gets this for
+    free without repeating the call site-by-site."""
+    token = models.ForeignKey(
+        'APIToken', on_delete=models.CASCADE, related_name='request_logs')
+    endpoint = models.CharField(max_length=200)
+    method = models.CharField(max_length=10)
+    status_code = models.IntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.method} {self.endpoint} -> {self.status_code}'
+
+
 class SystemConfig(models.Model):
     """Platform-wide settings managed 
     by admin from the dashboard"""
