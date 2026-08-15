@@ -551,7 +551,7 @@ export default function DesktopSessionPage() {
       // "connecting to the desktop stream" stage.
       return (
         <div className="flex items-center justify-center h-screen" style={{ background: 'var(--bg-canvas, #050B18)' }}>
-          <PowerOnAnimation statusText={workspace?.vm_details?.notes || 'Starting virtual machine...'} />
+          <PowerOnAnimation statusText={workspace?.vm_details?.notes || 'Starting workspace...'} />
         </div>
       );
     }
@@ -732,7 +732,7 @@ export default function DesktopSessionPage() {
     if (sessionData.vm_status === 'provisioning') {
       return (
         <div className="flex items-center justify-center h-screen" style={{ background: 'var(--bg-canvas, #050B18)' }}>
-          <PowerOnAnimation statusText="Starting virtual machine..." />
+          <PowerOnAnimation statusText="Starting workspace..." />
         </div>
       );
     }

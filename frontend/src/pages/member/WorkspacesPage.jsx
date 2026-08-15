@@ -557,7 +557,7 @@ export default function WorkspacesPage() {
                     </div>
                     
                     <div className="flex-1 flex flex-col justify-center items-center py-6 mt-auto">
-                      <PowerOnAnimation size={64} statusText={ws.vm_details?.notes || 'Starting virtual machine...'} />
+                      <PowerOnAnimation size={64} statusText={ws.vm_details?.notes || 'Starting workspace...'} />
                     </div>
                   </div>
                 )
