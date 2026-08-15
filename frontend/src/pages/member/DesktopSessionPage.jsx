@@ -12,6 +12,7 @@ import ConfirmModal from '../../components/shared/ConfirmModal';
 import Toast from '../../components/shared/Toast';
 import GuacamoleEmbed from '../../components/shared/GuacamoleEmbed';
 import LoadingLogo from '../../components/shared/LoadingLogo';
+import PowerOnAnimation from '../../components/shared/PowerOnAnimation';
 
 export default function DesktopSessionPage() {
   const { id: sessionId } = useParams();
@@ -544,9 +545,13 @@ export default function DesktopSessionPage() {
 
   if (type === 'workspace') {
     if (wsLoading || workspace?.vm_details?.status === 'provisioning') {
+      // VM power-up/boot stage specifically — orbit animation. Once the VM
+      // is running and guacamole_url is available, the flow below hands
+      // off to GuacamoleEmbed's own LoadingLogo cover for the separate
+      // "connecting to the desktop stream" stage.
       return (
         <div className="flex items-center justify-center h-screen" style={{ background: 'var(--bg-canvas, #050B18)' }}>
-          <LoadingLogo statusText={workspace?.vm_details?.notes || 'Starting virtual machine...'} />
+          <PowerOnAnimation statusText={workspace?.vm_details?.notes || 'Starting virtual machine...'} />
         </div>
       );
     }
@@ -720,13 +725,20 @@ export default function DesktopSessionPage() {
   if (!sessionData) return null;
 
   if (!sessionData.guacamole_url) {
+    // Two distinct real stages: the VM itself booting (power-up, orbit
+    // animation) vs. an already-running VM whose desktop stream hasn't
+    // been wired up yet (connecting, LoadingLogo — same as GuacamoleEmbed's
+    // own cover uses once guacamole_url is present).
+    if (sessionData.vm_status === 'provisioning') {
+      return (
+        <div className="flex items-center justify-center h-screen" style={{ background: 'var(--bg-canvas, #050B18)' }}>
+          <PowerOnAnimation statusText="Starting virtual machine..." />
+        </div>
+      );
+    }
     return (
       <div className="flex items-center justify-center h-screen" style={{ background: 'var(--bg-canvas, #050B18)' }}>
-        <LoadingLogo statusText={
-          sessionData.vm_status === 'provisioning'
-            ? 'Starting virtual machine...'
-            : 'Waiting for virtual desktop to be ready...'
-        } />
+        <LoadingLogo statusText="Waiting for virtual desktop to be ready..." />
       </div>
     );
   }

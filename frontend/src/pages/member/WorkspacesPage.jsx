@@ -13,6 +13,7 @@ import useUIStore from '../../store/uiStore'
 import useThemeStore from '../../store/themeStore'
 import useBreakpoint from '../../hooks/useBreakpoint'
 import CheckoutModal from '../../components/shared/CheckoutModal'
+import PowerOnAnimation from '../../components/shared/PowerOnAnimation'
 
 import OsIcon, { OS_ICONS } from '../../components/shared/OsIcon'
 
@@ -556,8 +557,7 @@ export default function WorkspacesPage() {
                     </div>
                     
                     <div className="flex-1 flex flex-col justify-center items-center py-6 mt-auto">
-                      <Loader2 className="w-8 h-8 text-[#00A3FF] animate-spin mb-3" />
-                      <p className="text-xs text-[#00A3FF] font-medium tracking-wide">Starting virtual machine...</p>
+                      <PowerOnAnimation size={64} statusText={ws.vm_details?.notes || 'Starting virtual machine...'} />
                     </div>
                   </div>
                 )
