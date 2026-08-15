@@ -190,7 +190,7 @@ export default function SettingsPanel() {
             {activeTab === 'notifications' && <NotificationsTab user={user} />}
             {activeTab === 'appearance' && <AppearanceTab />}
             {activeTab === 'developer' && <DeveloperTab />}
-            {activeTab === 'danger' && <DangerTab />}
+            {activeTab === 'danger' && <DangerTab user={user} />}
           </div>
         </div>
       </div>
@@ -1014,21 +1014,26 @@ function DeveloperTab() {
   );
 }
 
-function DangerTab() {
-  const [password, setPassword] = useState('');
+function DangerTab({ user }) {
+  const [confirmationInput, setConfirmationInput] = useState('');
   const [confirm, setConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
   const logout = useAuthStore(s => s.logout);
+
+  const userEmail = user?.email || '';
+  const emailMatches = confirmationInput.trim().toLowerCase() === userEmail.trim().toLowerCase();
 
   const handleDelete = async () => {
     try {
       setDeleting(true);
-      await api.post('/auth/delete-account/', { password });
+      setError(null);
+      await api.post('/auth/delete-account/', { confirmation_email: confirmationInput });
       logout();
       navigate('/signin');
     } catch(e) {
-      alert(e.response?.data?.message || 'Failed to delete account');
+      setError(e.response?.data?.message || 'Failed to delete account');
     } finally {
       setDeleting(false);
     }
@@ -1055,17 +1060,25 @@ function DangerTab() {
           </button>
         ) : (
           <div className="mt-4 pt-4 border-t border-red-500/10">
-            <p className="text-xs text-secondary mb-3">Enter your password to confirm:</p>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Your password"
+            {error && (
+              <div className="px-3 py-2 rounded-lg text-xs font-medium bg-red-500/10 border border-red-500/20 text-red-400 mb-3">
+                {error}
+              </div>
+            )}
+            <p className="text-xs text-secondary mb-3">
+              To confirm, type your email address <strong className="text-primary">{userEmail}</strong> below:
+            </p>
+            <input type="text" value={confirmationInput} onChange={e => setConfirmationInput(e.target.value)}
+              placeholder={userEmail} autoComplete="off" autoCapitalize="off" spellCheck="false"
               className="w-full bg-sidebar border border-red-500/20 rounded-xl px-4 py-2.5 text-sm text-primary outline-none mb-3 focus:border-red-500/50" />
             <div className="flex gap-3">
-              <button onClick={() => { setConfirm(false); setPassword(''); }}
+              <button onClick={() => { setConfirm(false); setConfirmationInput(''); setError(null); }}
                 className="px-4 py-2.5 rounded-xl bg-nav-hover border border-border-strong text-secondary text-xs font-semibold active:scale-95 transition-all">
                 Cancel
               </button>
-              <button onClick={handleDelete} disabled={!password || deleting}
-                className="px-4 py-2.5 rounded-xl bg-red-500 text-primary text-xs font-bold active:scale-95 transition-all disabled:opacity-30">
-                {deleting ? 'Deleting...' : 'Request Account Deletion'}
+              <button onClick={handleDelete} disabled={!emailMatches || deleting}
+                className="px-4 py-2.5 rounded-xl bg-red-500 text-white text-xs font-bold active:scale-95 transition-all disabled:opacity-30">
+                {deleting ? 'Deleting...' : 'Permanently Delete My Account'}
               </button>
             </div>
           </div>

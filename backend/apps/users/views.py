@@ -712,32 +712,83 @@ class APITokenRevokeView(APIView):
         })
 
 class DeleteAccountView(APIView):
+    """Typed-email confirmation instead of a password — OAuth-only
+    accounts have set_unusable_password() called on them at signup, so a
+    password check could never succeed for any real user (see
+    ChangePasswordView for the same root cause). Requiring the exact
+    account email is what Linear/Figma do for the same reason: it can't
+    be guessed or lifted from a tooltip, and it naturally confirms the
+    user is looking at the account they think they are."""
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def post(self, request):
-        password = request.data.get('password')
-        if not password:
-            return Response({'success': False, 'message': 'Password required'}, status=400)
-        
         user = request.user
-        if not user.check_password(password):
-            return Response({'success': False, 'message': 'Incorrect password'}, status=400)
-        
-        try:
-            from apps.vms.models import Workspace, VirtualMachine
-            from apps.vms.services.pool_service import VMPoolService
-            pool = VMPoolService()
-            for ws in Workspace.objects.filter(owner=user):
-                if ws.vm:
-                    try:
-                        pool.release_vm(ws.vm)
-                    except Exception:
-                        pass
-            Workspace.objects.filter(owner=user).delete()
-            VirtualMachine.objects.filter(owner=user).delete()
-        except Exception:
-            pass
-        
+        confirmation_email = request.data.get('confirmation_email', '').strip().lower()
+
+        if confirmation_email != user.email.strip().lower():
+            return Response({
+                'success': False,
+                'message': 'The email you entered does not match your account email.'
+            }, status=400)
+
+        import logging
+        logger = logging.getLogger(__name__)
+
+        from apps.vms.models import Workspace, VirtualMachine
+        from apps.vms.services.proxmox_service import ProxmoxService
+        from apps.vms.services.guacamole_service import GuacamoleService
+        from apps.sessions.models import LiveSession
+        from apps.sessions.services.session_lifecycle_service import SessionLifecycleService
+
+        # 1. End every live session this user HOSTS first. This runs the
+        # real, proven end_live_session() path, which disconnects and
+        # tears down each PARTICIPANT's VM — those VMs belong to OTHER
+        # users, not this one, so step 2 below would never reach them.
+        for session in LiveSession.objects.filter(host=user).exclude(status='ended'):
+            try:
+                SessionLifecycleService.end_live_session(session)
+            except Exception as e:
+                logger.error(f'Failed to end hosted session {session.id} during account deletion for user {user.id}: {e}')
+
+        # 2. Real teardown of every VM this user owns — from their own
+        # Workspaces AND from having joined someone else's session as a
+        # participant (VirtualMachine.owner is set to the participant,
+        # not the host — confirmed in SessionLifecycleService.
+        # handle_participant_join). Done BEFORE any DB rows disappear:
+        # this is the exact "orphaned Proxmox VM with no DB record left
+        # to find it" class of bug fixed multiple times earlier today.
+        # Previously this called VMPoolService.release_vm(), which is a
+        # no-op against real Proxmox for any VM that isn't a pool entry —
+        # i.e. every regular, directly-launched workspace VM — so real
+        # VMs were being silently orphaned on every account deletion.
+        proxmox = ProxmoxService()
+        guac = None
+        for vm in VirtualMachine.objects.filter(owner=user):
+            if vm.guacamole_connection_id:
+                try:
+                    if guac is None:
+                        guac = GuacamoleService()
+                        guac.authenticate()
+                    guac.delete_connection(vm.guacamole_connection_id)
+                except Exception as e:
+                    logger.error(f'Guacamole cleanup failed for VM {vm.id} during account deletion for user {user.id}: {e}')
+            if vm.proxmox_vm_id:
+                try:
+                    proxmox.delete_vm_completely(vm.proxmox_vm_id)
+                except Exception as e:
+                    logger.error(f'Proxmox cleanup failed for VM {vm.id} (vmid={vm.proxmox_vm_id}) during account deletion for user {user.id}: {e}')
+
+        # 3. Now safe to remove the records. Workspace/VirtualMachine rows
+        # are also on_delete=CASCADE from User, so user.delete() below
+        # would remove them anyway — deleting explicitly first just keeps
+        # the ordering obvious. Everything else that cascades from
+        # user.delete() (Payments, ComputeUsageLog, Notifications,
+        # UserSession, SessionParticipant, the now-ended hosted sessions,
+        # etc.) is a plain record with no live infrastructure behind it,
+        # unlike the VMs handled above.
+        Workspace.objects.filter(owner=user).delete()
+        VirtualMachine.objects.filter(owner=user).delete()
+
         user.delete()
         return Response({'success': True, 'message': 'Account deleted'})
 
