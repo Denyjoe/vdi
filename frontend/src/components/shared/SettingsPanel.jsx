@@ -232,6 +232,7 @@ function ProfileTab({ user }) {
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const fileRef = useRef(null);
 
@@ -257,6 +258,7 @@ function ProfileTab({ user }) {
   const handleSave = async () => {
     try {
       setSaving(true);
+      setSaveError(null);
       await api.put('/auth/profile/', {
         first_name: form.first_name,
         last_name: form.last_name,
@@ -288,6 +290,7 @@ function ProfileTab({ user }) {
       setTimeout(() => setSaved(false), 2000);
     } catch(e) {
       console.error(e);
+      setSaveError(e.response?.data?.message || 'Failed to save changes. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -456,6 +459,12 @@ function ProfileTab({ user }) {
       </div>
 
       {/* Save button */}
+      {saveError && (
+        <div className="px-3 py-2 rounded-lg text-xs font-medium bg-red-500/10 border border-red-500/20 text-red-400 flex items-center gap-2">
+          <AlertTriangle size={13} className="shrink-0" />
+          {saveError}
+        </div>
+      )}
       <button onClick={handleSave} disabled={saving}
         className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold active:scale-95 transition-all
           ${saved ? 'bg-[#00FF87]/10 border border-[#00FF87]/20 text-[#00FF87]' : 'bg-[#0066FF] text-white hover:bg-[#0052CC] shadow-lg shadow-blue-500/20'}`}>

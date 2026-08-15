@@ -267,14 +267,46 @@ class UpdateProfileView(generics.UpdateAPIView):
         return self.request.user
 
 class AvatarUploadView(APIView):
+    """The 5MB size and real-image checks below used to exist ONLY in the
+    frontend (SettingsPanel.jsx's client-side size check, plus the
+    <input accept="image/*"> hint, which is just a file-picker filter and
+    proves nothing about what's actually uploaded). Confirmed exploitable
+    before this fix: a direct API call with a 6MB file, and separately a
+    plain-text file renamed to .jpg with a spoofed image/jpeg
+    content-type, were both accepted with a 200 and genuinely written to
+    disk — raw FileField assignment + user.save() never calls Django's
+    own full_clean(), which is where ImageField's built-in Pillow
+    validation normally lives, so nothing was actually checking either
+    property server-side."""
     permission_classes = [permissions.IsAuthenticated]
+
+    MAX_AVATAR_SIZE = 5 * 1024 * 1024  # 5MB — matches the frontend's stated limit
 
     def post(self, request):
         user = request.user
         if 'avatar' not in request.FILES:
             return Response({"success": False, "message": "No avatar file provided"}, status=400)
-            
-        user.avatar = request.FILES['avatar']
+
+        avatar_file = request.FILES['avatar']
+
+        if avatar_file.size > self.MAX_AVATAR_SIZE:
+            return Response({
+                "success": False,
+                "message": "File too large. Max 5MB."
+            }, status=400)
+
+        from PIL import Image, UnidentifiedImageError
+        try:
+            avatar_file.seek(0)
+            Image.open(avatar_file).verify()
+            avatar_file.seek(0)
+        except (UnidentifiedImageError, OSError, ValueError):
+            return Response({
+                "success": False,
+                "message": "That file isn't a valid image. Please upload a JPEG, PNG, or WebP."
+            }, status=400)
+
+        user.avatar = avatar_file
         user.save()
         return Response({
             "success": True,

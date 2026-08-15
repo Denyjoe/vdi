@@ -14,6 +14,17 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'notification_email', 'notification_session', 'notification_usage',
             'auth_provider', 'created_at'
         ]
+        # Without this, ModelSerializer defaults every listed field to
+        # writable — meaning UpdateProfileView (PUT/PATCH /auth/account/,
+        # /auth/me/update/), which resolves get_object() to
+        # self.request.user, would let any authenticated user PATCH their
+        # OWN row's role straight to 'admin'. Confirmed exploitable before
+        # this fix: a real 'user'-role test account PATCHed {'role':
+        # 'admin'} against /auth/account/ and got a 200 with the change
+        # genuinely persisted. id/email/auth_provider/is_verified/
+        # created_at are identity/verification fields no self-service
+        # profile update should ever be able to touch either.
+        read_only_fields = ['id', 'email', 'role', 'is_verified', 'auth_provider', 'created_at']
 
     def get_avatar(self, obj):
         if obj.avatar:
