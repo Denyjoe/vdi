@@ -7,10 +7,12 @@ import {
   Monitor, LogOut, ExternalLink, Smartphone
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { GoogleAuthProvider, GithubAuthProvider, reauthenticateWithPopup } from 'firebase/auth';
 import api from '../../services/api';
 import useSettingsStore from '../../store/settingsStore';
 import useAuthStore from '../../store/authStore';
 import useThemeStore from '../../store/themeStore';
+import { auth as firebaseAuth } from '../../config/firebase';
 
 const COUNTRIES = [
   { code: 'TZ', name: 'Tanzania', timezone: 'Africa/Dar_es_Salaam' },
@@ -1018,6 +1020,7 @@ function DangerTab({ user }) {
   const [confirmationInput, setConfirmationInput] = useState('');
   const [confirm, setConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [reauthenticating, setReauthenticating] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const logout = useAuthStore(s => s.logout);
@@ -1026,10 +1029,48 @@ function DangerTab({ user }) {
   const emailMatches = confirmationInput.trim().toLowerCase() === userEmail.trim().toLowerCase();
 
   const handleDelete = async () => {
+    setError(null);
+
+    // Typed-email confirmation alone only proves the browser currently
+    // holds a valid JWT for this account (e.g. sitting in localStorage
+    // on a shared/left-open device) — it says nothing about whether the
+    // person clicking right now genuinely controls the Google/GitHub
+    // account. A real, fresh re-auth popup is what actually proves that,
+    // and it must happen immediately before the irreversible call, not
+    // be assumed from the existing session.
+    const currentUser = firebaseAuth.currentUser;
+    if (!currentUser) {
+      setError('Please sign in again to continue.');
+      return;
+    }
+
+    let freshIdToken;
+    try {
+      setReauthenticating(true);
+      const provider = user?.auth_provider === 'github'
+        ? new GithubAuthProvider()
+        : new GoogleAuthProvider();
+      await reauthenticateWithPopup(currentUser, provider);
+      // Force-refresh so this token's own auth_time claim reflects the
+      // re-auth that just happened, not whatever was cached before it.
+      freshIdToken = await currentUser.getIdToken(true);
+    } catch (e) {
+      if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
+        setError('Re-authentication was cancelled. Your account was not deleted.');
+      } else {
+        setError('Re-authentication failed: ' + (e.message || 'please try again.'));
+      }
+      return;
+    } finally {
+      setReauthenticating(false);
+    }
+
     try {
       setDeleting(true);
-      setError(null);
-      await api.post('/auth/delete-account/', { confirmation_email: confirmationInput });
+      await api.post('/auth/delete-account/', {
+        confirmation_email: confirmationInput,
+        firebase_id_token: freshIdToken,
+      });
       logout();
       navigate('/signin');
     } catch(e) {
@@ -1071,14 +1112,17 @@ function DangerTab({ user }) {
             <input type="text" value={confirmationInput} onChange={e => setConfirmationInput(e.target.value)}
               placeholder={userEmail} autoComplete="off" autoCapitalize="off" spellCheck="false"
               className="w-full bg-sidebar border border-red-500/20 rounded-xl px-4 py-2.5 text-sm text-primary outline-none mb-3 focus:border-red-500/50" />
+            <p className="text-[11px] text-muted mb-3">
+              You'll also be asked to sign in to {user?.auth_provider === 'github' ? 'GitHub' : 'Google'} again to confirm it's really you — this device's existing session isn't enough on its own for something this permanent.
+            </p>
             <div className="flex gap-3">
               <button onClick={() => { setConfirm(false); setConfirmationInput(''); setError(null); }}
                 className="px-4 py-2.5 rounded-xl bg-nav-hover border border-border-strong text-secondary text-xs font-semibold active:scale-95 transition-all">
                 Cancel
               </button>
-              <button onClick={handleDelete} disabled={!emailMatches || deleting}
+              <button onClick={handleDelete} disabled={!emailMatches || deleting || reauthenticating}
                 className="px-4 py-2.5 rounded-xl bg-red-500 text-white text-xs font-bold active:scale-95 transition-all disabled:opacity-30">
-                {deleting ? 'Deleting...' : 'Permanently Delete My Account'}
+                {deleting ? 'Deleting...' : reauthenticating ? 'Waiting for sign-in...' : 'Permanently Delete My Account'}
               </button>
             </div>
           </div>

@@ -712,24 +712,75 @@ class APITokenRevokeView(APIView):
         })
 
 class DeleteAccountView(APIView):
-    """Typed-email confirmation instead of a password — OAuth-only
-    accounts have set_unusable_password() called on them at signup, so a
-    password check could never succeed for any real user (see
-    ChangePasswordView for the same root cause). Requiring the exact
-    account email is what Linear/Figma do for the same reason: it can't
-    be guessed or lifted from a tooltip, and it naturally confirms the
-    user is looking at the account they think they are."""
+    """Typed-email confirmation AND a fresh Google/GitHub re-auth are both
+    required — OAuth-only accounts have set_unusable_password() called on
+    them at signup, so a password check could never succeed for any real
+    user (see ChangePasswordView for the same root cause). Typed email
+    alone only proves the browser is currently holding a valid JWT for
+    this account (e.g. from localStorage) — it does NOT prove the person
+    clicking the button right now genuinely controls the Google/GitHub
+    account, which matters for an irreversible action on a device that
+    might be shared, stolen, or left logged in. The fresh Firebase ID
+    token below is what actually proves that: it's rejected unless it
+    (a) is a genuinely valid, unexpired Firebase token, (b) belongs to
+    this exact user's email — not merely any valid token — and (c) has
+    an auth_time within the last 5 minutes, meaning the provider's own
+    sign-in prompt was completed just now, not replayed from an old
+    session."""
     permission_classes = [permissions.IsAuthenticated]
+
+    REAUTH_MAX_AGE_SECONDS = 300  # 5 minutes
 
     def post(self, request):
         user = request.user
         confirmation_email = request.data.get('confirmation_email', '').strip().lower()
+        firebase_id_token = request.data.get('firebase_id_token')
 
         if confirmation_email != user.email.strip().lower():
             return Response({
                 'success': False,
                 'message': 'The email you entered does not match your account email.'
             }, status=400)
+
+        if not firebase_id_token:
+            return Response({
+                'success': False,
+                'message': 'Re-authentication required.'
+            }, status=401)
+
+        from firebase_admin import auth as firebase_auth
+        import time
+
+        try:
+            decoded = firebase_auth.verify_id_token(firebase_id_token)
+        except Exception:
+            return Response({
+                'success': False,
+                'message': 'Re-authentication failed or expired. Please try again.'
+            }, status=401)
+
+        # Confirm this token genuinely belongs to THIS user's account —
+        # not just any valid, freshly-issued Firebase token (e.g. someone
+        # else's, or a stale one for a different account this browser
+        # once signed into).
+        token_email = decoded.get('email', '').strip().lower()
+        if token_email != user.email.strip().lower():
+            return Response({
+                'success': False,
+                'message': 'Re-authentication token does not match your account.'
+            }, status=403)
+
+        # Confirm auth_time is genuinely recent — this is the actual
+        # freshness guarantee. A stolen/replayed token that's otherwise
+        # perfectly valid (right user, not expired) still fails here
+        # unless the provider's sign-in prompt was completed within the
+        # last 5 minutes.
+        auth_time = decoded.get('auth_time', 0)
+        if time.time() - auth_time > self.REAUTH_MAX_AGE_SECONDS:
+            return Response({
+                'success': False,
+                'message': 'Re-authentication has expired. Please try again.'
+            }, status=401)
 
         import logging
         logger = logging.getLogger(__name__)
