@@ -4,7 +4,7 @@ import {
   Maximize2, Minimize2, LayoutGrid, Compass, BarChart2, AlertCircle,
   Code2, Palette, Network, Box, Wifi, Battery, Volume2, Clock, Megaphone,
   Menu, X, Check, PanelRightOpen, PanelRightClose, Power, UserCheck, RefreshCw,
-  Keyboard, MousePointer2, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, RotateCcw
+  Keyboard, MousePointer2, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, RotateCcw, ChevronDown
 } from 'lucide-react';
 import { sessionService } from '../../services/sessionService';
 import api from '../../services/api';
@@ -1072,6 +1072,42 @@ export default function DesktopSessionPage() {
               handle the split. */}
           <GuacamoleEmbed ref={guacRef} key={reconnectGeneration} url={workspace.vm_details.guacamole_url} loadingText={workspace?.vm_details?.notes || "Connecting to your workspace..."} tunnelActive={tunnelActive} />
 
+          {/* Quick-dismiss tab, sitting right at the real boundary between
+              the desktop view and Guacamole's own keyboard region (bottom:
+              oskHeight — the REAL measured height from the effect above,
+              not a guess). Checked first whether Guacamole has any
+              built-in partial/minimized keyboard state to use instead
+              (grepped its real template.js: the OSK is gated by a single
+              `ng-if="showOSK"` boolean, nothing partial) — so "minimize"
+              here means what it honestly can: a fast, always-reachable
+              full toggle-off, not a partial shrink of Guacamole's own
+              rendering. Calls the same handleToggleKeyboard used
+              elsewhere (not a raw setOskOn) so it goes through the real
+              Guacamole scope and never desyncs from it. */}
+          {oskOn && (
+            <button
+              onClick={handleToggleKeyboard}
+              title="Hide keyboard"
+              style={{
+                position: 'absolute',
+                bottom: `${oskHeight}px`,
+                right: '12px',
+                zIndex: 150,
+                width: '36px',
+                height: '36px',
+                borderRadius: '8px 8px 0 0',
+                background: 'rgba(20,20,20,0.85)',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              <ChevronDown size={16} color="#fff" />
+            </button>
+          )}
+
           {/* Genuine, confirmed physical constraint (not fixable by more
               CSS): even with the above fix, a short landscape viewport
               may not have enough total height for both the keyboard's
@@ -1406,6 +1442,33 @@ export default function DesktopSessionPage() {
           0px once the iframe fell below the keyboard's fixed natural
           size. Give the iframe its full natural height always. */}
       <GuacamoleEmbed ref={guacRef} key={reconnectGeneration} url={sessionData.guacamole_url} loadingText="Connecting to your session..." tunnelActive={tunnelActive} />
+
+      {/* Quick-dismiss tab — see the matching comment in the workspace
+          branch above for why this is a full toggle, not a partial
+          shrink (Guacamole's own OSK has no partial state). */}
+      {oskOn && (
+        <button
+          onClick={handleToggleKeyboard}
+          title="Hide keyboard"
+          style={{
+            position: 'absolute',
+            bottom: `${oskHeight}px`,
+            right: '12px',
+            zIndex: 150,
+            width: '36px',
+            height: '36px',
+            borderRadius: '8px 8px 0 0',
+            background: 'rgba(20,20,20,0.85)',
+            border: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+        >
+          <ChevronDown size={16} color="#fff" />
+        </button>
+      )}
 
       {/* Genuine, confirmed physical constraint, not a code bug — see the
           matching comment in the workspace branch above. */}
