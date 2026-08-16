@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import useBreakpoint from '../../hooks/useBreakpoint';
 import { vmService } from '../../services/vmService';
 import { 
   RefreshCw, Power, Monitor, 
@@ -7,6 +8,7 @@ import {
 import Toast from '../../components/shared/Toast';
 
 export default function AdminVMsPage() {
+  const { isMobile } = useBreakpoint();
   const [vms, setVms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
@@ -122,6 +124,45 @@ export default function AdminVMsPage() {
 
       {/* VMs Table */}
       <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl overflow-hidden">
+        {isMobile ? (
+          // Real, measured mobile bug: internal scrollWidth 776px vs
+          // clientWidth 342px at 375px. Stacked cards instead.
+          <div className="flex flex-col gap-3 p-3">
+            {vms.length === 0 && !loading && (
+              <div className="text-center py-8 text-[var(--text-secondary)] text-sm">No Virtual Machines found.</div>
+            )}
+            {vms.map(vm => (
+              <div key={vm.id} className="border border-[var(--border-color)] rounded-xl p-3">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div style={{ wordBreak: 'break-word' }} className="font-medium text-[var(--text-primary)] text-sm">{vm.name}</div>
+                  {vm.status === 'provisioning' && <span className="text-yellow-400 bg-yellow-400/10 px-2 py-1 rounded text-[10px] font-medium border border-yellow-400/20 shrink-0">Provisioning</span>}
+                  {vm.status === 'running' && <span className="text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded text-[10px] font-medium border border-emerald-400/20 shrink-0">Running</span>}
+                  {vm.status === 'stopped' && <span className="text-[var(--text-secondary)] bg-slate-400/10 px-2 py-1 rounded text-[10px] font-medium border border-slate-400/20 shrink-0">Stopped</span>}
+                  {vm.status === 'error' && <span className="text-red-400 bg-red-400/10 px-2 py-1 rounded text-[10px] font-medium border border-red-400/20 shrink-0">Error</span>}
+                  {vm.status === 'deleted' && <span className="text-muted bg-[var(--bg-card)] px-2 py-1 rounded text-[10px] font-medium border border-[var(--border-color)] shrink-0">Deleted</span>}
+                </div>
+                <p className="text-xs text-[var(--text-secondary)] mb-1" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>Owner: {vm.owner}</p>
+                <p className="text-xs text-[var(--text-secondary)] mb-2">{vm.template?.name}</p>
+                {vm.status === 'running' && (
+                  <div className="flex gap-3 text-xs text-[var(--text-secondary)] mb-2">
+                    <span>CPU: {vm.cpu_usage}%</span>
+                    <span>RAM: {vm.ram_usage}%</span>
+                  </div>
+                )}
+                <p className="text-[10px] text-[var(--text-muted,var(--text-secondary))] mb-3">Allocated {formatDate(vm.allocated_at)}</p>
+                {vm.status === 'running' && (
+                  <button
+                    onClick={() => handleForceStop(vm.id)}
+                    className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-3 py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <Power className="w-3 h-3" />
+                    Force Stop
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-[var(--text-primary)]">
             <thead className="text-xs text-[var(--text-secondary)] uppercase bg-[var(--bg-primary)]/50 border-b border-[var(--border-color)]">
@@ -180,6 +221,7 @@ export default function AdminVMsPage() {
             </tbody>
           </table>
         </div>
+        )}
       </div>
     </div>
   );

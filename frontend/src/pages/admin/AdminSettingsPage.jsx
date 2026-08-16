@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Settings as SettingsIcon, Server, Shield, CreditCard, Save, Activity, RefreshCw, Lock, Database, Search, Key, AlertTriangle, Clock, Trash2 } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import useBreakpoint from '../../hooks/useBreakpoint';
 
 export default function AdminSettingsPage() {
+  const { isMobile } = useBreakpoint();
   const [loading, setLoading] = useState(false);
   const [savingSection, setSavingSection] = useState(null);
   
@@ -628,8 +630,27 @@ export default function AdminSettingsPage() {
               {backingUp ? 'Creating...' : 'Create Backup Now'}
             </button>
           </div>
-          <div className="p-6 overflow-x-auto">
+          <div className={isMobile ? "p-3" : "p-6 overflow-x-auto"}>
             {backups.length > 0 ? (
+              isMobile ? (
+                // Real, measured mobile bug (Ospace responsive audit): this
+                // table's own overflow-x-auto wrapper scrolled internally
+                // (scrollWidth 645px vs clientWidth 286px at 375px) with no
+                // visible affordance. Stacked cards instead, same
+                // established pattern as MemberSessionsPage/AdminUsersPage.
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {backups.map(b => (
+                    <div key={b.filename} className="border border-[var(--border-color)] rounded-xl p-4 bg-[var(--bg-card)]">
+                      <p className="text-sm text-[var(--text-primary)] font-mono mb-1" style={{ wordBreak: 'break-all' }}>{b.filename}</p>
+                      <p className="text-xs text-[var(--text-secondary)] mb-3">{b.size_mb} MB · {new Date(b.created_at * 1000).toLocaleString()}</p>
+                      <button onClick={() => handleDownloadBackup(b.filename)}
+                        className="w-full text-center text-indigo-400 hover:text-indigo-300 text-sm font-medium transition-colors py-2 rounded-lg bg-[var(--bg-nav-hover)]">
+                        Download
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-[var(--border-color)]">
@@ -654,6 +675,7 @@ export default function AdminSettingsPage() {
                   ))}
                 </tbody>
               </table>
+              )
             ) : (
               <div className="text-center py-8">
                 <Database className="w-12 h-12 text-[var(--text-faint)] mx-auto mb-3" />
@@ -677,8 +699,28 @@ export default function AdminSettingsPage() {
               </span>
             )}
           </div>
-          <div className="p-0 overflow-x-auto max-h-[400px] overflow-y-auto">
+          <div className={isMobile ? "p-3 max-h-[400px] overflow-y-auto" : "p-0 overflow-x-auto max-h-[400px] overflow-y-auto"}>
             {securityLogs.attempts.length > 0 ? (
+              isMobile ? (
+                // Real, measured mobile bug: internal scrollWidth 587px vs
+                // clientWidth 278px at 375px, no visible scroll affordance.
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {securityLogs.attempts.map((a, i) => (
+                    <div key={i} className="border border-[var(--border-color)] rounded-xl p-3">
+                      <div className="flex items-center justify-between mb-1.5">
+                        {a.success ? (
+                          <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400">SUCCESS</span>
+                        ) : (
+                          <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-400">FAILED</span>
+                        )}
+                        <span className="text-[10px] text-[var(--text-secondary)]">{new Date(a.created_at).toLocaleString()}</span>
+                      </div>
+                      <p className="text-sm text-[var(--text-primary)]" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{a.email}</p>
+                      <p className="text-xs text-[var(--text-secondary)] font-mono" style={{ wordBreak: 'break-all' }}>{a.ip_address}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
               <table className="w-full text-left border-collapse">
                 <thead className="sticky top-0 bg-[var(--bg-card)] z-10 shadow-sm border-b border-[var(--border-color)]">
                   <tr>
@@ -705,6 +747,7 @@ export default function AdminSettingsPage() {
                   ))}
                 </tbody>
               </table>
+              )
             ) : (
               <div className="text-center py-8">
                 <p className="text-[var(--text-secondary)]">No login attempts recorded yet</p>
@@ -720,13 +763,13 @@ export default function AdminSettingsPage() {
               <Activity className="w-5 h-5 text-indigo-400" />
               <h2 className="text-lg font-semibold text-[var(--text-primary)]">Admin Audit Log</h2>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="relative">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative w-full sm:w-auto">
                 <Search className="w-4 h-4 text-[var(--text-faint)] absolute left-3 top-1/2 -translate-y-1/2" />
-                <input 
-                  type="text" 
-                  placeholder="Search logs..." 
-                  className="pl-9 pr-4 py-2 bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-primary)] focus:outline-none focus:border-indigo-500"
+                <input
+                  type="text"
+                  placeholder="Search logs..."
+                  className="w-full sm:w-auto pl-9 pr-4 py-2 bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-primary)] focus:outline-none focus:border-indigo-500"
                   value={auditSearch}
                   onChange={e => setAuditSearch(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && fetchAuditLogs(1)}
@@ -734,8 +777,26 @@ export default function AdminSettingsPage() {
               </div>
             </div>
           </div>
-          <div className="p-0 overflow-x-auto">
+          <div className={isMobile ? "p-3" : "p-0 overflow-x-auto"}>
             {auditLogs.logs.length > 0 ? (
+              isMobile ? (
+                // Real, measured mobile bug: internal scrollWidth 707px vs
+                // clientWidth 286px at 375px. The desktop table also
+                // silently truncated Description with CSS ellipsis
+                // (max-w-xs truncate) - full text now shown, wrapped.
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {auditLogs.logs.map(l => (
+                    <div key={l.id} className="border border-[var(--border-color)] rounded-xl p-3">
+                      <div className="flex items-center justify-between mb-1.5 gap-2">
+                        <span className="text-sm text-[var(--text-primary)] font-medium">{l.admin_name}</span>
+                        <span className="bg-[var(--bg-nav-hover)] px-2 py-1 rounded text-[10px] text-[var(--text-primary)] shrink-0">{l.action_type}</span>
+                      </div>
+                      <p className="text-sm text-[var(--text-secondary)] mb-1" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{l.description}</p>
+                      <p className="text-[10px] text-[var(--text-faint,var(--text-secondary))]">{new Date(l.created_at).toLocaleString()}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-[var(--border-color)] bg-[var(--bg-nav-hover)]">
@@ -758,6 +819,7 @@ export default function AdminSettingsPage() {
                   ))}
                 </tbody>
               </table>
+              )
             ) : (
               <div className="text-center py-8 text-[var(--text-secondary)]">No audit logs found</div>
             )}
@@ -791,8 +853,28 @@ export default function AdminSettingsPage() {
             <Key className="w-5 h-5 text-amber-400" />
             <h2 className="text-lg font-semibold text-[var(--text-primary)]">API Token Oversight</h2>
           </div>
-          <div className="p-0 overflow-x-auto">
+          <div className={isMobile ? "p-3" : "p-0 overflow-x-auto"}>
             {apiTokens.length > 0 ? (
+              isMobile ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {apiTokens.map(t => (
+                    <div key={t.id} className="border border-[var(--border-color)] rounded-xl p-3">
+                      <p className="text-sm text-[var(--text-primary)] font-medium" style={{ wordBreak: 'break-word' }}>{t.user_name}</p>
+                      <p className="text-xs text-[var(--text-secondary)] mb-2" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{t.user_email}</p>
+                      <p className="text-xs text-[var(--text-primary)] font-mono bg-[var(--bg-nav-hover)] rounded px-2 py-1 inline-block mb-2">{t.prefix}...</p>
+                      <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-[var(--text-secondary)] mb-3">
+                        <span>Created {new Date(t.created_at).toLocaleDateString()}</span>
+                        <span>Last used: {t.last_used_at ? new Date(t.last_used_at).toLocaleDateString() : 'Never'}</span>
+                        <span>{t.calls_today} calls today</span>
+                      </div>
+                      <button onClick={() => handleRevokeToken(t.id)}
+                        className="w-full text-center text-red-400 hover:text-red-300 text-xs font-medium bg-red-500/10 hover:bg-red-500/20 py-2 rounded-lg transition-colors">
+                        Revoke
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-[var(--border-color)] bg-[var(--bg-nav-hover)]">
@@ -824,6 +906,7 @@ export default function AdminSettingsPage() {
                   ))}
                 </tbody>
               </table>
+              )
             ) : (
               <div className="text-center py-8 text-[var(--text-secondary)]">No active API tokens</div>
             )}

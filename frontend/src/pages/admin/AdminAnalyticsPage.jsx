@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import useBreakpoint from '../../hooks/useBreakpoint';
 import { Users, Monitor, Activity, DollarSign, Wifi, TrendingUp, Server, Video, Wallet, Download } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, LineChart, Line, Cell, PieChart, Pie } from 'recharts';
 import api from '../../services/api';
@@ -43,6 +44,7 @@ function EmptyChartState({ icon: Icon, message, submessage }) {
 }
 
 export default function AdminAnalyticsPage() {
+  const { isMobile } = useBreakpoint();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     total_users: 0,
@@ -544,7 +546,31 @@ export default function AdminAnalyticsPage() {
           <div className="px-6 py-5 border-b border-[var(--border-color)]">
             <h3 className="text-lg font-semibold text-[var(--text-primary)]">Recent Users</h3>
           </div>
-          <div className="flex-1 overflow-x-auto">
+          <div className={isMobile ? "p-3" : "flex-1 overflow-x-auto"}>
+            {isMobile ? (
+              // Real, measured mobile bug: this table's overflow-x-auto
+              // wrapper scrolled internally (418px vs 334px at 375px) with
+              // no visible affordance. Stacked cards instead.
+              topUsers.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {topUsers.map((user, idx) => (
+                    <div key={idx} className="border border-[var(--border-color)] rounded-xl p-3 flex items-center gap-3">
+                      <span className="font-bold text-[var(--text-muted)] text-sm shrink-0">{idx + 1}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-[var(--text-primary)] text-sm" style={{ wordBreak: 'break-word' }}>{user.name}</p>
+                        <p className="text-xs text-[var(--text-secondary)]" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{user.email}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-[var(--text-primary)] font-medium text-sm">{user.vms} VMs</p>
+                        <p className="text-indigo-400 font-medium text-xs">{user.hours}h</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-8 text-center text-[var(--text-muted)] text-sm">No activity recorded yet</div>
+              )
+            ) : (
             <table className="w-full text-left text-sm">
               <thead className="bg-[var(--bg-primary)]/50 text-[var(--text-primary)]">
                 <tr>
@@ -576,6 +602,7 @@ export default function AdminAnalyticsPage() {
                 )}
               </tbody>
             </table>
+            )}
           </div>
         </div>
       </div>
@@ -586,8 +613,31 @@ export default function AdminAnalyticsPage() {
           <h3 className="text-lg font-semibold text-[var(--text-primary)]">Workspace Revenue by Template</h3>
           <p className="text-xs text-[var(--text-secondary)] mt-1">Hours-purchase revenue vs subscription revenue, per VM type</p>
         </div>
-        <div className="flex-1 overflow-x-auto">
+        <div className={isMobile ? "p-3" : "flex-1 overflow-x-auto"}>
           {revenueByTemplate.length > 0 ? (
+            isMobile ? (
+              // Real, measured mobile bug: internal scrollWidth 458px vs
+              // clientWidth 334px at 375px.
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {revenueByTemplate.map((row) => (
+                  <div key={row.template_id} className="border border-[var(--border-color)] rounded-xl p-3">
+                    <p className="font-medium text-[var(--text-primary)] text-sm mb-2" style={{ wordBreak: 'break-word' }}>{row.template_name}</p>
+                    <div className="flex justify-between text-xs text-[var(--text-secondary)] mb-1">
+                      <span>Hours Purchases</span>
+                      <span>TZS {row.hours_purchase_revenue.toLocaleString()} <span className="text-[10px] text-[var(--text-muted)]">({row.hours_purchase_count})</span></span>
+                    </div>
+                    <div className="flex justify-between text-xs text-[var(--text-secondary)] mb-1">
+                      <span>Subscriptions</span>
+                      <span>TZS {row.subscription_revenue.toLocaleString()} <span className="text-[10px] text-[var(--text-muted)]">({row.subscription_count})</span></span>
+                    </div>
+                    <div className="flex justify-between text-sm font-medium text-[var(--accent-primary)] mt-2 pt-2 border-t border-[var(--border-color)]">
+                      <span>Total</span>
+                      <span>TZS {row.total_revenue.toLocaleString()}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
             <table className="w-full text-left text-sm">
               <thead className="bg-[var(--bg-primary)]/50 text-[var(--text-primary)]">
                 <tr>
@@ -614,6 +664,7 @@ export default function AdminAnalyticsPage() {
                 ))}
               </tbody>
             </table>
+            )
           ) : (
             <EmptyChartState
               icon={Monitor}

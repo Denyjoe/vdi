@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import useBreakpoint from '../../hooks/useBreakpoint';
 import { 
   Plus, ChevronDown, ChevronUp, Edit2, Eye, EyeOff, Trash2, 
   X, Check, Save, Loader2, RefreshCw, Monitor, Server, AlertTriangle, CheckCircle,
@@ -54,6 +55,7 @@ const EMPTY_FORM = {
 };
 
 export default function AdminTemplatesPage() {
+  const { isMobile } = useBreakpoint();
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -219,12 +221,12 @@ export default function AdminTemplatesPage() {
       
       <TemplateLinkModal template={linkModalTemplate} isOpen={!!linkModalTemplate} onClose={() => setLinkModalTemplate(null)} onLinked={() => { setLinkModalTemplate(null); fetchTemplates(); }} />
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-[var(--text-primary)]">VM Templates</h1>
           <p className="text-[var(--text-secondary)] mt-1">Manage the catalogue of available virtual machines.</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap">
           <button onClick={handleRefresh} disabled={refreshing} style={{
             display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
             borderRadius: '10px', background: 'var(--bg-card)', color: 'var(--text-primary)',
@@ -368,6 +370,84 @@ export default function AdminTemplatesPage() {
       )}
 
       <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '16px', overflow: 'hidden' }}>
+        {isMobile ? (
+          // Real, measured mobile bug (Ospace responsive audit): this
+          // 8-column table's overflow-x wrapper scrolled internally
+          // (scrollWidth 796px vs clientWidth 342px at 375px) with no
+          // visible affordance. Stacked cards instead, same established
+          // pattern as AdminUsersPage/MemberSessionsPage.
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '12px' }}>
+            {loading && (
+              <div style={{ padding: '40px', textAlign: 'center' }}>
+                <Loader2 size={24} style={{ color: 'var(--accent-primary)', margin: '0 auto', animation: 'spin 1s linear infinite' }} />
+              </div>
+            )}
+            {!loading && templates.length === 0 && (
+              <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                No templates found. Tap "Add Template" to create one.
+              </div>
+            )}
+            {templates.map(t => (
+              <div key={t.id} style={{ border: '1px solid var(--border-color)', borderRadius: '12px', padding: '14px', background: 'var(--bg-card)', opacity: t.is_available ? 1 : 0.6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', flexShrink: 0 }}>
+                    <TemplateIcon name={t.icon} templateName={t.name} size={18} color="var(--accent-primary)" />
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '14px', wordBreak: 'break-word' }}>{t.name}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{t.software_list?.length || 0} apps</div>
+                  </div>
+                  {t.is_available ? (
+                    <span style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '10px', fontWeight: 600, background: 'var(--status-online-bg)', color: 'var(--status-online)', flexShrink: 0 }}>Available</span>
+                  ) : (
+                    <span style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '10px', fontWeight: 600, background: 'var(--bg-input)', color: 'var(--text-secondary)', flexShrink: 0 }}>Hidden</span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
+                  <span style={{ padding: '3px 10px', borderRadius: '6px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', background: t.template_type === 'server' ? 'var(--status-warning-bg)' : 'var(--status-info-bg)', color: t.template_type === 'server' ? 'var(--status-warning)' : 'var(--status-info)' }}>
+                    {t.template_type}
+                  </span>
+                  <span style={{ padding: '3px 10px', borderRadius: '6px', fontSize: '10px', background: 'var(--bg-input)', color: 'var(--text-secondary)' }}>{t.os}</span>
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                  {t.cpu_cores} vCPU · {t.ram_gb}GB RAM · {t.storage_gb}GB SSD
+                </div>
+                <div style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: 600, marginBottom: '10px' }}>
+                  {t.price_per_hour > 0 ? `TZS ${t.price_per_hour.toLocaleString()}/hr` : 'TZS 0/hr'}
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400, marginLeft: '6px' }}>
+                    {t.price_per_month > 0 ? `TZS ${t.price_per_month.toLocaleString()}/mo` : 'no subscription'}
+                  </span>
+                </div>
+                <div style={{ marginBottom: '12px' }}>
+                  {t.proxmox_template_id ? (
+                    t.has_duplicate_link ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <AlertTriangle size={12} style={{ color: 'var(--status-warning)' }} />
+                        <span style={{ fontSize: '11px', color: 'var(--status-warning)' }}>Duplicate (ID: {t.proxmox_template_id})</span>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <CheckCircle size={12} style={{ color: 'var(--status-online)' }} />
+                        <span style={{ fontSize: '11px', color: 'var(--status-online)' }}>Linked (ID: {t.proxmox_template_id})</span>
+                      </div>
+                    )
+                  ) : (
+                    <button onClick={() => setLinkModalTemplate(t)} style={{ fontSize: '12px', color: 'var(--accent-primary)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+                      + Link to Proxmox
+                    </button>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => openEditForm(t)} style={{ ...iconButtonStyle, flex: 1, width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Edit2 size={16} /></button>
+                  <button onClick={() => toggleAvailability(t)} style={{ ...iconButtonStyle, flex: 1, width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={t.is_available ? 'Hide from catalog' : 'Show in catalog'}>
+                    {t.is_available ? <Eye size={16} /> : <EyeOff size={16} />}
+                  </button>
+                  <button onClick={() => setDeleteTarget(t)} style={{ ...iconButtonStyle, flex: 1, width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--status-error)' }}><Trash2 size={16} /></button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
@@ -453,6 +533,7 @@ export default function AdminTemplatesPage() {
             </tbody>
           </table>
         </div>
+        )}
       </div>
     </div>
   );

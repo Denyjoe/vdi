@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
+import useBreakpoint from '../../hooks/useBreakpoint';
 import { useNavigate } from 'react-router-dom';
 import { Clock, Monitor, Terminal, Activity, Search } from 'lucide-react';
 import { sessionService } from '../../services/sessionService';
 import EmptyState from '../../components/shared/EmptyState';
 
 export default function SessionHistoryPage() {
+  const { isMobile } = useBreakpoint();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -123,6 +125,41 @@ export default function SessionHistoryPage() {
             title="No Session History"
             description="You haven't connected to any virtual machines yet."
           />
+        ) : isMobile ? (
+          // Same established pattern (6-column table → stacked cards).
+          // Also fixes a real, separate bug: the desktop "View Details"
+          // button relied on opacity-0 group-hover:opacity-100 - invisible
+          // and unreachable on touch devices with no hover state.
+          <div className="flex flex-col gap-3 p-3">
+            {sessions.map((session) => (
+              <div key={session.id} className="border border-[var(--border-color)] rounded-xl p-3">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div style={{ wordBreak: 'break-word' }}>
+                    <div className="font-medium text-[var(--text-primary)] text-sm">{session.vm.name}</div>
+                    <div className="text-xs text-muted mt-0.5">{session.vm.template_name}</div>
+                  </div>
+                  <div className="shrink-0">{getStatusBadge(session.status)}</div>
+                </div>
+                <div className="text-xs text-[var(--text-secondary)] mb-1">
+                  Duration: <span className="font-mono text-[var(--text-primary)]">{session.duration_display}</span>
+                </div>
+                <div className="text-xs text-[var(--text-secondary)] mb-1">Started: {formatDateTime(session.started_at)}</div>
+                <div className="text-xs text-[var(--text-secondary)] mb-3">Ended: {formatDateTime(session.ended_at)}</div>
+                {session.status === 'active' ? (
+                  <button
+                    onClick={() => navigate(`/session/${session.id}`)}
+                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-lg text-xs font-medium transition-colors"
+                  >
+                    Resume
+                  </button>
+                ) : (
+                  <button className="w-full text-center text-indigo-400 hover:text-indigo-300 text-xs font-medium transition-colors py-2 rounded-lg bg-[var(--bg-nav-hover)]">
+                    View Details
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-[var(--text-primary)]">

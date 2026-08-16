@@ -234,3 +234,16 @@ body {
     box-shadow: var(--shadow-card);
   }
 }
+
+/* Real, measured mobile bug (Ospace responsive audit): form inputs across
+   the app commonly use Tailwind's text-xs/text-sm (12-14px), which is
+   under the 16px iOS Safari uses as the threshold for NOT auto-zooming
+   the viewport on focus - so tapping almost any input on an iPhone forces
+   an unwanted zoom-in. This does not change the visible size of any text
+   elsewhere; it only raises the font-size actually used inside form
+   controls on mobile viewports, where the effect is real, not desktop. */
+@media (max-width: 639px) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}

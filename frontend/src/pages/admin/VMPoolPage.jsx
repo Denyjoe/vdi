@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import useBreakpoint from '../../hooks/useBreakpoint'
 import {
   Server, Plus, Trash2, RefreshCw, AlertTriangle,
   CheckCircle, Clock, Eye, Cloud, Link2, Unlink, X
@@ -10,6 +11,7 @@ import TemplateLinkModal from '../../components/admin/TemplateLinkModal';
 const AUTO_REFRESH_INTERVAL_MS = 10000
 
 export default function VMPoolPage() {
+  const { isMobile } = useBreakpoint()
   const [stats, setStats] = useState(null)
   const [entries, setEntries] = useState([])
   const [templates, setTemplates] = useState([])
@@ -188,11 +190,11 @@ export default function VMPoolPage() {
           </h1>
           <p className="text-[var(--text-secondary)] mt-1">Pre-clone VMs for instant user assignment</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)] cursor-pointer mr-2">
-            <input 
-              type="checkbox" 
-              checked={autoRefresh} 
+            <input
+              type="checkbox"
+              checked={autoRefresh}
               onChange={e => setAutoRefresh(e.target.checked)}
               className="rounded bg-[var(--bg-card)] border-slate-600 text-indigo-500 focus:ring-indigo-500"
             />
@@ -262,6 +264,34 @@ export default function VMPoolPage() {
         </div>
         
         {poolEntries.length > 0 ? (
+          isMobile ? (
+            // Same established pattern: 7-column table → stacked cards.
+            <div className="flex flex-col gap-3 p-3">
+              {poolEntries.map(entry => (
+                <div key={entry.id} className="border border-[var(--border-color)] rounded-xl p-3">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <span style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--text-primary)', wordBreak: 'break-all' }}>{entry.vm_id || '—'}</span>
+                    <span style={{
+                      padding: '3px 10px', borderRadius: '9999px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', flexShrink: 0,
+                      background: entry.status === 'ready' ? 'var(--status-online-bg)' : entry.status === 'assigned' ? 'var(--status-info-bg)' : entry.status === 'error' ? 'var(--status-error-bg)' : 'var(--status-warning-bg)',
+                      color: entry.status === 'ready' ? 'var(--status-online)' : entry.status === 'assigned' ? 'var(--status-info)' : entry.status === 'error' ? 'var(--status-error)' : 'var(--status-warning)',
+                    }}>
+                      {entry.status}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '12px', color: 'var(--text-primary)' }} className="mb-1">{entry.template_name}</p>
+                  <p style={{ fontSize: '11px', color: 'var(--text-secondary)', wordBreak: 'break-word' }} className="mb-1">Assigned to: {entry.assigned_to || '—'}</p>
+                  <p style={{ fontSize: '11px', fontFamily: 'monospace', color: 'var(--text-secondary)' }} className="mb-1">{entry.ip_address || '—'}</p>
+                  <p style={{ fontSize: '10px', color: 'var(--text-muted)' }} className="mb-2">{entry.created_at ? formatTimeAgo(entry.created_at) : '—'}</p>
+                  <button onClick={() => handleDeleteEntry(entry.id)}
+                    style={{ width: '44px', height: '44px' }}
+                    className="flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--status-error)] rounded-lg hover:bg-[var(--status-error-bg)] transition-colors">
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
           <div className="overflow-x-auto">
             <table style={{ width: '100%' }}>
               <thead>
@@ -314,6 +344,7 @@ export default function VMPoolPage() {
               </tbody>
             </table>
           </div>
+          )
         ) : (
           <div style={{ textAlign: 'center', padding: '48px 24px' }}>
             <div className="w-16 h-16 rounded-full bg-[var(--bg-input)] flex items-center justify-center mb-4 mx-auto">

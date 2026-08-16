@@ -420,9 +420,9 @@ export default function AdminDashboard() {
             </div>
           </div>
           
-          <div className="grid grid-cols-3 gap-4">
-            <CircularGauge 
-              percentage={systemStats?.proxmox?.cpu_usage || 0} 
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <CircularGauge
+              percentage={systemStats?.proxmox?.cpu_usage || 0}
               label="CPU" 
               offline={stats.systemStatus !== 'Healthy'}
             />

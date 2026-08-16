@@ -95,12 +95,12 @@ export default function TemplatesPage() {
           </div>
 
           <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-12">
-            <div className="flex space-x-2 bg-white/5 p-1 rounded-xl backdrop-blur-sm border border-[var(--border-color)]">
+            <div className="flex flex-wrap gap-2 bg-white/5 p-1 rounded-xl backdrop-blur-sm border border-[var(--border-color)]">
               {['All', 'Windows', 'Linux', 'Kali'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                  className={`px-4 sm:px-6 py-2.5 rounded-lg text-sm font-medium transition-all ${
                     activeTab === tab
                       ? 'bg-indigo-600 text-white shadow-lg'
                       : 'text-[var(--text-secondary)] hover:text-white hover:bg-white/10'

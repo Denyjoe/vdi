@@ -345,13 +345,14 @@ export default function DashboardPage() {
             border: '1px solid var(--border-color)',
             boxShadow: 'var(--shadow-sm)',
             borderRadius: '12px',
-            padding: '16px',
+            padding: isMobile ? '12px' : '16px',
             display: 'flex',
             alignItems: 'center',
-            gap: '16px'
+            gap: isMobile ? '10px' : '16px'
           }}>
             <div style={{
-              width: '40px', height: '40px', borderRadius: '8px',
+              width: isMobile ? '32px' : '40px', height: isMobile ? '32px' : '40px', borderRadius: '8px',
+              flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               background: theme === 'light' ? '#DBEAFE' : 'rgba(0, 102, 255, 0.1)',
               color: theme === 'light' ? '#2563EB' : '#0066FF'
@@ -372,13 +373,14 @@ export default function DashboardPage() {
             border: '1px solid var(--border-color)',
             boxShadow: 'var(--shadow-sm)',
             borderRadius: '12px',
-            padding: '16px',
+            padding: isMobile ? '12px' : '16px',
             display: 'flex',
             alignItems: 'center',
-            gap: '16px'
+            gap: isMobile ? '10px' : '16px'
           }}>
             <div style={{
-              width: '40px', height: '40px', borderRadius: '8px',
+              width: isMobile ? '32px' : '40px', height: isMobile ? '32px' : '40px', borderRadius: '8px',
+              flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               background: theme === 'light' ? '#DBEAFE' : 'rgba(0, 102, 255, 0.1)',
               color: theme === 'light' ? '#2563EB' : '#0066FF'
@@ -399,13 +401,14 @@ export default function DashboardPage() {
             border: '1px solid var(--border-color)',
             boxShadow: 'var(--shadow-sm)',
             borderRadius: '12px',
-            padding: '16px',
+            padding: isMobile ? '12px' : '16px',
             display: 'flex',
             alignItems: 'center',
-            gap: '16px'
+            gap: isMobile ? '10px' : '16px'
           }}>
             <div style={{
-              width: '40px', height: '40px', borderRadius: '8px',
+              width: isMobile ? '32px' : '40px', height: isMobile ? '32px' : '40px', borderRadius: '8px',
+              flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               background: theme === 'light' ? '#DBEAFE' : 'rgba(0, 102, 255, 0.1)',
               color: theme === 'light' ? '#2563EB' : '#0066FF'

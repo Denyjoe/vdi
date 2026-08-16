@@ -15,6 +15,7 @@
  */
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import useBreakpoint from '../../hooks/useBreakpoint';
 import {
   ScrollText, Search, X, Download, RefreshCw, Activity
 } from 'lucide-react';
@@ -52,6 +53,7 @@ const getActionBadgeClass = (action) => {
 };
 
 export default function AdminLogsPage() {
+  const { isMobile } = useBreakpoint();
   const [logs, setLogs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -264,6 +266,41 @@ export default function AdminLogsPage() {
 
       {/* Logs Table */}
       <div className="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] shadow-md overflow-hidden">
+        {isMobile ? (
+          // Real, measured mobile bug: internal scrollWidth 486px vs
+          // clientWidth 302px at 375px (even with Description/IP already
+          // hidden via md:/lg: classes). Stacked cards, full description.
+          <div className="flex flex-col gap-2 p-3">
+            {filteredLogs.length > 0 ? (
+              filteredLogs.map((log) => (
+                <div key={log.id} className="border border-[var(--border-color)]/50 rounded-xl p-3">
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <span
+                      className={`text-[10px] font-medium px-2.5 py-1 rounded-full border ${getActionBadgeClass(log.action)}`}
+                    >
+                      {log.action}
+                    </span>
+                    <span className="text-[var(--text-primary)] text-[10px] whitespace-nowrap">{formatTimestamp(log.timestamp)}</span>
+                  </div>
+                  <p className="text-[var(--text-primary)] text-sm mb-1" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                    {log.user || log.user_email || 'System'}
+                  </p>
+                  {log.description && (
+                    <p className="text-[var(--text-secondary)] text-xs mb-1" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{log.description}</p>
+                  )}
+                  {log.ip_address && (
+                    <p className="text-muted text-[10px] font-mono">{log.ip_address}</p>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="px-6 py-12 text-center text-[var(--text-secondary)]">
+                <ScrollText className="w-10 h-10 mx-auto mb-3 text-faint" />
+                No activity logs found for the selected filters.
+              </div>
+            )}
+          </div>
+        ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -316,6 +353,7 @@ export default function AdminLogsPage() {
             </tbody>
           </table>
         </div>
+        )}
       </div>
 
       {/* Auto-refresh indicator */}
