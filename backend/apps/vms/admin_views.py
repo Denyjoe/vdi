@@ -109,50 +109,92 @@ class AdminIdleWorkspacesSummaryView(views.APIView):
 
 class AdminWorkspacesListView(views.APIView):
     permission_classes = [IsAdminUser]
-    
+
     def get(self, request):
-        from apps.vms.models import Workspace
+        from apps.vms.models import Workspace, VirtualMachine
         from django.db.models import Q
-        
+
         search = request.query_params.get('search', '')
         status_filter = request.query_params.get('status', 'all')
         sort = request.query_params.get('sort', '-created_at')
-        
-        workspaces = Workspace.objects.select_related('owner', 'vm_template', 'vm')
-        
-        if search:
-            workspaces = workspaces.filter(
-                Q(name__icontains=search) |
-                Q(owner__email__icontains=search) |
-                Q(owner__first_name__icontains=search)
-            )
-        
-        if status_filter != 'all':
-            workspaces = workspaces.filter(status=status_filter)
-        
-        workspaces = workspaces.order_by(sort)
-        
-        results = []
-        for ws in workspaces:
-            results.append({
-                'id': ws.id,
-                'name': ws.name,
-                'status': ws.status,
-                'owner_name': f'{ws.owner.first_name} {ws.owner.last_name}' if ws.owner else 'Unknown',
-                'owner_email': ws.owner.email if ws.owner else '',
-                'template_name': ws.vm_template.name if ws.vm_template else 'Unknown',
-                'template_specs': f'{ws.vm_template.cpu_cores} vCPU · {ws.vm_template.ram_gb}GB' if ws.vm_template else '',
-                'ip_address': getattr(ws.vm, 'ip_address', None) if ws.vm else None,
-                'created_at': ws.created_at.isoformat() if hasattr(ws, 'created_at') else None,
-            })
-        
-        # Real audit finding: Workspace.STATUS_CHOICES is only
-        # active/stopped/suspended/deleted - 'running'/'error'/
-        # 'provisioning' are VirtualMachine.Status values on the linked
-        # vm, a different model/field. Filtering Workspace by those
-        # always matched zero rows, so this counts dict always reported
-        # "0 error" and "0 provisioning" regardless of real VM state.
-        from apps.vms.models import VirtualMachine
+
+        # Real audit finding (confirmed with actual data, not assumed):
+        # this used to always run `Workspace.objects.filter(status=status_filter)`,
+        # so clicking the "Error" or "Provisioning" tab sent status='error'/
+        # 'provisioning' straight into that filter - but Workspace.STATUS_CHOICES
+        # is only active/stopped/suspended/deleted, so it silently matched
+        # zero rows every time (same root cause already fixed in the counts
+        # dict below, but the actual row query was never touched). Worse:
+        # `Workspace.objects.filter(vm__status='error')` alone would ALSO
+        # still return zero real rows right now - checked directly, all 5
+        # real VirtualMachine(status='error') rows have no linked Workspace
+        # at all (leftover from failed/legacy provisioning, never
+        # successfully attached to a real Workspace). 'error' and
+        # 'provisioning' are genuinely VM-level states that can exist with
+        # no Workspace, so for those two filters the table is now built
+        # directly from VirtualMachine instead of forcing a join that would
+        # honestly just hide them again.
+        if status_filter in ('error', 'provisioning'):
+            vm_status = VirtualMachine.Status.ERROR if status_filter == 'error' else VirtualMachine.Status.PROVISIONING
+            vms = VirtualMachine.objects.select_related('owner', 'template').filter(status=vm_status)
+
+            if search:
+                vms = vms.filter(
+                    Q(name__icontains=search) |
+                    Q(owner__email__icontains=search) |
+                    Q(owner__first_name__icontains=search)
+                )
+
+            vm_sort = 'allocated_at' if sort.lstrip('-') == 'created_at' else sort.lstrip('-')
+            vms = vms.order_by(f'-{vm_sort}' if sort.startswith('-') else vm_sort)
+
+            results = []
+            for vm in vms:
+                ws = Workspace.objects.filter(vm=vm).select_related('owner').first()
+                results.append({
+                    'id': ws.id if ws else None,
+                    'vm_id': vm.id,
+                    'name': ws.name if ws else vm.name,
+                    'status': vm.status,
+                    'owner_name': f'{vm.owner.first_name} {vm.owner.last_name}' if vm.owner else 'Unknown',
+                    'owner_email': vm.owner.email if vm.owner else '',
+                    'template_name': vm.template.name if vm.template else 'Unknown',
+                    'template_specs': f'{vm.template.cpu_cores} vCPU · {vm.template.ram_gb}GB' if vm.template else '',
+                    'ip_address': vm.ip_address,
+                    'created_at': vm.allocated_at.isoformat() if vm.allocated_at else None,
+                    'has_workspace': ws is not None,
+                    'notes': vm.notes,
+                })
+        else:
+            workspaces = Workspace.objects.select_related('owner', 'vm_template', 'vm')
+
+            if search:
+                workspaces = workspaces.filter(
+                    Q(name__icontains=search) |
+                    Q(owner__email__icontains=search) |
+                    Q(owner__first_name__icontains=search)
+                )
+
+            if status_filter != 'all':
+                workspaces = workspaces.filter(status=status_filter)
+
+            workspaces = workspaces.order_by(sort)
+
+            results = []
+            for ws in workspaces:
+                results.append({
+                    'id': ws.id,
+                    'name': ws.name,
+                    'status': ws.status,
+                    'owner_name': f'{ws.owner.first_name} {ws.owner.last_name}' if ws.owner else 'Unknown',
+                    'owner_email': ws.owner.email if ws.owner else '',
+                    'template_name': ws.vm_template.name if ws.vm_template else 'Unknown',
+                    'template_specs': f'{ws.vm_template.cpu_cores} vCPU · {ws.vm_template.ram_gb}GB' if ws.vm_template else '',
+                    'ip_address': getattr(ws.vm, 'ip_address', None) if ws.vm else None,
+                    'created_at': ws.created_at.isoformat() if hasattr(ws, 'created_at') else None,
+                    'has_workspace': True,
+                })
+
         return Response({
             'workspaces': results,
             'total': len(results),

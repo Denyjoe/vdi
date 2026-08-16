@@ -101,10 +101,15 @@ export default function AdminWorkspacesPage() {
   };
 
   const toggleSelectAll = () => {
+    // Real audit finding: rows built from VirtualMachine (error/
+    // provisioning filters with no linked Workspace) have id=null -
+    // only real, selectable workspace ids should ever land in
+    // selectedIds, or bulk actions would send a broken null id.
+    const selectableIds = workspaces.filter(w => w.has_workspace !== false).map(w => w.id);
     setSelectedIds(
-      selectedIds.length === workspaces.length && workspaces.length > 0
+      selectedIds.length === selectableIds.length && selectableIds.length > 0
         ? []
-        : workspaces.map(w => w.id)
+        : selectableIds
     );
   };
 
@@ -239,10 +244,12 @@ export default function AdminWorkspacesPage() {
       {isMobile ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {workspaces.map(ws => (
-            <div key={ws.id} style={{ border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px', background: 'var(--bg-card)' }}>
+            <div key={ws.id ?? `vm-${ws.vm_id}`} style={{ border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px', background: 'var(--bg-card)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input type="checkbox" checked={selectedIds.includes(ws.id)} onChange={() => toggleSelectWs(ws.id)} />
+                  {ws.has_workspace !== false && (
+                    <input type="checkbox" checked={selectedIds.includes(ws.id)} onChange={() => toggleSelectWs(ws.id)} />
+                  )}
                   <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>{ws.name}</span>
                 </div>
                 <span style={{
@@ -266,6 +273,18 @@ export default function AdminWorkspacesPage() {
               <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
                 <span style={{ fontWeight: 600 }}>IP:</span> {ws.ip_address || '—'}
               </div>
+              {ws.has_workspace === false ? (
+                // Real audit finding: VirtualMachine rows in error/
+                // provisioning state can genuinely have no linked
+                // Workspace at all (5 real error VMs found with zero
+                // linked workspaces). Force Stop / Delete both act on a
+                // real workspace id, which doesn't exist here - point to
+                // the tool that actually handles orphaned VMs instead of
+                // wiring up a button that would silently fail.
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                  No linked workspace — resolve via Admin → Hardware → Infrastructure Health
+                </p>
+              ) : (
               <div style={{ display: 'flex', gap: '6px' }}>
                   {(ws.status === 'active' || ws.status === 'running') && (
                     <button onClick={() => handleForceStop(ws.id)}
@@ -278,6 +297,7 @@ export default function AdminWorkspacesPage() {
                     Delete
                   </button>
               </div>
+              )}
             </div>
           ))}
         </div>
@@ -287,7 +307,10 @@ export default function AdminWorkspacesPage() {
           <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
             <th style={{ width: '40px', padding: '10px 16px', textAlign: 'left' }}>
               <input type="checkbox"
-                checked={selectedIds.length === workspaces.length && workspaces.length > 0}
+                checked={(() => {
+                  const selectableCount = workspaces.filter(w => w.has_workspace !== false).length;
+                  return selectedIds.length === selectableCount && selectableCount > 0;
+                })()}
                 onChange={toggleSelectAll} />
             </th>
             {['Workspace', 'Owner', 'Template', 'IP Address', 'Status', 'Created', 'Actions'].map(h => (
@@ -300,13 +323,15 @@ export default function AdminWorkspacesPage() {
         </thead>
         <tbody>
           {workspaces.map(ws => (
-            <tr key={ws.id} style={{ borderBottom: '1px solid var(--border-subtle)', cursor: 'pointer' }}
+            <tr key={ws.id ?? `vm-${ws.vm_id}`} style={{ borderBottom: '1px solid var(--border-subtle)', cursor: ws.has_workspace === false ? 'default' : 'pointer' }}
               onClick={(e) => {
-                if (e.target.type !== 'checkbox' && !e.target.closest('button'))
+                if (ws.has_workspace !== false && e.target.type !== 'checkbox' && !e.target.closest('button'))
                   setSelectedDetail(ws.id);
               }}>
               <td style={{ padding: '12px 16px' }} onClick={e => e.stopPropagation()}>
-                <input type="checkbox" checked={selectedIds.includes(ws.id)} onChange={() => toggleSelectWs(ws.id)} />
+                {ws.has_workspace !== false && (
+                  <input type="checkbox" checked={selectedIds.includes(ws.id)} onChange={() => toggleSelectWs(ws.id)} />
+                )}
               </td>
               <td style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--text-primary)', fontWeight: 500 }}>
                 {ws.name}
@@ -343,6 +368,17 @@ export default function AdminWorkspacesPage() {
                 {formatTimeAgo(ws.created_at)}
               </td>
               <td style={{ padding: '12px 16px' }} onClick={e => e.stopPropagation()}>
+                {ws.has_workspace === false ? (
+                  // Real audit finding: these rows are built directly
+                  // from VirtualMachine (error/provisioning VMs with no
+                  // linked Workspace at all - confirmed with real data,
+                  // 5 real error VMs, 0 linked workspaces). Force Stop/
+                  // Delete both require a real workspace id, so point to
+                  // the tool that actually resolves orphaned VMs instead.
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    No linked workspace — see Infrastructure Health
+                  </span>
+                ) : (
                 <div style={{ display: 'flex', gap: '6px' }}>
                   {(ws.status === 'active' || ws.status === 'running') && (
                     <button onClick={() => handleForceStop(ws.id)}
@@ -355,6 +391,7 @@ export default function AdminWorkspacesPage() {
                     Delete
                   </button>
                 </div>
+                )}
               </td>
             </tr>
           ))}
