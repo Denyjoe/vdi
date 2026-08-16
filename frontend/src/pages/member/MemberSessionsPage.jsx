@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { UserPlus, Radio, Clock, Copy, Power, Eye, Users, MonitorPlay, LogOut, Activity } from 'lucide-react';
 import api from '../../services/api';
 import useBreakpoint from '../../hooks/useBreakpoint';
+import ConfirmDialog from '../../components/shared/ConfirmDialog';
+import useConfirm from '../../hooks/useConfirm';
 
 const formatDuration = (startedAt) => {
   if (!startedAt) return '00:00:00';
@@ -24,6 +26,7 @@ const formatDate = (dateString) => {
 export default function MemberSessionsPage() {
   const navigate = useNavigate();
   const { isMobile } = useBreakpoint();
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirm();
   const [activeTab, setActiveTab] = useState('Active');
   const [joinCode, setJoinCode] = useState('');
   const [joining, setJoining] = useState(false);
@@ -109,7 +112,8 @@ export default function MemberSessionsPage() {
   };
 
   const handleEndSession = async (id) => {
-    if (!window.confirm('End this session? All participants will be disconnected.')) return;
+    const ok = await confirm('End Session', 'End this session? All participants will be disconnected.', true);
+    if (!ok) return;
     try {
       await api.post(`/sessions/live/${id}/end/`);
       fetchSessions();
@@ -591,6 +595,7 @@ export default function MemberSessionsPage() {
           </div>
         </div>
       )}
+      <ConfirmDialog {...confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 }

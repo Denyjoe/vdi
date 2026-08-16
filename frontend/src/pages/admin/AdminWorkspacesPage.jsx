@@ -3,6 +3,8 @@ import { HardDrive, Search, RefreshCw } from 'lucide-react';
 import api from '../../services/api';
 import useBreakpoint from '../../hooks/useBreakpoint';
 import toast from 'react-hot-toast';
+import ConfirmDialog from '../../components/shared/ConfirmDialog';
+import useConfirm from '../../hooks/useConfirm';
 
 function formatTimeAgo(dateString) {
   if (!dateString) return 'Never';
@@ -21,6 +23,7 @@ function formatTimeAgo(dateString) {
 
 export default function AdminWorkspacesPage() {
   const { isMobile } = useBreakpoint();
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirm();
   const [workspaces, setWorkspaces] = useState([]);
   const [counts, setCounts] = useState({
     all: 0, running: 0, stopped: 0, error: 0, provisioning: 0
@@ -60,28 +63,31 @@ export default function AdminWorkspacesPage() {
   }, [search, statusFilter]);
 
   const handleForceStop = async (id) => {
-    if (!window.confirm('Stop this workspace? The user will be disconnected.')) return;
+    const ok = await confirm('Stop Workspace', 'Stop this workspace? The user will be disconnected.', true);
+    if (!ok) return;
     try {
       await api.post(`/admin/workspaces/${id}/force-stop/`);
       fetchWorkspaces();
     } catch(e) {
-      alert('Failed: ' + e.message);
+      toast.error('Failed: ' + e.message);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Permanently delete this workspace? This cannot be undone.')) return;
+    const ok = await confirm('Delete Workspace', 'Permanently delete this workspace? This cannot be undone.', true);
+    if (!ok) return;
     try {
       await api.delete(`/admin/workspaces/${id}/`);
       fetchWorkspaces();
     } catch(e) {
-      alert('Failed: ' + e.message);
+      toast.error('Failed: ' + e.message);
     }
   };
 
   const handleBulkAction = async (action) => {
     const label = action === 'stop' ? 'stop' : 'permanently delete';
-    if (!window.confirm(`Are you sure you want to ${label} ${selectedIds.length} workspace(s)?`)) return;
+    const ok = await confirm('Bulk Action', `Are you sure you want to ${label} ${selectedIds.length} workspace(s)?`, true);
+    if (!ok) return;
     try {
       await api.post('/admin/workspaces/bulk/', {
         workspace_ids: selectedIds,
@@ -90,7 +96,7 @@ export default function AdminWorkspacesPage() {
       setSelectedIds([]);
       fetchWorkspaces();
     } catch(e) {
-      alert('Failed: ' + e.message);
+      toast.error('Failed: ' + e.message);
     }
   };
 
@@ -405,6 +411,7 @@ export default function AdminWorkspacesPage() {
           <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>No workspaces found</p>
         </div>
       )}
+      <ConfirmDialog {...confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 }

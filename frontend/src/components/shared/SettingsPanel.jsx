@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { GoogleAuthProvider, GithubAuthProvider, reauthenticateWithPopup } from 'firebase/auth';
+import toast from 'react-hot-toast';
 import api from '../../services/api';
 import useSettingsStore from '../../store/settingsStore';
 import useAuthStore from '../../store/authStore';
@@ -374,7 +375,7 @@ function ProfileTab({ user }) {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      alert('File too large. Max 5MB.');
+      toast.error('File too large. Max 5MB.');
       return;
     }
 
@@ -411,7 +412,7 @@ function ProfileTab({ user }) {
 
     } catch (e) {
       console.error('Avatar upload failed:', e);
-      alert('Failed to upload. ' + (e.response?.data?.message || ''));
+      toast.error('Failed to upload. ' + (e.response?.data?.message || ''));
     } finally {
       setAvatarUploading(false);
     }
@@ -934,7 +935,7 @@ function DeveloperTab() {
       console.error('Full error:', e);
       console.error('Response status:', e.response?.status);
       console.error('Response data:', e.response?.data);
-      alert('Failed to generate token: ' +
+      toast.error('Failed to generate token: ' +
         (e.response?.data?.message || e.response?.data?.detail || e.message));
     } finally {
       setGenerating(false);

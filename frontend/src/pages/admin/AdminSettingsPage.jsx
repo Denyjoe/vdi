@@ -3,9 +3,12 @@ import { Settings as SettingsIcon, Server, Shield, CreditCard, Save, Activity, R
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import useBreakpoint from '../../hooks/useBreakpoint';
+import ConfirmDialog from '../../components/shared/ConfirmDialog';
+import useConfirm from '../../hooks/useConfirm';
 
 export default function AdminSettingsPage() {
   const { isMobile } = useBreakpoint();
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirm();
   const [loading, setLoading] = useState(false);
   const [savingSection, setSavingSection] = useState(null);
   
@@ -104,13 +107,13 @@ export default function AdminSettingsPage() {
       setBackingUp(true);
       const res = await api.post('/admin/backup/trigger/');
       if (res.data.success) {
-        alert(`Backup created: ${res.data.filename} (${res.data.size_mb} MB)`);
+        toast.success(`Backup created: ${res.data.filename} (${res.data.size_mb} MB)`);
         fetchBackups();
       } else {
-        alert('Backup failed: ' + res.data.error);
+        toast.error('Backup failed: ' + res.data.error);
       }
     } catch(e) {
-      alert('Backup failed: ' + (e.response?.data?.error || e.message));
+      toast.error('Backup failed: ' + (e.response?.data?.error || e.message));
     } finally {
       setBackingUp(false);
     }
@@ -136,7 +139,8 @@ export default function AdminSettingsPage() {
   };
 
   const handleRevokeToken = async (id) => {
-    if (!window.confirm('Are you sure you want to revoke this API token?')) return;
+    const ok = await confirm('Revoke API Token', 'Are you sure you want to revoke this API token?', true);
+    if (!ok) return;
     try {
       const res = await api.post(`/admin/api-tokens/${id}/revoke/`);
       if (res.data.success) {
@@ -914,6 +918,7 @@ export default function AdminSettingsPage() {
         </section>
 
       </div>
+      <ConfirmDialog {...confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 }

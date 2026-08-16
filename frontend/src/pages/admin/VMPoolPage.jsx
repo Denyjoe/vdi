@@ -7,11 +7,14 @@ import {
 import api from '../../services/api'
 import { toast } from 'react-hot-toast'
 import TemplateLinkModal from '../../components/admin/TemplateLinkModal';
+import ConfirmDialog from '../../components/shared/ConfirmDialog'
+import useConfirm from '../../hooks/useConfirm'
 
 const AUTO_REFRESH_INTERVAL_MS = 10000
 
 export default function VMPoolPage() {
   const { isMobile } = useBreakpoint()
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirm()
   const [stats, setStats] = useState(null)
   const [entries, setEntries] = useState([])
   const [templates, setTemplates] = useState([])
@@ -98,11 +101,12 @@ export default function VMPoolPage() {
       const cap = capRes.data
       
       if (!cap.can_clone) {
-        alert(
+        toast(
           `Warning: Low server capacity. ` +
           `Free RAM: ${cap.free_ram_gb}GB, ` +
           `Free Storage: ${cap.free_storage_gb}GB. ` +
-          `Proceeding may cause issues.`
+          `Proceeding may cause issues.`,
+          { icon: '⚠️', duration: 6000 }
         )
       }
       
@@ -132,7 +136,8 @@ export default function VMPoolPage() {
   }
 
   const handleDeleteEntry = async (entryId) => {
-    if (!window.confirm('Delete this pool VM? This will destroy it from Proxmox.')) return
+    const ok = await confirm('Delete Pool VM', 'Delete this pool VM? This will destroy it from Proxmox.', true)
+    if (!ok) return
     try {
       await api.delete(`/vms/admin/pool/${entryId}/`)
       toast.success('Pool entry deleted')
@@ -526,6 +531,7 @@ export default function VMPoolPage() {
           fetchPoolEntries();
         }}
       />
+      <ConfirmDialog {...confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
 </div>
   )
 }

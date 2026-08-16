@@ -3,12 +3,15 @@ import { Shield, Eye, Power, AlertTriangle, Search, Activity, RefreshCw, X, Radi
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import toast from 'react-hot-toast';
+import ConfirmDialog from '../../components/shared/ConfirmDialog';
+import useConfirm from '../../hooks/useConfirm';
 
 function AdminLiveSessionsPage() {
   const [sessions, setSessions] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [totalParticipants, setTotalParticipants] = useState(0);
   const { user } = useAuthStore();
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirm();
   const theme = document.documentElement.getAttribute('data-theme') || 'light';
   
   // Modals state
@@ -22,24 +25,30 @@ function AdminLiveSessionsPage() {
   const [messageText, setMessageText] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
 
+  /**
+   * Fetches live sessions from the admin endpoint.
+   * @param {boolean} [isManual=false] - If true, shows the visual refresh
+   *   indicator and a success toast. Background polls pass false (default)
+   *   so data updates silently without UI flicker.
+   */
   const fetchSessions = async (isManual = false) => {
     try {
-      setRefreshing(true);
-      if (isManual === true) {
+      if (isManual) {
+        setRefreshing(true);
         // slight artificial delay to make the refresh visually apparent
         await new Promise(resolve => setTimeout(resolve, 600));
       }
       const res = await api.get('/sessions/admin/live/');
       setSessions(res.data.sessions || []);
       setTotalParticipants(res.data.total_participants || 0);
-      if (isManual === true) {
+      if (isManual) {
         toast.success('Sessions refreshed');
       }
     } catch(e) {
       console.error(e);
-      toast.error('Failed to load sessions');
+      if (isManual) toast.error('Failed to load sessions');
     } finally {
-      setRefreshing(false);
+      if (isManual) setRefreshing(false);
     }
   };
 
@@ -68,10 +77,13 @@ function AdminLiveSessionsPage() {
   }, [monitorSession]);
 
   const handleForceEnd = async (sessionId) => {
-    if (!window.confirm('Are you sure you want to FORCE END this session? All participants will be immediately disconnected and their VMs stopped.')) {
-      return;
-    }
-    
+    const ok = await confirm(
+      'Force End Session',
+      'Are you sure you want to FORCE END this session? All participants will be immediately disconnected and their VMs stopped.',
+      true
+    );
+    if (!ok) return;
+
     try {
       await api.post(`/sessions/admin/${sessionId}/force-end/`);
       toast.success('Session force ended');
@@ -82,8 +94,9 @@ function AdminLiveSessionsPage() {
   };
 
   const handleDisconnect = async (participantId) => {
-    if (!window.confirm('Force disconnect this participant? Their VM will be released.')) return;
-    
+    const ok = await confirm('Force Disconnect', 'Force disconnect this participant? Their VM will be released.', true);
+    if (!ok) return;
+
     try {
       await api.post(`/sessions/admin/${monitorSession.id}/disconnect-participant/`, {
         participant_id: participantId
@@ -739,6 +752,7 @@ function AdminLiveSessionsPage() {
           to { transform: rotate(360deg); }
         }
       `}} />
+      <ConfirmDialog {...confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 }

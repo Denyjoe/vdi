@@ -13,6 +13,8 @@ import useUIStore from '../../store/uiStore'
 import useThemeStore from '../../store/themeStore'
 import useBreakpoint from '../../hooks/useBreakpoint'
 import CheckoutModal from '../../components/shared/CheckoutModal'
+import ConfirmDialog from '../../components/shared/ConfirmDialog'
+import useConfirm from '../../hooks/useConfirm'
 import PowerOnAnimation from '../../components/shared/PowerOnAnimation'
 
 import OsIcon, { OS_ICONS } from '../../components/shared/OsIcon'
@@ -39,6 +41,7 @@ export default function WorkspacesPage() {
   const { user } = useAuthStore()
   const theme = useThemeStore(s => s.theme)
   const { isMobile, isTablet } = useBreakpoint()
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirm()
   const [workspaces, setWorkspaces] = useState([])
   const [templates, setTemplates] = useState([])
   const [loading, setLoading] = useState(true)
@@ -182,7 +185,7 @@ export default function WorkspacesPage() {
       fetchWorkspaces();
     } catch(e) {
       console.error('Create failed:', e);
-      alert('Failed to create workspace: ' + (e.response?.data?.message || e.message));
+      toast.error('Failed to create workspace: ' + (e.response?.data?.message || e.message));
     } finally {
       setCreating(false);
     }
@@ -261,15 +264,18 @@ export default function WorkspacesPage() {
   }
 
   const handleDelete = async (ws) => {
-    if (!window.confirm(
-      'Permanently delete this workspace? This will destroy the virtual machine and all its data. This cannot be undone.'
-    )) return;
-    
+    const ok = await confirm(
+      'Delete Workspace',
+      'Permanently delete this workspace? This will destroy the virtual machine and all its data. This cannot be undone.',
+      true
+    );
+    if (!ok) return;
+
     try {
       await api.post(`/workspaces/${ws.id}/delete/`);
       fetchWorkspaces();
     } catch(e) {
-      alert('Failed to delete: ' + (e.response?.data?.message || e.message));
+      toast.error('Failed to delete: ' + (e.response?.data?.message || e.message));
     }
   };
 
@@ -892,6 +898,7 @@ export default function WorkspacesPage() {
         />
       )}
 
+      <ConfirmDialog {...confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   )
 }

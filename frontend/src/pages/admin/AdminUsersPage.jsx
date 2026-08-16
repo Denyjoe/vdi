@@ -3,6 +3,8 @@ import { Search, Download, MoreVertical, X, Users } from 'lucide-react';
 import api from '../../services/api';
 import useBreakpoint from '../../hooks/useBreakpoint';
 import { toast } from 'react-hot-toast';
+import ConfirmDialog from '../../components/shared/ConfirmDialog';
+import useConfirm from '../../hooks/useConfirm';
 
 function UserActionsMenu({ user, onSuspend, onReactivate, onViewDetail, onResetPassword }) {
   const [open, setOpen] = useState(false);
@@ -324,7 +326,14 @@ export default function AdminUsersPage() {
   
   const [selectedIds, setSelectedIds] = useState([]);
   const [selectedUserDetail, setSelectedUserDetail] = useState(null);
-  
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirm();
+  // Native window.prompt() replacement for the one free-text input in this
+  // page (optional suspension reason) — a plain confirm/cancel dialog can't
+  // capture text, so this is a small, self-contained modal matching the
+  // same design tokens as ConfirmDialog rather than a native prompt().
+  const [suspendTarget, setSuspendTarget] = useState(null); // userId or null
+  const [suspendReason, setSuspendReason] = useState('');
+
   const fetchUsers = () => {
     const params = new URLSearchParams({ search, role: roleFilter, status: statusFilter, sort });
     api.get(`/users/admin/?${params.toString()}`)
@@ -370,7 +379,8 @@ export default function AdminUsersPage() {
   };
   
   const handleBulkAction = async (action) => {
-    if (!window.confirm(`Are you sure you want to ${action} ${selectedIds.length} user(s)?`)) return;
+    const ok = await confirm('Bulk Action', `Are you sure you want to ${action} ${selectedIds.length} user(s)?`, true);
+    if (!ok) return;
     try {
       const res = await api.post('/users/admin/bulk/', { user_ids: selectedIds, action });
       toast.success(res.data.message || 'Action applied');
@@ -390,9 +400,14 @@ export default function AdminUsersPage() {
   };
   
   const handleSuspend = (userId) => {
-    const reason = prompt('Reason for suspension (optional):');
-    if (reason === null) return;
-    api.post(`/users/admin/${userId}/suspend/`, { reason: reason || '' })
+    setSuspendReason('');
+    setSuspendTarget(userId);
+  };
+
+  const confirmSuspend = () => {
+    const userId = suspendTarget;
+    setSuspendTarget(null);
+    api.post(`/users/admin/${userId}/suspend/`, { reason: suspendReason || '' })
       .then(res => {
         toast.success(res.data.message);
         fetchUsers();
@@ -400,9 +415,10 @@ export default function AdminUsersPage() {
       })
       .catch(e => toast.error('Failed: ' + (e.response?.data?.message || e.message)));
   };
-  
-  const handleReactivate = (userId) => {
-    if (!window.confirm('Reactivate this user?')) return;
+
+  const handleReactivate = async (userId) => {
+    const ok = await confirm('Reactivate User', 'Reactivate this user?', false);
+    if (!ok) return;
     api.post(`/users/admin/${userId}/reactivate/`)
       .then(res => {
         toast.success(res.data.message);
@@ -410,9 +426,10 @@ export default function AdminUsersPage() {
       })
       .catch(e => toast.error('Failed: ' + (e.response?.data?.message || e.message)));
   };
-  
-  const handleTriggerReset = (userId) => {
-    if (!window.confirm('Trigger a password reset for this user?')) return;
+
+  const handleTriggerReset = async (userId) => {
+    const ok = await confirm('Trigger Password Reset', 'Trigger a password reset for this user?', false);
+    if (!ok) return;
     api.post(`/users/admin/${userId}/trigger-reset/`)
       .then(res => {
         toast.success(res.data.message);
@@ -752,13 +769,77 @@ export default function AdminUsersPage() {
       </div>
       
       {selectedUserDetail && (
-        <UserDetailDrawer 
+        <UserDetailDrawer
           userId={selectedUserDetail}
           onClose={() => setSelectedUserDetail(null)}
           onSuspend={handleSuspend}
           onReactivate={handleReactivate}
         />
       )}
+
+      {suspendTarget !== null && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 300,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+        }} onClick={(e) => { if (e.target === e.currentTarget) setSuspendTarget(null); }}>
+          <div style={{
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '16px',
+            padding: '24px',
+            width: '360px',
+            maxWidth: '90vw',
+            boxShadow: 'var(--shadow-xl)',
+          }}>
+            <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+              Suspend User
+            </h3>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '12px' }}>
+              Reason for suspension (optional):
+            </p>
+            <input
+              autoFocus
+              type="text"
+              value={suspendReason}
+              onChange={(e) => setSuspendReason(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') confirmSuspend(); }}
+              placeholder="e.g. Terms of service violation"
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: '10px',
+                background: 'var(--bg-input)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-color)',
+                fontSize: '13px',
+                marginBottom: '16px',
+                boxSizing: 'border-box',
+              }}
+            />
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button onClick={() => setSuspendTarget(null)}
+                style={{
+                  padding: '10px 16px', borderRadius: '10px',
+                  background: 'var(--bg-input)', color: 'var(--text-secondary)',
+                  border: '1px solid var(--border-color)', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                }}>
+                Cancel
+              </button>
+              <button onClick={confirmSuspend}
+                style={{
+                  padding: '10px 16px', borderRadius: '10px',
+                  background: 'var(--status-error)', color: '#fff',
+                  border: 'none', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                }}>
+                Suspend
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ConfirmDialog {...confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 }

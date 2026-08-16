@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import useAuthStore from '../../store/authStore';
-import { 
-  Users, Monitor, Activity, Server, Clock, Database, CheckCircle, 
+import {
+  Users, Monitor, Activity, Server, Clock, Database, CheckCircle,
   Settings, Layers, Terminal, AlertTriangle, Download, Plus, List, Video,
   RefreshCw, AlertCircle, Power, Receipt, Copy
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import api from '../../services/api';
+import ConfirmDialog from '../../components/shared/ConfirmDialog';
+import useConfirm from '../../hooks/useConfirm';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip as RechartsTooltip, ResponsiveContainer, Cell 
@@ -50,6 +53,7 @@ const CircularGauge = ({ percentage, label, subtext, format = 'percent', offline
 export default function AdminDashboard() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirm();
   const [stats, setStats] = useState({
     totalUsers: 0,
     activeVms: 0,
@@ -158,13 +162,14 @@ export default function AdminDashboard() {
   };
 
   const handleTriggerBackup = async () => {
-    if (!window.confirm('Trigger manual backup?')) return;
+    const ok = await confirm('Trigger Backup', 'Trigger manual backup?', false);
+    if (!ok) return;
     setIsBackingUp(true);
     try {
       await api.post('/admin/backup/trigger/');
-      alert('Backup triggered successfully');
+      toast.success('Backup triggered successfully');
     } catch (err) {
-      alert('Failed to trigger backup');
+      toast.error('Failed to trigger backup');
     } finally {
       setIsBackingUp(false);
     }
@@ -249,7 +254,7 @@ export default function AdminDashboard() {
       icon: Power,
       colorClass: 'bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20',
       iconColorClass: 'bg-amber-500/20',
-      onClick: () => alert('Maintenance mode triggered (simulated)')
+      onClick: () => toast.success('Maintenance mode triggered (simulated)')
     }
   ];
 
@@ -596,6 +601,8 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog {...confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
     </div>
   );
 }

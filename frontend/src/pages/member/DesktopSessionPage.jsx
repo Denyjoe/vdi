@@ -674,7 +674,7 @@ export default function DesktopSessionPage() {
       }
     } catch (e) {
       console.error('Failed to end session:', e);
-      alert('Failed to end session: ' + (e.response?.data?.message || e.message));
+      setToast({ show: true, message: 'Failed to end session: ' + (e.response?.data?.message || e.message), type: 'error' });
       setIsDisconnecting(false);
       setShowConfirm(false);
     }

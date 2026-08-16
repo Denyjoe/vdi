@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { 
-  X, AlertTriangle, Check 
+import {
+  X, AlertTriangle, Check
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import api from '../../services/api';
 
 export default function TemplateLinkModal({ template, isOpen, onClose, onLinked }) {
@@ -41,7 +42,7 @@ export default function TemplateLinkModal({ template, isOpen, onClose, onLinked 
       );
       setPreviewData(res.data);
     } catch(e) {
-      alert('Preview failed: ' + (e.response?.data?.message || e.message));
+      toast.error('Preview failed: ' + (e.response?.data?.message || e.message));
     } finally {
       setPreviewing(false);
     }
@@ -59,7 +60,7 @@ export default function TemplateLinkModal({ template, isOpen, onClose, onLinked 
       setPreviewData(null);
       onLinked();
     } catch(e) {
-      alert('Failed to link: ' + (e.response?.data?.message || e.message));
+      toast.error('Failed to link: ' + (e.response?.data?.message || e.message));
     } finally {
       setLinking(false);
     }

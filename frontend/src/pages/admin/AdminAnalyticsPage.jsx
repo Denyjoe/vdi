@@ -171,7 +171,7 @@ export default function AdminAnalyticsPage() {
       window.URL.revokeObjectURL(url);
     } catch(e) {
       console.error(e);
-      alert('Export failed: ' + e.message);
+      toast.error('Export failed: ' + e.message);
     }
   };
 
