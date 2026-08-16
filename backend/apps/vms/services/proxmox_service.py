@@ -297,80 +297,313 @@ class ProxmoxService:
         Rebuilds the VM's firewall rule set from scratch every call, so
         it is safe to call repeatedly (e.g. re-applied after a resume).
 
-        Essential connectivity is a single ACCEPT rule for the platform's
-        LAN gateway (also the real DNS server in this environment — see
-        SystemConfig key 'network_lockdown_allowlist_ips'). Guacamole and
-        Proxmox are deliberately NOT whitelisted: Guacamole connects
-        INBOUND to the VM (governed by policy_in=ACCEPT, not outbound
-        rules) and the guest agent uses QEMU's virtio-serial channel, not
-        the network, so neither needs an outbound path from the guest.
-
-        Domain whitelisting resolves each domain to its current IP(s) at
-        activation time and adds one ACCEPT rule per IP. This is a
-        snapshot: a domain that later answers with a different IP (e.g.
-        a multi-IP CDN rotating addresses) will not be reachable until
-        lockdown is re-applied. This is an inherent limitation of
-        IP-based firewalling, not a bug.
-
         Args:
             vmid (int): The Proxmox VM ID to lock down.
             allowed_domains (list[str] or None): Domains to whitelist in
                 addition to the essential gateway/DNS access.
         """
         import socket
+        from urllib.parse import urlparse
         from apps.users.models import SystemConfig
+
+        ECOSYSTEM_EXPANSIONS = {
+            'github': {
+                'domains': [
+                    'github.com',
+                    'www.github.com',
+                    'api.github.com',
+                    'github.githubassets.com',
+                    'githubassets.com',
+                    'raw.githubusercontent.com',
+                    'avatars.githubusercontent.com',
+                    'avatars0.githubusercontent.com',
+                    'avatars1.githubusercontent.com',
+                    'avatars2.githubusercontent.com',
+                    'avatars3.githubusercontent.com',
+                    'objects.githubusercontent.com',
+                    'alive.github.com',
+                    'collector.github.com',
+                    'githubstatus.com',
+                    'github.community',
+                    'github.io',
+                    'github-cloud.s3.amazonaws.com',
+                    'copilot.githubassets.com',
+                    'github.blog',
+                ],
+                'cidrs': [
+                    '140.82.112.0/20',   # GitHub Main ASN
+                    '185.199.108.0/22',  # GitHub Fastly CDN (githubassets, raw, avatars)
+                    '192.30.252.0/22',   # GitHub Legacy IP Block
+                    '20.201.28.0/22',    # GitHub Azure Anycast Block
+                    '20.205.240.0/20',   # GitHub Azure Anycast Block
+                    '4.237.22.0/23',     # GitHub Azure Anycast Block
+                ]
+            },
+            'google': {
+                'domains': [
+                    'google.com',
+                    'www.google.com',
+                    'accounts.google.com',
+                    'apis.google.com',
+                    'gstatic.com',
+                    'www.gstatic.com',
+                    'ssl.gstatic.com',
+                    'fonts.gstatic.com',
+                    'fonts.googleapis.com',
+                    'ajax.googleapis.com',
+                    'googleusercontent.com',
+                    'drive.google.com',
+                    'docs.google.com',
+                    'classroom.google.com',
+                    'meet.google.com',
+                    'mail.google.com',
+                ],
+                'cidrs': [
+                    '142.250.0.0/15',
+                    '172.217.0.0/16',
+                    '216.58.192.0/19',
+                ]
+            },
+            'python': {
+                'domains': [
+                    'python.org',
+                    'www.python.org',
+                    'docs.python.org',
+                    'pypi.org',
+                    'files.pythonhosted.org',
+                    'pypi.python.org',
+                    'pythonhosted.org',
+                ],
+                'cidrs': [
+                    '151.101.0.0/16',
+                    '199.232.0.0/16',
+                ]
+            },
+            'stackoverflow': {
+                'domains': [
+                    'stackoverflow.com',
+                    'www.stackoverflow.com',
+                    'sstatic.net',
+                    'cdn.sstatic.net',
+                    'stackexchange.com',
+                    'www.stackexchange.com',
+                    'ajax.googleapis.com',
+                ],
+                'cidrs': [
+                    '151.101.0.0/16',
+                    '198.252.206.0/24',
+                ]
+            },
+            'wikipedia': {
+                'domains': [
+                    'wikipedia.org',
+                    'www.wikipedia.org',
+                    'en.wikipedia.org',
+                    'upload.wikimedia.org',
+                    'wikimedia.org',
+                    'www.wikimedia.org',
+                    'meta.wikimedia.org',
+                ],
+                'cidrs': [
+                    # Real bug found via live testing: this was originally
+                    # '208.80.154.0/22' - a genuinely malformed /22 (host
+                    # bits set, 154 isn't a valid /22 boundary - Wikimedia's
+                    # real published range starts at .152.0). Proxmox
+                    # correctly rejected it with a 400 on every real
+                    # lockdown call; caught and logged as a warning so it
+                    # didn't break the rest of the lockdown, but the CIDR
+                    # rule silently never applied. Confirmed the corrected
+                    # value with ipaddress.ip_network(..., strict=True).
+                    '208.80.152.0/22',
+                    '91.198.174.0/24',
+                ]
+            },
+            'dit': {
+                'domains': [
+                    'dit.ac.tz',
+                    'www.dit.ac.tz',
+                    'sims.dit.ac.tz',
+                    'lms.dit.ac.tz',
+                    'mail.dit.ac.tz',
+                ],
+                'cidrs': []
+            },
+            'microsoft': {
+                'domains': [
+                    'microsoft.com',
+                    'www.microsoft.com',
+                    'login.microsoftonline.com',
+                    'live.com',
+                    'msftauth.net',
+                    'azure.com',
+                    'vscode-cdn.azureedge.net',
+                    'marketplace.visualstudio.com',
+                ],
+                'cidrs': []
+            },
+            'youtube': {
+                'domains': [
+                    'youtube.com',
+                    'www.youtube.com',
+                    'googlevideo.com',
+                    'ytimg.com',
+                    'i.ytimg.com',
+                    'gstatic.com',
+                    'www.gstatic.com',
+                ],
+                'cidrs': []
+            },
+            'w3schools': {
+                'domains': [
+                    'w3schools.com',
+                    'www.w3schools.com',
+                    'images.w3schools.com',
+                    'cdn.jsdelivr.net',
+                ],
+                'cidrs': []
+            },
+            'mdn': {
+                'domains': [
+                    'developer.mozilla.org',
+                    'mozilla.org',
+                    'www.mozilla.org',
+                    'mozit.cloud',
+                ],
+                'cidrs': []
+            }
+        }
 
         node = self.proxmox.nodes(self.node)
 
         # Per-VM rules only take effect if the interface opts in.
-        cfg = node.qemu(vmid).config.get()
-        net0 = cfg.get('net0', '')
-        if net0 and 'firewall=1' not in net0:
-            node.qemu(vmid).config.post(net0=net0 + ',firewall=1')
+        try:
+            cfg = node.qemu(vmid).config.get()
+            net0 = cfg.get('net0', '')
+            if net0:
+                if 'firewall=0' in net0:
+                    node.qemu(vmid).config.post(net0=net0.replace('firewall=0', 'firewall=1'))
+                elif 'firewall=1' not in net0:
+                    node.qemu(vmid).config.post(net0=net0 + ',firewall=1')
+        except Exception as e:
+            logger.warning("Could not set firewall=1 on VM %s net0: %s", vmid, e)
 
-        # Rebuild from a clean slate so re-applying (e.g. after resume)
-        # never stacks duplicate or stale rules.
-        existing_rules = node.qemu(vmid).firewall.rules.get()
-        for _ in existing_rules:
-            node.qemu(vmid).firewall.rules(0).delete()
+        # Rebuild firewall rules from a clean slate
+        try:
+            existing_rules = node.qemu(vmid).firewall.rules.get()
+            for r in sorted(existing_rules, key=lambda x: x.get('pos', 0), reverse=True):
+                if 'pos' in r:
+                    try:
+                        node.qemu(vmid).firewall.rules(r['pos']).delete()
+                    except Exception:
+                        pass
+        except Exception as e:
+            logger.warning("Could not clear existing rules on VM %s: %s", vmid, e)
 
+        # 1. Allow outbound DNS traffic (UDP/TCP port 53) so guest VM can resolve domain names
+        try:
+            node.qemu(vmid).firewall.rules.post(
+                type='out', proto='udp', dport='53', action='ACCEPT', enable=1,
+                comment='Allow DNS queries (UDP)',
+            )
+            node.qemu(vmid).firewall.rules.post(
+                type='out', proto='tcp', dport='53', action='ACCEPT', enable=1,
+                comment='Allow DNS queries (TCP)',
+            )
+        except Exception as e:
+            logger.warning("Could not add DNS firewall rules for VM %s: %s", vmid, e)
+
+        # 2. Allow essential gateway / DNS IPs
         essential_ips = [
             ip.strip() for ip in
-            SystemConfig.get('network_lockdown_allowlist_ips', '192.168.1.1').split(',')
+            SystemConfig.get('network_lockdown_allowlist_ips', '192.168.1.1,8.8.8.8,1.1.1.1,8.8.4.4,1.0.0.1').split(',')
             if ip.strip()
         ]
         for ip in essential_ips:
-            node.qemu(vmid).firewall.rules.post(
-                type='out', action='ACCEPT', dest=ip, enable=1,
-                comment='Essential gateway/DNS connectivity',
-            )
-
-        resolved_ips = set()
-        for domain in (allowed_domains or []):
-            domain = domain.strip()
-            if not domain:
-                continue
             try:
-                addrinfo = socket.getaddrinfo(domain, None, socket.AF_INET)
-                domain_ips = {info[4][0] for info in addrinfo}
-            except socket.gaierror as e:
-                logger.warning("Could not resolve whitelisted domain %s: %s", domain, e)
-                continue
-            for ip in domain_ips:
-                if ip in resolved_ips:
-                    continue
-                resolved_ips.add(ip)
                 node.qemu(vmid).firewall.rules.post(
                     type='out', action='ACCEPT', dest=ip, enable=1,
-                    comment=f'Whitelisted domain: {domain}',
+                    comment='Essential gateway/DNS connectivity',
                 )
+            except Exception as e:
+                logger.warning("Could not whitelist IP %s for VM %s: %s", ip, vmid, e)
 
+        # 3. Whitelist allowed domains by resolving them to IPs and CIDR subnets
+        resolved_ips = set()
+        matched_cidrs = set()
+        domains_to_resolve = set()
+        cleaned_inputs = []
+
+        if allowed_domains:
+            if isinstance(allowed_domains, str):
+                allowed_domains = [d.strip() for d in allowed_domains.split(',') if d.strip()]
+
+            for raw_item in allowed_domains:
+                if not raw_item or not isinstance(raw_item, str):
+                    continue
+                item = raw_item.strip()
+                if '://' in item:
+                    try:
+                        parsed = urlparse(item)
+                        item = parsed.hostname or item
+                    except Exception:
+                        pass
+                item = item.split('/')[0].split(':')[0].strip().lower()
+                if not item:
+                    continue
+                cleaned_inputs.append(item)
+
+                # Check if matches a known ecosystem
+                base_name = item.split('.')[0] if '.' in item else item
+                matched_eco = ECOSYSTEM_EXPANSIONS.get(base_name) or ECOSYSTEM_EXPANSIONS.get(item)
+                if matched_eco:
+                    for d in matched_eco.get('domains', []):
+                        domains_to_resolve.add(d)
+                    for c in matched_eco.get('cidrs', []):
+                        matched_cidrs.add(c)
+                else:
+                    if '.' not in item:
+                        item = f'{item}.com'
+                    domains_to_resolve.add(item)
+                    if item.startswith('www.'):
+                        domains_to_resolve.add(item[4:])
+                    elif not item.startswith('*') and '.' in item:
+                        domains_to_resolve.add(f'www.{item}')
+
+            # Add subnet CIDR rules
+            for cidr in matched_cidrs:
+                try:
+                    node.qemu(vmid).firewall.rules.post(
+                        type='out', action='ACCEPT', dest=cidr, enable=1,
+                        comment=f'Whitelisted subnet: {cidr}',
+                    )
+                except Exception as e:
+                    logger.warning("Could not add CIDR rule %s for VM %s: %s", cidr, vmid, e)
+
+            # Resolve domain IPs and add rules
+            for domain in domains_to_resolve:
+                try:
+                    addrinfo = socket.getaddrinfo(domain, None, socket.AF_INET)
+                    domain_ips = {info[4][0] for info in addrinfo}
+                    for ip in domain_ips:
+                        if ip in resolved_ips:
+                            continue
+                        resolved_ips.add(ip)
+                        node.qemu(vmid).firewall.rules.post(
+                            type='out', action='ACCEPT', dest=ip, enable=1,
+                            comment=f'Whitelisted: {domain}',
+                        )
+                except socket.gaierror as e:
+                    logger.warning("Could not resolve whitelisted domain %s: %s", domain, e)
+                except Exception as e:
+                    logger.warning("Could not add firewall rule for domain %s on VM %s: %s", domain, vmid, e)
+
+        # Enable firewall with drop policy on outbound
         node.qemu(vmid).firewall.options.put(
             enable=1, policy_in='ACCEPT', policy_out='DROP',
         )
         logger.info(
-            "Network lockdown enabled on VM %s (essential=%s, domains=%s -> %s)",
-            vmid, essential_ips, allowed_domains, sorted(resolved_ips),
+            "Network lockdown enabled on VM %s (essential=%s, cidrs=%s, domains=%s -> %s IPs)",
+            vmid, essential_ips, sorted(matched_cidrs), cleaned_inputs, len(resolved_ips),
         )
 
     def disable_vm_lockdown(self, vmid):
@@ -382,11 +615,21 @@ class ProxmoxService:
             vmid (int): The Proxmox VM ID to unlock.
         """
         node = self.proxmox.nodes(self.node)
-        node.qemu(vmid).firewall.options.put(enable=0)
+        try:
+            node.qemu(vmid).firewall.options.put(enable=0)
+        except Exception as e:
+            logger.warning("Could not disable firewall options on VM %s: %s", vmid, e)
 
-        existing_rules = node.qemu(vmid).firewall.rules.get()
-        for _ in existing_rules:
-            node.qemu(vmid).firewall.rules(0).delete()
+        try:
+            existing_rules = node.qemu(vmid).firewall.rules.get()
+            for r in sorted(existing_rules, key=lambda x: x.get('pos', 0), reverse=True):
+                if 'pos' in r:
+                    try:
+                        node.qemu(vmid).firewall.rules(r['pos']).delete()
+                    except Exception:
+                        pass
+        except Exception as e:
+            logger.warning("Could not clear firewall rules on VM %s: %s", vmid, e)
 
         logger.info("Network lockdown disabled on VM %s", vmid)
 

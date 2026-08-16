@@ -147,8 +147,11 @@ export default function CreateSessionPage() {
   };
 
   const handleStartCheckout = () => {
-    if (!canProceed()) return;
-    
+    const domains = allowedDomainsInput
+      .split(',')
+      .map(d => d.trim())
+      .filter(Boolean);
+
     setCheckoutPayload({
       name: 'Custom Session',
       price: { TZS: hours * rate },
@@ -159,11 +162,8 @@ export default function CreateSessionPage() {
         max_participants: maxParticipants,
         hours: hours,
         restrictions: restrictions,
-        restrict_internet: restrictInternet,
-        allowed_domains: allowedDomainsInput
-          .split(',')
-          .map(d => d.trim())
-          .filter(Boolean)
+        restrict_internet: restrictInternet || domains.length > 0,
+        allowed_domains: domains
       }
     });
     
@@ -395,6 +395,15 @@ export default function CreateSessionPage() {
                     placeholder="e.g. github.com, docs.python.org"
                     style={inputStyle}
                   />
+                  {/* Honest limitation, not hidden: whitelisting resolves each
+                      domain to its current IP(s) at lockdown time (plus a few
+                      known ecosystems' real CIDR ranges - GitHub, Google,
+                      Wikipedia, etc.) rather than tracking DNS live, so a
+                      host setting this up for a real exam should know large,
+                      many-server sites can be unreliable. */}
+                  <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>
+                    Best for simple, single-IP sites (e.g. institutional LMS). Large sites with many servers (Google, YouTube) may not work reliably.
+                  </p>
                 </div>
               )}
             </div>
