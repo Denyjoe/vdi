@@ -242,6 +242,24 @@ class LiveSessionDetailView(APIView):
             SessionLifecycleService.end_live_session(session)
             session.refresh_from_db()
 
+        # Real bug found via live testing: a participant returning to this
+        # session's URL (page reload, browser back, a stale bookmark/link)
+        # after the HOST explicitly ended it got stuck on an infinite
+        # "Waiting for virtual desktop to be ready..." spinner. The VM,
+        # Guacamole connection, and DB VirtualMachine row were all genuinely,
+        # correctly torn down by end_live_session — this endpoint just kept
+        # returning normal 200 session data (guacamole_url now null) with
+        # nothing telling the frontend the session was permanently over, so
+        # it had no way to distinguish "still booting" from "gone for good".
+        # Checked here, after the auto-end block above, so this also covers
+        # a session that just auto-ended on this very request.
+        if session.status == 'ended':
+            return Response({
+                'success': False,
+                'message': 'This session has ended.',
+                'session_ended': True,
+            }, status=status.HTTP_410_GONE)
+
         session.participant_count = session.participants.count()
         data = LiveSessionSerializer(session).data
         data['participants'] = SessionParticipantSerializer(session.participants.all()[:50], many=True).data

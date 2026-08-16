@@ -229,10 +229,18 @@ export default function DesktopSessionPage() {
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   
   const [currentTime, setCurrentTime] = useState(new Date());
+  // Real bug found via live testing: a participant navigating straight to
+  // /session/:id after the HOST already ended it (page reload, browser
+  // back, a stale link) got stuck on an infinite "Waiting for virtual
+  // desktop to be ready..." spinner forever - the initial fetch below had
+  // no way to tell "still booting" apart from "gone for good". The backend
+  // now responds 410 with session_ended:true for this case; this state
+  // drives a dedicated, final "Session Ended" screen with no retry option.
+  const [sessionEndedScreen, setSessionEndedScreen] = useState(false);
 
   useEffect(() => {
     if (type === 'workspace') return;
-    
+
     // If we don't have session data in state (e.g., page refresh), fetch it
     if (!sessionData) {
       sessionService.getLiveSession(sessionId).then(res => {
@@ -240,12 +248,12 @@ export default function DesktopSessionPage() {
           // It's active
           const sData = res.data.data;
           const myParticipant = sData.participants?.find(p => p.user?.id === user?.id);
-          
+
           if (!myParticipant && user?.id !== sData.host) {
              navigate('/workspaces');
              return;
           }
-          
+
           setSessionData({
             session_id: sData.id,
             session_token: "retrieved-token",
@@ -273,7 +281,13 @@ export default function DesktopSessionPage() {
           // Missing or not active
           navigate('/workspaces');
         }
-      }).catch(() => navigate('/workspaces'));
+      }).catch(err => {
+        if (err?.response?.status === 410 && err?.response?.data?.session_ended) {
+          setSessionEndedScreen(true);
+          return;
+        }
+        navigate('/workspaces');
+      });
     }
   }, [sessionData, sessionId, navigate, type, user]);
 
@@ -802,6 +816,21 @@ export default function DesktopSessionPage() {
   }, []);
 
   // Removed early return for disconnectedByAdmin, now handled as an overlay
+
+  if (sessionEndedScreen) {
+    return (
+      <div className="flex items-center justify-center h-screen" style={{ background: '#050B18' }}>
+        <div className="flex flex-col items-center">
+          <Power size={48} className="text-slate-400 mb-4" />
+          <h2 className="text-slate-300 text-xl font-semibold mb-2">Session Ended</h2>
+          <p className="text-slate-500 mb-6">This session has ended.</p>
+          <button onClick={() => navigate('/workspaces')} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors shadow-lg">
+            Back to Workspaces
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (type === 'workspace') {
     if (wsLoading || workspace?.vm_details?.status === 'provisioning') {
