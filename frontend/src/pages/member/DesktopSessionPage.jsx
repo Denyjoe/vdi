@@ -82,6 +82,125 @@ function GuacToolControls({ oskOn, touchpadOn, onToggleKeyboard, onToggleTouchpa
   );
 }
 
+// Fullscreen-only control surface, modeled directly on Chrome Remote
+// Desktop's real, proven mobile pattern: a small tab tucked to the
+// screen edge is the ONLY persistent chrome in fullscreen — never a
+// full toolbar taking up its own row. Tapping it reveals the full
+// button cluster in place; tapping the chevron (or the edge again)
+// collapses it back down to the small tab. This replaces both the
+// in-flow header AND GuacToolControls while in fullscreen, since
+// neither can coexist with genuine edge-to-edge coverage — their
+// exit-fullscreen and end-session actions move in here instead so
+// nothing becomes unreachable.
+function FullscreenEdgeControls({
+  revealed, onReveal, onCollapse,
+  oskOn, touchpadOn, onToggleKeyboard, onToggleTouchpadMode, onZoomOut, onZoomIn,
+  onExitFullscreen, onEndSession, isDisconnecting,
+}) {
+  const btnStyle = (active, danger = false) => ({
+    width: '44px',
+    height: '44px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '10px',
+    border: active ? '1px solid #818cf8' : danger ? '1px solid rgba(248,113,113,0.35)' : '1px solid rgba(255,255,255,0.15)',
+    background: active ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.08)',
+    color: active ? '#a5b4fc' : danger ? '#f87171' : '#e2e8f0',
+    transition: 'all 0.15s',
+    flexShrink: 0,
+  });
+
+  if (!revealed) {
+    return (
+      <div
+        onClick={onReveal}
+        role="button"
+        aria-label="Show controls"
+        style={{
+          position: 'fixed',
+          top: '50%',
+          right: 0,
+          transform: 'translateY(-50%)',
+          width: '20px',
+          height: '60px',
+          background: 'rgba(0,0,0,0.4)',
+          borderRadius: '8px 0 0 8px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 200,
+          cursor: 'pointer',
+        }}
+        title="Show controls"
+      >
+        <ChevronLeft size={12} color="#fff" />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: '50%',
+      right: 0,
+      transform: 'translateY(-50%)',
+      zIndex: 201,
+      background: 'rgba(20,20,20,0.9)',
+      borderRadius: '12px 0 0 12px',
+      padding: '12px 8px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: '10px',
+      backdropFilter: 'blur(8px)',
+      WebkitBackdropFilter: 'blur(8px)',
+      maxHeight: '90vh',
+      overflowY: 'auto',
+    }}>
+      <button onClick={onToggleKeyboard} style={btnStyle(oskOn)} title={oskOn ? 'Hide on-screen keyboard' : 'Show on-screen keyboard'}>
+        <Keyboard size={18} />
+      </button>
+      <button onClick={onToggleTouchpadMode} style={btnStyle(touchpadOn)} title={touchpadOn ? 'Touchpad mode (relative) — tap to switch to Touchscreen' : 'Touchscreen mode (direct tap) — tap to switch to Touchpad'}>
+        <MousePointer2 size={18} />
+      </button>
+      <button onClick={onZoomOut} style={btnStyle(false)} title="Zoom out">
+        <ZoomOut size={18} />
+      </button>
+      <button onClick={onZoomIn} style={btnStyle(false)} title="Zoom in">
+        <ZoomIn size={18} />
+      </button>
+      <div style={{ width: '24px', height: '1px', background: 'rgba(255,255,255,0.15)' }} />
+      <button onClick={onExitFullscreen} style={btnStyle(false)} title="Exit fullscreen">
+        <Minimize2 size={18} />
+      </button>
+      <button onClick={onEndSession} disabled={isDisconnecting} style={btnStyle(false, true)} title={isDisconnecting ? 'Disconnecting...' : 'End session'}>
+        <Power size={18} />
+      </button>
+      <button
+        onClick={onCollapse}
+        style={{ ...btnStyle(false), width: '32px', height: '32px' }}
+        title="Hide controls"
+      >
+        <ChevronRight size={14} />
+      </button>
+    </div>
+  );
+}
+
+// Approximate height of Guacamole's own built-in on-screen keyboard panel.
+// There's no live signal exposed for its actual rendered height (checked:
+// Guacamole's client scope has no OSK-dimension property alongside
+// menu.inputMethod — see findGuacScope in GuacamoleEmbed.jsx), so this is
+// a reasonable fixed estimate, not a measured value. Reserving real space
+// beneath the display for it means Guacamole's own responsive canvas
+// scaling fits the desktop into the shrunk box (confirmed by real
+// testing: an iframe's own box resize is a genuine viewport change the
+// embedded page sees directly, unlike the outer-window resize-event
+// propagation gap already documented in GuacamoleEmbed's reconnect logic)
+// instead of the keyboard simply overlaying whatever was underneath it.
+const OSK_RESERVED_PX = 280;
+
 export default function DesktopSessionPage() {
   const { id: sessionId } = useParams();
   const location = useLocation();
@@ -98,6 +217,9 @@ export default function DesktopSessionPage() {
   // touch-enabled desktop monitor isn't misclassified as a phone.
   const showMobileControls = isTouchDevice && Math.max(viewportWidth, viewportHeight) < 1024;
   const [controlsExpanded, setControlsExpanded] = useState(true);
+  // Separate reveal state for the fullscreen edge tab (Part 2) — distinct
+  // from controlsExpanded, which only governs the normal-mode toolbar.
+  const [edgeControlsRevealed, setEdgeControlsRevealed] = useState(false);
   const searchParams = new URLSearchParams(location.search);
   const type = location.pathname.includes('/workspace/') ? 'workspace' : searchParams.get('type');
 
@@ -629,7 +751,12 @@ export default function DesktopSessionPage() {
 
   useEffect(() => {
     const handler = () => {
-      setIsFullscreen(!!(document.fullscreenElement || document.webkitFullscreenElement));
+      const nowFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
+      setIsFullscreen(nowFullscreen);
+      // Don't let a revealed edge panel linger invisibly once we're back
+      // in normal mode (where it isn't rendered at all, but the state
+      // would otherwise still be true the next time fullscreen re-opens).
+      if (!nowFullscreen) setEdgeControlsRevealed(false);
     };
     document.addEventListener('fullscreenchange', handler);
     document.addEventListener('webkitfullscreenchange', handler);
@@ -694,73 +821,85 @@ export default function DesktopSessionPage() {
     if (workspace?.vm_details?.guacamole_url) {
       return (
         <div ref={containerRef} className="relative w-screen h-screen overflow-hidden bg-black flex flex-col font-inter">
-          <div className="h-12 bg-[var(--bg-primary)] border-b border-[var(--border-color)] flex items-center justify-between px-4 shrink-0 shadow-md relative z-50">
-            <div className="flex items-center gap-4">
-              <OspaceLogo size={20} />
-              <span className="text-[var(--text-primary)] font-medium text-sm sm:text-base hidden sm:block">
-                {workspace.name}
-              </span>
-              
-              {type !== 'workspace' && timeLeft && (
-                  <div className="flex items-center gap-4 border-l border-border pl-4">
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      padding: '4px 12px',
-                      borderRadius: '8px',
-                      background: timeLeft.startsWith('00:0') 
-                        ? 'var(--status-warning-bg, rgba(245, 158, 11, 0.1))'
-                        : 'var(--bg-input, transparent)',
-                    }}>
-                      <Clock size={12} className={timeLeft.startsWith('00:0') ? "text-[var(--status-warning)]" : "text-secondary"} />
-                      <span style={{
-                        fontFamily: 'monospace',
-                        fontSize: '13px',
-                        fontWeight: 700,
-                        color: timeLeft.startsWith('00:0') ? 'var(--status-warning, #F59E0B)' : 'var(--text-primary)',
-                      }}>{timeLeft}</span>
-                      <span style={{
-                        fontSize: '10px',
-                        color: 'var(--text-muted)',
-                      }}>left</span>
-                    </div>
-                  </div>
-                )}
-              
-              <div className="h-5 w-px bg-[var(--border-color)] hidden sm:block" />
-              
-              <div className="flex items-center gap-1.5">
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+          {/* True edge-to-edge fullscreen (Part 1): this header is real app
+              chrome — logo, session name, fullscreen/end-session buttons —
+              and used to persist through fullscreen, eating into the top of
+              the stream. In fullscreen on a touch device it's hidden
+              entirely (not just visually collapsed — removed from layout
+              so GuacamoleEmbed's flex-1 genuinely fills the full 100vh) and
+              its actions move into FullscreenEdgeControls below instead. */}
+          {!(isFullscreen && showMobileControls) && (
+            <div className="h-12 bg-[var(--bg-primary)] border-b border-[var(--border-color)] flex items-center justify-between px-4 shrink-0 shadow-md relative z-50">
+              <div className="flex items-center gap-4">
+                <OspaceLogo size={20} />
+                <span className="text-[var(--text-primary)] font-medium text-sm sm:text-base hidden sm:block">
+                  {workspace.name}
                 </span>
-                <span className="text-emerald-400 text-sm font-medium">Connected</span>
+
+                {type !== 'workspace' && timeLeft && (
+                    <div className="flex items-center gap-4 border-l border-border pl-4">
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '4px 12px',
+                        borderRadius: '8px',
+                        background: timeLeft.startsWith('00:0')
+                          ? 'var(--status-warning-bg, rgba(245, 158, 11, 0.1))'
+                          : 'var(--bg-input, transparent)',
+                      }}>
+                        <Clock size={12} className={timeLeft.startsWith('00:0') ? "text-[var(--status-warning)]" : "text-secondary"} />
+                        <span style={{
+                          fontFamily: 'monospace',
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          color: timeLeft.startsWith('00:0') ? 'var(--status-warning, #F59E0B)' : 'var(--text-primary)',
+                        }}>{timeLeft}</span>
+                        <span style={{
+                          fontSize: '10px',
+                          color: 'var(--text-muted)',
+                        }}>left</span>
+                      </div>
+                    </div>
+                  )}
+
+                <div className="h-5 w-px bg-[var(--border-color)] hidden sm:block" />
+
+                <div className="flex items-center gap-1.5">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                  </span>
+                  <span className="text-emerald-400 text-sm font-medium">Connected</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={toggleFullscreen}
+                  className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors flex items-center justify-center shrink-0"
+                  style={{ width: '44px', height: '44px' }}
+                  title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                >
+                  {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                </button>
+
+                <button
+                  onClick={handleEndSession}
+                  disabled={isDisconnecting}
+                  className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors border border-red-500/20 flex items-center gap-2"
+                >
+                  <Power className="w-4 h-4" />
+                  {isDisconnecting ? 'Disconnecting...' : 'End Session'}
+                </button>
               </div>
             </div>
-            
-            <div className="flex items-center gap-4">
-              <button
-                onClick={toggleFullscreen}
-                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors flex items-center justify-center shrink-0"
-                style={{ width: '44px', height: '44px' }}
-                title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-              >
-                {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-              </button>
+          )}
 
-              <button
-                onClick={handleEndSession}
-                disabled={isDisconnecting}
-                className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors border border-red-500/20 flex items-center gap-2"
-              >
-                <Power className="w-4 h-4" />
-                {isDisconnecting ? 'Disconnecting...' : 'End Session'}
-              </button>
-            </div>
-          </div>
-
-          {showMobileControls && (
+          {/* Part 2: normal mode keeps the existing collapsible toolbar;
+              fullscreen mode switches to the CRD-style edge tab instead —
+              the two are mutually exclusive, never both mounted. */}
+          {showMobileControls && !isFullscreen && (
             <GuacToolControls
               oskOn={oskOn}
               touchpadOn={touchpadOn}
@@ -770,6 +909,22 @@ export default function DesktopSessionPage() {
               onZoomOut={() => handleZoom(-0.25)}
               expanded={controlsExpanded}
               onToggleExpanded={() => setControlsExpanded(v => !v)}
+            />
+          )}
+          {showMobileControls && isFullscreen && (
+            <FullscreenEdgeControls
+              revealed={edgeControlsRevealed}
+              onReveal={() => setEdgeControlsRevealed(true)}
+              onCollapse={() => setEdgeControlsRevealed(false)}
+              oskOn={oskOn}
+              touchpadOn={touchpadOn}
+              onToggleKeyboard={handleToggleKeyboard}
+              onToggleTouchpadMode={handleToggleTouchpadMode}
+              onZoomIn={() => handleZoom(0.25)}
+              onZoomOut={() => handleZoom(-0.25)}
+              onExitFullscreen={toggleFullscreen}
+              onEndSession={handleEndSession}
+              isDisconnecting={isDisconnecting}
             />
           )}
 
@@ -840,7 +995,30 @@ export default function DesktopSessionPage() {
             </div>
           )}
 
-          <GuacamoleEmbed ref={guacRef} key={reconnectGeneration} url={workspace.vm_details.guacamole_url} loadingText={workspace?.vm_details?.notes || "Connecting to your workspace..."} tunnelActive={tunnelActive} />
+          {/* Part 3: shrink the display's box (genuine layout room, not an
+              overlay) when the on-screen keyboard is toggled on, so
+              Guacamole's own canvas scales to fit above it instead of the
+              keyboard covering whatever the user was typing into.
+              maxHeight (not height) deliberately — this div is also a
+              flex:1 child of the column above it, and an explicit `height`
+              would fight flex-basis resolution (percentages on a flex
+              item's main axis resolve against the container's full size,
+              not its remaining space, so `calc(100% - 280px)` here would
+              undercount whatever the header/toolbar already took). A
+              vh-based maxHeight caps the flex-grown size correctly
+              regardless of how much space siblings already claimed, and
+              both branches are concrete calc() values so the transition
+              still animates smoothly either direction. */}
+          <div style={{
+            flex: 1,
+            minHeight: 0,
+            maxHeight: oskOn ? `calc(100vh - ${OSK_RESERVED_PX}px)` : '100vh',
+            transition: 'max-height 200ms ease-out',
+            display: 'flex',
+            flexDirection: 'column',
+          }}>
+            <GuacamoleEmbed ref={guacRef} key={reconnectGeneration} url={workspace.vm_details.guacamole_url} loadingText={workspace?.vm_details?.notes || "Connecting to your workspace..."} tunnelActive={tunnelActive} />
+          </div>
         </div>
       );
     }
@@ -869,46 +1047,50 @@ export default function DesktopSessionPage() {
 
   return (
     <div ref={containerRef} className="relative w-screen h-screen overflow-hidden bg-black flex flex-col font-inter">
-      <div className="h-12 bg-[var(--bg-primary)] border-b border-[var(--border-color)] flex items-center justify-between px-4 shrink-0 shadow-md relative z-50">
-        <div className="flex items-center gap-4">
-          <OspaceLogo size={20} />
-          <span className="text-[var(--text-primary)] font-medium text-sm sm:text-base hidden sm:block">
-            {sessionData.vm_name}
-          </span>
-          
-          <div className="h-5 w-px bg-[var(--border-color)] hidden sm:block" />
-          
-          <div className="flex items-center gap-1.5">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+      {/* See the matching comment in the workspace-branch return above —
+          same true-edge-to-edge fullscreen treatment. */}
+      {!(isFullscreen && showMobileControls) && (
+        <div className="h-12 bg-[var(--bg-primary)] border-b border-[var(--border-color)] flex items-center justify-between px-4 shrink-0 shadow-md relative z-50">
+          <div className="flex items-center gap-4">
+            <OspaceLogo size={20} />
+            <span className="text-[var(--text-primary)] font-medium text-sm sm:text-base hidden sm:block">
+              {sessionData.vm_name}
             </span>
-            <span className="text-emerald-400 text-sm font-medium">Connected</span>
+
+            <div className="h-5 w-px bg-[var(--border-color)] hidden sm:block" />
+
+            <div className="flex items-center gap-1.5">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </span>
+              <span className="text-emerald-400 text-sm font-medium">Connected</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <button
+              onClick={toggleFullscreen}
+              className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors flex items-center justify-center shrink-0"
+              style={{ width: '44px', height: '44px' }}
+              title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+            >
+              {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </button>
+
+            <button
+              onClick={handleEndSession}
+              disabled={isDisconnecting}
+              className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors border border-red-500/20 flex items-center gap-2"
+            >
+              <Power className="w-4 h-4" />
+              {isDisconnecting ? 'Disconnecting...' : 'End Session'}
+            </button>
           </div>
         </div>
-        
-        <div className="flex items-center gap-4">
-          <button
-            onClick={toggleFullscreen}
-            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors flex items-center justify-center shrink-0"
-            style={{ width: '44px', height: '44px' }}
-            title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-          >
-            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-          </button>
+      )}
 
-          <button
-            onClick={handleEndSession}
-            disabled={isDisconnecting}
-            className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors border border-red-500/20 flex items-center gap-2"
-          >
-            <Power className="w-4 h-4" />
-            {isDisconnecting ? 'Disconnecting...' : 'End Session'}
-          </button>
-        </div>
-      </div>
-
-      {showMobileControls && (
+      {showMobileControls && !isFullscreen && (
         <GuacToolControls
           oskOn={oskOn}
           touchpadOn={touchpadOn}
@@ -918,6 +1100,22 @@ export default function DesktopSessionPage() {
           onZoomOut={() => handleZoom(-0.25)}
           expanded={controlsExpanded}
           onToggleExpanded={() => setControlsExpanded(v => !v)}
+        />
+      )}
+      {showMobileControls && isFullscreen && (
+        <FullscreenEdgeControls
+          revealed={edgeControlsRevealed}
+          onReveal={() => setEdgeControlsRevealed(true)}
+          onCollapse={() => setEdgeControlsRevealed(false)}
+          oskOn={oskOn}
+          touchpadOn={touchpadOn}
+          onToggleKeyboard={handleToggleKeyboard}
+          onToggleTouchpadMode={handleToggleTouchpadMode}
+          onZoomIn={() => handleZoom(0.25)}
+          onZoomOut={() => handleZoom(-0.25)}
+          onExitFullscreen={toggleFullscreen}
+          onEndSession={handleEndSession}
+          isDisconnecting={isDisconnecting}
         />
       )}
 
@@ -1110,7 +1308,19 @@ export default function DesktopSessionPage() {
         </div>
       )}
 
-      <GuacamoleEmbed ref={guacRef} key={reconnectGeneration} url={sessionData.guacamole_url} loadingText="Connecting to your session..." tunnelActive={tunnelActive} />
+      {/* Part 3: same genuine height-adjustment as the workspace branch
+          above (maxHeight, not height — see that branch's comment for
+          why) — the realistic, achievable version of "flexible/shifted". */}
+      <div style={{
+        flex: 1,
+        minHeight: 0,
+        maxHeight: oskOn ? `calc(100vh - ${OSK_RESERVED_PX}px)` : '100vh',
+        transition: 'max-height 200ms ease-out',
+        display: 'flex',
+        flexDirection: 'column',
+      }}>
+        <GuacamoleEmbed ref={guacRef} key={reconnectGeneration} url={sessionData.guacamole_url} loadingText="Connecting to your session..." tunnelActive={tunnelActive} />
+      </div>
       {/* Live-session participants don't have a per-VM `.notes` field like
           personal workspaces do (SessionParticipant/VirtualMachine here
           isn't populated with staged provisioning notes), so this stays a
