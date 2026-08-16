@@ -249,6 +249,16 @@ export default function DesktopSessionPage() {
           setSessionData({
             session_id: sData.id,
             session_token: "retrieved-token",
+            // Real bug: the header was rendering vm_name (the VM's own
+            // internal name, e.g. a Proxmox hostname) with a hardcoded
+            // 'Virtual Machine' fallback — never the actual session name
+            // the host chose (e.g. "test56"). Confirmed the backend
+            // already returns it (LiveSessionSerializer includes 'name'
+            // in its fields), so this was purely a frontend gap: the
+            // real value was sitting right here in `sData.name` and
+            // never got captured. Falls back to the VM's own name, then
+            // a generic label, only if a session genuinely has no name.
+            name: sData.name || myParticipant?.vm?.name || 'Live Session',
             vm_name: myParticipant?.vm?.name || 'Virtual Machine',
             template_name: myParticipant?.vm?.template_name || '',
             os: myParticipant?.vm?.os || 'windows',
@@ -1061,7 +1071,7 @@ export default function DesktopSessionPage() {
           <div className="flex items-center gap-4">
             <OspaceLogo size={20} />
             <span className="text-[var(--text-primary)] font-medium text-sm sm:text-base hidden sm:block">
-              {sessionData.vm_name}
+              {sessionData.name}
             </span>
 
             <div className="h-5 w-px bg-[var(--border-color)] hidden sm:block" />
