@@ -271,37 +271,70 @@ export default function DashboardPage() {
       <div className="max-w-6xl mx-auto space-y-6">
         
         {/* Welcome Banner */}
+        {isMobile ? (
+          // Real, measured mobile bug (Ospace responsive audit): the desktop
+          // banner reused verbatim on mobile measured 712px tall - 87.7% of
+          // a 375x812 viewport - for just a heading, a 4-line-wrapping
+          // subtitle, two buttons, and a decorative globe graphic that alone
+          // accounted for a large share of that height plus the empty space
+          // around it. This mobile-specific layout drops the globe, tightens
+          // type sizes/spacing, and shortens the subtitle so the card is
+          // proportionate to a small screen instead of reading as a
+          // full-screen splash.
+          <div className="relative bg-gradient-to-br from-indigo-500/10 to-blue-500/5 border border-indigo-500/20 rounded-2xl overflow-hidden shadow-sm" style={{ padding: '20px' }}>
+            <h1 className="text-2xl font-extrabold text-primary tracking-tight mb-2 flex items-center flex-wrap gap-2">
+              Welcome back, {user?.first_name || 'Student'}
+              <Smile className="text-yellow-500" size={24} strokeWidth={2.5} />
+            </h1>
+            <p className="text-sm text-secondary mb-5 leading-relaxed">
+              Your virtual lab is ready. Pick up where you left off.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <button onClick={() => navigate('/workspaces', { state: { openCreate: true }})}
+                className="w-full px-6 py-3 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-xl font-bold shadow-lg shadow-blue-500/25 transition-all active:scale-95 flex items-center justify-center gap-2">
+                <Monitor size={18} />
+                Launch Workspace
+              </button>
+              <button onClick={() => setShowJoinModal(true)}
+                className="w-full px-6 py-3 bg-canvas border border-border text-primary hover:bg-nav-hover rounded-xl font-bold transition-all active:scale-95 flex items-center justify-center gap-2">
+                <Video size={18} />
+                Join Session
+              </button>
+            </div>
+          </div>
+        ) : (
         <div className="relative bg-gradient-to-br from-indigo-500/10 to-blue-500/5 border border-indigo-500/20 rounded-2xl p-6 sm:p-10 overflow-hidden shadow-sm">
-        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '24px' : '0', minHeight: '220px' }}>
-          
-          <div style={{ flex: isMobile ? 'none' : '0 0 60%', padding: '24px 4px', zIndex: 10 }}>
+        <div style={{ display: 'flex', flexDirection: 'row', gap: '0', minHeight: '220px' }}>
+
+          <div style={{ flex: '0 0 60%', padding: '24px 4px', zIndex: 10 }}>
             <h1 className="text-3xl sm:text-4xl font-extrabold text-primary tracking-tight mb-3 flex items-center flex-wrap gap-2">
-              Welcome back, {user?.first_name || 'Student'} 
+              Welcome back, {user?.first_name || 'Student'}
               <Smile className="text-yellow-500 animate-bounce" size={36} strokeWidth={2.5} />
             </h1>
             <p className="text-lg text-secondary mb-8 max-w-xl leading-relaxed">
               Your virtual lab environment is ready. Pick up right where you left off or start a new session.
             </p>
-            
-            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '12px', width: isMobile ? '100%' : 'auto', paddingTop: '16px' }}>
-              <button onClick={() => navigate('/workspaces', { state: { openCreate: true }})} style={{ width: isMobile ? '100%' : 'auto' }}
+
+            <div style={{ display: 'flex', flexDirection: 'row', gap: '12px', width: 'auto', paddingTop: '16px' }}>
+              <button onClick={() => navigate('/workspaces', { state: { openCreate: true }})}
                 className="px-6 py-3.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-xl font-bold shadow-lg shadow-blue-500/25 transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2">
                 <Monitor size={18} />
                 Launch Workspace
               </button>
-              <button onClick={() => setShowJoinModal(true)} style={{ width: isMobile ? '100%' : 'auto' }}
+              <button onClick={() => setShowJoinModal(true)}
                 className="px-6 py-3.5 bg-canvas border border-border text-primary hover:bg-nav-hover rounded-xl font-bold transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2">
                 <Video size={18} />
                 Join Session
               </button>
             </div>
           </div>
-          
-          <div style={{ flex: isMobile ? 'none' : '0 0 40%', display: 'flex', justifyContent: isMobile ? 'center' : 'flex-end', overflow: 'hidden', opacity: 0.9, position: isMobile ? 'relative' : 'absolute', right: 0, top: 0, bottom: 0 }}>
-            <NetworkGlobe size={isMobile ? 180 : 260} />
+
+          <div style={{ flex: '0 0 40%', display: 'flex', justifyContent: 'flex-end', overflow: 'hidden', opacity: 0.9, position: 'absolute', right: 0, top: 0, bottom: 0 }}>
+            <NetworkGlobe size={260} />
           </div>
         </div>
         </div>
+        )}
       </div>
 
       {/* SECTION 2 — STAT CARDS ROW */}

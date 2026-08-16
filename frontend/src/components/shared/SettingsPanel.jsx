@@ -12,6 +12,7 @@ import api from '../../services/api';
 import useSettingsStore from '../../store/settingsStore';
 import useAuthStore from '../../store/authStore';
 import useThemeStore from '../../store/themeStore';
+import useBreakpoint from '../../hooks/useBreakpoint';
 import { auth as firebaseAuth } from '../../config/firebase';
 
 const COUNTRIES = [
@@ -61,6 +62,7 @@ export default function SettingsPanel() {
   const { isOpen, activeTab, closeSettings, setTab } = useSettingsStore();
   const user = useAuthStore(s => s.user);
   const panelRef = useRef(null);
+  const { isMobile } = useBreakpoint();
 
   // Close on Escape key
   useEffect(() => {
@@ -105,6 +107,76 @@ export default function SettingsPanel() {
 
       {/* Panel — Centered Modal */}
       <div className="fixed inset-0 z-[61] flex items-center justify-center pointer-events-none">
+        {isMobile ? (
+          // Real, measured mobile bug (Ospace responsive audit): this modal
+          // used to render the SAME fixed two-column layout on every
+          // viewport - a 700px-wide box (capped to 90vw) with a fixed
+          // 180px-wide tab sidebar. At 375px that left just ~158px for the
+          // entire content column, and every field/label in the real panel
+          // (First Name, Last Name, Email Address, Country) was measurably
+          // truncated. This is NOT the overflow-pill/horizontal-scroll bug
+          // fixed twice earlier today - it's a fixed two-column desktop
+          // layout with no mobile branch at all. Fix: stack vertically -
+          // wrapped pill tabs (same pattern as WorkspacesPage filters) in a
+          // row above full-width content, in a near-fullscreen sheet
+          // instead of a small centered box. Tablet (768px) already
+          // measured fine (691px panel, 511px content) so this branch is
+          // mobile-only.
+          <div
+            ref={panelRef}
+            className="border rounded-2xl flex flex-col overflow-hidden pointer-events-auto"
+            style={{
+              width: 'calc(100vw - 24px)',
+              height: 'calc(100vh - 48px)',
+              maxHeight: '90vh',
+              background: 'var(--bg-card)',
+              borderColor: 'var(--border-subtle)',
+              boxShadow: 'var(--shadow-2xl, 0 25px 50px rgba(0,0,0,0.5))',
+              animation: 'scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+            }}
+          >
+            {/* Header */}
+            <div className="px-4 py-4 flex items-center justify-between border-b flex-shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
+              <h2 className="text-sm font-bold text-primary tracking-tight">
+                {tabs.find(t => t.id === activeTab)?.label || 'Settings'}
+              </h2>
+              <button onClick={closeSettings}
+                className="p-1.5 rounded-lg hover:bg-nav-hover text-secondary hover:text-primary active:scale-95 transition-all">
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Wrapped pill tab row — same pattern as WorkspacesPage filters */}
+            <div className="px-3 py-2.5 border-b flex-shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {tabs.map(tab => (
+                  <button key={tab.id}
+                    onClick={() => setTab(tab.id)}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-medium transition-all active:scale-95
+                    ${activeTab === tab.id
+                        ? 'bg-[#0066FF] text-white'
+                        : tab.id === 'danger'
+                          ? 'text-red-400/70 bg-red-500/5 border border-red-500/20'
+                          : 'text-secondary bg-canvas border border-border'
+                      }`}>
+                    <tab.icon size={13} />
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Scrollable content */}
+            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+              {activeTab === 'profile' && <ProfileTab user={user} />}
+              {activeTab === 'security' && <SecurityTab user={user} />}
+              {activeTab === 'notifications' && <NotificationsTab user={user} />}
+              {activeTab === 'appearance' && <AppearanceTab />}
+              {activeTab === 'developer' && <DeveloperTab />}
+              {activeTab === 'danger' && <DangerTab user={user} />}
+            </div>
+          </div>
+        ) : (
         <div
           ref={panelRef}
           className="border rounded-2xl w-[700px] max-w-[90vw] h-[550px] max-h-[80vh] flex overflow-hidden pointer-events-auto"
@@ -196,6 +268,7 @@ export default function SettingsPanel() {
             </div>
           </div>
         </div>
+        )}
       </div>
 
       {/* CSS Animations */}
