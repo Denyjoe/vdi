@@ -4,7 +4,7 @@ import {
   Maximize2, Minimize2, LayoutGrid, Compass, BarChart2, AlertCircle,
   Code2, Palette, Network, Box, Wifi, Battery, Volume2, Clock, Megaphone,
   Menu, X, Check, PanelRightOpen, PanelRightClose, Power, UserCheck, RefreshCw,
-  Keyboard, MousePointer2, ZoomIn, ZoomOut, ChevronLeft, ChevronRight
+  Keyboard, MousePointer2, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, RotateCcw
 } from 'lucide-react';
 import { sessionService } from '../../services/sessionService';
 import api from '../../services/api';
@@ -190,16 +190,23 @@ function FullscreenEdgeControls({
 
 // Last-resort fallback only, used for the brief window before the real
 // height has been measured (or if measurement genuinely never succeeds).
-// A fixed guess was tried here before and confirmed WRONG in both
-// directions by real measurement: Guacamole's real OSK is ~118px in
-// portrait (a fixed 280px guess left ~160px of dead reserved space) and
-// ~250px in landscape on a real connection (still less than 280px, but
-// landscape's viewport is only ~375px tall to begin with, so reserving
-// close to the full fixed guess there consumed most of the screen).
-// GuacamoleEmbed.measureOskHeight() now reads the real rendered value
-// directly instead of guessing — see the DesktopSessionPage oskHeight
-// state and its measurement effect below.
+// oskHeight is no longer used to shrink the display's own box (see the
+// real DOM investigation in the render branches below — Guacamole
+// already reserves genuine room for its OSK internally, entirely on its
+// own); it's used only to decide whether to show the landscape rotate
+// hint, so this fallback only affects that decision, never layout.
 const OSK_FALLBACK_PX = 280;
+
+// Below this much natural remaining height (viewportHeight - oskHeight),
+// Guacamole's own internal layout (confirmed via direct DOM inspection:
+// `.client-body` flex:1 vs `.client-bottom` flex:0,0,auto, non-
+// shrinkable) genuinely can't give the remote desktop canvas a usable
+// amount of room — real measured landscape case: 375px viewport, ~250px
+// non-shrinkable keyboard, ~0-100px left for canvas depending on
+// header/toolbar. Real measured portrait case for comparison: 812px
+// viewport, ~118px keyboard, ~694px left — comfortably above this
+// threshold, no hint shown.
+const LANDSCAPE_KEYBOARD_HINT_THRESHOLD_PX = 250;
 
 export default function DesktopSessionPage() {
   const { id: sessionId } = useParams();
@@ -720,25 +727,23 @@ export default function DesktopSessionPage() {
     setOskOn(result);
   };
 
-  // Real bug found in production use: rotating the phone while the
-  // keyboard was open triggers GuacamoleEmbed's own internal rotation
-  // reconnect (a fresh iframe, fresh Guacamole connection — see its
-  // reconnectOnRotate effect), which silently resets Guacamole's own
-  // scope back to inputMethod:'none'. Our page-level oskOn had no way to
-  // know that happened, so it kept claiming "on" — reserving a full
-  // fixed-height chunk of dead space for a keyboard that Guacamole
-  // wasn't actually showing anymore, which is most of why landscape
-  // looked like it was "covered": a ~280px reservation in a ~375px-tall
-  // landscape viewport, entirely empty, squeezing the real remote
-  // desktop into a sliver. This effect is the fix for both problems at
-  // once: it measures the REAL rendered OSK height (correcting the
-  // reserved space to match reality, confirmed to genuinely differ by
-  // orientation — ~118px portrait vs ~250px landscape on a real
-  // connection), and — critically — self-corrects oskOn to false the
-  // instant the real scope reports the keyboard is genuinely off,
-  // instead of trusting stale page state. Re-runs on every orientation
-  // change (viewportWidth/viewportHeight) since that's exactly when a
-  // silent reconnect can happen.
+  // Two real things this effect does, both confirmed by direct DOM
+  // measurement, not assumption:
+  // 1. Tracks the REAL rendered OSK height (oskHeight) — no longer used
+  //    to shrink the display's box (see the render branches below for
+  //    why that approach was wrong), but still the honest, measured
+  //    figure used to decide whether the landscape rotate hint should
+  //    show, replacing an earlier fixed 280px guess.
+  // 2. Self-corrects oskOn to false the instant Guacamole's own scope
+  //    reports the keyboard is genuinely off — a real desync was found
+  //    here: rotating the phone while the keyboard was open triggers
+  //    GuacamoleEmbed's own internal rotation reconnect (a fresh iframe,
+  //    fresh Guacamole connection), which silently resets Guacamole's
+  //    own scope back to inputMethod:'none'. Our page-level oskOn had no
+  //    way to know that happened and kept claiming "on" with no real
+  //    keyboard behind it. Re-runs on every orientation change
+  //    (viewportWidth/viewportHeight) since that's exactly when a silent
+  //    reconnect can happen.
   useEffect(() => {
     if (!oskOn || !tunnelActive) return;
     let cancelled = false;
@@ -1040,37 +1045,68 @@ export default function DesktopSessionPage() {
             </div>
           )}
 
-          {/* Part 3: shrink the display's box (genuine layout room, not an
-              overlay) when the on-screen keyboard is toggled on, so
-              Guacamole's own canvas scales to fit above it instead of the
-              keyboard covering whatever the user was typing into.
-              maxHeight (not height) deliberately — this div is also a
-              flex:1 child of the column above it, and an explicit `height`
-              would fight flex-basis resolution (percentages on a flex
-              item's main axis resolve against the container's full size,
-              not its remaining space, so a raw `calc(100% - Npx)` here
-              would undercount whatever the header/toolbar already took).
-              A pixel-based maxHeight caps the flex-grown size correctly
-              regardless of how much space siblings already claimed, and
-              both branches are concrete px values so the transition still
-              animates smoothly either direction. Built on viewportHeight
-              (a real window.innerHeight reading, tracked in state by
-              useBreakpoint) rather than the CSS 100vh unit — real mobile
-              browsers can report 100vh including chrome that's about to
-              collapse, especially right after a rotation; innerHeight is
-              the immediate, reliable figure. oskHeight is the REAL
-              measured keyboard height (see the measurement effect above),
-              not a fixed guess. */}
-          <div style={{
-            flex: 1,
-            minHeight: 0,
-            maxHeight: oskOn ? `${Math.max(viewportHeight - oskHeight, 100)}px` : `${viewportHeight}px`,
-            transition: 'max-height 200ms ease-out',
-            display: 'flex',
-            flexDirection: 'column',
-          }}>
-            <GuacamoleEmbed ref={guacRef} key={reconnectGeneration} url={workspace.vm_details.guacamole_url} loadingText={workspace?.vm_details?.notes || "Connecting to your workspace..."} tunnelActive={tunnelActive} />
-          </div>
+          {/* Part 3, corrected after real DOM investigation (two earlier
+              attempts shrunk the OUTER iframe box by oskHeight, on the
+              assumption the keyboard needed room reserved for it outside
+              the iframe). That assumption was wrong, confirmed by
+              inspecting Guacamole's own client DOM directly: the OSK
+              renders INSIDE the iframe, inside Guacamole's own
+              `.client-view-content` (flex column) - `.client-body` (the
+              remote desktop canvas) is `flex: 1 1 auto`, `.client-bottom`
+              (the OSK) is `flex: 0 0 auto`, i.e. Guacamole ALREADY
+              reserves real, non-overlay room for the keyboard entirely on
+              its own, exactly what we were trying to replicate
+              externally. Shrinking the outer iframe box didn't help the
+              keyboard at all (it isn't rendered out there) - it only
+              starved the iframe of the height Guacamole's own internal
+              layout needed, and once the iframe's own height dropped
+              below the keyboard's non-shrinkable natural size
+              (confirmed: `.client-bottom` height stayed at its full
+              ~250px in landscape regardless), `.client-body` was forced
+              to a measured, confirmed 0px - the canvas didn't shrink to
+              fit above the keyboard, it vanished entirely, which is what
+              "covers the entire screen" really was. The fix is to stop
+              interfering: give the iframe its full natural available
+              height always (same whether the keyboard is on or off) and
+              let Guacamole's own confirmed-working internal flex layout
+              handle the split. */}
+          <GuacamoleEmbed ref={guacRef} key={reconnectGeneration} url={workspace.vm_details.guacamole_url} loadingText={workspace?.vm_details?.notes || "Connecting to your workspace..."} tunnelActive={tunnelActive} />
+
+          {/* Genuine, confirmed physical constraint (not fixable by more
+              CSS): even with the above fix, a short landscape viewport
+              may not have enough total height for both the keyboard's
+              fixed natural size AND a usable canvas - real measured
+              example: 375px viewport, ~250px non-shrinkable keyboard,
+              leaves Guacamole's own layout only ~20-100px for the canvas
+              depending on header/toolbar. Guacamole's own layout still
+              behaves correctly in that case (no code bug), it's just
+              tight - so the honest response is a dismissible hint
+              pointing at the one thing that actually helps (portrait has
+              694px to spare in the same real test), not another height
+              hack. Only shown when it would actually be tight. */}
+          {oskOn && (viewportHeight - oskHeight) < LANDSCAPE_KEYBOARD_HINT_THRESHOLD_PX && (
+            <div style={{
+              position: 'absolute',
+              top: '12px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 60,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 14px',
+              borderRadius: '10px',
+              background: 'rgba(20,20,20,0.85)',
+              backdropFilter: 'blur(6px)',
+              color: '#fff',
+              fontSize: '12px',
+              maxWidth: '86%',
+              textAlign: 'center',
+            }}>
+              <RotateCcw size={14} style={{ flexShrink: 0 }} />
+              Rotate to portrait for more room while typing
+            </div>
+          )}
         </div>
       );
     }
@@ -1360,20 +1396,42 @@ export default function DesktopSessionPage() {
         </div>
       )}
 
-      {/* Part 3: same genuine height-adjustment as the workspace branch
-          above (maxHeight in real px, not height/100vh — see that
-          branch's comment for why) — real measured oskHeight, real
-          window.innerHeight via viewportHeight. */}
-      <div style={{
-        flex: 1,
-        minHeight: 0,
-        maxHeight: oskOn ? `${Math.max(viewportHeight - oskHeight, 100)}px` : `${viewportHeight}px`,
-        transition: 'max-height 200ms ease-out',
-        display: 'flex',
-        flexDirection: 'column',
-      }}>
-        <GuacamoleEmbed ref={guacRef} key={reconnectGeneration} url={sessionData.guacamole_url} loadingText="Connecting to your session..." tunnelActive={tunnelActive} />
-      </div>
+      {/* Part 3, corrected — same real finding as the workspace branch
+          above: Guacamole renders its OSK inside its own iframe, laid
+          out by its own internal flex CSS (`.client-body` flex:1 vs
+          `.client-bottom` flex:0,0,auto) that already reserves genuine
+          room for it. Shrinking the outer iframe box didn't help the
+          keyboard - it only starved Guacamole's own layout of the
+          height it needed, confirmed to force the canvas to a measured
+          0px once the iframe fell below the keyboard's fixed natural
+          size. Give the iframe its full natural height always. */}
+      <GuacamoleEmbed ref={guacRef} key={reconnectGeneration} url={sessionData.guacamole_url} loadingText="Connecting to your session..." tunnelActive={tunnelActive} />
+
+      {/* Genuine, confirmed physical constraint, not a code bug — see the
+          matching comment in the workspace branch above. */}
+      {oskOn && (viewportHeight - oskHeight) < LANDSCAPE_KEYBOARD_HINT_THRESHOLD_PX && (
+        <div style={{
+          position: 'absolute',
+          top: '12px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 60,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '8px 14px',
+          borderRadius: '10px',
+          background: 'rgba(20,20,20,0.85)',
+          backdropFilter: 'blur(6px)',
+          color: '#fff',
+          fontSize: '12px',
+          maxWidth: '86%',
+          textAlign: 'center',
+        }}>
+          <RotateCcw size={14} style={{ flexShrink: 0 }} />
+          Rotate to portrait for more room while typing
+        </div>
+      )}
       {/* Live-session participants don't have a per-VM `.notes` field like
           personal workspaces do (SessionParticipant/VirtualMachine here
           isn't populated with staged provisioning notes), so this stays a

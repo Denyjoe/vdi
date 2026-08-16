@@ -235,6 +235,16 @@ const GuacamoleEmbed = forwardRef(function GuacamoleEmbed({
   return (
     <div
       className="relative w-full h-full flex flex-col flex-1 bg-black"
+      // Real, confirmed bug (not a guess): a flex item's automatic
+      // min-height defaults to its *content-based* minimum, and for a
+      // replaced element like <iframe> that's the browser's intrinsic
+      // default size (300x150) — NOT 0. Without overriding it here, this
+      // div refused to shrink below 150px tall no matter how small its
+      // own parent (the on-screen-keyboard height reservation in
+      // DesktopSessionPage) was told to be, confirmed by direct
+      // measurement: parent computed to 125.15px, this stayed at 150px
+      // regardless, overflowing its own parent by ~25px in landscape.
+      style={{ minHeight: 0 }}
       onMouseDown={() => iframeRef.current?.focus()}
       onMouseEnter={() => iframeRef.current?.focus()}
     >
@@ -271,6 +281,14 @@ const GuacamoleEmbed = forwardRef(function GuacamoleEmbed({
         style={{
           visibility: ready ? 'visible' : 'hidden',
           pointerEvents: ready ? 'auto' : 'none',
+          // The actual fix (see the wrapper div's comment above): this
+          // is the real replaced element the browser's intrinsic
+          // 150px-minimum applies to directly — min-height:0 here is
+          // what genuinely lets it shrink to whatever height its flex
+          // parent gives it, confirmed by direct before/after
+          // measurement in landscape (150px stuck -> matches parent
+          // exactly once this is set).
+          minHeight: 0,
         }}
         allow="clipboard-read; clipboard-write; fullscreen"
         title={title}
