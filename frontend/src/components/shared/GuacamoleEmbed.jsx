@@ -1,5 +1,38 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import LoadingLogo from './LoadingLogo';
+
+/**
+ * Reaches into the Guacamole iframe's own live AngularJS scope to drive
+ * real, built-in client settings (on-screen keyboard, mouse mode, zoom)
+ * that are otherwise only reachable through Guacamole's own hidden
+ * edge-swipe menu. This is NOT a hack layered on top of a cross-origin
+ * boundary: our backend serves guacamole_url as a *relative* path
+ * (GUACAMOLE_PUBLIC_URL=/guacamole, proxied server-side to the real
+ * Guacamole host — see vite.config.js / nginx), so the iframe is
+ * genuinely same-origin with our own page, and contentWindow access is
+ * not blocked by the browser's cross-origin policy. Confirmed by direct
+ * testing against a real connection through this exact iframe (not just
+ * assumed): Guacamole's client neither reads URL query parameters
+ * (input-method / mouse-mode) nor listens for postMessage — the only
+ * mechanism that genuinely works is this one, reaching the same
+ * top-level Angular scope Guacamole's own menu template binds to
+ * (`menu.inputMethod`, `menu.emulateAbsoluteMouse`,
+ * `focusedClient.clientProperties.scale`).
+ */
+function findGuacScope(win) {
+  if (!win || !win.angular || !win.document) return null;
+  const angular = win.angular;
+  const all = win.document.querySelectorAll('*');
+  for (let i = 0; i < all.length; i++) {
+    try {
+      const s = angular.element(all[i]).scope();
+      if (s && s.menu && 'focusedClient' in s) return s;
+    } catch (e) {
+      // Detached / non-Angular element — expected for most nodes, skip.
+    }
+  }
+  return null;
+}
 
 /**
  * Renders a Guacamole session iframe. The iframe is only ever made visible
@@ -16,14 +49,14 @@ import LoadingLogo from './LoadingLogo';
  * an overlay on top) so even if Guacamole renders something the instant
  * the tunnel drops, it is not visible at the browser rendering level.
  */
-export default function GuacamoleEmbed({
+const GuacamoleEmbed = forwardRef(function GuacamoleEmbed({
   url,
   title = "Virtual Desktop",
   className = "w-full flex-1 border-none bg-black",
   loadingText = "Connecting...",
   tunnelActive = false,
   minCoverMs = 4500,
-}) {
+}, ref) {
   const [minCoverElapsed, setMinCoverElapsed] = useState(false);
   const iframeRef = useRef(null);
   // Bumping this forces React to fully unmount/remount the iframe, which
@@ -116,6 +149,59 @@ export default function GuacamoleEmbed({
     };
   }, []);
 
+  useImperativeHandle(ref, () => ({
+    // Returns the new boolean state (true = OSK now on) on success, or
+    // null if the scope genuinely couldn't be reached (connection not
+    // ready yet, or Guacamole's own DOM structure changed).
+    toggleKeyboard() {
+      const scope = findGuacScope(iframeRef.current?.contentWindow);
+      if (!scope) return null;
+      const turningOn = scope.menu.inputMethod !== 'osk';
+      scope.$apply(() => {
+        scope.menu.inputMethod = turningOn ? 'osk' : 'none';
+      });
+      return turningOn;
+    },
+    // Returns the new boolean state (true = Touchpad/relative mode now
+    // on) on success, or null if unreachable.
+    toggleTouchpadMode() {
+      const scope = findGuacScope(iframeRef.current?.contentWindow);
+      if (!scope) return null;
+      // emulateAbsoluteMouse: true = Touchscreen (absolute tap-to-click),
+      // false = Touchpad (relative movement).
+      const nextEmulateAbsolute = !scope.menu.emulateAbsoluteMouse;
+      scope.$apply(() => {
+        scope.menu.emulateAbsoluteMouse = nextEmulateAbsolute;
+      });
+      return !nextEmulateAbsolute; // true = touchpad mode is now on
+    },
+    // Adjusts the real, built-in manual zoom (clientProperties.scale),
+    // clamped to Guacamole's own min/max for the current connection.
+    // Returns the resulting scale, or null if unreachable.
+    zoomBy(delta) {
+      const scope = findGuacScope(iframeRef.current?.contentWindow);
+      const cp = scope?.focusedClient?.clientProperties;
+      if (!cp) return null;
+      const next = Math.max(cp.minScale, Math.min(cp.maxScale, cp.scale + delta));
+      scope.$apply(() => {
+        cp.autoFit = false;
+        cp.scale = next;
+      });
+      return next;
+    },
+    // Live read of current state, used to keep our own toolbar's
+    // pressed/active indicators honest rather than optimistically assumed.
+    getState() {
+      const scope = findGuacScope(iframeRef.current?.contentWindow);
+      if (!scope) return null;
+      return {
+        keyboardOn: scope.menu.inputMethod === 'osk',
+        touchpadOn: !scope.menu.emulateAbsoluteMouse,
+        scale: scope.focusedClient?.clientProperties?.scale ?? null,
+      };
+    },
+  }), []);
+
   if (!url) return null;
 
   // Ensure the URL works locally if using local tunneling, without stripping auth tokens
@@ -169,4 +255,6 @@ export default function GuacamoleEmbed({
       />
     </div>
   );
-}
+});
+
+export default GuacamoleEmbed;

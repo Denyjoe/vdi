@@ -3,11 +3,13 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   Maximize2, Minimize2, LayoutGrid, Compass, BarChart2, AlertCircle,
   Code2, Palette, Network, Box, Wifi, Battery, Volume2, Clock, Megaphone,
-  Menu, X, Check, PanelRightOpen, PanelRightClose, Power, UserCheck, RefreshCw
+  Menu, X, Check, PanelRightOpen, PanelRightClose, Power, UserCheck, RefreshCw,
+  Keyboard, MousePointer2, ZoomIn, ZoomOut
 } from 'lucide-react';
 import { sessionService } from '../../services/sessionService';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import useBreakpoint from '../../hooks/useBreakpoint';
 import ConfirmModal from '../../components/shared/ConfirmModal';
 import Toast from '../../components/shared/Toast';
 import GuacamoleEmbed from '../../components/shared/GuacamoleEmbed';
@@ -15,11 +17,60 @@ import LoadingLogo from '../../components/shared/LoadingLogo';
 import PowerOnAnimation from '../../components/shared/PowerOnAnimation';
 import OspaceLogo from '../../components/shared/OspaceLogo';
 
+// Mobile-only row surfacing Guacamole's own real, built-in touch controls
+// (on-screen keyboard, touchscreen/touchpad mouse mode, manual zoom) that
+// already work today but are otherwise hidden behind Guacamole's own
+// undiscoverable edge-swipe menu. See GuacamoleEmbed.jsx for how these
+// reach Guacamole's live client — confirmed for real against a live
+// connection, not assumed. Each button is a genuine 44x44px tap target;
+// only the icon inside is small.
+function GuacToolControls({ oskOn, touchpadOn, onToggleKeyboard, onToggleTouchpadMode, onZoomOut, onZoomIn }) {
+  const btnStyle = (active) => ({
+    width: '44px',
+    height: '44px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: '10px',
+    border: active ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)',
+    background: active ? 'var(--accent-primary-soft, rgba(99,102,241,0.15))' : 'transparent',
+    color: active ? 'var(--accent-primary)' : 'var(--text-secondary)',
+    transition: 'all 0.15s',
+  });
+
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '8px',
+      padding: '6px 12px',
+      background: 'var(--bg-primary)',
+      borderBottom: '1px solid var(--border-color)',
+      flexShrink: 0,
+    }}>
+      <button onClick={onToggleKeyboard} style={btnStyle(oskOn)} title={oskOn ? 'Hide on-screen keyboard' : 'Show on-screen keyboard'}>
+        <Keyboard size={18} />
+      </button>
+      <button onClick={onToggleTouchpadMode} style={btnStyle(touchpadOn)} title={touchpadOn ? 'Touchpad mode (relative) — tap to switch to Touchscreen' : 'Touchscreen mode (direct tap) — tap to switch to Touchpad'}>
+        <MousePointer2 size={18} />
+      </button>
+      <button onClick={onZoomOut} style={btnStyle(false)} title="Zoom out">
+        <ZoomOut size={18} />
+      </button>
+      <button onClick={onZoomIn} style={btnStyle(false)} title="Zoom in">
+        <ZoomIn size={18} />
+      </button>
+    </div>
+  );
+}
+
 export default function DesktopSessionPage() {
   const { id: sessionId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const { isMobile } = useBreakpoint();
   const searchParams = new URLSearchParams(location.search);
   const type = location.pathname.includes('/workspace/') ? 'workspace' : searchParams.get('type');
 
@@ -499,6 +550,37 @@ export default function DesktopSessionPage() {
     setToast({ show: true, message: 'Session is still under instructor control. Try again in a moment.', type: 'warning' });
   };
 
+  // Real, built-in Guacamole client controls (on-screen keyboard, mouse
+  // mode, manual zoom) surfaced through our own toolbar — see
+  // GuacamoleEmbed.jsx for how this reaches Guacamole's own AngularJS
+  // scope. Only one GuacamoleEmbed is ever mounted at a time (workspace
+  // branch vs. session branch below), so a single shared ref is enough.
+  const guacRef = useRef(null);
+  const [oskOn, setOskOn] = useState(false);
+  const [touchpadOn, setTouchpadOn] = useState(false);
+
+  const handleToggleKeyboard = () => {
+    const result = guacRef.current?.toggleKeyboard();
+    if (result === null || result === undefined) {
+      setToast({ show: true, message: 'Desktop not ready yet — try again in a moment.', type: 'warning' });
+      return;
+    }
+    setOskOn(result);
+  };
+
+  const handleToggleTouchpadMode = () => {
+    const result = guacRef.current?.toggleTouchpadMode();
+    if (result === null || result === undefined) {
+      setToast({ show: true, message: 'Desktop not ready yet — try again in a moment.', type: 'warning' });
+      return;
+    }
+    setTouchpadOn(result);
+  };
+
+  const handleZoom = (delta) => {
+    guacRef.current?.zoomBy(delta);
+  };
+
   const toggleFullscreen = () => {
     const elem = containerRef.current;
     const inFullscreen = document.fullscreenElement || document.webkitFullscreenElement;
@@ -650,7 +732,18 @@ export default function DesktopSessionPage() {
               </button>
             </div>
           </div>
-          
+
+          {isMobile && (
+            <GuacToolControls
+              oskOn={oskOn}
+              touchpadOn={touchpadOn}
+              onToggleKeyboard={handleToggleKeyboard}
+              onToggleTouchpadMode={handleToggleTouchpadMode}
+              onZoomIn={() => handleZoom(0.25)}
+              onZoomOut={() => handleZoom(-0.25)}
+            />
+          )}
+
           {disconnectedByAdmin && (
             <div style={{
               position: 'absolute', inset: 0,
@@ -718,7 +811,7 @@ export default function DesktopSessionPage() {
             </div>
           )}
 
-          <GuacamoleEmbed key={reconnectGeneration} url={workspace.vm_details.guacamole_url} loadingText={workspace?.vm_details?.notes || "Connecting to your workspace..."} tunnelActive={tunnelActive} />
+          <GuacamoleEmbed ref={guacRef} key={reconnectGeneration} url={workspace.vm_details.guacamole_url} loadingText={workspace?.vm_details?.notes || "Connecting to your workspace..."} tunnelActive={tunnelActive} />
         </div>
       );
     }
@@ -785,6 +878,17 @@ export default function DesktopSessionPage() {
           </button>
         </div>
       </div>
+
+      {isMobile && (
+        <GuacToolControls
+          oskOn={oskOn}
+          touchpadOn={touchpadOn}
+          onToggleKeyboard={handleToggleKeyboard}
+          onToggleTouchpadMode={handleToggleTouchpadMode}
+          onZoomIn={() => handleZoom(0.25)}
+          onZoomOut={() => handleZoom(-0.25)}
+        />
+      )}
 
       {showTimeWarning && (
         <div style={{
@@ -975,7 +1079,7 @@ export default function DesktopSessionPage() {
         </div>
       )}
 
-      <GuacamoleEmbed key={reconnectGeneration} url={sessionData.guacamole_url} loadingText="Connecting to your session..." tunnelActive={tunnelActive} />
+      <GuacamoleEmbed ref={guacRef} key={reconnectGeneration} url={sessionData.guacamole_url} loadingText="Connecting to your session..." tunnelActive={tunnelActive} />
       {/* Live-session participants don't have a per-VM `.notes` field like
           personal workspaces do (SessionParticipant/VirtualMachine here
           isn't populated with staged provisioning notes), so this stays a
