@@ -530,3 +530,66 @@ class AdminHardwareCpuHistoryView(views.APIView):
             import logging
             logging.getLogger(__name__).error(f'AdminHardwareCpuHistoryView: Proxmox RRD query failed: {e}', exc_info=True)
             return Response({"success": False, "message": str(e), "data": []})
+
+
+class AdminInfrastructureDriftReportView(views.APIView):
+    """Real Proxmox-vs-database reconciliation — addresses a recurring
+    real issue found multiple times during today's audits: real Proxmox
+    VMs with no tracked DB record, and DB records that still claim a VM
+    is running when the real VM is long gone from Proxmox. Always a
+    live, on-demand check against real Proxmox state, never cached."""
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        from apps.vms.services.reconciliation_service import get_proxmox_drift_report
+        try:
+            report = get_proxmox_drift_report()
+            return Response({"success": True, "data": report})
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f'AdminInfrastructureDriftReportView: {e}', exc_info=True)
+            return Response({"success": False, "message": f"Could not reach Proxmox: {e}"}, status=503)
+
+
+class AdminResolveOrphanView(views.APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        from apps.vms.services.reconciliation_service import resolve_orphan
+
+        vmid = request.data.get('vmid')
+        action = request.data.get('action')
+        if not vmid or action not in ('delete', 'ignore'):
+            return Response({"success": False, "message": "vmid and a valid action ('delete' or 'ignore') are required."}, status=400)
+
+        try:
+            result = resolve_orphan(
+                int(vmid), action, request.user,
+                owner_email=request.data.get('owner_email'),
+                template_id=request.data.get('template_id'),
+            )
+            return Response(result, status=200 if result['success'] else 400)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f'AdminResolveOrphanView vmid={vmid} action={action}: {e}', exc_info=True)
+            return Response({"success": False, "message": str(e)}, status=500)
+
+
+class AdminResolveStaleView(views.APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        from apps.vms.services.reconciliation_service import resolve_stale
+
+        db_id = request.data.get('db_id')
+        action = request.data.get('action')
+        if not db_id or action not in ('mark_stopped', 'delete_record'):
+            return Response({"success": False, "message": "db_id and a valid action ('mark_stopped' or 'delete_record') are required."}, status=400)
+
+        try:
+            result = resolve_stale(int(db_id), action, request.user)
+            return Response(result, status=200 if result['success'] else 400)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f'AdminResolveStaleView db_id={db_id} action={action}: {e}', exc_info=True)
+            return Response({"success": False, "message": str(e)}, status=500)

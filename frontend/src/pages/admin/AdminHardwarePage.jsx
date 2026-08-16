@@ -11,10 +11,11 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Server, Monitor, Cpu, HardDrive, Wifi, ArrowUp, ArrowDown, Clock, RefreshCw } from 'lucide-react';
+import { Server, Monitor, Cpu, HardDrive, Wifi, ArrowUp, ArrowDown, Clock, RefreshCw, AlertTriangle, CheckCircle2, Trash2, EyeOff, Square, XCircle, ShieldCheck } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, PieChart, Pie, Cell, RadialBarChart, RadialBar } from 'recharts';
 import api from '../../services/api';
 import useBreakpoint from '../../hooks/useBreakpoint';
+import ConfirmModal from '../../components/shared/ConfirmModal';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -99,6 +100,241 @@ const GaugeCard = ({ title, value, centerLine1, centerLine2, color }) => {
     </div>
   );
 };
+
+// ── Infrastructure Health (Proxmox <-> DB reconciliation) ─────────────────────
+//
+// Addresses a real, recurring problem found multiple times during today's
+// audits: real Proxmox VMs with no tracked DB record (left behind by a
+// failed/partial cleanup), and DB records that still claim a VM is
+// 'running' when the real VM in Proxmox is long gone. Always a live,
+// on-demand check against real Proxmox state via GET
+// /api/admin/infrastructure/drift-report/ - never cached, never assumed.
+function InfrastructureHealth({ isMobile }) {
+  const [report, setReport] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
+  const [busyKey, setBusyKey] = useState(null); // `orphan-<vmid>-<action>` | `stale-<id>-<action>`
+  const [confirmTarget, setConfirmTarget] = useState(null); // { type: 'orphan'|'stale', item, action }
+
+  const fetchReport = useCallback(async (isManual = false) => {
+    if (isManual) setRefreshing(true);
+    setError('');
+    try {
+      const res = await api.get('/admin/infrastructure/drift-report/');
+      setReport(res.data.data);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Could not reach Proxmox to run the check.');
+    } finally {
+      setLoading(false);
+      if (isManual) setTimeout(() => setRefreshing(false), 400);
+    }
+  }, []);
+
+  useEffect(() => { fetchReport(false); }, [fetchReport]);
+
+  const runOrphanAction = async (item, action) => {
+    const key = `orphan-${item.vmid}-${action}`;
+    setBusyKey(key);
+    try {
+      const res = await api.post('/admin/infrastructure/resolve-orphan/', { vmid: item.vmid, action });
+      if (res.data.success) {
+        await fetchReport(false);
+      } else {
+        setError(res.data.message || 'Action failed.');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Action failed.');
+    } finally {
+      setBusyKey(null);
+      setConfirmTarget(null);
+    }
+  };
+
+  const runStaleAction = async (item, action) => {
+    const key = `stale-${item.id}-${action}`;
+    setBusyKey(key);
+    try {
+      const res = await api.post('/admin/infrastructure/resolve-stale/', { db_id: item.id, action });
+      if (res.data.success) {
+        await fetchReport(false);
+      } else {
+        setError(res.data.message || 'Action failed.');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Action failed.');
+    } finally {
+      setBusyKey(null);
+      setConfirmTarget(null);
+    }
+  };
+
+  const orphans = report?.orphaned_in_proxmox || [];
+  const stale = report?.stale_in_db || [];
+  const healthy = report?.healthy_count ?? 0;
+  const hasDrift = orphans.length > 0 || stale.length > 0;
+
+  return (
+    <div className="bg-[var(--bg-card)]/80 backdrop-blur-md rounded-2xl border border-[var(--border-color)] shadow-lg p-6 mt-6">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <h2 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
+          <ShieldCheck className="w-5 h-5 text-indigo-400" />
+          Infrastructure Health
+        </h2>
+        <button
+          onClick={() => fetchReport(true)}
+          disabled={refreshing || loading}
+          style={{ width: '44px', height: '44px' }}
+          className="flex items-center justify-center rounded-lg bg-[var(--bg-input)] border border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-50"
+          title="Refresh Check"
+        >
+          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center gap-3 text-[var(--text-secondary)] text-sm py-4">
+          <RefreshCw className="w-4 h-4 animate-spin" /> Running real Proxmox/database check...
+        </div>
+      ) : error && !report ? (
+        <div className="flex items-center gap-2 text-red-400 text-sm py-4">
+          <XCircle className="w-4 h-4" /> {error}
+        </div>
+      ) : (
+        <>
+          {/* Summary row */}
+          <div className={`flex items-center gap-3 flex-wrap p-4 rounded-xl border mb-4 ${
+            hasDrift ? 'bg-amber-500/10 border-amber-500/30' : 'bg-emerald-500/10 border-emerald-500/30'
+          }`}>
+            {hasDrift ? <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" /> : <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />}
+            <p className={`text-sm font-medium ${hasDrift ? 'text-amber-300' : 'text-emerald-300'}`}>
+              {healthy} healthy VM{healthy === 1 ? '' : 's'} · {orphans.length} orphaned in Proxmox · {stale.length} stale in database
+            </p>
+            {report?.checked_at && (
+              <span className="text-[10px] text-[var(--text-muted)] ml-auto">
+                Checked {new Date(report.checked_at).toLocaleTimeString()}
+              </span>
+            )}
+          </div>
+
+          {error && (
+            <div className="flex items-center gap-2 text-red-400 text-xs mb-4">
+              <XCircle className="w-3.5 h-3.5" /> {error}
+            </div>
+          )}
+
+          {/* Orphaned in Proxmox */}
+          {orphans.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">
+                Orphaned in Proxmox — real VM exists, no tracked DB record
+              </h3>
+              <div className="flex flex-col gap-2">
+                {orphans.map(item => {
+                  const deleteBusy = busyKey === `orphan-${item.vmid}-delete`;
+                  const ignoreBusy = busyKey === `orphan-${item.vmid}-ignore`;
+                  return (
+                    <div key={item.vmid} className="flex items-center justify-between gap-3 flex-wrap bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl p-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-[var(--text-primary)]" style={{ wordBreak: 'break-word' }}>
+                          VM {item.vmid} — {item.name || 'unnamed'}
+                        </p>
+                        <p className="text-xs text-[var(--text-secondary)]">
+                          status: {item.status} {item.uptime ? `· uptime ${Math.round(item.uptime / 60)}m` : ''}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => setConfirmTarget({ type: 'orphan', item, action: 'delete' })}
+                          disabled={deleteBusy || ignoreBusy}
+                          style={{ minWidth: '44px', minHeight: '44px' }}
+                          className="flex items-center justify-center gap-1.5 px-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 text-xs font-medium transition-colors disabled:opacity-50"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> {deleteBusy ? 'Deleting...' : 'Delete'}
+                        </button>
+                        <button
+                          onClick={() => runOrphanAction(item, 'ignore')}
+                          disabled={deleteBusy || ignoreBusy}
+                          style={{ minWidth: '44px', minHeight: '44px' }}
+                          className="flex items-center justify-center gap-1.5 px-3 rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs font-medium transition-colors disabled:opacity-50"
+                        >
+                          <EyeOff className="w-3.5 h-3.5" /> {ignoreBusy ? 'Tracking...' : 'Ignore'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Stale in DB */}
+          {stale.length > 0 && (
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">
+                Stale in Database — DB says running, real VM is gone from Proxmox
+              </h3>
+              <div className="flex flex-col gap-2">
+                {stale.map(item => {
+                  const stopBusy = busyKey === `stale-${item.id}-mark_stopped`;
+                  const removeBusy = busyKey === `stale-${item.id}-delete_record`;
+                  return (
+                    <div key={item.id} className="flex items-center justify-between gap-3 flex-wrap bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl p-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-[var(--text-primary)]" style={{ wordBreak: 'break-word' }}>
+                          DB #{item.id} — proxmox_vm_id {item.proxmox_vm_id} — {item.name}
+                        </p>
+                        <p className="text-xs text-[var(--text-secondary)]" style={{ wordBreak: 'break-word' }}>
+                          owner: {item.owner}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => runStaleAction(item, 'mark_stopped')}
+                          disabled={stopBusy || removeBusy}
+                          style={{ minWidth: '44px', minHeight: '44px' }}
+                          className="flex items-center justify-center gap-1.5 px-3 rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs font-medium transition-colors disabled:opacity-50"
+                        >
+                          <Square className="w-3.5 h-3.5" /> {stopBusy ? 'Updating...' : 'Mark Stopped'}
+                        </button>
+                        <button
+                          onClick={() => setConfirmTarget({ type: 'stale', item, action: 'delete_record' })}
+                          disabled={stopBusy || removeBusy}
+                          style={{ minWidth: '44px', minHeight: '44px' }}
+                          className="flex items-center justify-center gap-1.5 px-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 text-xs font-medium transition-colors disabled:opacity-50"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> {removeBusy ? 'Removing...' : 'Remove Record'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      <ConfirmModal
+        isOpen={!!confirmTarget}
+        title={confirmTarget?.type === 'orphan' ? 'Delete VM from Proxmox?' : 'Remove database record?'}
+        message={
+          confirmTarget?.type === 'orphan'
+            ? `This genuinely deletes VM ${confirmTarget?.item?.vmid} (${confirmTarget?.item?.name || 'unnamed'}) from Proxmox. This cannot be undone.`
+            : `This marks VirtualMachine #${confirmTarget?.item?.id} as deleted. The real VM is already gone from Proxmox — this only cleans up the database record.`
+        }
+        confirmText="Confirm"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={() => {
+          if (confirmTarget?.type === 'orphan') runOrphanAction(confirmTarget.item, confirmTarget.action);
+          else runStaleAction(confirmTarget.item, confirmTarget.action);
+        }}
+        onCancel={() => setConfirmTarget(null)}
+      />
+    </div>
+  );
+}
 
 // ── Main Component ───────────────────────────────────────────────────────────
 
@@ -577,6 +813,8 @@ export default function AdminHardwarePage() {
           )}
         </div>
       </div>
+
+      <InfrastructureHealth isMobile={isMobile} />
     </div>
   );
 }

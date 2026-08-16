@@ -12,4 +12,7 @@ urlpatterns = [
     path('hardware/cpu-history/', admin_views.AdminHardwareCpuHistoryView.as_view(), name='admin-hardware-cpu-history'),
     path('idle-workspaces/summary/', admin_views.AdminIdleWorkspacesSummaryView.as_view(), name='admin-idle-workspaces-summary'),
     path('idle-workspaces/run-check/', admin_views.AdminRunIdleCheckView.as_view(), name='admin-idle-workspaces-run-check'),
+    path('infrastructure/drift-report/', admin_views.AdminInfrastructureDriftReportView.as_view(), name='admin-infrastructure-drift-report'),
+    path('infrastructure/resolve-orphan/', admin_views.AdminResolveOrphanView.as_view(), name='admin-infrastructure-resolve-orphan'),
+    path('infrastructure/resolve-stale/', admin_views.AdminResolveStaleView.as_view(), name='admin-infrastructure-resolve-stale'),
 ]
