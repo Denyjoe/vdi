@@ -614,10 +614,25 @@ class ExtendSessionView(APIView):
             transaction_id=transaction_id,
         )
 
-        base_time = session.scheduled_end_at or timezone.now()
+        now = timezone.now()
+        # Real bug found via live testing: if the session had already ended
+        # (auto-ended on schedule, or the host ended it early) and the old
+        # scheduled_end_at was still used as the base, extending by a small
+        # amount could land the new scheduled_end_at in the past too - and
+        # even when it didn't, session.status was never reset off 'ended',
+        # so JoinSessionByCodeView kept rejecting every join with "Session
+        # is not available to join" no matter how many hours were bought.
+        # Base the extension on "now" whenever the previous scheduled_end_at
+        # has already passed, and reactivate an ended session so it becomes
+        # joinable again - a genuinely paid-for extension should genuinely
+        # extend the session, not just its end time on paper.
+        base_time = session.scheduled_end_at if (session.scheduled_end_at and session.scheduled_end_at > now) else now
         session.scheduled_end_at = base_time + timedelta(hours=float(extra_hours))
         session.hours_purchased = (session.hours_purchased or decimal.Decimal('0')) + extra_hours
         session.amount_paid_tzs = (session.amount_paid_tzs or decimal.Decimal('0')) + extra_price
+        if session.status == 'ended':
+            session.status = 'active'
+            session.auto_ended = False
         session.save()
 
         return Response({
