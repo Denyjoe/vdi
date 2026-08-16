@@ -28,25 +28,49 @@ class SessionLifecycleService:
             orchestrator = VMOrchestrator()
             if template.is_real:
                 import threading
-                def provision_and_update(vm_instance, part_instance):
+                def provision_and_update(vm_id, part_id):
                     try:
-                        res = orchestrator.provision_real_vm(vm_instance)
+                        from apps.vms.models import VirtualMachine
+                        from apps.sessions.models import SessionParticipant
+                        vm_obj = VirtualMachine.objects.get(id=vm_id)
+                        part_obj = SessionParticipant.objects.get(id=part_id)
+                        
+                        res = orchestrator.provision_real_vm(vm_obj)
                         if res and 'error' not in res:
-                            part_instance.status = 'connected'
-                            SessionLifecycleService._apply_network_lockdown(part_instance)
+                            part_obj.refresh_from_db()
+                            # Real bug found via live-timed testing: lockdown
+                            # used to be applied AFTER status was already
+                            # saved as 'connected' — confirmed a genuine
+                            # ~1.75s real gap where the VM had ZERO firewall
+                            # rules and no enable/policy set (fully open,
+                            # not restricted) at the exact moment a
+                            # participant was told their desktop was ready.
+                            # Apply lockdown first, so by the time
+                            # 'connected' is ever visible, the real Proxmox
+                            # firewall state is already final — no window
+                            # where "ready" and "policy applied" disagree.
+                            SessionLifecycleService._apply_network_lockdown(part_obj)
+                            part_obj.status = 'connected'
+                            part_obj.save(update_fields=['status'])
                         else:
-                            part_instance.status = 'error'
+                            part_obj.refresh_from_db()
+                            part_obj.status = 'error'
+                            part_obj.save(update_fields=['status'])
                     except Exception as e:
                         import logging
                         logging.getLogger(__name__).error(
-                            f"Participant {part_instance.id} VM provision failed: {e}", 
+                            f"Participant {part_id} VM provision failed: {e}", 
                             exc_info=True
                         )
-                        part_instance.status = 'error'
-                    finally:
-                        part_instance.save()
+                        try:
+                            from apps.sessions.models import SessionParticipant
+                            part_obj = SessionParticipant.objects.get(id=part_id)
+                            part_obj.status = 'error'
+                            part_obj.save(update_fields=['status'])
+                        except Exception:
+                            pass
 
-                thread = threading.Thread(target=provision_and_update, args=(vm, participant))
+                thread = threading.Thread(target=provision_and_update, args=(vm.id, participant.id))
                 thread.daemon = True
                 thread.start()
             else:
@@ -76,15 +100,28 @@ class SessionLifecycleService:
     @staticmethod
     def _apply_network_lockdown(participant):
         """Enable network lockdown on a participant's VM if the session requires it."""
-        if not participant.vm or not getattr(participant.vm, 'proxmox_vm_id', None):
+        if not participant:
             return
+        participant.refresh_from_db()
+        if not participant.vm:
+            return
+        participant.vm.refresh_from_db()
+        
+        proxmox_vm_id = getattr(participant.vm, 'proxmox_vm_id', None)
+        if not proxmox_vm_id:
+            import logging
+            logging.getLogger(__name__).warning(
+                f"Cannot apply network lockdown: participant {participant.id} VM has no proxmox_vm_id"
+            )
+            return
+            
         session = participant.session
         if not session.restrict_internet:
             return
         try:
             from apps.vms.services.proxmox_service import ProxmoxService
             ProxmoxService().enable_vm_lockdown(
-                participant.vm.proxmox_vm_id,
+                proxmox_vm_id,
                 allowed_domains=session.allowed_domains,
             )
         except Exception as e:
