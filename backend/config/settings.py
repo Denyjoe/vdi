@@ -79,7 +79,14 @@ MIDDLEWARE = [
     "apps.users.middleware.MaintenanceModeMiddleware",
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True
+# Real audit finding: this was unconditionally True, which makes the
+# real CORS_ALLOWED_ORIGINS allowlist configured below completely dead -
+# django-cors-headers ignores it whenever CORS_ALLOW_ALL_ORIGINS is set,
+# so literally any website could make credentialed cross-origin requests
+# against this API. Only genuinely safe to wildcard in local development
+# (DEBUG=True); a real production deployment (DEBUG=False) must be
+# constrained to the real CORS_ALLOWED_ORIGINS list below.
+CORS_ALLOW_ALL_ORIGINS = config("DEBUG", default=False, cast=bool)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

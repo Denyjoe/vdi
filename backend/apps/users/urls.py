@@ -1,7 +1,19 @@
 from django.urls import path
+from rest_framework_simplejwt.views import TokenRefreshView
 from . import views
 
 urlpatterns = [
+    # Real audit finding: frontend's axios interceptor (services/api.js)
+    # has always called POST /api/auth/token/refresh/ to silently refresh
+    # an expired access token, but no route for it was ever registered
+    # anywhere in the backend - every real request confirmed this 404s.
+    # With an 8-hour ACCESS_TOKEN_LIFETIME, every authenticated user was
+    # being forcibly logged out (both tokens cleared, redirected to
+    # /login) the moment their access token expired, even with a fully
+    # valid, unexpired refresh token. Wiring in DRF SimpleJWT's own
+    # TokenRefreshView - it already returns exactly the
+    # {"access": "..."} shape api.js's interceptor expects.
+    path('token/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
     path('firebase-login/', views.FirebaseLoginView.as_view(), name='firebase-login'),
     path('logout/', views.LogoutView.as_view(), name='logout'),
     path('me/', views.MeView.as_view(), name='me'),

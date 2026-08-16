@@ -302,7 +302,10 @@ class AdminSuspendUserView(APIView):
             from apps.vms.services.pool_service import VMPoolService
             pool = VMPoolService()
             
-            for ws in Workspace.objects.filter(owner=u, status__in=['active', 'running']):
+            # Real audit finding: 'running' is never a real Workspace
+            # status (that value only exists on VirtualMachine) - harmless
+            # no-op, but 'active' alone is the real, correct filter.
+            for ws in Workspace.objects.filter(owner=u, status='active'):
                 try:
                     if ws.vm:
                         pool.release_vm(ws.vm)

@@ -311,8 +311,16 @@ class WorkspaceIdleCleanupTests(TestCase):
         self.assertEqual(result['deleted'], 0)
         self.assertEqual(result['errors'], [])
 
-        # A real Notification row was created for the owner
-        notif = Notification.objects.filter(user=self.user, notification_type='system').first()
+        # A real Notification row was created for the owner. Real audit
+        # finding: this test previously asserted notification_type='system',
+        # but the real service (idle_cleanup_service.send_idle_warning)
+        # has always used the more specific 'workspace_idle' type - a
+        # real, distinct choice in Notification.NOTIFICATION_TYPES that
+        # the real frontend also keys off of directly (NotificationsDrawer's
+        # icon/color map, SettingsPanel's dedicated "Workspace Idle
+        # Warnings" preference toggle). The product code was correct; this
+        # test's expected value was stale.
+        notif = Notification.objects.filter(user=self.user, notification_type='workspace_idle').first()
         self.assertIsNotNone(notif)
         self.assertIn(ws.name, notif.message)
 
@@ -331,8 +339,10 @@ class WorkspaceIdleCleanupTests(TestCase):
 
         self.assertEqual(first_run['first_warnings_sent'], 1)
         self.assertEqual(second_run['first_warnings_sent'], 0)
+        # Real audit finding: same stale 'system' vs real 'workspace_idle'
+        # type mismatch as above.
         self.assertEqual(
-            Notification.objects.filter(notification_type='system').count(), 1
+            Notification.objects.filter(notification_type='workspace_idle').count(), 1
         )
 
     def test_29_days_idle_triggers_final_warning(self):

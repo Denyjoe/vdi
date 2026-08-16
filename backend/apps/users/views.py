@@ -909,7 +909,11 @@ class ProfileStatsView(APIView):
         user = request.user
         
         workspace_count = Workspace.objects.filter(owner=user).exclude(status='deleted').count()
-        active_count = Workspace.objects.filter(owner=user, status__in=['active', 'running']).count()
+        # Real audit finding: Workspace.STATUS_CHOICES is
+        # active/stopped/suspended/deleted - 'running' is a VirtualMachine
+        # status, never a real Workspace status, so including it here was
+        # a harmless no-op (never matched any row). Left as 'active' only.
+        active_count = Workspace.objects.filter(owner=user, status='active').count()
         
         sessions_joined = 0
         try:

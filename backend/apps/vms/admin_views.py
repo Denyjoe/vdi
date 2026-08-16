@@ -146,15 +146,22 @@ class AdminWorkspacesListView(views.APIView):
                 'created_at': ws.created_at.isoformat() if hasattr(ws, 'created_at') else None,
             })
         
+        # Real audit finding: Workspace.STATUS_CHOICES is only
+        # active/stopped/suspended/deleted - 'running'/'error'/
+        # 'provisioning' are VirtualMachine.Status values on the linked
+        # vm, a different model/field. Filtering Workspace by those
+        # always matched zero rows, so this counts dict always reported
+        # "0 error" and "0 provisioning" regardless of real VM state.
+        from apps.vms.models import VirtualMachine
         return Response({
             'workspaces': results,
             'total': len(results),
             'counts': {
                 'all': Workspace.objects.count(),
-                'running': Workspace.objects.filter(status__in=['active', 'running']).count(),
+                'running': Workspace.objects.filter(status='active').count(),
                 'stopped': Workspace.objects.filter(status='stopped').count(),
-                'error': Workspace.objects.filter(status='error').count(),
-                'provisioning': Workspace.objects.filter(status='provisioning').count(),
+                'error': VirtualMachine.objects.filter(status=VirtualMachine.Status.ERROR).count(),
+                'provisioning': VirtualMachine.objects.filter(status=VirtualMachine.Status.PROVISIONING).count(),
             }
         })
 
@@ -343,7 +350,8 @@ class AdminWorkspaceDetailView(views.APIView):
             return Response({'error': 'Not found'}, status=404)
         
         live_stats = None
-        if ws.vm and ws.status in ['active', 'running']:
+        # Real audit finding: 'running' is never a real Workspace status.
+        if ws.vm and ws.status == 'active':
             try:
                 from apps.vms.services.proxmox_service import ProxmoxService
                 ps = ProxmoxService()
@@ -386,12 +394,20 @@ class AdminHardwareView(views.APIView):
     permission_classes = [IsAdminUser]
 
     def get(self, request):
-        from apps.vms.models import Workspace
+        from apps.vms.models import Workspace, VirtualMachine
 
         total_vms = Workspace.objects.exclude(status='deleted').count()
-        running_vms = Workspace.objects.filter(status__in=['active', 'running']).count()
+        # Real audit finding: Workspace.STATUS_CHOICES is only
+        # active/stopped/suspended/deleted - it never contains 'running'
+        # or 'provisioning' (those are VirtualMachine.Status values on the
+        # linked VM, a separate model/field). The old
+        # status__in=['active','running'] was a harmless no-op (just
+        # 'active' alone), but status='provisioning' was a genuine bug -
+        # it always matched zero rows, so this dashboard always reported
+        # "0 provisioning" regardless of real provisioning activity.
+        running_vms = Workspace.objects.filter(status='active').count()
         stopped_vms = Workspace.objects.filter(status='stopped').count()
-        provisioning_vms = Workspace.objects.filter(status='provisioning').count()
+        provisioning_vms = VirtualMachine.objects.filter(status=VirtualMachine.Status.PROVISIONING).count()
 
         # This used to be 100% fabricated (hardcoded 32GB RAM, random
         # cpu/network numbers, fake storage pool sizes) — confirmed by
