@@ -4,7 +4,7 @@ import {
   Maximize2, Minimize2, LayoutGrid, Compass, BarChart2, AlertCircle,
   Code2, Palette, Network, Box, Wifi, Battery, Volume2, Clock, Megaphone,
   Menu, X, Check, PanelRightOpen, PanelRightClose, Power, UserCheck, RefreshCw,
-  Keyboard, MousePointer2, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, RotateCcw, ChevronDown
+  Keyboard, MousePointer2, ZoomIn, ZoomOut, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { sessionService } from '../../services/sessionService';
 import api from '../../services/api';
@@ -14,6 +14,7 @@ import useTouchDevice from '../../hooks/useTouchDevice';
 import ConfirmModal from '../../components/shared/ConfirmModal';
 import Toast from '../../components/shared/Toast';
 import GuacamoleEmbed from '../../components/shared/GuacamoleEmbed';
+import CustomOnScreenKeyboard from '../../components/shared/CustomOnScreenKeyboard';
 import LoadingLogo from '../../components/shared/LoadingLogo';
 import PowerOnAnimation from '../../components/shared/PowerOnAnimation';
 import OspaceLogo from '../../components/shared/OspaceLogo';
@@ -187,26 +188,6 @@ function FullscreenEdgeControls({
     </div>
   );
 }
-
-// Last-resort fallback only, used for the brief window before the real
-// height has been measured (or if measurement genuinely never succeeds).
-// oskHeight is no longer used to shrink the display's own box (see the
-// real DOM investigation in the render branches below — Guacamole
-// already reserves genuine room for its OSK internally, entirely on its
-// own); it's used only to decide whether to show the landscape rotate
-// hint, so this fallback only affects that decision, never layout.
-const OSK_FALLBACK_PX = 280;
-
-// Below this much natural remaining height (viewportHeight - oskHeight),
-// Guacamole's own internal layout (confirmed via direct DOM inspection:
-// `.client-body` flex:1 vs `.client-bottom` flex:0,0,auto, non-
-// shrinkable) genuinely can't give the remote desktop canvas a usable
-// amount of room — real measured landscape case: 375px viewport, ~250px
-// non-shrinkable keyboard, ~0-100px left for canvas depending on
-// header/toolbar. Real measured portrait case for comparison: 812px
-// viewport, ~118px keyboard, ~694px left — comfortably above this
-// threshold, no hint shown.
-const LANDSCAPE_KEYBOARD_HINT_THRESHOLD_PX = 250;
 
 export default function DesktopSessionPage() {
   const { id: sessionId } = useParams();
@@ -712,60 +693,40 @@ export default function DesktopSessionPage() {
   // scope. Only one GuacamoleEmbed is ever mounted at a time (workspace
   // branch vs. session branch below), so a single shared ref is enough.
   const guacRef = useRef(null);
-  const [oskOn, setOskOn] = useState(false);
   const [touchpadOn, setTouchpadOn] = useState(false);
-  // Real measured height of Guacamole's own OSK, replacing a fixed guess.
-  // Starts at the fallback until the first real measurement lands.
-  const [oskHeight, setOskHeight] = useState(OSK_FALLBACK_PX);
 
-  const handleToggleKeyboard = () => {
-    const result = guacRef.current?.toggleKeyboard();
-    if (result === null || result === undefined) {
-      setToast({ show: true, message: 'Desktop not ready yet — try again in a moment.', type: 'warning' });
-      return;
-    }
-    setOskOn(result);
+  // Custom on-screen keyboard (replaces Guacamole's own built-in OSK
+  // entirely — confirmed today it has no partial/resizable state and a
+  // non-shrinkable internal layout that caused real landscape bugs).
+  // customKeyboardOn/customKeyboardHeight are OUR OWN state — we never
+  // call guacRef.current.toggleKeyboard()/getState()/measureOskHeight()
+  // anywhere in this file anymore, so Guacamole's own OSK is never
+  // triggered and stays permanently off by simple omission.
+  const [customKeyboardOn, setCustomKeyboardOn] = useState(false);
+  const [customKeyboardHeight, setCustomKeyboardHeight] = useState(0);
+
+  const handleToggleCustomKeyboard = () => {
+    // Unlike the old Guacamole-OSK toggle, opening our own component
+    // always succeeds instantly — it's just our own React state, not
+    // reaching into a connection that might not be ready yet. Whether
+    // keystrokes actually reach the remote desktop is handled per-key
+    // by handleCustomKeyEvent below, which surfaces a real failure if
+    // the connection genuinely isn't ready.
+    setCustomKeyboardOn(v => !v);
   };
 
-  // Two real things this effect does, both confirmed by direct DOM
-  // measurement, not assumption:
-  // 1. Tracks the REAL rendered OSK height (oskHeight) — no longer used
-  //    to shrink the display's box (see the render branches below for
-  //    why that approach was wrong), but still the honest, measured
-  //    figure used to decide whether the landscape rotate hint should
-  //    show, replacing an earlier fixed 280px guess.
-  // 2. Self-corrects oskOn to false the instant Guacamole's own scope
-  //    reports the keyboard is genuinely off — a real desync was found
-  //    here: rotating the phone while the keyboard was open triggers
-  //    GuacamoleEmbed's own internal rotation reconnect (a fresh iframe,
-  //    fresh Guacamole connection), which silently resets Guacamole's
-  //    own scope back to inputMethod:'none'. Our page-level oskOn had no
-  //    way to know that happened and kept claiming "on" with no real
-  //    keyboard behind it. Re-runs on every orientation change
-  //    (viewportWidth/viewportHeight) since that's exactly when a silent
-  //    reconnect can happen.
-  useEffect(() => {
-    if (!oskOn || !tunnelActive) return;
-    let cancelled = false;
-    const measure = () => {
-      if (cancelled) return;
-      const state = guacRef.current?.getState();
-      if (state && state.keyboardOn === false) {
-        setOskOn(false);
-        return;
-      }
-      const real = guacRef.current?.measureOskHeight();
-      if (real) setOskHeight(real);
-    };
-    measure();
-    const pollId = setInterval(measure, 200);
-    const stopId = setTimeout(() => clearInterval(pollId), 2500);
-    return () => {
-      cancelled = true;
-      clearInterval(pollId);
-      clearTimeout(stopId);
-    };
-  }, [oskOn, tunnelActive, viewportWidth, viewportHeight]);
+  // The one real place a key event from our own keyboard reaches
+  // Guacamole's live client — GuacamoleEmbed.sendKeyEvent, the same
+  // findGuacScope().focusedClient.client.sendKeyEvent(pressed, keysym)
+  // mechanism Guacamole's own webapp uses internally for physical
+  // keyboard input. Only surfaces the "not ready" toast on a press (not
+  // its matching release) so a single failed tap doesn't double-toast.
+  const handleCustomKeyEvent = (pressed, keysym) => {
+    const sent = guacRef.current?.sendKeyEvent(pressed, keysym);
+    if (!sent && pressed === 1) {
+      setToast({ show: true, message: 'Desktop not ready yet — try again in a moment.', type: 'warning' });
+    }
+  };
 
   const handleToggleTouchpadMode = () => {
     const result = guacRef.current?.toggleTouchpadMode();
@@ -951,9 +912,9 @@ export default function DesktopSessionPage() {
               the two are mutually exclusive, never both mounted. */}
           {showMobileControls && !isFullscreen && (
             <GuacToolControls
-              oskOn={oskOn}
+              oskOn={customKeyboardOn}
               touchpadOn={touchpadOn}
-              onToggleKeyboard={handleToggleKeyboard}
+              onToggleKeyboard={handleToggleCustomKeyboard}
               onToggleTouchpadMode={handleToggleTouchpadMode}
               onZoomIn={() => handleZoom(0.25)}
               onZoomOut={() => handleZoom(-0.25)}
@@ -966,9 +927,9 @@ export default function DesktopSessionPage() {
               revealed={edgeControlsRevealed}
               onReveal={() => setEdgeControlsRevealed(true)}
               onCollapse={() => setEdgeControlsRevealed(false)}
-              oskOn={oskOn}
+              oskOn={customKeyboardOn}
               touchpadOn={touchpadOn}
-              onToggleKeyboard={handleToggleKeyboard}
+              onToggleKeyboard={handleToggleCustomKeyboard}
               onToggleTouchpadMode={handleToggleTouchpadMode}
               onZoomIn={() => handleZoom(0.25)}
               onZoomOut={() => handleZoom(-0.25)}
@@ -1045,103 +1006,31 @@ export default function DesktopSessionPage() {
             </div>
           )}
 
-          {/* Part 3, corrected after real DOM investigation (two earlier
-              attempts shrunk the OUTER iframe box by oskHeight, on the
-              assumption the keyboard needed room reserved for it outside
-              the iframe). That assumption was wrong, confirmed by
-              inspecting Guacamole's own client DOM directly: the OSK
-              renders INSIDE the iframe, inside Guacamole's own
-              `.client-view-content` (flex column) - `.client-body` (the
-              remote desktop canvas) is `flex: 1 1 auto`, `.client-bottom`
-              (the OSK) is `flex: 0 0 auto`, i.e. Guacamole ALREADY
-              reserves real, non-overlay room for the keyboard entirely on
-              its own, exactly what we were trying to replicate
-              externally. Shrinking the outer iframe box didn't help the
-              keyboard at all (it isn't rendered out there) - it only
-              starved the iframe of the height Guacamole's own internal
-              layout needed, and once the iframe's own height dropped
-              below the keyboard's non-shrinkable natural size
-              (confirmed: `.client-bottom` height stayed at its full
-              ~250px in landscape regardless), `.client-body` was forced
-              to a measured, confirmed 0px - the canvas didn't shrink to
-              fit above the keyboard, it vanished entirely, which is what
-              "covers the entire screen" really was. The fix is to stop
-              interfering: give the iframe its full natural available
-              height always (same whether the keyboard is on or off) and
-              let Guacamole's own confirmed-working internal flex layout
-              handle the split. */}
-          <GuacamoleEmbed ref={guacRef} key={reconnectGeneration} url={workspace.vm_details.guacamole_url} loadingText={workspace?.vm_details?.notes || "Connecting to your workspace..."} tunnelActive={tunnelActive} />
-
-          {/* Quick-dismiss tab, sitting right at the real boundary between
-              the desktop view and Guacamole's own keyboard region (bottom:
-              oskHeight — the REAL measured height from the effect above,
-              not a guess). Checked first whether Guacamole has any
-              built-in partial/minimized keyboard state to use instead
-              (grepped its real template.js: the OSK is gated by a single
-              `ng-if="showOSK"` boolean, nothing partial) — so "minimize"
-              here means what it honestly can: a fast, always-reachable
-              full toggle-off, not a partial shrink of Guacamole's own
-              rendering. Calls the same handleToggleKeyboard used
-              elsewhere (not a raw setOskOn) so it goes through the real
-              Guacamole scope and never desyncs from it. */}
-          {oskOn && (
-            <button
-              onClick={handleToggleKeyboard}
-              title="Hide keyboard"
-              style={{
-                position: 'absolute',
-                bottom: `${oskHeight}px`,
-                right: '12px',
-                zIndex: 150,
-                width: '36px',
-                height: '36px',
-                borderRadius: '8px 8px 0 0',
-                background: 'rgba(20,20,20,0.85)',
-                border: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-              }}
-            >
-              <ChevronDown size={16} color="#fff" />
-            </button>
-          )}
-
-          {/* Genuine, confirmed physical constraint (not fixable by more
-              CSS): even with the above fix, a short landscape viewport
-              may not have enough total height for both the keyboard's
-              fixed natural size AND a usable canvas - real measured
-              example: 375px viewport, ~250px non-shrinkable keyboard,
-              leaves Guacamole's own layout only ~20-100px for the canvas
-              depending on header/toolbar. Guacamole's own layout still
-              behaves correctly in that case (no code bug), it's just
-              tight - so the honest response is a dismissible hint
-              pointing at the one thing that actually helps (portrait has
-              694px to spare in the same real test), not another height
-              hack. Only shown when it would actually be tight. */}
-          {oskOn && (viewportHeight - oskHeight) < LANDSCAPE_KEYBOARD_HINT_THRESHOLD_PX && (
-            <div style={{
-              position: 'absolute',
-              top: '12px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              zIndex: 60,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 14px',
-              borderRadius: '10px',
-              background: 'rgba(20,20,20,0.85)',
-              backdropFilter: 'blur(6px)',
-              color: '#fff',
-              fontSize: '12px',
-              maxWidth: '86%',
-              textAlign: 'center',
-            }}>
-              <RotateCcw size={14} style={{ flexShrink: 0 }} />
-              Rotate to portrait for more room while typing
-            </div>
+          {/* Part 3, replaced entirely: Guacamole's own built-in OSK
+              (toggled via its Angular scope) is a genuinely non-
+              shrinkable, non-resizable element rendered INSIDE the
+              iframe (confirmed today: `.client-bottom` flex:0,0,auto) —
+              real DOM investigation showed this caused the remote
+              canvas to be squeezed to a confirmed, measured 0px in
+              landscape. A CustomOnScreenKeyboard is now used instead —
+              a real sibling component we fully own, occupying genuine
+              flex space alongside the iframe rather than fighting for
+              room inside it. Guacamole's own OSK is never toggled
+              anywhere in this file anymore, so it stays permanently off
+              by simple omission. The iframe now sits in its own flex:1
+              wrapper so the keyboard (flex-shrink:0, its own real
+              height) and the display genuinely share the column
+              correctly, with zero manual height math needed — ordinary
+              flexbox handles it exactly right for a real sibling. */}
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+            <GuacamoleEmbed ref={guacRef} key={reconnectGeneration} url={workspace.vm_details.guacamole_url} loadingText={workspace?.vm_details?.notes || "Connecting to your workspace..."} tunnelActive={tunnelActive} />
+          </div>
+          {customKeyboardOn && (
+            <CustomOnScreenKeyboard
+              onKeyEvent={handleCustomKeyEvent}
+              onHeightChange={setCustomKeyboardHeight}
+              onDismiss={() => setCustomKeyboardOn(false)}
+            />
           )}
         </div>
       );
@@ -1216,9 +1105,9 @@ export default function DesktopSessionPage() {
 
       {showMobileControls && !isFullscreen && (
         <GuacToolControls
-          oskOn={oskOn}
+          oskOn={customKeyboardOn}
           touchpadOn={touchpadOn}
-          onToggleKeyboard={handleToggleKeyboard}
+          onToggleKeyboard={handleToggleCustomKeyboard}
           onToggleTouchpadMode={handleToggleTouchpadMode}
           onZoomIn={() => handleZoom(0.25)}
           onZoomOut={() => handleZoom(-0.25)}
@@ -1231,9 +1120,9 @@ export default function DesktopSessionPage() {
           revealed={edgeControlsRevealed}
           onReveal={() => setEdgeControlsRevealed(true)}
           onCollapse={() => setEdgeControlsRevealed(false)}
-          oskOn={oskOn}
+          oskOn={customKeyboardOn}
           touchpadOn={touchpadOn}
-          onToggleKeyboard={handleToggleKeyboard}
+          onToggleKeyboard={handleToggleCustomKeyboard}
           onToggleTouchpadMode={handleToggleTouchpadMode}
           onZoomIn={() => handleZoom(0.25)}
           onZoomOut={() => handleZoom(-0.25)}
@@ -1432,68 +1321,20 @@ export default function DesktopSessionPage() {
         </div>
       )}
 
-      {/* Part 3, corrected — same real finding as the workspace branch
-          above: Guacamole renders its OSK inside its own iframe, laid
-          out by its own internal flex CSS (`.client-body` flex:1 vs
-          `.client-bottom` flex:0,0,auto) that already reserves genuine
-          room for it. Shrinking the outer iframe box didn't help the
-          keyboard - it only starved Guacamole's own layout of the
-          height it needed, confirmed to force the canvas to a measured
-          0px once the iframe fell below the keyboard's fixed natural
-          size. Give the iframe its full natural height always. */}
-      <GuacamoleEmbed ref={guacRef} key={reconnectGeneration} url={sessionData.guacamole_url} loadingText="Connecting to your session..." tunnelActive={tunnelActive} />
-
-      {/* Quick-dismiss tab — see the matching comment in the workspace
-          branch above for why this is a full toggle, not a partial
-          shrink (Guacamole's own OSK has no partial state). */}
-      {oskOn && (
-        <button
-          onClick={handleToggleKeyboard}
-          title="Hide keyboard"
-          style={{
-            position: 'absolute',
-            bottom: `${oskHeight}px`,
-            right: '12px',
-            zIndex: 150,
-            width: '36px',
-            height: '36px',
-            borderRadius: '8px 8px 0 0',
-            background: 'rgba(20,20,20,0.85)',
-            border: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-          }}
-        >
-          <ChevronDown size={16} color="#fff" />
-        </button>
-      )}
-
-      {/* Genuine, confirmed physical constraint, not a code bug — see the
-          matching comment in the workspace branch above. */}
-      {oskOn && (viewportHeight - oskHeight) < LANDSCAPE_KEYBOARD_HINT_THRESHOLD_PX && (
-        <div style={{
-          position: 'absolute',
-          top: '12px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 60,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '8px 14px',
-          borderRadius: '10px',
-          background: 'rgba(20,20,20,0.85)',
-          backdropFilter: 'blur(6px)',
-          color: '#fff',
-          fontSize: '12px',
-          maxWidth: '86%',
-          textAlign: 'center',
-        }}>
-          <RotateCcw size={14} style={{ flexShrink: 0 }} />
-          Rotate to portrait for more room while typing
-        </div>
+      {/* Part 3, replaced entirely — see the matching comment in the
+          workspace branch above: CustomOnScreenKeyboard is a real
+          sibling occupying genuine flex space, not Guacamole's own
+          non-shrinkable internal OSK. Guacamole's own OSK is never
+          toggled anywhere in this file, so it stays permanently off. */}
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+        <GuacamoleEmbed ref={guacRef} key={reconnectGeneration} url={sessionData.guacamole_url} loadingText="Connecting to your session..." tunnelActive={tunnelActive} />
+      </div>
+      {customKeyboardOn && (
+        <CustomOnScreenKeyboard
+          onKeyEvent={handleCustomKeyEvent}
+          onHeightChange={setCustomKeyboardHeight}
+          onDismiss={() => setCustomKeyboardOn(false)}
+        />
       )}
       {/* Live-session participants don't have a per-VM `.notes` field like
           personal workspaces do (SessionParticipant/VirtualMachine here

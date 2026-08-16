@@ -223,6 +223,23 @@ const GuacamoleEmbed = forwardRef(function GuacamoleEmbed({
       const height = osk.getBoundingClientRect().height;
       return height > 0 ? height : null;
     },
+    // Sends a real key event through Guacamole's own live client — the
+    // exact same mechanism (confirmed via direct scope inspection, not
+    // assumed) that Guacamole's own webapp uses internally for physical
+    // keyboard input once the iframe holds focus:
+    // `focusedClient.client.sendKeyEvent(pressed, keysym)`, part of the
+    // standard guacamole-common-js Client API. `pressed` is 1 for
+    // key-down, 0 for key-up. Returns true if the event was genuinely
+    // sent, false if there's no live client to send it to (connection
+    // not ready) — callers should surface that honestly, not assume
+    // success.
+    sendKeyEvent(pressed, keysym) {
+      const scope = findGuacScope(iframeRef.current?.contentWindow);
+      const client = scope?.focusedClient?.client;
+      if (!client) return false;
+      client.sendKeyEvent(pressed, keysym);
+      return true;
+    },
   }), []);
 
   if (!url) return null;
