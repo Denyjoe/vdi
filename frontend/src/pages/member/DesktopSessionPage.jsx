@@ -698,12 +698,14 @@ export default function DesktopSessionPage() {
   // Custom on-screen keyboard (replaces Guacamole's own built-in OSK
   // entirely — confirmed today it has no partial/resizable state and a
   // non-shrinkable internal layout that caused real landscape bugs).
-  // customKeyboardOn/customKeyboardHeight are OUR OWN state — we never
-  // call guacRef.current.toggleKeyboard()/getState()/measureOskHeight()
-  // anywhere in this file anymore, so Guacamole's own OSK is never
-  // triggered and stays permanently off by simple omission.
+  // A genuine floating panel now (position:fixed, its own drag/resize
+  // state entirely inside CustomOnScreenKeyboard) rather than a docked
+  // sibling, so this page only needs the on/off flag — no height to
+  // track or reserve space for. We never call
+  // guacRef.current.toggleKeyboard()/getState()/measureOskHeight()
+  // anywhere in this file, so Guacamole's own OSK is never triggered
+  // and stays permanently off by simple omission.
   const [customKeyboardOn, setCustomKeyboardOn] = useState(false);
-  const [customKeyboardHeight, setCustomKeyboardHeight] = useState(0);
 
   const handleToggleCustomKeyboard = () => {
     // Unlike the old Guacamole-OSK toggle, opening our own component
@@ -1006,29 +1008,21 @@ export default function DesktopSessionPage() {
             </div>
           )}
 
-          {/* Part 3, replaced entirely: Guacamole's own built-in OSK
-              (toggled via its Angular scope) is a genuinely non-
-              shrinkable, non-resizable element rendered INSIDE the
-              iframe (confirmed today: `.client-bottom` flex:0,0,auto) —
-              real DOM investigation showed this caused the remote
-              canvas to be squeezed to a confirmed, measured 0px in
-              landscape. A CustomOnScreenKeyboard is now used instead —
-              a real sibling component we fully own, occupying genuine
-              flex space alongside the iframe rather than fighting for
-              room inside it. Guacamole's own OSK is never toggled
-              anywhere in this file anymore, so it stays permanently off
-              by simple omission. The iframe now sits in its own flex:1
-              wrapper so the keyboard (flex-shrink:0, its own real
-              height) and the display genuinely share the column
-              correctly, with zero manual height math needed — ordinary
-              flexbox handles it exactly right for a real sibling. */}
-          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-            <GuacamoleEmbed ref={guacRef} key={reconnectGeneration} url={workspace.vm_details.guacamole_url} loadingText={workspace?.vm_details?.notes || "Connecting to your workspace..."} tunnelActive={tunnelActive} />
-          </div>
+          {/* Part 3, now a genuine floating panel (not docked): the
+              custom keyboard is a real `position:fixed` window the user
+              drags/resizes independently, so it no longer needs — or
+              wants — a share of the flex column at all. Guacamole's own
+              OSK is never toggled anywhere in this file, so it stays
+              permanently off by simple omission. The display always
+              gets its full natural height, whether the keyboard is open
+              or not; the floating panel simply overlaps on top wherever
+              the user has positioned it, which they can move out of the
+              way as needed — genuinely simpler than the docked
+              reservation math this replaces. */}
+          <GuacamoleEmbed ref={guacRef} key={reconnectGeneration} url={workspace.vm_details.guacamole_url} loadingText={workspace?.vm_details?.notes || "Connecting to your workspace..."} tunnelActive={tunnelActive} />
           {customKeyboardOn && (
             <CustomOnScreenKeyboard
               onKeyEvent={handleCustomKeyEvent}
-              onHeightChange={setCustomKeyboardHeight}
               onDismiss={() => setCustomKeyboardOn(false)}
             />
           )}
@@ -1321,18 +1315,15 @@ export default function DesktopSessionPage() {
         </div>
       )}
 
-      {/* Part 3, replaced entirely — see the matching comment in the
-          workspace branch above: CustomOnScreenKeyboard is a real
-          sibling occupying genuine flex space, not Guacamole's own
-          non-shrinkable internal OSK. Guacamole's own OSK is never
-          toggled anywhere in this file, so it stays permanently off. */}
-      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-        <GuacamoleEmbed ref={guacRef} key={reconnectGeneration} url={sessionData.guacamole_url} loadingText="Connecting to your session..." tunnelActive={tunnelActive} />
-      </div>
+      {/* Part 3 — see the matching comment in the workspace branch
+          above: a genuine floating panel, not docked, so the display
+          always gets its full natural height regardless of whether the
+          keyboard is open. Guacamole's own OSK is never toggled
+          anywhere in this file, so it stays permanently off. */}
+      <GuacamoleEmbed ref={guacRef} key={reconnectGeneration} url={sessionData.guacamole_url} loadingText="Connecting to your session..." tunnelActive={tunnelActive} />
       {customKeyboardOn && (
         <CustomOnScreenKeyboard
           onKeyEvent={handleCustomKeyEvent}
-          onHeightChange={setCustomKeyboardHeight}
           onDismiss={() => setCustomKeyboardOn(false)}
         />
       )}
