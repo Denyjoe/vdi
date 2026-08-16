@@ -4,12 +4,13 @@ import {
   Maximize2, Minimize2, LayoutGrid, Compass, BarChart2, AlertCircle,
   Code2, Palette, Network, Box, Wifi, Battery, Volume2, Clock, Megaphone,
   Menu, X, Check, PanelRightOpen, PanelRightClose, Power, UserCheck, RefreshCw,
-  Keyboard, MousePointer2, ZoomIn, ZoomOut
+  Keyboard, MousePointer2, ZoomIn, ZoomOut, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { sessionService } from '../../services/sessionService';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import useBreakpoint from '../../hooks/useBreakpoint';
+import useTouchDevice from '../../hooks/useTouchDevice';
 import ConfirmModal from '../../components/shared/ConfirmModal';
 import Toast from '../../components/shared/Toast';
 import GuacamoleEmbed from '../../components/shared/GuacamoleEmbed';
@@ -24,7 +25,12 @@ import OspaceLogo from '../../components/shared/OspaceLogo';
 // reach Guacamole's live client — confirmed for real against a live
 // connection, not assumed. Each button is a genuine 44x44px tap target;
 // only the icon inside is small.
-function GuacToolControls({ oskOn, touchpadOn, onToggleKeyboard, onToggleTouchpadMode, onZoomOut, onZoomIn }) {
+//
+// A single collapse toggle hides/shows the whole button group at once
+// (not each button individually) — these take up valuable screen space
+// on a phone when not actively needed, especially in landscape where
+// vertical space is already tight.
+function GuacToolControls({ oskOn, touchpadOn, onToggleKeyboard, onToggleTouchpadMode, onZoomOut, onZoomIn, expanded, onToggleExpanded }) {
   const btnStyle = (active) => ({
     width: '44px',
     height: '44px',
@@ -49,17 +55,28 @@ function GuacToolControls({ oskOn, touchpadOn, onToggleKeyboard, onToggleTouchpa
       borderBottom: '1px solid var(--border-color)',
       flexShrink: 0,
     }}>
-      <button onClick={onToggleKeyboard} style={btnStyle(oskOn)} title={oskOn ? 'Hide on-screen keyboard' : 'Show on-screen keyboard'}>
-        <Keyboard size={18} />
-      </button>
-      <button onClick={onToggleTouchpadMode} style={btnStyle(touchpadOn)} title={touchpadOn ? 'Touchpad mode (relative) — tap to switch to Touchscreen' : 'Touchscreen mode (direct tap) — tap to switch to Touchpad'}>
-        <MousePointer2 size={18} />
-      </button>
-      <button onClick={onZoomOut} style={btnStyle(false)} title="Zoom out">
-        <ZoomOut size={18} />
-      </button>
-      <button onClick={onZoomIn} style={btnStyle(false)} title="Zoom in">
-        <ZoomIn size={18} />
+      {expanded && (
+        <>
+          <button onClick={onToggleKeyboard} style={btnStyle(oskOn)} title={oskOn ? 'Hide on-screen keyboard' : 'Show on-screen keyboard'}>
+            <Keyboard size={18} />
+          </button>
+          <button onClick={onToggleTouchpadMode} style={btnStyle(touchpadOn)} title={touchpadOn ? 'Touchpad mode (relative) — tap to switch to Touchscreen' : 'Touchscreen mode (direct tap) — tap to switch to Touchpad'}>
+            <MousePointer2 size={18} />
+          </button>
+          <button onClick={onZoomOut} style={btnStyle(false)} title="Zoom out">
+            <ZoomOut size={18} />
+          </button>
+          <button onClick={onZoomIn} style={btnStyle(false)} title="Zoom in">
+            <ZoomIn size={18} />
+          </button>
+        </>
+      )}
+      <button
+        onClick={onToggleExpanded}
+        style={{ ...btnStyle(false), width: '32px', height: '32px' }}
+        title={expanded ? 'Hide controls' : 'Show controls'}
+      >
+        {expanded ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
       </button>
     </div>
   );
@@ -70,7 +87,17 @@ export default function DesktopSessionPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const { isMobile } = useBreakpoint();
+  const { width: viewportWidth, height: viewportHeight } = useBreakpoint();
+  const isTouchDevice = useTouchDevice();
+  // Real bug: a phone rotated to landscape (e.g. 812x375) has width >= 640,
+  // so a width-only "isMobile" check genuinely stops being true and the
+  // on-screen keyboard/touchpad/zoom controls vanish, even though it's
+  // still clearly the same touch phone. Touch capability doesn't change on
+  // rotation, so gate on that directly instead — combined with a max-
+  // dimension cap (matching the existing isDesktop breakpoint) so a real
+  // touch-enabled desktop monitor isn't misclassified as a phone.
+  const showMobileControls = isTouchDevice && Math.max(viewportWidth, viewportHeight) < 1024;
+  const [controlsExpanded, setControlsExpanded] = useState(true);
   const searchParams = new URLSearchParams(location.search);
   const type = location.pathname.includes('/workspace/') ? 'workspace' : searchParams.get('type');
 
@@ -733,7 +760,7 @@ export default function DesktopSessionPage() {
             </div>
           </div>
 
-          {isMobile && (
+          {showMobileControls && (
             <GuacToolControls
               oskOn={oskOn}
               touchpadOn={touchpadOn}
@@ -741,6 +768,8 @@ export default function DesktopSessionPage() {
               onToggleTouchpadMode={handleToggleTouchpadMode}
               onZoomIn={() => handleZoom(0.25)}
               onZoomOut={() => handleZoom(-0.25)}
+              expanded={controlsExpanded}
+              onToggleExpanded={() => setControlsExpanded(v => !v)}
             />
           )}
 
@@ -879,7 +908,7 @@ export default function DesktopSessionPage() {
         </div>
       </div>
 
-      {isMobile && (
+      {showMobileControls && (
         <GuacToolControls
           oskOn={oskOn}
           touchpadOn={touchpadOn}
@@ -887,6 +916,8 @@ export default function DesktopSessionPage() {
           onToggleTouchpadMode={handleToggleTouchpadMode}
           onZoomIn={() => handleZoom(0.25)}
           onZoomOut={() => handleZoom(-0.25)}
+          expanded={controlsExpanded}
+          onToggleExpanded={() => setControlsExpanded(v => !v)}
         />
       )}
 
