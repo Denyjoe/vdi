@@ -14,7 +14,7 @@ import {
   LayoutDashboard, Monitor, Video, Plus, BarChart3, ChevronLeft,
   X, 
   ChevronRight, Radio, ChevronUp, LogOut, Settings, Receipt,
-  Server, Users, LayoutTemplate, HardDrive
+  Server, Users, LayoutTemplate, HardDrive, Cpu
 } from 'lucide-react';
 
 function NavItem({ icon: Icon, label, path, onClick, collapsed, active, accent, theme, badge }) {
@@ -254,6 +254,7 @@ export default function Sidebar() {
               <NavItem icon={Radio} label="Live Sessions" path="/admin/sessions" collapsed={collapsed} active={location.pathname === '/admin/sessions'} badge={liveSessionCount > 0 ? liveSessionCount : null} theme={theme} />
               <NavItem icon={HardDrive} label="Workspaces" path="/admin/workspaces" collapsed={collapsed} active={location.pathname === '/admin/workspaces'} theme={theme} />
               <NavItem icon={Server} label="VM Pool" path="/admin/vm-pool" collapsed={collapsed} active={location.pathname === '/admin/vm-pool'} theme={theme} />
+              <NavItem icon={Cpu} label="Hardware" path="/admin/hardware" collapsed={collapsed} active={location.pathname === '/admin/hardware'} theme={theme} />
               <NavItem icon={Users} label="Users" path="/admin/users" collapsed={collapsed} active={location.pathname === '/admin/users'} theme={theme} />
               <NavItem icon={LayoutTemplate} label="Templates" path="/admin/templates" collapsed={collapsed} active={location.pathname === '/admin/templates'} theme={theme} />
               <NavItem icon={BarChart3} label="Analytics" path="/admin/analytics" collapsed={collapsed} active={location.pathname === '/admin/analytics'} theme={theme} />
