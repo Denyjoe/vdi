@@ -200,6 +200,29 @@ const GuacamoleEmbed = forwardRef(function GuacamoleEmbed({
         scale: scope.focusedClient?.clientProperties?.scale ?? null,
       };
     },
+    // Measures Guacamole's own real, rendered on-screen-keyboard element
+    // height directly, instead of guessing a fixed pixel value. Confirmed
+    // via direct DOM inspection against a live connection (not assumed):
+    // Guacamole renders the OSK as `.keyboard-container` > `.osk` >
+    // `.guac-keyboard`, all reporting the same content height —
+    // '.keyboard-container' is the outermost wrapper, used here as the
+    // authoritative "how much space Guacamole itself is using" figure.
+    // Confirmed real, and confirmed genuinely DIFFERENT between
+    // orientations (~118px portrait vs ~250px landscape at a 375x812 /
+    // 812x375 phone, on the same connection) — Guacamole scales key size
+    // to fill the available width, so a wider (landscape) container
+    // produces bigger keys and therefore a taller keyboard overall, not
+    // a shorter one. Returns null (not 0) when the OSK isn't currently
+    // rendered — e.g. toggled off, or the connection/scope isn't ready
+    // yet — so callers can tell "unknown" apart from "genuinely zero".
+    measureOskHeight() {
+      const doc = iframeRef.current?.contentDocument;
+      if (!doc) return null;
+      const osk = doc.querySelector('.keyboard-container');
+      if (!osk) return null;
+      const height = osk.getBoundingClientRect().height;
+      return height > 0 ? height : null;
+    },
   }), []);
 
   if (!url) return null;

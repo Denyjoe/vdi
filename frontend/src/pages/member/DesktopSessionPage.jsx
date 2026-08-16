@@ -188,18 +188,18 @@ function FullscreenEdgeControls({
   );
 }
 
-// Approximate height of Guacamole's own built-in on-screen keyboard panel.
-// There's no live signal exposed for its actual rendered height (checked:
-// Guacamole's client scope has no OSK-dimension property alongside
-// menu.inputMethod — see findGuacScope in GuacamoleEmbed.jsx), so this is
-// a reasonable fixed estimate, not a measured value. Reserving real space
-// beneath the display for it means Guacamole's own responsive canvas
-// scaling fits the desktop into the shrunk box (confirmed by real
-// testing: an iframe's own box resize is a genuine viewport change the
-// embedded page sees directly, unlike the outer-window resize-event
-// propagation gap already documented in GuacamoleEmbed's reconnect logic)
-// instead of the keyboard simply overlaying whatever was underneath it.
-const OSK_RESERVED_PX = 280;
+// Last-resort fallback only, used for the brief window before the real
+// height has been measured (or if measurement genuinely never succeeds).
+// A fixed guess was tried here before and confirmed WRONG in both
+// directions by real measurement: Guacamole's real OSK is ~118px in
+// portrait (a fixed 280px guess left ~160px of dead reserved space) and
+// ~250px in landscape on a real connection (still less than 280px, but
+// landscape's viewport is only ~375px tall to begin with, so reserving
+// close to the full fixed guess there consumed most of the screen).
+// GuacamoleEmbed.measureOskHeight() now reads the real rendered value
+// directly instead of guessing — see the DesktopSessionPage oskHeight
+// state and its measurement effect below.
+const OSK_FALLBACK_PX = 280;
 
 export default function DesktopSessionPage() {
   const { id: sessionId } = useParams();
@@ -707,6 +707,9 @@ export default function DesktopSessionPage() {
   const guacRef = useRef(null);
   const [oskOn, setOskOn] = useState(false);
   const [touchpadOn, setTouchpadOn] = useState(false);
+  // Real measured height of Guacamole's own OSK, replacing a fixed guess.
+  // Starts at the fallback until the first real measurement lands.
+  const [oskHeight, setOskHeight] = useState(OSK_FALLBACK_PX);
 
   const handleToggleKeyboard = () => {
     const result = guacRef.current?.toggleKeyboard();
@@ -716,6 +719,48 @@ export default function DesktopSessionPage() {
     }
     setOskOn(result);
   };
+
+  // Real bug found in production use: rotating the phone while the
+  // keyboard was open triggers GuacamoleEmbed's own internal rotation
+  // reconnect (a fresh iframe, fresh Guacamole connection — see its
+  // reconnectOnRotate effect), which silently resets Guacamole's own
+  // scope back to inputMethod:'none'. Our page-level oskOn had no way to
+  // know that happened, so it kept claiming "on" — reserving a full
+  // fixed-height chunk of dead space for a keyboard that Guacamole
+  // wasn't actually showing anymore, which is most of why landscape
+  // looked like it was "covered": a ~280px reservation in a ~375px-tall
+  // landscape viewport, entirely empty, squeezing the real remote
+  // desktop into a sliver. This effect is the fix for both problems at
+  // once: it measures the REAL rendered OSK height (correcting the
+  // reserved space to match reality, confirmed to genuinely differ by
+  // orientation — ~118px portrait vs ~250px landscape on a real
+  // connection), and — critically — self-corrects oskOn to false the
+  // instant the real scope reports the keyboard is genuinely off,
+  // instead of trusting stale page state. Re-runs on every orientation
+  // change (viewportWidth/viewportHeight) since that's exactly when a
+  // silent reconnect can happen.
+  useEffect(() => {
+    if (!oskOn || !tunnelActive) return;
+    let cancelled = false;
+    const measure = () => {
+      if (cancelled) return;
+      const state = guacRef.current?.getState();
+      if (state && state.keyboardOn === false) {
+        setOskOn(false);
+        return;
+      }
+      const real = guacRef.current?.measureOskHeight();
+      if (real) setOskHeight(real);
+    };
+    measure();
+    const pollId = setInterval(measure, 200);
+    const stopId = setTimeout(() => clearInterval(pollId), 2500);
+    return () => {
+      cancelled = true;
+      clearInterval(pollId);
+      clearTimeout(stopId);
+    };
+  }, [oskOn, tunnelActive, viewportWidth, viewportHeight]);
 
   const handleToggleTouchpadMode = () => {
     const result = guacRef.current?.toggleTouchpadMode();
@@ -1003,16 +1048,23 @@ export default function DesktopSessionPage() {
               flex:1 child of the column above it, and an explicit `height`
               would fight flex-basis resolution (percentages on a flex
               item's main axis resolve against the container's full size,
-              not its remaining space, so `calc(100% - 280px)` here would
-              undercount whatever the header/toolbar already took). A
-              vh-based maxHeight caps the flex-grown size correctly
+              not its remaining space, so a raw `calc(100% - Npx)` here
+              would undercount whatever the header/toolbar already took).
+              A pixel-based maxHeight caps the flex-grown size correctly
               regardless of how much space siblings already claimed, and
-              both branches are concrete calc() values so the transition
-              still animates smoothly either direction. */}
+              both branches are concrete px values so the transition still
+              animates smoothly either direction. Built on viewportHeight
+              (a real window.innerHeight reading, tracked in state by
+              useBreakpoint) rather than the CSS 100vh unit — real mobile
+              browsers can report 100vh including chrome that's about to
+              collapse, especially right after a rotation; innerHeight is
+              the immediate, reliable figure. oskHeight is the REAL
+              measured keyboard height (see the measurement effect above),
+              not a fixed guess. */}
           <div style={{
             flex: 1,
             minHeight: 0,
-            maxHeight: oskOn ? `calc(100vh - ${OSK_RESERVED_PX}px)` : '100vh',
+            maxHeight: oskOn ? `${Math.max(viewportHeight - oskHeight, 100)}px` : `${viewportHeight}px`,
             transition: 'max-height 200ms ease-out',
             display: 'flex',
             flexDirection: 'column',
@@ -1309,12 +1361,13 @@ export default function DesktopSessionPage() {
       )}
 
       {/* Part 3: same genuine height-adjustment as the workspace branch
-          above (maxHeight, not height — see that branch's comment for
-          why) — the realistic, achievable version of "flexible/shifted". */}
+          above (maxHeight in real px, not height/100vh — see that
+          branch's comment for why) — real measured oskHeight, real
+          window.innerHeight via viewportHeight. */}
       <div style={{
         flex: 1,
         minHeight: 0,
-        maxHeight: oskOn ? `calc(100vh - ${OSK_RESERVED_PX}px)` : '100vh',
+        maxHeight: oskOn ? `${Math.max(viewportHeight - oskHeight, 100)}px` : `${viewportHeight}px`,
         transition: 'max-height 200ms ease-out',
         display: 'flex',
         flexDirection: 'column',
