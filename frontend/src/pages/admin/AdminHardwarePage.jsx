@@ -13,6 +13,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Server, Monitor, Cpu, HardDrive, Wifi, ArrowUp, ArrowDown, Clock, RefreshCw, AlertTriangle, CheckCircle2, Trash2, EyeOff, Square, XCircle, ShieldCheck } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, PieChart, Pie, Cell, RadialBarChart, RadialBar } from 'recharts';
+import toast from 'react-hot-toast';
 import api from '../../services/api';
 import useBreakpoint from '../../hooks/useBreakpoint';
 import ConfirmModal from '../../components/shared/ConfirmModal';
@@ -114,6 +115,12 @@ function InfrastructureHealth({ isMobile }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  // Separate from `error` (which is about fetching the report itself and
+  // gets reset to '' every time fetchReport runs) — this tracks the
+  // outcome of the last resolve action specifically, and must survive
+  // the automatic re-fetch that follows every action so a failure banner
+  // doesn't flash and vanish before the admin can read it.
+  const [actionError, setActionError] = useState('');
   const [busyKey, setBusyKey] = useState(null); // `orphan-<vmid>-<action>` | `stale-<id>-<action>`
   const [confirmTarget, setConfirmTarget] = useState(null); // { type: 'orphan'|'stale', item, action }
 
@@ -133,19 +140,32 @@ function InfrastructureHealth({ isMobile }) {
 
   useEffect(() => { fetchReport(false); }, [fetchReport]);
 
+  // Real bug found in production use: VM 9030's "Delete" click was
+  // correctly refused by the backend (it had just been marked "Ignore",
+  // making it a real, live tracked record) - but the only feedback was a
+  // small text-xs red line the admin didn't notice, and the list was
+  // never re-fetched on failure, so the row just sat there looking like
+  // nothing happened at all. Every action outcome now surfaces via a
+  // real, hard-to-miss toast, AND the report is always re-fetched
+  // afterward (success or failure) so the UI never shows stale state.
   const runOrphanAction = async (item, action) => {
     const key = `orphan-${item.vmid}-${action}`;
     setBusyKey(key);
+    setActionError('');
     try {
       const res = await api.post('/admin/infrastructure/resolve-orphan/', { vmid: item.vmid, action });
       if (res.data.success) {
-        await fetchReport(false);
+        toast.success(res.data.message || `VM ${item.vmid} updated.`);
       } else {
-        setError(res.data.message || 'Action failed.');
+        setActionError(res.data.message || `Could not ${action} VM ${item.vmid}.`);
+        toast.error(res.data.message || `Could not ${action} VM ${item.vmid}.`, { duration: 6000 });
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Action failed.');
+      const msg = err.response?.data?.message || 'Action failed.';
+      setActionError(msg);
+      toast.error(msg, { duration: 6000 });
     } finally {
+      await fetchReport(false);
       setBusyKey(null);
       setConfirmTarget(null);
     }
@@ -154,16 +174,21 @@ function InfrastructureHealth({ isMobile }) {
   const runStaleAction = async (item, action) => {
     const key = `stale-${item.id}-${action}`;
     setBusyKey(key);
+    setActionError('');
     try {
       const res = await api.post('/admin/infrastructure/resolve-stale/', { db_id: item.id, action });
       if (res.data.success) {
-        await fetchReport(false);
+        toast.success(res.data.message || `Record ${item.id} updated.`);
       } else {
-        setError(res.data.message || 'Action failed.');
+        setActionError(res.data.message || `Could not update record ${item.id}.`);
+        toast.error(res.data.message || `Could not update record ${item.id}.`, { duration: 6000 });
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Action failed.');
+      const msg = err.response?.data?.message || 'Action failed.';
+      setActionError(msg);
+      toast.error(msg, { duration: 6000 });
     } finally {
+      await fetchReport(false);
       setBusyKey(null);
       setConfirmTarget(null);
     }
@@ -182,7 +207,7 @@ function InfrastructureHealth({ isMobile }) {
           Infrastructure Health
         </h2>
         <button
-          onClick={() => fetchReport(true)}
+          onClick={() => { setActionError(''); fetchReport(true); }}
           disabled={refreshing || loading}
           style={{ width: '44px', height: '44px' }}
           className="flex items-center justify-center rounded-lg bg-[var(--bg-input)] border border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-50"
@@ -217,9 +242,16 @@ function InfrastructureHealth({ isMobile }) {
             )}
           </div>
 
-          {error && (
-            <div className="flex items-center gap-2 text-red-400 text-xs mb-4">
-              <XCircle className="w-3.5 h-3.5" /> {error}
+          {/* Last-action failure banner — kept separate from `error` (the
+              report-fetch error) and NOT cleared by the auto re-fetch that
+              follows every action, so a refused/failed action stays
+              visibly reported instead of silently disappearing. Real case
+              this exists for: a "Delete" click correctly refused because
+              the VM had just become a real, live tracked record. */}
+          {actionError && (
+            <div className="flex items-start gap-2 text-red-300 text-sm font-medium bg-red-500/10 border border-red-500/30 rounded-xl p-3 mb-4">
+              <XCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{actionError}</span>
             </div>
           )}
 

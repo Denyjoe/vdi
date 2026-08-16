@@ -30,6 +30,19 @@ logger = logging.getLogger(__name__)
 KNOWN_INFRA_IDS = {200, 9000, 9010, 9022, 9026}
 
 
+def _has_live_tracked_record(vmid):
+    """True if this vmid has a real, LIVE tracked record - i.e. someone
+    actively owns/relies on it (status running/stopped/provisioning/
+    suspended). A record stuck in 'error' does NOT count as live: it
+    represents a genuinely broken, abandoned provisioning attempt, not a
+    real VM anyone is using - confirmed with real data (VM 9028,
+    DB id 101, status='error', owner denyjoefx@gmail.com, no linked
+    Workspace, sitting untouched). Excluding 'error' here is what lets
+    the reconciliation tool actually clean these up instead of refusing
+    forever because a dead DB row happens to still exist."""
+    return VirtualMachine.objects.exclude(status__in=['deleted', VirtualMachine.Status.ERROR]).filter(proxmox_vm_id=vmid).exists()
+
+
 def get_proxmox_drift_report():
     """Compare real Proxmox VM list against real DB records.
 
@@ -55,9 +68,14 @@ def get_proxmox_drift_report():
         and not v.get('template')
     }
 
+    # Real audit finding (VM 9028): a VirtualMachine record stuck in
+    # 'error' status with no linked Workspace is just as genuinely
+    # abandoned as having no DB record at all - excluding only
+    # 'deleted' here meant a broken error-state row could permanently
+    # block real cleanup of its Proxmox VM. See _has_live_tracked_record.
     tracked_vm_ids = set(
         VirtualMachine.objects
-        .exclude(status='deleted')
+        .exclude(status__in=['deleted', VirtualMachine.Status.ERROR])
         .exclude(proxmox_vm_id__isnull=True)
         .values_list('proxmox_vm_id', flat=True)
     )
@@ -67,11 +85,13 @@ def get_proxmox_drift_report():
     orphaned_details = []
     for vmid in orphaned_ids:
         vm_info = next(v for v in real_vms if v['vmid'] == vmid)
+        has_error_record = VirtualMachine.objects.filter(proxmox_vm_id=vmid, status=VirtualMachine.Status.ERROR).exists()
         orphaned_details.append({
             'vmid': vmid,
             'name': vm_info.get('name'),
             'status': vm_info.get('status'),
             'uptime': vm_info.get('uptime'),
+            'has_error_record': has_error_record,
         })
     orphaned_details.sort(key=lambda d: d['vmid'])
 
@@ -113,19 +133,31 @@ def resolve_orphan(vmid, action, admin_user, owner_email=None, template_id=None)
 
     if action == 'delete':
         # Confirm it's still a real, genuine orphan right before deleting
-        # — don't trust a stale report from a prior page load.
+        # — don't trust a stale report from a prior page load. Real,
+        # confirmed case that motivated this exact re-check: an admin
+        # clicked "Ignore" on VM 9030 (creating a real, live tracked
+        # record), then also clicked "Delete" on the same still-visible
+        # row from before the page refreshed - this check is what must
+        # correctly refuse that second click.
         real_vms = ps.proxmox.nodes(ps.node).qemu.get()
         real_ids = {v['vmid'] for v in real_vms}
         if vmid not in real_ids:
             return {'success': True, 'message': f'VM {vmid} already gone from Proxmox.'}
 
-        tracked = VirtualMachine.objects.exclude(status='deleted').filter(proxmox_vm_id=vmid).exists()
-        if tracked:
-            return {'success': False, 'message': f'VM {vmid} is now tracked in the database — refusing to delete a real, owned VM. Refresh the check.'}
+        if _has_live_tracked_record(vmid):
+            return {'success': False, 'message': f'VM {vmid} is now tracked in the database as a real, live/owned record — refusing to delete it. Refresh the check and use the Workspaces page for this VM instead.'}
 
         ps.delete_vm_completely(vmid)
-        logger.info('Admin %s deleted orphaned Proxmox VM %s', admin_user.email, vmid)
-        return {'success': True, 'message': f'VM {vmid} deleted from Proxmox.'}
+
+        # Real audit finding (VM 9028): if the only DB record(s) for this
+        # vmid were stuck in 'error' with no linked Workspace, the real
+        # Proxmox VM they pointed at is now genuinely gone too - soft-
+        # delete them so they stop cluttering the Workspaces "Error" tab
+        # with a row for a VM that no longer exists anywhere.
+        cleaned = VirtualMachine.objects.filter(proxmox_vm_id=vmid, status=VirtualMachine.Status.ERROR).update(status=VirtualMachine.Status.DELETED)
+
+        logger.info('Admin %s deleted orphaned Proxmox VM %s (also soft-deleted %d stale error DB record(s))', admin_user.email, vmid, cleaned)
+        return {'success': True, 'message': f'VM {vmid} deleted from Proxmox.' + (f' Also cleaned up {cleaned} stale error record(s).' if cleaned else '')}
 
     elif action == 'ignore':
         owner = admin_user
@@ -156,6 +188,17 @@ def resolve_orphan(vmid, action, admin_user, owner_email=None, template_id=None)
 
         existing = VirtualMachine.objects.exclude(status='deleted').filter(proxmox_vm_id=vmid).first()
         if existing:
+            if existing.status == VirtualMachine.Status.ERROR:
+                # This vmid's only record was a dead, abandoned error row —
+                # "ignore" here means the admin has confirmed the real VM
+                # is intentional, so revive the record to reflect real
+                # Proxmox state instead of leaving it stuck in 'error'
+                # forever (which would otherwise keep it flagged as an
+                # orphan-cleanup candidate on every future check).
+                existing.status = mapped_status
+                existing.save(update_fields=['status'])
+                logger.info('Admin %s revived error-state VirtualMachine %s (vmid %s) to %s via ignore', admin_user.email, existing.id, vmid, mapped_status)
+                return {'success': True, 'message': f'VM {vmid} was stuck in a dead error record — revived as VirtualMachine {existing.id} ({mapped_status}).'}
             return {'success': True, 'message': f'VM {vmid} is already tracked (DB id {existing.id}).'}
 
         vm = VirtualMachine.objects.create(
