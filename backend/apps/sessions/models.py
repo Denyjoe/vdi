@@ -220,7 +220,8 @@ class LiveSession(models.Model):
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default='scheduled')
+        default='scheduled',
+        db_index=True)
     password = models.CharField(
         max_length=20, blank=True)
     allow_participant_chat = models.BooleanField(

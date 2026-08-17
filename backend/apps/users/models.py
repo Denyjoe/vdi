@@ -305,7 +305,8 @@ class Payment(models.Model):
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default='pending')
+        default='pending',
+        db_index=True)
     payment_type = models.CharField(
         max_length=40,
         choices=[

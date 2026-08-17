@@ -133,7 +133,40 @@ class WorkspaceListView(generics.ListAPIView):
     serializer_class = WorkspaceSerializer
 
     def get_queryset(self):
-        return Workspace.objects.filter(owner=self.request.user).exclude(status='deleted')
+        # Real N+1 found via a performance audit: WorkspaceSerializer reads
+        # vm_template and vm (both FKs, via nested serializers) plus
+        # idle_notifications (reverse FK, in get_idle_warning) per row -
+        # measured scaling linearly (1 workspace -> 7 queries, 6 -> 27).
+        # This page auto-polls every few seconds while open, so the N+1
+        # cost was paid repeatedly, not just once per visit.
+        #
+        # A plain prefetch_related('idle_notifications') alone doesn't fix
+        # it — get_idle_warning() below calls .filter() on the related
+        # manager, which always hits the DB fresh and bypasses the
+        # prefetch cache. Prefetch() with a scoped, pre-filtered/ordered
+        # queryset and to_attr, read directly from that attribute in the
+        # serializer, is what actually avoids the per-row query.
+        from django.db.models import Prefetch
+        from apps.vms.models import WorkspaceIdleNotification
+        return (
+            Workspace.objects.filter(owner=self.request.user)
+            .exclude(status='deleted')
+            # vm__template reaches one level deeper than vm alone -
+            # VirtualMachineSerializer (nested as vm_details) reads
+            # vm.template.name, a separate FK from workspace.vm_template,
+            # which was still triggering one query per row even with
+            # 'vm' select_related on its own.
+            .select_related('vm_template', 'vm', 'vm__template')
+            .prefetch_related(
+                Prefetch(
+                    'idle_notifications',
+                    queryset=WorkspaceIdleNotification.objects.filter(
+                        notification_type__in=['first_warning', 'final_warning']
+                    ).order_by('-sent_at'),
+                    to_attr='prefetched_idle_notifications',
+                )
+            )
+        )
 
 class WorkspaceCreateView(APIView):
     permission_classes = [permissions.IsAuthenticated]

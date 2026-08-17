@@ -38,6 +38,24 @@ class AdminUserListView(APIView):
         users = users.order_by(sort)
 
         from django.utils import timezone
+        from django.db.models import Prefetch
+        from apps.vms.models import TemplateSubscription
+
+        # Real N+1 found via a performance audit: this loop used to call
+        # u.template_subscriptions.filter(...).first() per row - 30 users
+        # in the list measured as 49 real queries. Prefetching the exact
+        # same filtered/ordered queryset once (instead of once per user)
+        # dropped that to a handful of queries regardless of row count.
+        users = users.prefetch_related(
+            Prefetch(
+                'template_subscriptions',
+                queryset=TemplateSubscription.objects.filter(
+                    is_active=True, expires_at__gt=timezone.now()
+                ).select_related('template').order_by('expires_at'),
+                to_attr='prefetched_active_subs',
+            )
+        )
+
         results = []
         for u in users:
             avatar_url = None
@@ -47,9 +65,7 @@ class AdminUserListView(APIView):
             plan_name = 'Pay-as-you-go'
             has_sub = False
             sub_expires = None
-            active_sub = u.template_subscriptions.filter(
-                is_active=True, expires_at__gt=timezone.now()
-            ).select_related('template').order_by('expires_at').first()
+            active_sub = u.prefetched_active_subs[0] if u.prefetched_active_subs else None
             if active_sub:
                 plan_name = f'Unlimited: {active_sub.template.name}'
                 has_sub = True
@@ -69,7 +85,6 @@ class AdminUserListView(APIView):
                 'date_joined': u.date_joined.isoformat() if hasattr(u, 'date_joined') and u.date_joined else None,
             })
 
-        from apps.vms.models import TemplateSubscription
         return Response({
             'users': results,
             'total': len(results),

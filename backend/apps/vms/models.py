@@ -168,6 +168,7 @@ class VirtualMachine(models.Model):
         choices=Status.choices,
         default=Status.PROVISIONING,
         help_text="Current lifecycle status of this virtual machine.",
+        db_index=True,
     )
     proxmox_vm_id = models.IntegerField(
         null=True,
@@ -243,7 +244,8 @@ class Workspace(models.Model):
   status = models.CharField(
     max_length=20,
     choices=STATUS_CHOICES,
-    default='stopped')
+    default='stopped',
+    db_index=True)
   compute_hours_used = models.FloatField(
     default=0)
   last_accessed_at = models.DateTimeField(

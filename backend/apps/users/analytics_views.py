@@ -15,7 +15,7 @@ class AnalyticsOverviewView(APIView):
         total_sessions = RemoteSession.objects.count()
         active_sessions = RemoteSession.objects.filter(status='active').count()
         today = timezone.now().date()
-        sessions_today = RemoteSession.objects.filter(created_at__date=today).count()
+        sessions_today = RemoteSession.objects.filter(started_at__date=today).count()
         
         return Response({
             "success": True,

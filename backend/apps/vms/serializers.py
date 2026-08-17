@@ -91,9 +91,18 @@ class WorkspaceSerializer(serializers.ModelSerializer):
         from django.utils import timezone
         from apps.users.models import SystemConfig
 
-        latest = obj.idle_notifications.filter(
-            notification_type__in=['first_warning', 'final_warning']
-        ).order_by('-sent_at').first()
+        # Real N+1 found via a performance audit: calling .filter() on
+        # obj.idle_notifications here always hits the DB fresh, even when
+        # the view has prefetch_related'd this relation - reading from the
+        # Prefetch(..., to_attr=...) result instead (when the view set it
+        # up that way) avoids the per-row query; falls back to the direct
+        # query for any caller that didn't prefetch.
+        if hasattr(obj, 'prefetched_idle_notifications'):
+            latest = obj.prefetched_idle_notifications[0] if obj.prefetched_idle_notifications else None
+        else:
+            latest = obj.idle_notifications.filter(
+                notification_type__in=['first_warning', 'final_warning']
+            ).order_by('-sent_at').first()
         if not latest:
             return None
 

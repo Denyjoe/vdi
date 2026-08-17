@@ -11,9 +11,10 @@
  */
 
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import React, { useEffect } from "react";
+import React, { useEffect, Suspense } from "react";
 import useAuthStore from "./store/authStore";
 import useThemeStore from "./store/themeStore";
+import LoadingSpinner from "./components/shared/LoadingSpinner";
 
 // Error Boundary for Dashboard
 class ErrorBoundary extends React.Component {
@@ -63,17 +64,24 @@ import PrivacyPage from "./pages/public/PrivacyPage";
 import SignInPage from "./pages/auth/SignInPage";
 
 // Admin pages
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminHardwarePage from "./pages/admin/AdminHardwarePage";
-import AdminTemplatesPage from "./pages/admin/AdminTemplatesPage";
-import AdminVMsPage from "./pages/admin/AdminVMsPage";
-import AdminAnalyticsPage from "./pages/admin/AdminAnalyticsPage";
-import AdminUsersPage from "./pages/admin/AdminUsersPage";
-import AdminLogsPage from "./pages/admin/AdminLogsPage";
-import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
-import AdminWorkspacesPage from "./pages/admin/AdminWorkspacesPage";
-import AdminLiveSessionsPage from "./pages/admin/AdminLiveSessionsPage";
-import VMPoolPage from "./pages/admin/VMPoolPage";
+// Real performance-audit finding: these 11 admin pages (plus the
+// recharts+d3 dependency chain pulled in by AdminAnalyticsPage alone)
+// were eagerly imported into the single main bundle, so every regular
+// member downloaded them on first load despite the admin section being
+// permission-gated and unreachable to non-admins. Lazy-loading moves
+// them into separate chunks fetched only when an admin actually
+// navigates to /admin/*.
+const AdminDashboard = React.lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminHardwarePage = React.lazy(() => import("./pages/admin/AdminHardwarePage"));
+const AdminTemplatesPage = React.lazy(() => import("./pages/admin/AdminTemplatesPage"));
+const AdminVMsPage = React.lazy(() => import("./pages/admin/AdminVMsPage"));
+const AdminAnalyticsPage = React.lazy(() => import("./pages/admin/AdminAnalyticsPage"));
+const AdminUsersPage = React.lazy(() => import("./pages/admin/AdminUsersPage"));
+const AdminLogsPage = React.lazy(() => import("./pages/admin/AdminLogsPage"));
+const AdminSettingsPage = React.lazy(() => import("./pages/admin/AdminSettingsPage"));
+const AdminWorkspacesPage = React.lazy(() => import("./pages/admin/AdminWorkspacesPage"));
+const AdminLiveSessionsPage = React.lazy(() => import("./pages/admin/AdminLiveSessionsPage"));
+const VMPoolPage = React.lazy(() => import("./pages/admin/VMPoolPage"));
 
 // Shared/User pages
 import NotificationsPage from './pages/shared/NotificationsPage';
@@ -158,19 +166,24 @@ export default function App() {
           <Route path="/notifications" element={<Navigate to="/dashboard" replace />} />
 
           {/* ── Admin Area ────────────────────────────────────────── */}
+          {/* Each lazy admin page gets its own Suspense boundary rather
+              than one wrapping the whole /admin subtree, so switching
+              between already-loaded admin pages (e.g. Users -> Workspaces)
+              doesn't re-show a fallback for chunks already in the browser
+              cache - only a genuinely new chunk triggers the spinner. */}
           <Route path="/admin">
             <Route index element={<Navigate to="dashboard" replace />} />
-            <Route path="dashboard" element={<AdminDashboard />} />
-            <Route path="users" element={<AdminUsersPage />} />
-            <Route path="vms" element={<AdminVMsPage />} />
-            <Route path="templates" element={<AdminTemplatesPage />} />
-            <Route path="hardware" element={<AdminHardwarePage />} />
-            <Route path="analytics" element={<AdminAnalyticsPage />} />
-            <Route path="logs" element={<AdminLogsPage />} />
-            <Route path="settings" element={<AdminSettingsPage />} />
-            <Route path="workspaces" element={<AdminWorkspacesPage />} />
-            <Route path="vm-pool" element={<VMPoolPage />} />
-            <Route path="sessions" element={<AdminLiveSessionsPage />} />
+            <Route path="dashboard" element={<Suspense fallback={<LoadingSpinner />}><AdminDashboard /></Suspense>} />
+            <Route path="users" element={<Suspense fallback={<LoadingSpinner />}><AdminUsersPage /></Suspense>} />
+            <Route path="vms" element={<Suspense fallback={<LoadingSpinner />}><AdminVMsPage /></Suspense>} />
+            <Route path="templates" element={<Suspense fallback={<LoadingSpinner />}><AdminTemplatesPage /></Suspense>} />
+            <Route path="hardware" element={<Suspense fallback={<LoadingSpinner />}><AdminHardwarePage /></Suspense>} />
+            <Route path="analytics" element={<Suspense fallback={<LoadingSpinner />}><AdminAnalyticsPage /></Suspense>} />
+            <Route path="logs" element={<Suspense fallback={<LoadingSpinner />}><AdminLogsPage /></Suspense>} />
+            <Route path="settings" element={<Suspense fallback={<LoadingSpinner />}><AdminSettingsPage /></Suspense>} />
+            <Route path="workspaces" element={<Suspense fallback={<LoadingSpinner />}><AdminWorkspacesPage /></Suspense>} />
+            <Route path="vm-pool" element={<Suspense fallback={<LoadingSpinner />}><VMPoolPage /></Suspense>} />
+            <Route path="sessions" element={<Suspense fallback={<LoadingSpinner />}><AdminLiveSessionsPage /></Suspense>} />
           </Route>
           
         </Route>

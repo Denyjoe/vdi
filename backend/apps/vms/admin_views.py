@@ -148,9 +148,20 @@ class AdminWorkspacesListView(views.APIView):
             vm_sort = 'allocated_at' if sort.lstrip('-') == 'created_at' else sort.lstrip('-')
             vms = vms.order_by(f'-{vm_sort}' if sort.startswith('-') else vm_sort)
 
+            # Real N+1 found via a performance audit: this used to run
+            # Workspace.objects.filter(vm=vm).first() once PER VM inside
+            # the loop below - one batch query up front, keyed by vm_id,
+            # gets the same data with a query count that no longer scales
+            # with row count.
+            vms = list(vms)
+            ws_by_vm_id = {
+                ws.vm_id: ws
+                for ws in Workspace.objects.filter(vm_id__in=[vm.id for vm in vms]).select_related('owner')
+            }
+
             results = []
             for vm in vms:
-                ws = Workspace.objects.filter(vm=vm).select_related('owner').first()
+                ws = ws_by_vm_id.get(vm.id)
                 results.append({
                     'id': ws.id if ws else None,
                     'vm_id': vm.id,
