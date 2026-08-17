@@ -219,6 +219,12 @@ class GuacamoleService:
             "password": password,
             "security": "any",
             "ignore-cert": "true",
+            # Let the RDP session's resolution follow the client viewport
+            # (fullscreen toggle, window resize, phone/tablet rotation)
+            # instead of staying fixed at whatever size it first connected
+            # at. Requires the RDP server to support the display-update
+            # virtual channel (xrdp on recent Ubuntu/Zorin templates does).
+            "resize-method": "display-update",
         }
 
         if restrictions:
@@ -308,6 +314,11 @@ class GuacamoleService:
                 f'{res.status_code} {res.text}'
             )
 
+        # Scoped users (see get_connection_url) are per-connection — once
+        # the connection itself is gone, its scoped user must go too, or
+        # it'd be an orphaned account left behind on every VM teardown.
+        self.delete_scoped_user(connection_id)
+
         logger.info("Deleted Guacamole connection %s", connection_id)
         return True
 
@@ -394,19 +405,119 @@ class GuacamoleService:
             logger.error("Guacamole create sharing profile error: %s", exc)
             raise Exception(f'Network error creating sharing profile: {exc}')
 
+    def _scoped_username(self, connection_id):
+        return f'pcuser-{connection_id}'
+
+    def _get_or_create_scoped_user(self, connection_id):
+        """Ensure a Guacamole user exists whose ONLY permission is READ on
+        this one connection_id, and return a fresh password for it.
+
+        The password is regenerated on every call and pushed to Guacamole
+        (create if the user doesn't exist yet, otherwise rotate its
+        password) rather than persisted anywhere in this app — nothing
+        beyond this one function ever needs to know it, since the caller
+        immediately exchanges it for a token and discards it.
+        """
+        import secrets
+        self._ensure_authenticated()
+        username = self._scoped_username(connection_id)
+        password = secrets.token_urlsafe(24)
+
+        check = self._request(
+            'GET',
+            f'{self.base_url}/api/session/data/{self.data_source}/users/{username}',
+        )
+        if check.status_code == 200:
+            upd = self._request(
+                'PUT',
+                f'{self.base_url}/api/session/data/{self.data_source}/users/{username}',
+                json={'username': username, 'password': password, 'attributes': {}},
+            )
+            if upd.status_code not in (200, 204):
+                raise Exception(
+                    f'Failed to rotate scoped Guacamole user password: '
+                    f'{upd.status_code} {upd.text}'
+                )
+            return password
+
+        create = self._request(
+            'POST',
+            f'{self.base_url}/api/session/data/{self.data_source}/users',
+            json={'username': username, 'password': password, 'attributes': {}},
+        )
+        if create.status_code not in (200, 201):
+            raise Exception(
+                f'Failed to create scoped Guacamole user: '
+                f'{create.status_code} {create.text}'
+            )
+
+        # The entire point: grant READ on this ONE connection and nothing
+        # else — this user can never see or use any other connection.
+        perm = self._request(
+            'PATCH',
+            f'{self.base_url}/api/session/data/{self.data_source}/users/{username}/permissions',
+            json=[{'op': 'add', 'path': f'/connectionPermissions/{connection_id}', 'value': 'READ'}],
+        )
+        if perm.status_code not in (200, 204):
+            # Don't leave an unscoped (permission-less, effectively inert
+            # but still-existing) user account behind on failure.
+            self._request(
+                'DELETE',
+                f'{self.base_url}/api/session/data/{self.data_source}/users/{username}',
+            )
+            raise Exception(
+                f'Failed to scope permissions for {username}: '
+                f'{perm.status_code} {perm.text}'
+            )
+        return password
+
+    def delete_scoped_user(self, connection_id):
+        """Delete the scoped Guacamole user for a connection, if one
+        exists. Called automatically from delete_connection() so scoped
+        users never outlive the connection they were scoped to."""
+        try:
+            self._ensure_authenticated()
+            username = self._scoped_username(connection_id)
+            res = self._request(
+                'DELETE',
+                f'{self.base_url}/api/session/data/{self.data_source}/users/{username}',
+            )
+            if res.status_code not in (200, 204, 404):
+                logger.warning(
+                    "Failed to delete scoped Guacamole user %s: %s %s",
+                    username, res.status_code, res.text,
+                )
+        except requests.RequestException as exc:
+            logger.warning("Network error deleting scoped Guacamole user for connection %s: %s", connection_id, exc)
+
     def get_connection_url(self, connection_id):
         """
         Build a direct URL to open a Guacamole connection in the browser.
 
+        SECURITY: real audit finding, confirmed with a live attack — this
+        used to authenticate as the shared Guacamole ADMIN account and
+        embed that token directly in the client-facing URL. Since a
+        Guacamole token carries the full permission set of whoever it was
+        issued for, ANY participant handed one of these URLs actually held
+        an admin-level token: decoding the base64 identifier and swapping
+        in a different connection_id (small sequential integers, e.g.
+        199-264 observed in real testing) gave full read access to that
+        connection's details via Guacamole's own REST API, and the same
+        token could list EVERY connection on the entire server — a total
+        breakdown of per-user VM isolation, not scoped to session
+        participants but to every VM on the platform.
+
+        Fix: authenticate as a dedicated, single-purpose Guacamole user
+        that Guacamole's OWN permission system restricts to exactly this
+        one connection_id (see _get_or_create_scoped_user). The token
+        embedded in the returned URL is now genuinely incapable of
+        reaching any other connection, regardless of what identifier a
+        client tries to swap into the URL — Guacamole itself enforces it
+        server-side, not just this app being careful about what it hands
+        out.
+
         The Guacamole client identifier format is:
             base64( connection_id + NUL + 'c' + NUL + data_source )
-
-        Unlike a plain string-format method, this makes a real (cheap)
-        authenticated request first so a stale cached token gets caught
-        and refreshed via _request()'s retry-on-401 logic — otherwise a
-        dead token would be silently baked into the URL and the embedded
-        client would fall back to Guacamole's own login screen with no
-        way for the app to detect or recover from it.
 
         Args:
             connection_id (str): The connection identifier.
@@ -414,17 +525,27 @@ class GuacamoleService:
         Returns:
             str: Full URL to open this connection.
         """
-        self._ensure_authenticated()
+        password = self._get_or_create_scoped_user(connection_id)
+        username = self._scoped_username(connection_id)
 
-        self._request(
-            'GET',
-            f'{self.base_url}/api/session/data/'
-            f'{self.data_source}/connections/{connection_id}',
+        res = requests.post(
+            f'{self.base_url}/api/tokens',
+            data={'username': username, 'password': password},
+            timeout=REQUEST_TIMEOUT_SECONDS,
         )
+        if res.status_code != 200:
+            logger.error(
+                "Scoped Guacamole auth failed for %s: %s %s",
+                username, res.status_code, res.text,
+            )
+            raise Exception(f'Failed to mint scoped access token: {res.status_code}')
+        data = res.json()
+        scoped_token = data['authToken']
+        scoped_data_source = data['dataSource']
 
-        identifier = f"{connection_id}\x00c\x00{self.data_source}"
+        identifier = f"{connection_id}\x00c\x00{scoped_data_source}"
         encoded = base64.b64encode(identifier.encode()).decode()
-        return f'{GUACAMOLE_PUBLIC_URL}/#/client/{encoded}?token={self.token}'
+        return f'{GUACAMOLE_PUBLIC_URL}/#/client/{encoded}?token={scoped_token}'
 
     def get_active_connection_id(self, connection_id):
         """

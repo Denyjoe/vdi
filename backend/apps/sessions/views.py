@@ -6,6 +6,7 @@ from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from .models import LiveSession, SessionParticipant
 from .serializers import LiveSessionSerializer, SessionParticipantSerializer
+from apps.users.throttles import SensitiveActionRateThrottle
 
 class LiveSessionListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -55,7 +56,8 @@ class PublicSessionsView(generics.ListAPIView):
 
 class PayAndStartSessionView(APIView):
     permission_classes = [permissions.IsAuthenticated]
-    
+    throttle_classes = [SensitiveActionRateThrottle]
+
     def post(self, request):
         from apps.users.models import SystemConfig, Payment
         from apps.sessions.models import LiveSession
@@ -561,6 +563,7 @@ class ResumeAllParticipantsView(APIView):
 
 class ExtendSessionView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [SensitiveActionRateThrottle]
 
     def post(self, request, pk):
         from apps.users.models import SystemConfig, Payment

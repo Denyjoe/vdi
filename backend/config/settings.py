@@ -226,8 +226,16 @@ REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "apps.users.utils.custom_exception_handler",
     # 'api_token' scope used by apps.api.v1_views.ApiTokenRateThrottle —
     # basic, real, per-token limiting for the public API.
+    # 'login'/'sensitive_action' scopes used by apps.users.throttles —
+    # real finding from a security audit: 30 rapid unauthenticated
+    # requests to /api/auth/firebase-login/ were all processed with zero
+    # rate limiting. 'login' is IP-keyed for unauthenticated auth
+    # endpoints, 'sensitive_action' is user-keyed for authenticated but
+    # high-risk actions (account deletion, payments).
     "DEFAULT_THROTTLE_RATES": {
         "api_token": "60/min",
+        "login": "10/min",
+        "sensitive_action": "10/min",
     },
 }
 

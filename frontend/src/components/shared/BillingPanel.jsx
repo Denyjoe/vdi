@@ -592,11 +592,37 @@ export default function BillingPanel({ isOpen, onClose }) {
                 onClick={() => {
                   const printWindow = window.open(
                     '', '_blank', 'width=700,height=900');
-                  
-                  const r = receiptData;
-                  const statusColor = r.status === 'completed' 
+
+                  // Security: printWindow.document.write() below builds raw
+                  // HTML via string interpolation - unlike normal JSX
+                  // rendering elsewhere in this file, React's automatic
+                  // escaping does NOT apply here. Every receipt field
+                  // ultimately traces back to user-controllable data (the
+                  // account's own first/last name, and a payment
+                  // description), so it must be HTML-escaped by hand before
+                  // interpolation, or a name/description like
+                  // `<img src=x onerror=...>` would execute as real markup
+                  // in the print window - confirmed with a real payload
+                  // during a security audit.
+                  const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({
+                    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+                  }[c]));
+
+                  const r = {
+                    receipt_number: esc(receiptData.receipt_number),
+                    date: esc(receiptData.date),
+                    time: esc(receiptData.time),
+                    customer_name: esc(receiptData.customer_name),
+                    customer_email: esc(receiptData.customer_email),
+                    description: esc(receiptData.description),
+                    amount: receiptData.amount,
+                    status: esc(receiptData.status),
+                    method: esc(receiptData.method),
+                    reference: esc(receiptData.reference),
+                  };
+                  const statusColor = receiptData.status === 'completed'
                     ? '#059669' : '#D97706';
-                  
+
                   printWindow.document.write(`
                     <!DOCTYPE html>
                     <html>

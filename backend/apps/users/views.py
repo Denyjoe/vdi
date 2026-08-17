@@ -5,6 +5,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from apps.users.serializers import RegisterSerializer, UserProfileSerializer
+from apps.users.throttles import LoginRateThrottle, SensitiveActionRateThrottle
 from apps.sessions.models import LiveSession, SessionParticipant
 from apps.vms.models import Workspace, VirtualMachine
 
@@ -68,6 +69,7 @@ class RegisterView(APIView):
 
 class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [LoginRateThrottle]
 
     def post(self, request):
         email = request.data.get('email')
@@ -760,6 +762,7 @@ class DeleteAccountView(APIView):
     sign-in prompt was completed just now, not replayed from an old
     session."""
     permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [SensitiveActionRateThrottle]
 
     REAUTH_MAX_AGE_SECONDS = 300  # 5 minutes
 
@@ -939,7 +942,11 @@ class ProfileStatsView(APIView):
         })
 class FirebaseLoginView(APIView):
     permission_classes = [AllowAny]
-    
+    # Real audit finding: this endpoint had zero rate limiting - 30 rapid
+    # unauthenticated requests all processed in 1.37s with no 429. IP-keyed
+    # throttle, since there's no authenticated user yet at this point.
+    throttle_classes = [LoginRateThrottle]
+
     def post(self, request):
         from apps.users.firebase_admin_init import firebase_admin
         from firebase_admin import auth as fb_auth

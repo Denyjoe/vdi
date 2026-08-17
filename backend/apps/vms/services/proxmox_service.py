@@ -499,25 +499,48 @@ class ProxmoxService:
         except Exception as e:
             logger.warning("Could not clear existing rules on VM %s: %s", vmid, e)
 
-        # 1. Allow outbound DNS traffic (UDP/TCP port 53) so guest VM can resolve domain names
-        try:
-            node.qemu(vmid).firewall.rules.post(
-                type='out', proto='udp', dport='53', action='ACCEPT', enable=1,
-                comment='Allow DNS queries (UDP)',
-            )
-            node.qemu(vmid).firewall.rules.post(
-                type='out', proto='tcp', dport='53', action='ACCEPT', enable=1,
-                comment='Allow DNS queries (TCP)',
-            )
-        except Exception as e:
-            logger.warning("Could not add DNS firewall rules for VM %s: %s", vmid, e)
-
-        # 2. Allow essential gateway / DNS IPs
+        # 1. Allow essential gateway / DNS IPs — computed BEFORE the DNS
+        # port rule below, since that rule now needs to reference these
+        # same IPs instead of allowing port 53 to anywhere.
         essential_ips = [
             ip.strip() for ip in
             SystemConfig.get('network_lockdown_allowlist_ips', '192.168.1.1,8.8.8.8,1.1.1.1,8.8.4.4,1.0.0.1').split(',')
             if ip.strip()
         ]
+
+        # 2. Allow outbound DNS traffic (UDP/TCP port 53), but ONLY to the
+        # real, intended DNS resolver IPs above — not to any destination.
+        #
+        # Real vulnerability found and fixed via a security audit: this
+        # rule used to ACCEPT port 53 traffic to ANY destination IP
+        # (no `dest` restriction at all). Confirmed with a live guest-agent
+        # test on a real locked-down VM: a non-whitelisted IP on port 443
+        # was correctly BLOCKED, but that exact same IP on port 53 was
+        # REACHABLE — a genuine DNS-tunneling bypass (tools like iodine/
+        # dnscat2 relay arbitrary traffic over port 53), letting a
+        # technically capable user defeat the entire lockdown from inside
+        # their own "restricted" VM. Scoping `dest` to the real resolver
+        # IPs closes this while still letting genuine DNS lookups through.
+        # One rule per IP, not a comma-joined `dest` — real testing showed
+        # Proxmox's API only honored the FIRST IP in a comma-joined `dest`
+        # value here, which silently blocked DNS to every resolver except
+        # the first one (confirmed live: a legitimate whitelisted resolver
+        # on port 53 was wrongly blocked until this was split per-IP,
+        # matching the already-working per-IP pattern used for essential_ips
+        # below).
+        for ip in essential_ips:
+            try:
+                node.qemu(vmid).firewall.rules.post(
+                    type='out', proto='udp', dport='53', dest=ip, action='ACCEPT', enable=1,
+                    comment='Allow DNS queries (UDP) — resolvers only',
+                )
+                node.qemu(vmid).firewall.rules.post(
+                    type='out', proto='tcp', dport='53', dest=ip, action='ACCEPT', enable=1,
+                    comment='Allow DNS queries (TCP) — resolvers only',
+                )
+            except Exception as e:
+                logger.warning("Could not add DNS firewall rule for %s on VM %s: %s", ip, vmid, e)
+
         for ip in essential_ips:
             try:
                 node.qemu(vmid).firewall.rules.post(

@@ -6,6 +6,7 @@ from django.utils import timezone
 from .models import Workspace, VMTemplate, VirtualMachine
 from .serializers import WorkspaceSerializer
 from apps.users.models import ComputeUsageLog
+from apps.users.throttles import SensitiveActionRateThrottle
 from apps.vms.services.vm_orchestrator import VMOrchestrator
 from apps.vms.services.workspace_access import get_workspace_access
 from apps.notifications.services import notify
@@ -267,6 +268,7 @@ class PurchaseHoursView(APIView):
     launching is a separate step via WorkspaceLaunchView, which will now
     succeed because the balance is positive."""
     permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [SensitiveActionRateThrottle]
 
     def post(self, request):
         from apps.users.models import Payment
@@ -354,6 +356,7 @@ class SubscribeTemplateView(APIView):
     launch/stop code path ever touches it — heavy usage never extends it,
     light usage never shortens it."""
     permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [SensitiveActionRateThrottle]
 
     def post(self, request):
         from apps.users.models import Payment
