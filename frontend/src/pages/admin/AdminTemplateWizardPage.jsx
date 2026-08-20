@@ -63,6 +63,17 @@ export default function AdminTemplateWizardPage() {
   const [form, setForm] = useState({
     name: '', cpu_cores: 2, ram_gb: 4, disk_gb: 20, iso_volid: '', desktop_environment_id: '',
   });
+  // ISO acquisition — real upload straight to Proxmox, or a real
+  // server-side download Proxmox itself performs from a URL. Neither
+  // ever requires touching Proxmox's own UI.
+  const [isoMode, setIsoMode] = useState('existing'); // 'existing' | 'upload' | 'url'
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isoUrl, setIsoUrl] = useState('');
+  const [isoUrlFilename, setIsoUrlFilename] = useState('');
+  const [downloading, setDownloading] = useState(false);
+  const [downloadStatusText, setDownloadStatusText] = useState('');
+  const downloadPollRef = useRef(null);
   const [sshCreds, setSshCreds] = useState({ ssh_username: 'ospace', ssh_password: '' });
   // Guest-agent isn't installed on a freshly, manually-installed VM
   // until finalize() installs it — so IP auto-discovery genuinely
@@ -73,10 +84,93 @@ export default function AdminTemplateWizardPage() {
   const [customApp, setCustomApp] = useState('');
   const [promoteForm, setPromoteForm] = useState({ name: '', description: '', price_per_hour: 0, price_per_month: 0, icon: '🖥️' });
 
+  const loadIsos = () => api.get('/admin/templates/available-isos/').then(r => setIsos(r.data.data || [])).catch(() => toast.error('Could not load real ISOs from Proxmox.'));
+
   useEffect(() => {
-    api.get('/admin/templates/available-isos/').then(r => setIsos(r.data.data || [])).catch(() => toast.error('Could not load real ISOs from Proxmox.'));
+    loadIsos();
     api.get('/admin/templates/desktop-environments/').then(r => setProfiles(r.data.data || [])).catch(() => toast.error('Could not load desktop environment profiles.'));
+    return () => clearInterval(downloadPollRef.current);
   }, []);
+
+  // Real upload — genuine progress from axios' onUploadProgress, not
+  // a fake animation. Streams straight to Proxmox server-side; this
+  // request body IS the real bytes going over the wire.
+  const handleFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.iso')) {
+      toast.error('File must be a .iso');
+      return;
+    }
+    setUploading(true);
+    setUploadProgress(0);
+    const body = new FormData();
+    body.append('iso', file);
+    try {
+      const r = await api.post('/admin/templates/isos/upload/', body, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (evt) => {
+          if (evt.total) setUploadProgress(Math.round((evt.loaded / evt.total) * 100));
+        },
+      });
+      toast.success(`"${file.name}" uploaded — Proxmox is finalizing it...`);
+      await pollUntilFinished(r.data.data.upid);
+      await loadIsos();
+      setForm(f => ({ ...f, iso_volid: `local:iso/${file.name}` }));
+      setIsoMode('existing');
+      toast.success(`"${file.name}" is now genuinely available in Proxmox storage.`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Upload failed.');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  // Real server-side download — Proxmox itself fetches the URL; we
+  // only trigger it and poll its real, genuine task status.
+  const handleUrlDownload = async () => {
+    if (!isoUrl.trim() || !isoUrlFilename.trim()) {
+      toast.error('Enter both a URL and a filename ending in .iso');
+      return;
+    }
+    setDownloading(true);
+    setDownloadStatusText('Starting server-side download...');
+    try {
+      const r = await api.post('/admin/templates/isos/download-url/', { url: isoUrl.trim(), filename: isoUrlFilename.trim() });
+      toast.success('Proxmox started downloading the ISO on the server.');
+      setDownloadStatusText('Downloading on the server — this may take several minutes for large ISOs...');
+      await pollUntilFinished(r.data.data.upid);
+      await loadIsos();
+      setForm(f => ({ ...f, iso_volid: `local:iso/${isoUrlFilename.trim()}` }));
+      setIsoMode('existing');
+      toast.success(`"${isoUrlFilename.trim()}" is now genuinely available in Proxmox storage.`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not start the download.');
+    } finally {
+      setDownloading(false);
+      setDownloadStatusText('');
+    }
+  };
+
+  // Real polling of Proxmox's own task status API — used by both the
+  // upload and the download-url path, since both return the same
+  // kind of real, pollable UPID.
+  const pollUntilFinished = (upid) => new Promise((resolve, reject) => {
+    const poll = async () => {
+      try {
+        const r = await api.get('/admin/templates/isos/download-status/', { params: { upid } });
+        const data = r.data.data;
+        if (data.finished) {
+          clearInterval(downloadPollRef.current);
+          if (data.success) resolve(data);
+          else reject(new Error(`Proxmox task failed (exit status: ${data.exit_status}).`));
+        }
+      } catch (e) { /* transient poll failure, will retry */ }
+    };
+    poll();
+    downloadPollRef.current = setInterval(poll, 3000);
+  });
 
   // Real-time job polling — genuine progress, not fake
   useEffect(() => {
@@ -284,14 +378,75 @@ export default function AdminTemplateWizardPage() {
               <label style={labelStyle}>Disk (GB)</label>
               <input type="number" style={inputStyle} value={form.disk_gb} onChange={e => setForm({ ...form, disk_gb: e.target.value })} />
             </div>
-            <div>
-              <label style={labelStyle}>ISO Image (real, already-uploaded)</label>
-              <select style={inputStyle} value={form.iso_volid} onChange={e => setForm({ ...form, iso_volid: e.target.value })}>
-                <option value="">Select...</option>
-                {isos.map(i => <option key={i.volid} value={i.volid}>{i.filename} ({(i.size_bytes / 1e9).toFixed(1)} GB)</option>)}
-              </select>
-            </div>
           </div>
+
+          {/* ISO acquisition — pick an already-uploaded ISO, upload a
+              real file directly, or have Proxmox download one
+              server-side from a URL. Never touches Proxmox's own UI. */}
+          <label style={labelStyle}>ISO Image</label>
+          <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
+            {[['existing', 'Use Existing'], ['upload', 'Upload File'], ['url', 'Download from URL']].map(([mode, label]) => (
+              <button key={mode} onClick={() => setIsoMode(mode)} style={{
+                padding: '6px 14px', borderRadius: '999px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                border: '1px solid var(--border-color)',
+                background: isoMode === mode ? 'var(--accent-primary)' : 'var(--bg-input)',
+                color: isoMode === mode ? '#fff' : 'var(--text-secondary)',
+              }}>{label}</button>
+            ))}
+          </div>
+
+          {isoMode === 'existing' && (
+            <select style={{ ...inputStyle, marginBottom: '16px' }} value={form.iso_volid} onChange={e => setForm({ ...form, iso_volid: e.target.value })}>
+              <option value="">Select...</option>
+              {isos.map(i => <option key={i.volid} value={i.volid}>{i.filename} ({(i.size_bytes / 1e9).toFixed(2)} GB)</option>)}
+            </select>
+          )}
+
+          {isoMode === 'upload' && (
+            <div style={{ marginBottom: '16px' }}>
+              <input type="file" accept=".iso" onChange={handleFileSelect} disabled={uploading}
+                style={{ fontSize: '12px', color: 'var(--text-secondary)' }} />
+              {uploading && (
+                <div style={{ marginTop: '10px' }}>
+                  <div style={{ height: '8px', borderRadius: '4px', background: 'var(--bg-input)', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${uploadProgress}%`, background: 'var(--accent-primary)', transition: 'width 0.2s' }} />
+                  </div>
+                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>
+                    {uploadProgress < 100 ? `Uploading... ${uploadProgress}%` : 'Finalizing on the server...'}
+                  </p>
+                </div>
+              )}
+              {form.iso_volid && !uploading && isoMode === 'upload' && (
+                <p style={{ fontSize: '12px', color: 'var(--status-success, #10B981)', marginTop: '8px' }}>
+                  Selected: {form.iso_volid.split('/').pop()}
+                </p>
+              )}
+            </div>
+          )}
+
+          {isoMode === 'url' && (
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                <input style={inputStyle} value={isoUrl} onChange={e => setIsoUrl(e.target.value)}
+                  placeholder="https://releases.ubuntu.com/.../ubuntu-22.04.5-desktop-amd64.iso" disabled={downloading} />
+                <input style={inputStyle} value={isoUrlFilename} onChange={e => setIsoUrlFilename(e.target.value)}
+                  placeholder="save-as-name.iso" disabled={downloading} />
+              </div>
+              <button style={primaryBtn} onClick={handleUrlDownload} disabled={downloading}>
+                {downloading ? <Loader2 size={14} className="animate-spin" style={{ display: 'inline', marginRight: 6 }} /> : null}
+                Start Download
+              </button>
+              {downloading && (
+                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '10px' }}>{downloadStatusText}</p>
+              )}
+              {form.iso_volid && !downloading && isoMode === 'url' && (
+                <p style={{ fontSize: '12px', color: 'var(--status-success, #10B981)', marginTop: '8px' }}>
+                  Selected: {form.iso_volid.split('/').pop()}
+                </p>
+              )}
+            </div>
+          )}
+
           <button style={primaryBtn} onClick={handleCreateVm} disabled={loading}>
             {loading ? <Loader2 size={14} className="animate-spin" style={{ display: 'inline', marginRight: 6 }} /> : null}
             Create VM

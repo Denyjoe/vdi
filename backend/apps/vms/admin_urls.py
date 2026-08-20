@@ -5,6 +5,9 @@ from . import template_wizard_views as wizard
 urlpatterns = [
     # ── Admin OS/Template Management wizard ──────────────────────────
     path('templates/available-isos/', wizard.AdminAvailableISOsView.as_view(), name='admin-template-available-isos'),
+    path('templates/isos/upload/', wizard.AdminISOUploadView.as_view(), name='admin-template-iso-upload'),
+    path('templates/isos/download-url/', wizard.AdminISODownloadUrlView.as_view(), name='admin-template-iso-download-url'),
+    path('templates/isos/download-status/', wizard.AdminISODownloadStatusView.as_view(), name='admin-template-iso-download-status'),
     path('templates/desktop-environments/', wizard.AdminDesktopEnvironmentProfilesView.as_view(), name='admin-template-desktop-environments'),
     path('templates/create-job/', wizard.AdminTemplateJobCreateView.as_view(), name='admin-template-create-job'),
     path('templates/jobs/<int:pk>/', wizard.AdminTemplateJobDetailView.as_view(), name='admin-template-job-detail'),

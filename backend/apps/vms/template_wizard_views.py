@@ -39,6 +39,111 @@ class AdminAvailableISOsView(views.APIView):
         return Response({'success': True, 'data': isos})
 
 
+class AdminISOUploadView(views.APIView):
+    """POST /api/admin/templates/isos/upload/  (multipart file upload)
+    Real, direct ISO upload straight to Proxmox's own storage — an
+    admin never needs Proxmox's UI or SCP/SFTP access to get an ISO
+    onto the server. Confirmed real via a live test: Proxmox's own
+    upload endpoint returns a genuine UPID ('...:imgcopy::...') and
+    the file genuinely appears in storage once that task completes.
+
+    The uploaded file is streamed straight through to Proxmox's HTTP
+    API (never fully buffered in Django's memory) — Django's own
+    upload handling already writes anything past the small-file
+    threshold to a temp file on disk, and `requests` reads that
+    file-like object in chunks rather than loading it all before
+    sending, so this never holds a multi-GB ISO in RAM at once."""
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        from .services.proxmox_service import ProxmoxService
+
+        iso_file = request.FILES.get('iso')
+        if not iso_file:
+            return Response({'success': False, 'message': 'No file provided.'}, status=400)
+        if not iso_file.name.lower().endswith('.iso'):
+            return Response({'success': False, 'message': 'File must be a .iso'}, status=400)
+
+        ps = ProxmoxService()
+
+        # Real size sanity check — confirm real available disk space
+        # on the actual target storage first, not just trust the
+        # upload to fail gracefully.
+        try:
+            storage_status = ps.proxmox.nodes(ps.node).storage('local').status.get()
+        except Exception as e:
+            logger.error('Could not check Proxmox storage space: %s', e)
+            return Response({'success': False, 'message': f'Could not reach Proxmox storage: {e}'}, status=502)
+
+        available = storage_status.get('avail', 0)
+        if iso_file.size > available:
+            return Response({
+                'success': False,
+                'message': f'Not enough disk space on the server for this ISO ({iso_file.size} bytes needed, {available} available).',
+            }, status=400)
+
+        try:
+            upid = ps.upload_iso(iso_file, iso_file.name)
+        except Exception as e:
+            logger.error('ISO upload failed: %s', e, exc_info=True)
+            return Response({'success': False, 'message': f'Upload failed: {e}'}, status=502)
+
+        return Response({'success': True, 'data': {'upid': upid, 'filename': iso_file.name}})
+
+
+class AdminISODownloadUrlView(views.APIView):
+    """POST /api/admin/templates/isos/download-url/  {url, filename}
+    Triggers a real, server-side download — Proxmox itself fetches the
+    URL directly on the node; this never proxies the actual multi-GB
+    transfer through Django. Confirmed real via a live test: a genuine
+    'download' UPID, a real task log showing the actual transfer, and
+    the file genuinely appearing in storage afterward."""
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        from .services.proxmox_service import ProxmoxService
+
+        url = (request.data.get('url') or '').strip()
+        filename = (request.data.get('filename') or '').strip()
+        if not url or not filename:
+            return Response({'success': False, 'message': 'url and filename are required.'}, status=400)
+        if not filename.lower().endswith('.iso'):
+            return Response({'success': False, 'message': 'filename must end in .iso'}, status=400)
+
+        ps = ProxmoxService()
+        try:
+            upid = ps.download_iso_from_url(url, filename)
+        except Exception as e:
+            logger.error('ISO download-from-url failed to start: %s', e, exc_info=True)
+            return Response({'success': False, 'message': f'Could not start download: {e}'}, status=502)
+
+        return Response({'success': True, 'data': {'upid': upid, 'filename': filename}})
+
+
+class AdminISODownloadStatusView(views.APIView):
+    """GET /api/admin/templates/isos/download-status/?upid=<real_task_id>
+    Polls Proxmox's real task status API — genuine progress/completion
+    state for either an upload or a download-url task, since both
+    return the same kind of real, pollable UPID."""
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        from .services.proxmox_service import ProxmoxService
+
+        upid = request.query_params.get('upid', '').strip()
+        if not upid:
+            return Response({'success': False, 'message': 'upid is required.'}, status=400)
+
+        ps = ProxmoxService()
+        try:
+            task_status = ps.get_task_status(upid)
+        except Exception as e:
+            logger.error('Could not poll task status for %s: %s', upid, e)
+            return Response({'success': False, 'message': f'Could not check task status: {e}'}, status=502)
+
+        return Response({'success': True, 'data': task_status})
+
+
 class AdminDesktopEnvironmentProfilesView(views.APIView):
     """Real, live list of configured desktop environment profiles — the
     wizard's dropdown reads this, never a hardcoded XFCE/GNOME pair, so

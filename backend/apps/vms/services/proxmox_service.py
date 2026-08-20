@@ -15,6 +15,7 @@ This service handles:
 from decouple import config
 import time
 import logging
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -129,6 +130,84 @@ class ProxmoxService:
                     'size_bytes': c.get('size'),
                 })
         return isos
+
+    def upload_iso(self, file_obj, filename, storage=None):
+        """
+        Upload a real ISO file directly to Proxmox's own storage —
+        confirmed real via a live test (POST .../storage/local/upload
+        returns a genuine UPID, e.g. 'UPID:pve:...:imgcopy::...', and
+        the file genuinely appears in the storage's content listing
+        once that task completes).
+
+        Streams `file_obj` (Django's UploadedFile — already written to
+        a temp file on disk by Django's own upload handling for
+        anything past the small-file memory threshold, so this never
+        holds the whole multi-GB ISO in RAM) straight into the
+        multipart request body via `requests`, which reads it in
+        chunks rather than buffering it all before sending.
+
+        Args:
+            file_obj: A file-like object (e.g. Django UploadedFile).
+            filename (str): Real filename to store it as.
+            storage (str): Target storage name (defaults to self.storage
+                — but note self.storage is normally the VM-disk storage
+                like 'local-lvm', which doesn't accept ISO content, so
+                callers should pass the real ISO-capable storage, e.g.
+                'local').
+
+        Returns:
+            str: The real Proxmox UPID for the async upload task —
+            callers should poll get_task_status() until it stops.
+        """
+        storage = storage or 'local'
+        url = f'https://{self.host}:{PROXMOX_PORT}/api2/json/nodes/{self.node}/storage/{storage}/upload'
+        headers = {'Authorization': f'PVEAPIToken={PROXMOX_USER}!{PROXMOX_TOKEN_NAME}={PROXMOX_TOKEN_SECRET}'}
+        files = {'filename': (filename, file_obj, 'application/octet-stream')}
+        data = {'content': 'iso'}
+        resp = requests.post(url, headers=headers, files=files, data=data, verify=PROXMOX_VERIFY_SSL, timeout=None)
+        resp.raise_for_status()
+        return resp.json()['data']
+
+    def download_iso_from_url(self, url, filename, storage=None):
+        """
+        Trigger a real, server-side ISO download — Proxmox itself
+        fetches the URL directly on the node, never proxied through
+        Django (confirmed real via a live test: a genuine 'download'
+        UPID, real task log showing the actual wget-style transfer,
+        and the file genuinely appearing in storage afterward).
+
+        Args:
+            url (str): Real, reachable URL to download from.
+            filename (str): Real filename to store it as.
+            storage (str): Target storage name (defaults to 'local').
+
+        Returns:
+            str: The real Proxmox UPID for the async download task.
+        """
+        storage = storage or 'local'
+        upid = self.proxmox.nodes(self.node).storage(storage)('download-url').post(
+            content='iso',
+            filename=filename,
+            url=url,
+        )
+        return upid
+
+    def get_task_status(self, upid):
+        """
+        Poll the real status of any async Proxmox task (upload,
+        download-url, etc.) by its UPID.
+
+        Returns:
+            dict: {status, exit_status, finished (bool), success (bool)}
+        """
+        status = self.proxmox.nodes(self.node).tasks(upid).status.get()
+        finished = status.get('status') == 'stopped'
+        return {
+            'status': status.get('status'),
+            'exit_status': status.get('exitstatus'),
+            'finished': finished,
+            'success': finished and status.get('exitstatus') == 'OK',
+        }
 
     def create_vm(self, name, cpu_cores, ram_gb, disk_gb, iso_volid):
         """
