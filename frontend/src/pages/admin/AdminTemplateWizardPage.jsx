@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Loader2, CheckCircle2, XCircle, Terminal, Server, Monitor, ArrowRight, X } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Terminal, Server, Monitor, ArrowRight, X, Power, PowerOff, RotateCw } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import GuacamoleEmbed from '../../components/shared/GuacamoleEmbed';
@@ -69,6 +69,13 @@ export default function AdminTemplateWizardPage() {
   const [consoleTab, setConsoleTab] = useState('console'); // 'console' | 'terminal'
   const [consoleUrl2, setConsoleUrl2] = useState(null);
   const [consoleLoading, setConsoleLoading] = useState(false);
+  // Real, polled VM power state — before this, a stopped/hung VM and a
+  // genuine display bug looked identical: a permanently blank console
+  // with no way to tell which one it was, let alone fix it, from
+  // inside the wizard.
+  const [powerStatus, setPowerStatus] = useState(null); // null = not known yet
+  const [powerBusy, setPowerBusy] = useState(false);
+  const powerPollRef = useRef(null);
   const pollRef = useRef(null);
 
   const [form, setForm] = useState({
@@ -390,6 +397,40 @@ export default function AdminTemplateWizardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [job?.proxmox_vmid, job?.status]);
 
+  // Real, live power-state polling — the console/terminal tab has no
+  // other way to tell a genuinely stopped/hung VM apart from a display
+  // bug, so this has to reflect Proxmox's actual current state, not a
+  // cached/assumed one. Polls only while the console step is visible.
+  useEffect(() => {
+    if (!job?.proxmox_vmid || job.status !== 'awaiting_os_install') {
+      setPowerStatus(null);
+      return;
+    }
+    const poll = async () => {
+      try {
+        const r = await api.get(`/admin/templates/jobs/${job.id}/power-status/`);
+        setPowerStatus(r.data.data.power_status);
+      } catch (e) { /* transient poll failure, will retry */ }
+    };
+    poll();
+    powerPollRef.current = setInterval(poll, 5000);
+    return () => clearInterval(powerPollRef.current);
+  }, [job?.id, job?.proxmox_vmid, job?.status]);
+
+  const handlePower = async (action) => {
+    if (!job?.id) return;
+    setPowerBusy(true);
+    try {
+      const r = await api.post(`/admin/templates/jobs/${job.id}/power/`, { action });
+      setPowerStatus(r.data.data.power_status);
+      toast.success(`Power action "${action}" sent.`);
+    } catch (e) {
+      toast.error(e.response?.data?.message || `Power action "${action}" failed.`);
+    } finally {
+      setPowerBusy(false);
+    }
+  };
+
   const openTerminal = async () => {
     if (!sshCreds.ssh_password) {
       toast.error('Enter SSH credentials first.');
@@ -640,6 +681,75 @@ export default function AdminTemplateWizardPage() {
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>VM: <b>{job.proxmox_vmid}</b></span>
             {vmIp && <span style={{ fontSize: '12px', color: 'var(--status-success, #10B981)' }}>Real IP detected: <b>{vmIp}</b> (SSH reachable)</span>}
+          </div>
+
+          {/* Real power state + controls — a stopped or hung VM used to look
+              identical to a genuine display/VNC bug: a permanently blank
+              console with no way to tell which one it was, or fix it. */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '10px 14px',
+            background: 'var(--bg-input)',
+            borderRadius: '10px',
+            marginBottom: '10px',
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}>
+              <div style={{
+                width: '8px', height: '8px',
+                borderRadius: '50%',
+                background: powerStatus === 'running'
+                  ? 'var(--status-online, #10B981)'
+                  : powerStatus === null
+                    ? 'var(--text-muted)'
+                    : 'var(--status-offline, #EF4444)',
+              }} />
+              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                {powerStatus === null ? 'Checking…' : powerStatus === 'running' ? 'Running' : 'Stopped'}
+              </span>
+            </div>
+
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+              {powerStatus !== 'running' && (
+                <button onClick={() => handlePower('start')} disabled={powerBusy || powerStatus === null} style={{
+                  display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px', borderRadius: '8px',
+                  fontSize: '12px', fontWeight: 600, cursor: 'pointer', border: '1px solid var(--border-color)',
+                  background: 'var(--bg-card)', color: 'var(--text-primary)',
+                }}>
+                  <Power size={14} /> Power On
+                </button>
+              )}
+              {powerStatus === 'running' && (
+                <>
+                  <button onClick={() => handlePower('restart')} disabled={powerBusy} style={{
+                    display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px', borderRadius: '8px',
+                    fontSize: '12px', fontWeight: 600, cursor: 'pointer', border: '1px solid var(--border-color)',
+                    background: 'var(--bg-card)', color: 'var(--text-primary)',
+                  }}>
+                    <RotateCw size={14} /> Restart
+                  </button>
+                  <button onClick={() => handlePower('shutdown')} disabled={powerBusy} style={{
+                    display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px', borderRadius: '8px',
+                    fontSize: '12px', fontWeight: 600, cursor: 'pointer', border: '1px solid var(--border-color)',
+                    background: 'var(--bg-card)', color: 'var(--text-primary)',
+                  }}>
+                    <PowerOff size={14} /> Shutdown
+                  </button>
+                  <button onClick={() => { if (window.confirm('Hard power-off the VM? Use this only if Shutdown doesn\'t work (e.g. a hung guest).')) handlePower('stop'); }} disabled={powerBusy} style={{
+                    display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px', borderRadius: '8px',
+                    fontSize: '12px', fontWeight: 600, cursor: 'pointer', border: '1px solid var(--border-color)',
+                    background: 'transparent', color: 'var(--text-secondary)',
+                  }}>
+                    <PowerOff size={14} /> Force Off
+                  </button>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Console / Terminal tabs — same VM, both real, both embedded via the same proven GuacamoleEmbed */}

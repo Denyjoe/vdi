@@ -978,6 +978,70 @@ class AdminTemplateJobOpenConsoleView(views.APIView):
         return Response({'success': True, 'data': {'guacamole_url': url, 'connection_id': connection_id}})
 
 
+class AdminTemplateJobPowerStatusView(views.APIView):
+    """GET /api/admin/templates/jobs/<id>/power-status/
+    Real, current power state of the job's VM, straight from Proxmox —
+    no caching. This is what the wizard's status indicator polls, so a
+    stale/guessed value here would defeat the entire point of it."""
+    permission_classes = [IsAdminUser]
+
+    def get(self, request, pk):
+        from .services.proxmox_service import ProxmoxService
+
+        job = get_object_or_404(TemplateCreationJob, pk=pk)
+        if not job.proxmox_vmid:
+            return Response({'success': False, 'message': 'This job has no VM yet.'}, status=400)
+
+        status_str = ProxmoxService().get_vm_status(job.proxmox_vmid)
+        return Response({'success': True, 'data': {'power_status': status_str}})
+
+
+class AdminTemplateJobPowerView(views.APIView):
+    """POST /api/admin/templates/jobs/<id>/power/
+    {action: 'start' | 'stop' | 'shutdown' | 'restart'}
+    Real Proxmox power control for the job's VM — the wizard had no
+    way for an admin to tell or change the VM's actual power state
+    from inside the console/terminal tab, so a VM that had simply
+    stopped (or hung and needed a hard reset) looked identical to a
+    genuine display/VNC bug: a permanently blank console with no
+    explanation and no way to act on it."""
+    permission_classes = [IsAdminUser]
+
+    VALID_ACTIONS = {'start', 'stop', 'shutdown', 'restart'}
+
+    def post(self, request, pk):
+        from .services.proxmox_service import ProxmoxService
+
+        job = get_object_or_404(TemplateCreationJob, pk=pk)
+        if not job.proxmox_vmid:
+            return Response({'success': False, 'message': 'This job has no VM yet.'}, status=400)
+
+        action = (request.data.get('action') or '').strip()
+        if action not in self.VALID_ACTIONS:
+            return Response({
+                'success': False,
+                'message': f"action must be one of {sorted(self.VALID_ACTIONS)}.",
+            }, status=400)
+
+        ps = ProxmoxService()
+        try:
+            if action == 'start':
+                ps.start_vm(job.proxmox_vmid)
+            elif action == 'stop':
+                ps.stop_vm(job.proxmox_vmid)
+            elif action == 'shutdown':
+                ps.shutdown_vm(job.proxmox_vmid)
+            elif action == 'restart':
+                ps.reboot_vm(job.proxmox_vmid)
+        except Exception as e:
+            logger.error('Power action %s failed for job %s (vm %s): %s', action, job.id, job.proxmox_vmid, e)
+            return Response({'success': False, 'message': f'Power action failed: {e}'}, status=502)
+
+        job.log_step(f'Power action "{action}" sent to VM {job.proxmox_vmid}.')
+        status_str = ps.get_vm_status(job.proxmox_vmid)
+        return Response({'success': True, 'data': {'power_status': status_str}})
+
+
 class AdminVMOpenTerminalView(views.APIView):
     """POST /api/admin/vms/<int:proxmox_vmid>/open-terminal/
     General-purpose real SSH terminal for ANY real VM by its Proxmox

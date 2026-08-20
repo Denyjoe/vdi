@@ -21,6 +21,8 @@ urlpatterns = [
     path('templates/jobs/<int:pk>/promote/', wizard.AdminTemplateJobPromoteView.as_view(), name='admin-template-job-promote'),
     path('templates/jobs/<int:pk>/open-terminal/', wizard.AdminTemplateJobOpenTerminalView.as_view(), name='admin-template-job-open-terminal'),
     path('templates/jobs/<int:pk>/open-console/', wizard.AdminTemplateJobOpenConsoleView.as_view(), name='admin-template-job-open-console'),
+    path('templates/jobs/<int:pk>/power/', wizard.AdminTemplateJobPowerView.as_view(), name='admin-template-job-power'),
+    path('templates/jobs/<int:pk>/power-status/', wizard.AdminTemplateJobPowerStatusView.as_view(), name='admin-template-job-power-status'),
     path('vms/<int:proxmox_vmid>/open-terminal/', wizard.AdminVMOpenTerminalView.as_view(), name='admin-vm-open-terminal'),
 
     path('templates/<int:pk>/pricing/', admin_views.AdminTemplatePricingView.as_view(), name='admin-template-pricing'),

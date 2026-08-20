@@ -450,13 +450,40 @@ class ProxmoxService:
 
     def stop_vm(self, vmid):
         """
-        Stop a VM by its VMID.
+        Hard power-off a VM by its VMID (equivalent to pulling the
+        power cord) — for when the guest is unresponsive and a
+        graceful shutdown_vm() can't complete.
 
         Args:
             vmid (int): The Proxmox VM ID to stop.
         """
         self.proxmox.nodes(self.node).qemu(vmid).status.stop.post()
         logger.info("Stopped VM %s", vmid)
+
+    def shutdown_vm(self, vmid):
+        """
+        Ask the guest OS to shut down gracefully via ACPI. Requires the
+        guest to actually respond to the ACPI event (needs a working
+        power-management daemon inside the guest) — if the guest is
+        hung/unresponsive this will time out and stop_vm() is the real
+        fallback, not a retry of this same call.
+
+        Args:
+            vmid (int): The Proxmox VM ID to shut down.
+        """
+        self.proxmox.nodes(self.node).qemu(vmid).status.shutdown.post()
+        logger.info("Requested graceful shutdown of VM %s", vmid)
+
+    def reboot_vm(self, vmid):
+        """
+        Ask the guest OS to reboot gracefully via ACPI (same caveat as
+        shutdown_vm() — needs a responsive guest).
+
+        Args:
+            vmid (int): The Proxmox VM ID to reboot.
+        """
+        self.proxmox.nodes(self.node).qemu(vmid).status.reboot.post()
+        logger.info("Requested reboot of VM %s", vmid)
 
     def wait_for_task(self, upid, timeout=60, poll_interval=2):
         """Poll a Proxmox task UPID until it completes.
