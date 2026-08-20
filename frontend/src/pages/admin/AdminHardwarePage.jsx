@@ -11,12 +11,13 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Server, Monitor, Cpu, HardDrive, Wifi, ArrowUp, ArrowDown, Clock, RefreshCw, AlertTriangle, CheckCircle2, Trash2, EyeOff, Square, XCircle, ShieldCheck } from 'lucide-react';
+import { Server, Monitor, Cpu, HardDrive, Wifi, ArrowUp, ArrowDown, Clock, RefreshCw, AlertTriangle, CheckCircle2, Trash2, EyeOff, Square, XCircle, ShieldCheck, Terminal, X } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, PieChart, Pie, Cell, RadialBarChart, RadialBar } from 'recharts';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import useBreakpoint from '../../hooks/useBreakpoint';
 import ConfirmModal from '../../components/shared/ConfirmModal';
+import GuacamoleEmbed from '../../components/shared/GuacamoleEmbed';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -123,6 +124,30 @@ function InfrastructureHealth({ isMobile }) {
   const [actionError, setActionError] = useState('');
   const [busyKey, setBusyKey] = useState(null); // `orphan-<vmid>-<action>` | `stale-<id>-<action>`
   const [confirmTarget, setConfirmTarget] = useState(null); // { type: 'orphan'|'stale', item, action }
+  // Reuses the same general-purpose open-terminal endpoint/GuacamoleEmbed
+  // component built for the admin template wizard — real SSH into any
+  // real VM by vmid, not tied to a wizard job.
+  const [terminalPromptVmid, setTerminalPromptVmid] = useState(null);
+  const [terminalCreds, setTerminalCreds] = useState({ ssh_username: 'ospace', ssh_password: '' });
+  const [terminalUrl, setTerminalUrl] = useState(null);
+  const [terminalLoading, setTerminalLoading] = useState(false);
+
+  const openVmTerminal = async (vmid) => {
+    if (!terminalCreds.ssh_password) {
+      toast.error('Enter the SSH password first.');
+      return;
+    }
+    setTerminalLoading(true);
+    try {
+      const res = await api.post(`/admin/vms/${vmid}/open-terminal/`, terminalCreds);
+      setTerminalUrl(res.data.data.guacamole_url);
+      setTerminalPromptVmid(null);
+    } catch (e) {
+      toast.error(e.response?.data?.message || `Could not open a terminal to VM ${vmid}.`);
+    } finally {
+      setTerminalLoading(false);
+    }
+  };
 
   const fetchReport = useCallback(async (isManual = false) => {
     if (isManual) setRefreshing(true);
@@ -276,6 +301,16 @@ function InfrastructureHealth({ isMobile }) {
                         </p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
+                        {item.status === 'running' && (
+                          <button
+                            onClick={() => setTerminalPromptVmid(item.vmid)}
+                            disabled={deleteBusy || ignoreBusy}
+                            style={{ minWidth: '44px', minHeight: '44px' }}
+                            className="flex items-center justify-center gap-1.5 px-3 rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-xs font-medium transition-colors disabled:opacity-50"
+                          >
+                            <Terminal className="w-3.5 h-3.5" /> Terminal
+                          </button>
+                        )}
                         <button
                           onClick={() => setConfirmTarget({ type: 'orphan', item, action: 'delete' })}
                           disabled={deleteBusy || ignoreBusy}
@@ -293,6 +328,38 @@ function InfrastructureHealth({ isMobile }) {
                           <EyeOff className="w-3.5 h-3.5" /> {ignoreBusy ? 'Tracking...' : 'Ignore'}
                         </button>
                       </div>
+                      {terminalPromptVmid === item.vmid && (
+                        <div className="w-full flex items-center gap-2 flex-wrap mt-2 pt-2 border-t border-[var(--border-color)]">
+                          <input
+                            value={terminalCreds.ssh_username}
+                            onChange={e => setTerminalCreds({ ...terminalCreds, ssh_username: e.target.value })}
+                            placeholder="SSH username"
+                            className="text-xs px-2 py-1.5 rounded-lg bg-[var(--bg-input)] border border-[var(--border-color)] text-[var(--text-primary)]"
+                            style={{ width: '120px' }}
+                          />
+                          <input
+                            type="password"
+                            value={terminalCreds.ssh_password}
+                            onChange={e => setTerminalCreds({ ...terminalCreds, ssh_password: e.target.value })}
+                            placeholder="SSH password"
+                            className="text-xs px-2 py-1.5 rounded-lg bg-[var(--bg-input)] border border-[var(--border-color)] text-[var(--text-primary)]"
+                            style={{ width: '140px' }}
+                          />
+                          <button
+                            onClick={() => openVmTerminal(item.vmid)}
+                            disabled={terminalLoading}
+                            className="text-xs px-3 py-1.5 rounded-lg bg-[var(--accent-primary)] text-white font-medium disabled:opacity-50"
+                          >
+                            {terminalLoading ? 'Connecting...' : 'Connect'}
+                          </button>
+                          <button
+                            onClick={() => setTerminalPromptVmid(null)}
+                            className="text-xs px-2 py-1.5 rounded-lg text-[var(--text-muted)]"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -364,6 +431,22 @@ function InfrastructureHealth({ isMobile }) {
         }}
         onCancel={() => setConfirmTarget(null)}
       />
+
+      {/* Real terminal modal — reuses the exact same GuacamoleEmbed
+          component as the admin template wizard's terminal. */}
+      {terminalUrl && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '90vw', height: '80vh', background: '#000', borderRadius: '12px', overflow: 'hidden', position: 'relative', border: '1px solid var(--border-color)' }}>
+            <button onClick={() => setTerminalUrl(null)} style={{
+              position: 'absolute', top: 8, right: 8, zIndex: 10, background: 'var(--bg-card)', border: '1px solid var(--border-color)',
+              borderRadius: '8px', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+            }}>
+              <X size={16} style={{ color: 'var(--text-primary)' }} />
+            </button>
+            <GuacamoleEmbed url={terminalUrl} title="VM Terminal" loadingText="Connecting to terminal..." tunnelActive={true} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

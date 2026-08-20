@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import useBreakpoint from '../../hooks/useBreakpoint';
 import { 
   Plus, ChevronDown, ChevronUp, Edit2, Eye, EyeOff, Trash2, 
@@ -55,6 +56,7 @@ const EMPTY_FORM = {
 };
 
 export default function AdminTemplatesPage() {
+  const navigate = useNavigate();
   const { isMobile } = useBreakpoint();
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -236,10 +238,20 @@ export default function AdminTemplatesPage() {
             {refreshing ? 'Refreshing...' : 'Refresh'}
           </button>
           {!formOpen && (
-            <button onClick={openCreateForm} className="flex items-center gap-2 bg-[var(--accent-primary)] hover:opacity-90 text-white px-4 py-2 rounded-xl transition-opacity font-medium shadow-lg shadow-[var(--accent-primary)]/20">
-              <Plus size={18} />
-              Add Template
-            </button>
+            <>
+              <button onClick={() => navigate('/admin/templates/new')} style={{
+                display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
+                borderRadius: '10px', background: 'var(--bg-card)', color: 'var(--text-primary)',
+                border: '1px solid var(--border-color)', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+              }} title="Build a genuinely new OS template from scratch — real VM, real install, real config">
+                <Server size={14} />
+                New OS Template
+              </button>
+              <button onClick={openCreateForm} className="flex items-center gap-2 bg-[var(--accent-primary)] hover:opacity-90 text-white px-4 py-2 rounded-xl transition-opacity font-medium shadow-lg shadow-[var(--accent-primary)]/20">
+                <Plus size={18} />
+                Add Template
+              </button>
+            </>
           )}
         </div>
       </div>

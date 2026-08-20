@@ -414,3 +414,109 @@ class VMPoolEntry(models.Model):
     def __str__(self):
         """Return a readable representation of this pool entry."""
         return f"Pool VM {self.proxmox_vmid} ({self.status})"
+
+
+class DesktopEnvironmentProfile(models.Model):
+    """Reusable, data-driven definition of how to configure a specific
+    desktop environment (XFCE, GNOME, ...) over RDP via xrdp.
+
+    Adding a new environment is a new row here, not new code — every
+    consumer (the template wizard's apply-configuration step) just reads
+    session_command/fix_script/default_apps off whichever profile the
+    admin picked.
+
+    The two seeded rows are NOT reconstructed from memory or from stale
+    scripts — they were extracted by live-inspecting the actual, current
+    running Ubuntu Desktop (proxmox_template_id=9026) and Zorin Desktop
+    (proxmox_template_id=9010) templates via real guest-agent exec calls
+    (cat /etc/xrdp/startwm.sh, dpkg -l, etc.) against disposable clones,
+    then deleting those clones. See the admin template-wizard build's
+    commit message for the full real-evidence trail.
+    """
+    name = models.CharField(
+        max_length=50, unique=True,
+        help_text="Short machine key, e.g. 'xfce', 'gnome-zorin'.")
+    display_name = models.CharField(max_length=100)
+    session_command = models.TextField(
+        help_text="The real, verified /etc/xrdp/startwm.sh content for this environment.")
+    fix_script = models.TextField(
+        blank=True,
+        help_text="Real, proven setup commands to run before writing session_command "
+                   "(package installs, cursor-fix file creation, permission fixes).")
+    default_apps = models.JSONField(
+        default=list, blank=True,
+        help_text="Suggested default app package names for this environment, e.g. ['firefox'].")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['display_name']
+        verbose_name = 'Desktop Environment Profile'
+        verbose_name_plural = 'Desktop Environment Profiles'
+
+    def __str__(self):
+        return self.display_name
+
+
+class TemplateCreationJob(models.Model):
+    """Tracks one admin's multi-step run through the template-creation
+    wizard, from VM creation through to a promoted, live VMTemplate.
+
+    This spans multiple separate admin HTTP requests over real,
+    unbounded time (OS install is a genuinely manual, human-paced step),
+    so it needs to persist state between them rather than living in one
+    atomic request/response.
+    """
+    STATUS_CHOICES = [
+        ('vm_creating', 'Creating VM'),
+        ('awaiting_os_install', 'Awaiting OS Install'),
+        ('configuring', 'Applying Configuration'),
+        ('installing_apps', 'Installing Applications'),
+        ('finalizing', 'Finalizing Template'),
+        ('verifying', 'Verifying Template'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+    ]
+
+    name = models.CharField(max_length=100)
+    proxmox_vmid = models.IntegerField(null=True, blank=True)
+    desktop_environment = models.ForeignKey(
+        DesktopEnvironmentProfile, on_delete=models.PROTECT)
+    cpu_cores = models.IntegerField(default=2)
+    ram_gb = models.IntegerField(default=4)
+    disk_gb = models.IntegerField(default=20)
+    iso_filename = models.CharField(max_length=255, blank=True)
+    status = models.CharField(
+        max_length=30, choices=STATUS_CHOICES, default='vm_creating',
+        db_index=True)
+    error_message = models.TextField(blank=True)
+    log = models.JSONField(
+        default=list, blank=True,
+        help_text="Real, timestamped step log for admin visibility.")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    final_template_id = models.IntegerField(
+        null=True, blank=True,
+        help_text="proxmox_vmid of the verified, finalized template, once known.")
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Template Creation Job'
+        verbose_name_plural = 'Template Creation Jobs'
+
+    def __str__(self):
+        return f"{self.name} ({self.status})"
+
+    def log_step(self, message, level='info'):
+        """Append a real, timestamped step to this job's log and save.
+
+        Kept as a model method so every view that touches a job logs the
+        exact same way — no risk of one endpoint forgetting the
+        timestamp/level shape another relies on.
+        """
+        self.log.append({
+            'ts': timezone.now().isoformat(),
+            'level': level,
+            'message': message,
+        })
+        self.save(update_fields=['log'])

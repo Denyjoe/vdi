@@ -74,6 +74,7 @@ import SignInPage from "./pages/auth/SignInPage";
 const AdminDashboard = React.lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminHardwarePage = React.lazy(() => import("./pages/admin/AdminHardwarePage"));
 const AdminTemplatesPage = React.lazy(() => import("./pages/admin/AdminTemplatesPage"));
+const AdminTemplateWizardPage = React.lazy(() => import("./pages/admin/AdminTemplateWizardPage"));
 const AdminVMsPage = React.lazy(() => import("./pages/admin/AdminVMsPage"));
 const AdminAnalyticsPage = React.lazy(() => import("./pages/admin/AdminAnalyticsPage"));
 const AdminUsersPage = React.lazy(() => import("./pages/admin/AdminUsersPage"));
@@ -177,6 +178,7 @@ export default function App() {
             <Route path="users" element={<Suspense fallback={<LoadingSpinner />}><AdminUsersPage /></Suspense>} />
             <Route path="vms" element={<Suspense fallback={<LoadingSpinner />}><AdminVMsPage /></Suspense>} />
             <Route path="templates" element={<Suspense fallback={<LoadingSpinner />}><AdminTemplatesPage /></Suspense>} />
+            <Route path="templates/new" element={<Suspense fallback={<LoadingSpinner />}><AdminTemplateWizardPage /></Suspense>} />
             <Route path="hardware" element={<Suspense fallback={<LoadingSpinner />}><AdminHardwarePage /></Suspense>} />
             <Route path="analytics" element={<Suspense fallback={<LoadingSpinner />}><AdminAnalyticsPage /></Suspense>} />
             <Route path="logs" element={<Suspense fallback={<LoadingSpinner />}><AdminLogsPage /></Suspense>} />

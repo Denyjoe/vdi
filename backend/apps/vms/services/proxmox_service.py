@@ -98,6 +98,79 @@ class ProxmoxService:
             return 110
         return max_id + 1
 
+    def list_available_isos(self):
+        """
+        List real, already-uploaded ISO images from Proxmox's own
+        storage API — never a hardcoded list, since the whole point is
+        that an admin only ever picks from what's genuinely available.
+
+        Returns:
+            list[dict]: [{volid, filename, size_bytes}, ...] for every
+            ISO found on any storage that supports 'iso' content.
+        """
+        isos = []
+        storages = self.proxmox.nodes(self.node).storage.get()
+        for s in storages:
+            content_types = (s.get('content') or '').split(',')
+            if 'iso' not in content_types:
+                continue
+            storage_name = s.get('storage')
+            try:
+                content = self.proxmox.nodes(self.node).storage(storage_name).content.get(content='iso')
+            except Exception as e:
+                logger.warning("Could not list ISOs on storage %s: %s", storage_name, e)
+                continue
+            for c in content:
+                volid = c.get('volid', '')
+                filename = volid.split('/')[-1] if '/' in volid else volid
+                isos.append({
+                    'volid': volid,
+                    'filename': filename,
+                    'size_bytes': c.get('size'),
+                })
+        return isos
+
+    def create_vm(self, name, cpu_cores, ram_gb, disk_gb, iso_volid):
+        """
+        Create a genuinely new, empty Proxmox VM (not a clone) with the
+        given resources and a real ISO attached as a bootable CD-ROM, so
+        an admin can complete a real, manual OS install via the Proxmox
+        console — the one honest step this system doesn't try to fake.
+
+        Args:
+            name (str): Display name for the new VM.
+            cpu_cores (int): Real vCPU core count.
+            ram_gb (int): Real RAM in GB.
+            disk_gb (int): Real disk size in GB.
+            iso_volid (str): A real volid from list_available_isos(),
+                e.g. 'local:iso/ubuntu-22.04.5-desktop-amd64.iso'.
+
+        Returns:
+            int: The new VM's real Proxmox VMID.
+        """
+        new_vmid = self.get_next_vmid()
+        logger.info("Creating new VM %s (%s) — %s cores, %sGB RAM, %sGB disk, iso=%s",
+                    new_vmid, name, cpu_cores, ram_gb, disk_gb, iso_volid)
+
+        self.proxmox.nodes(self.node).qemu.post(
+            vmid=new_vmid,
+            name=name,
+            cores=int(cpu_cores),
+            sockets=1,
+            memory=int(ram_gb) * 1024,
+            cpu='x86-64-v2-AES',
+            ostype='l26',
+            scsihw='virtio-scsi-single',
+            scsi0=f'{self.storage}:{disk_gb},iothread=1',
+            ide2=f'{iso_volid},media=cdrom',
+            net0='virtio,bridge=vmbr0,firewall=1',
+            boot='order=ide2;scsi0;net0',
+            agent=1,
+        )
+
+        logger.info("Created VM %s", new_vmid)
+        return int(new_vmid)
+
     def clone_template(self, template_id, name):
         """
         Clone a Proxmox template into a new VM.

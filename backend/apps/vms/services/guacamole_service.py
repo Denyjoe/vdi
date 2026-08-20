@@ -287,6 +287,152 @@ class GuacamoleService:
             logger.error("Guacamole create connection error: %s", exc)
             return None
 
+    def create_ssh_connection(self, name, hostname, username, password, port='22'):
+        """
+        Create a real SSH connection in Guacamole — the in-app terminal
+        used by the admin template wizard. Confirmed via a real schema
+        query (GET .../schema/protocols) that 'ssh' is genuinely a
+        supported protocol in this deployment, not assumed.
+
+        Reuses the exact same request/retry/attribute pattern as
+        create_connection() above (same _request() wrapper with its
+        built-in retry-on-401, same max-connections attributes), just
+        with protocol='ssh' and SSH's own real parameter names.
+
+        Args:
+            name (str): Display name for the connection.
+            hostname (str): IP or hostname of the VM.
+            username (str): SSH login username.
+            password (str): SSH login password.
+            port (str): SSH port (default '22').
+
+        Returns:
+            str: Connection identifier.
+
+        Raises:
+            Exception: If Guacamole genuinely rejects the connection
+                creation — never silently swallowed, since the wizard's
+                open-terminal endpoint needs a real error to surface to
+                the admin, not a None it might not check for.
+        """
+        self._ensure_authenticated()
+
+        payload = {
+            "parentIdentifier": "ROOT",
+            "name": name,
+            "protocol": "ssh",
+            "parameters": {
+                "hostname": hostname,
+                "port": port,
+                "username": username,
+                "password": password,
+                "color-scheme": "gray-black",
+                "font-size": "12",
+            },
+            "attributes": {
+                "max-connections": "5",
+                "max-connections-per-user": "5",
+            },
+        }
+
+        try:
+            res = self._request(
+                'POST',
+                f'{self.base_url}/api/session/data/'
+                f'{self.data_source}/connections',
+                json=payload,
+            )
+        except requests.RequestException as exc:
+            logger.error("Guacamole create SSH connection error: %s", exc)
+            raise Exception(f'Network error creating SSH connection: {exc}')
+
+        if res.status_code == 200:
+            conn_id = res.json()['identifier']
+            logger.info(
+                "Created Guacamole SSH connection %s for %s (%s)",
+                conn_id, name, hostname,
+            )
+            return conn_id
+
+        logger.error(
+            "Guacamole create SSH connection failed: %s %s",
+            res.status_code, res.text,
+        )
+        raise Exception(f'Guacamole rejected the SSH connection: {res.status_code} {res.text}')
+
+    def create_vnc_connection(self, name, hostname, port, password):
+        """
+        Create a real VNC connection in Guacamole — used to embed a
+        VM's actual Proxmox install console (real RFB stream, relayed
+        through the local vnc_bridge service) directly in the admin
+        template wizard. Confirmed 'vnc' is genuinely supported via the
+        same schema query used for 'ssh'.
+
+        `hostname`/`port` must point at the LOCAL bridge
+        (127.0.0.1:<local_port> from vnc_bridge.start_vnc_bridge), not
+        at Proxmox directly — Proxmox never exposes raw VNC/TCP
+        externally. `password` is the real RFB auth password that
+        belongs to the specific ticket that bridge was opened with.
+
+        Reuses the exact same request/retry/attribute pattern as
+        create_connection()/create_ssh_connection() above.
+
+        Args:
+            name (str): Display name for the connection.
+            hostname (str): Local bridge host (normally '127.0.0.1').
+            port (str/int): Local bridge port.
+            password (str): Real RFB auth password for this ticket.
+
+        Returns:
+            str: Connection identifier.
+
+        Raises:
+            Exception: If Guacamole genuinely rejects the connection
+                creation — never silently swallowed.
+        """
+        self._ensure_authenticated()
+
+        payload = {
+            "parentIdentifier": "ROOT",
+            "name": name,
+            "protocol": "vnc",
+            "parameters": {
+                "hostname": hostname,
+                "port": str(port),
+                "password": password,
+                "cursor": "remote",
+            },
+            "attributes": {
+                "max-connections": "5",
+                "max-connections-per-user": "5",
+            },
+        }
+
+        try:
+            res = self._request(
+                'POST',
+                f'{self.base_url}/api/session/data/'
+                f'{self.data_source}/connections',
+                json=payload,
+            )
+        except requests.RequestException as exc:
+            logger.error("Guacamole create VNC connection error: %s", exc)
+            raise Exception(f'Network error creating VNC connection: {exc}')
+
+        if res.status_code == 200:
+            conn_id = res.json()['identifier']
+            logger.info(
+                "Created Guacamole VNC connection %s for %s (%s:%s)",
+                conn_id, name, hostname, port,
+            )
+            return conn_id
+
+        logger.error(
+            "Guacamole create VNC connection failed: %s %s",
+            res.status_code, res.text,
+        )
+        raise Exception(f'Guacamole rejected the VNC connection: {res.status_code} {res.text}')
+
     def delete_connection(self, connection_id):
         """
         Delete a Guacamole connection.

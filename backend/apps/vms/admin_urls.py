@@ -1,7 +1,22 @@
 from django.urls import path
 from . import admin_views
+from . import template_wizard_views as wizard
 
 urlpatterns = [
+    # ── Admin OS/Template Management wizard ──────────────────────────
+    path('templates/available-isos/', wizard.AdminAvailableISOsView.as_view(), name='admin-template-available-isos'),
+    path('templates/desktop-environments/', wizard.AdminDesktopEnvironmentProfilesView.as_view(), name='admin-template-desktop-environments'),
+    path('templates/create-job/', wizard.AdminTemplateJobCreateView.as_view(), name='admin-template-create-job'),
+    path('templates/jobs/<int:pk>/', wizard.AdminTemplateJobDetailView.as_view(), name='admin-template-job-detail'),
+    path('templates/jobs/<int:pk>/apply-configuration/', wizard.AdminTemplateJobApplyConfigurationView.as_view(), name='admin-template-job-apply-configuration'),
+    path('templates/jobs/<int:pk>/install-apps/', wizard.AdminTemplateJobInstallAppsView.as_view(), name='admin-template-job-install-apps'),
+    path('templates/jobs/<int:pk>/finalize/', wizard.AdminTemplateJobFinalizeView.as_view(), name='admin-template-job-finalize'),
+    path('templates/jobs/<int:pk>/verify/', wizard.AdminTemplateJobVerifyView.as_view(), name='admin-template-job-verify'),
+    path('templates/jobs/<int:pk>/promote/', wizard.AdminTemplateJobPromoteView.as_view(), name='admin-template-job-promote'),
+    path('templates/jobs/<int:pk>/open-terminal/', wizard.AdminTemplateJobOpenTerminalView.as_view(), name='admin-template-job-open-terminal'),
+    path('templates/jobs/<int:pk>/open-console/', wizard.AdminTemplateJobOpenConsoleView.as_view(), name='admin-template-job-open-console'),
+    path('vms/<int:proxmox_vmid>/open-terminal/', wizard.AdminVMOpenTerminalView.as_view(), name='admin-vm-open-terminal'),
+
     path('templates/<int:pk>/pricing/', admin_views.AdminTemplatePricingView.as_view(), name='admin-template-pricing'),
     path('workspaces/', admin_views.AdminWorkspacesListView.as_view(), name='admin-workspaces-list'),
     path('workspaces/<int:workspace_id>/force-stop/', admin_views.AdminForceStopWorkspaceView.as_view(), name='admin-workspaces-force-stop'),
