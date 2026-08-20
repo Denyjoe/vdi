@@ -646,32 +646,54 @@ class AdminTemplateDetailView(APIView):
 
     def delete(self, request, template_id):
         from apps.vms.models import VMTemplate, Workspace
-        
+
         try:
             t = VMTemplate.objects.get(id=template_id)
         except VMTemplate.DoesNotExist:
             return Response({'error': 'Not found'}, status=404)
-        
+
         active_workspaces = (
             Workspace.objects.filter(vm_template=t)
             .exclude(status='deleted').count()
         )
-        
+
         if active_workspaces > 0:
             return Response({
                 'success': False,
                 'message': f'Cannot delete — {active_workspaces} workspace(s) use this template'
             }, status=400)
-        
+
         name = t.name
+
+        # Real, confirmed bug this fixes: this used to only delete the
+        # DB row, never the real Proxmox template it points at
+        # (proxmox_template_id) — every "deleted" template stayed
+        # genuinely alive in Proxmox forever, silently. Delete the
+        # real template FIRST and only remove the DB row if that
+        # actually succeeds, so a failed Proxmox deletion can never
+        # leave an orphan behind with nothing in the app pointing at
+        # it anymore to retry.
+        if t.is_real and t.proxmox_template_id:
+            from apps.vms.services.proxmox_service import ProxmoxService
+            try:
+                ProxmoxService().delete_vm_completely(t.proxmox_template_id)
+            except Exception as e:
+                logging.getLogger(__name__).error(
+                    f'Failed to delete real Proxmox template {t.proxmox_template_id} for "{name}": {e}',
+                    exc_info=True)
+                return Response({
+                    'success': False,
+                    'message': f'Could not delete the real Proxmox template (vmid {t.proxmox_template_id}): {e}',
+                }, status=502)
+
         t.delete()
-        
+
         from apps.users.admin_services import log_admin_action
         log_admin_action(
-            request.user, 
+            request.user,
             'template_deleted',
-            f'Deleted template "{name}"')
-        
+            f'Deleted template "{name}"' + (f' (real Proxmox template {t.proxmox_template_id} also deleted)' if t.is_real and t.proxmox_template_id else ''))
+
         return Response({
             'success': True,
             'message': 'Template deleted'

@@ -201,14 +201,46 @@ class AdminActiveTemplateJobsView(views.APIView):
     Real, currently-in-progress TemplateCreationJob rows for the admin
     making the request (status not in completed/failed), most recent
     first — lets the wizard offer to resume a real job on page load
-    instead of silently forcing either a fresh start or a resume."""
+    instead of silently forcing either a fresh start or a resume.
+
+    Real, confirmed bug this also fixes: nothing previously verified a
+    job's real Proxmox VM still existed before offering it as
+    resumable — an admin deleting a test VM directly in Proxmox (not
+    through this app) left a genuinely dead job sitting here forever,
+    surfacing a confusing "resume" prompt for a VM that was already
+    gone. Each candidate job's real VM status is checked here; one
+    confirmed genuinely gone gets marked failed (with an honest
+    reason) instead of silently kept as if still in progress."""
     permission_classes = [IsAdminUser]
 
     def get(self, request):
+        from .services.proxmox_service import ProxmoxService
+
         jobs = TemplateCreationJob.objects.filter(
             created_by=request.user,
         ).exclude(status__in=['completed', 'failed']).order_by('-created_at')
-        return Response({'success': True, 'data': [_serialize_job(j) for j in jobs]})
+
+        ps = ProxmoxService()
+        still_active = []
+        for job in jobs:
+            if job.proxmox_vmid:
+                try:
+                    ps.proxmox.nodes(ps.node).qemu(job.proxmox_vmid).status.current.get()
+                except Exception as e:
+                    error_str = str(e).lower()
+                    if 'does not exist' in error_str or ('500' in error_str and 'config' in error_str):
+                        job.status = 'failed'
+                        job.error_message = f'Real Proxmox VM {job.proxmox_vmid} no longer exists (likely deleted directly in Proxmox, outside the app).'
+                        job.save(update_fields=['status', 'error_message'])
+                        job.log_step(job.error_message, level='error')
+                        continue
+                    # A genuine Proxmox-reachability hiccup, not
+                    # confirmation the VM is gone — don't punish the
+                    # job for a transient API error.
+                    logger.warning('Could not verify VM %s for job %s: %s', job.proxmox_vmid, job.id, e)
+            still_active.append(job)
+
+        return Response({'success': True, 'data': [_serialize_job(j) for j in still_active]})
 
 
 class AdminDesktopEnvironmentProfilesView(views.APIView):
@@ -316,6 +348,35 @@ class AdminTemplateJobDetailView(views.APIView):
                 data['vm_ip'] = None
 
         return Response({'success': True, 'data': data})
+
+    def delete(self, request, pk):
+        """DELETE /api/admin/templates/jobs/<id>/
+        Real cleanup for a wizard job — deletes the real Proxmox VM it
+        created (unless that VM has already been promoted into a live
+        VMTemplate, in which case AdminTemplateDetailView's own delete
+        owns that real template's lifecycle instead, and this only
+        removes the historical job record). Confirmed real bug this
+        fixes: there was previously no way to delete a wizard job at
+        all, so real test VMs (e.g. abandoned 'awaiting_os_install'
+        jobs) stayed alive in Proxmox forever with no path to clean
+        them up through the app."""
+        from .services.proxmox_service import ProxmoxService
+
+        job = get_object_or_404(TemplateCreationJob, pk=pk)
+        already_promoted = job.status == 'completed' and job.final_template_id
+
+        if job.proxmox_vmid and not already_promoted:
+            try:
+                ProxmoxService().delete_vm_completely(job.proxmox_vmid)
+            except Exception as e:
+                logger.error('Failed to delete real Proxmox VM %s for job %s: %s', job.proxmox_vmid, job.id, e, exc_info=True)
+                return Response({
+                    'success': False,
+                    'message': f'Could not delete the real VM (vmid {job.proxmox_vmid}): {e}',
+                }, status=502)
+
+        job.delete()
+        return Response({'success': True, 'message': 'Job deleted.'})
 
 
 class AdminTemplateJobApplyConfigurationView(views.APIView):

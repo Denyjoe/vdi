@@ -4,6 +4,7 @@ import api from '../../services/api';
 import toast from 'react-hot-toast';
 import GuacamoleEmbed from '../../components/shared/GuacamoleEmbed';
 import useTunnelHealth from '../../hooks/useTunnelHealth';
+import ConfirmModal from '../../components/shared/ConfirmModal';
 
 const STEP_LABELS = {
   vm_creating: 'Creating VM',
@@ -94,6 +95,27 @@ export default function AdminTemplateWizardPage() {
   // knows how to render at any step.
   const [activeJobs, setActiveJobs] = useState([]);
   const [resumeChoiceMade, setResumeChoiceMade] = useState(false);
+  const [deletingJobId, setDeletingJobId] = useState(null);
+  const [deleteJobTarget, setDeleteJobTarget] = useState(null);
+
+  // Real deletion — also removes the real Proxmox VM the job created
+  // (unless it's already been promoted into a live template, whose
+  // lifecycle the Templates page owns instead). Confirmed real bug
+  // this fixes: there was previously no way to delete a wizard job at
+  // all, so abandoned test VMs stayed alive in Proxmox forever.
+  const handleDeleteJob = async (jobToDelete) => {
+    setDeletingJobId(jobToDelete.id);
+    try {
+      await api.delete(`/admin/templates/jobs/${jobToDelete.id}/`);
+      setActiveJobs(prev => prev.filter(j => j.id !== jobToDelete.id));
+      toast.success(`"${jobToDelete.name}" and its real VM were deleted.`);
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Could not delete this job.');
+    } finally {
+      setDeletingJobId(null);
+      setDeleteJobTarget(null);
+    }
+  };
   const [sshCreds, setSshCreds] = useState({ ssh_username: 'ospace', ssh_password: '' });
   // Guest-agent isn't installed on a freshly, manually-installed VM
   // until finalize() installs it — so IP auto-discovery genuinely
@@ -416,28 +438,56 @@ export default function AdminTemplateWizardPage() {
         </div>
       )}
 
-      {/* Resume banner — a real, still-in-progress job exists; let the
-          admin choose rather than silently forcing either path. */}
+      {/* Resume banner — real, still-in-progress jobs exist; let the
+          admin choose to resume or delete each one rather than
+          silently forcing any path. Deleting genuinely removes the
+          real Proxmox VM too (see handleDeleteJob). */}
       {!job && !resumeChoiceMade && activeJobs.length > 0 && (
         <div style={{ ...cardStyle, marginBottom: '16px', border: '1px solid var(--accent-primary)' }}>
-          <p style={{ fontSize: '13px', color: 'var(--text-primary)', marginBottom: '10px' }}>
-            You have an in-progress template: <strong>{activeJobs[0].name}</strong> — currently at{' '}
-            <strong>{STEP_LABELS[activeJobs[0].status] || activeJobs[0].status}</strong>.
-            {activeJobs.length > 1 && ` (${activeJobs.length - 1} more in progress.)`}
+          <p style={{ fontSize: '13px', color: 'var(--text-primary)', marginBottom: '12px' }}>
+            You have {activeJobs.length === 1 ? 'an in-progress template' : `${activeJobs.length} in-progress templates`}:
           </p>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button style={primaryBtn} onClick={() => { setJob(activeJobs[0]); setResumeChoiceMade(true); }}>
-              Resume
-            </button>
-            <button
-              style={{ ...primaryBtn, background: 'var(--bg-input)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}
-              onClick={() => setResumeChoiceMade(true)}
-            >
-              Start New Instead
-            </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+            {activeJobs.map(j => (
+              <div key={j.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', background: 'var(--bg-input)', borderRadius: '10px', padding: '10px 12px' }}>
+                <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                  <strong style={{ color: 'var(--text-primary)' }}>{j.name}</strong> — {STEP_LABELS[j.status] || j.status}
+                  {j.proxmox_vmid ? ` (VM ${j.proxmox_vmid})` : ''}
+                </span>
+                <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                  <button style={{ ...primaryBtn, padding: '6px 14px', fontSize: '12px' }} onClick={() => { setJob(j); setResumeChoiceMade(true); }}>
+                    Resume
+                  </button>
+                  <button
+                    style={{ padding: '6px 14px', fontSize: '12px', borderRadius: '10px', background: 'rgba(239,68,68,0.1)', color: 'var(--status-error, #EF4444)', border: '1px solid var(--status-error, #EF4444)', cursor: 'pointer', fontWeight: 600 }}
+                    onClick={() => setDeleteJobTarget(j)}
+                    disabled={deletingJobId === j.id}
+                  >
+                    {deletingJobId === j.id ? 'Deleting...' : 'Delete'}
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
+          <button
+            style={{ ...primaryBtn, background: 'var(--bg-input)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}
+            onClick={() => setResumeChoiceMade(true)}
+          >
+            Start New Instead
+          </button>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={!!deleteJobTarget}
+        title="Delete Template Job?"
+        message={`This genuinely deletes "${deleteJobTarget?.name}" and its real Proxmox VM${deleteJobTarget?.proxmox_vmid ? ` (vmid ${deleteJobTarget.proxmox_vmid})` : ''} too — unless it's already been promoted into a live template. This cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={() => handleDeleteJob(deleteJobTarget)}
+        onCancel={() => setDeleteJobTarget(null)}
+      />
 
       {/* STEP 1: form */}
       {!job && (
