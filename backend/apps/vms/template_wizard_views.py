@@ -432,9 +432,43 @@ class AdminTemplateJobApplyConfigurationView(views.APIView):
         # honestly right away instead of midway through the fix_script.
         check = run_ssh_command(ip, ssh_username, ssh_password, 'echo connected')
         if not check['success']:
-            msg = check.get('error') or f"exit code {check.get('exit_code')}: {check.get('stderr')}"
-            job.log_step(f'SSH connection check failed: {msg}', level='error')
-            return Response({'success': False, 'message': f'SSH connection failed: {msg}'}, status=502)
+            raw = check.get('error') or f"exit code {check.get('exit_code')}: {check.get('stderr')}"
+            # Real, confirmed distinction (found via live testing against
+            # this exact IP): a bare "timed out" means packets to port 22
+            # are being silently dropped before ever reaching the guest
+            # (network/firewall-level) — the guest never gets a chance to
+            # answer. "Unable to connect to port 22" / "Connection
+            # refused" means the network path IS open but nothing is
+            # listening on port 22 in the guest — i.e. openssh-server
+            # genuinely isn't installed/running yet, which is expected
+            # for a fresh install on distros (Parrot included) that don't
+            # ship it by default. Authentication errors mean SSH itself
+            # is fine and it's just the username/password. Give the admin
+            # the actual next action instead of a raw exception string.
+            lower = raw.lower()
+            if 'auth' in lower or 'authentication' in lower:
+                actionable = (
+                    f'SSH reached {ip} but the username/password was rejected. '
+                    'Double-check the credentials you set during the OS install and try again.'
+                )
+            elif 'refused' in lower or 'unable to connect to port' in lower:
+                actionable = (
+                    f'SSH reached {ip}, but nothing is listening on port 22 — openssh-server is not '
+                    'installed/running on this VM yet (common on fresh Parrot/desktop-Linux installs, '
+                    'which do not ship it by default). Open the console above, log in, and run: '
+                    'sudo apt update && sudo apt install openssh-server -y — then click Continue again.'
+                )
+            elif 'timed out' in lower or 'timeout' in lower:
+                actionable = (
+                    f'Connection to {ip}:22 timed out — no response at all, not even a refusal. '
+                    'This usually means the VM is still booting, the IP is stale (re-check it with '
+                    '`ip a` in the console), or something on the network path is silently dropping the '
+                    'connection. Confirm the VM is fully booted and the IP is current, then try again.'
+                )
+            else:
+                actionable = f'SSH connection failed: {raw}'
+            job.log_step(f'SSH connection check failed: {raw}', level='error')
+            return Response({'success': False, 'message': actionable}, status=502)
         job.log_step('SSH connection verified.')
 
         # Real, confirmed, previously-repeating bug fixed here: the VM

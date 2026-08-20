@@ -300,7 +300,27 @@ class ProxmoxService:
             scsihw='virtio-scsi-single',
             scsi0=f'{self.storage}:{disk_gb},iothread=1',
             ide2=f'{iso_volid},media=cdrom',
-            net0='virtio,bridge=vmbr0,firewall=1',
+            # Real, confirmed root-cause fix: firewall=1 here (with no
+            # firewall options ever initialized for a brand-new VM)
+            # left every wizard-created VM's inbound traffic silently
+            # DROPped, including the SSH connection apply-configuration
+            # itself depends on — that's the actual cause of "SSH
+            # connection check failed: Could not connect via SSH: timed
+            # out" (a silent drop, not a real refusal). Confirmed live:
+            # even explicitly setting the VM firewall to
+            # enable=1, policy_in='ACCEPT', policy_out='ACCEPT' (the
+            # exact policy enable_vm_lockdown() applies) still silently
+            # dropped inbound SSH — only firewall=0 on the NIC produced
+            # a genuine "connection refused" from the guest, proving
+            # packets actually reach it. firewall=1 was only ever
+            # needed for the opt-in network-lockdown feature, and
+            # enable_vm_lockdown() already re-adds firewall=1 to net0
+            # itself the moment lockdown is actually turned on (see
+            # "Per-VM rules only take effect if the interface opts in"
+            # below) — so leaving new VMs at firewall=0 by default
+            # doesn't regress lockdown, it just stops silently blocking
+            # every wizard VM's SSH from the moment it's created.
+            net0='virtio,bridge=vmbr0,firewall=0',
             # Real, confirmed root-cause fix: booting ISO-first
             # (order=ide2;...) was correct only for the very first
             # boot, and nothing reliably ran in time to flip it back

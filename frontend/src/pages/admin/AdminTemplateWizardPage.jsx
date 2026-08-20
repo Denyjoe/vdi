@@ -618,10 +618,25 @@ export default function AdminTemplateWizardPage() {
       {job && job.status === 'awaiting_os_install' && (
         <div style={cardStyle}>
           <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Step 2 — Install the OS</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '10px' }}>
             The VM is running and booted from the ISO. Complete the real OS installer directly below —
             language, keyboard, disk, user account — then enable SSH (or install openssh-server) and click Continue.
           </p>
+          <div style={{
+            background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px',
+            padding: '10px 14px', marginBottom: '16px', fontSize: '12px', color: 'var(--text-secondary)',
+          }}>
+            <b style={{ color: 'var(--text-primary)' }}>Before clicking Continue:</b> most desktop Linux
+            distros (Parrot included) don't ship an SSH server by default. Open a terminal in the console
+            above (or the Terminal tab once SSH is up) and run:
+            <div style={{
+              marginTop: '6px', fontFamily: 'monospace', fontSize: '12px', background: 'var(--bg-primary)',
+              border: '1px solid var(--border-color)', borderRadius: '6px', padding: '8px 10px',
+              color: 'var(--text-primary)', userSelect: 'all',
+            }}>
+              sudo apt update &amp;&amp; sudo apt install openssh-server -y
+            </div>
+          </div>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>VM: <b>{job.proxmox_vmid}</b></span>
             {vmIp && <span style={{ fontSize: '12px', color: 'var(--status-success, #10B981)' }}>Real IP detected: <b>{vmIp}</b> (SSH reachable)</span>}
