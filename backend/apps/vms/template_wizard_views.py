@@ -736,7 +736,7 @@ class AdminTemplateJobOpenTerminalView(views.APIView):
             logger.error('Failed to open real SSH terminal for job %s: %s', job.id, e, exc_info=True)
             return Response({'success': False, 'message': f'Failed to open terminal: {e}'}, status=502)
 
-        return Response({'success': True, 'data': {'guacamole_url': url}})
+        return Response({'success': True, 'data': {'guacamole_url': url, 'connection_id': connection_id}})
 
 
 class AdminTemplateJobOpenConsoleView(views.APIView):
@@ -792,7 +792,7 @@ class AdminTemplateJobOpenConsoleView(views.APIView):
             logger.error('Failed to open real VNC console for job %s: %s', job.id, e, exc_info=True)
             return Response({'success': False, 'message': f'Failed to open console: {e}'}, status=502)
 
-        return Response({'success': True, 'data': {'guacamole_url': url}})
+        return Response({'success': True, 'data': {'guacamole_url': url, 'connection_id': connection_id}})
 
 
 class AdminVMOpenTerminalView(views.APIView):
@@ -838,7 +838,38 @@ class AdminVMOpenTerminalView(views.APIView):
             logger.error('Failed to open real SSH terminal for VM %s: %s', proxmox_vmid, e, exc_info=True)
             return Response({'success': False, 'message': f'Failed to open terminal: {e}'}, status=502)
 
-        return Response({'success': True, 'data': {'guacamole_url': url, 'vm_ip': ip}})
+        return Response({'success': True, 'data': {'guacamole_url': url, 'vm_ip': ip, 'connection_id': connection_id}})
+
+
+class AdminConnectionStatusView(views.APIView):
+    """GET /api/admin/templates/connection-status/?connection_id=<id>
+    Real, live tunnel-health signal for the admin wizard's console/
+    terminal embeds — reuses the exact same
+    guacamole_service.get_active_connection_id() mechanism that
+    VirtualMachineSerializer.get_guac_connected() uses for the
+    member-facing desktop view, just exposed directly by connection_id
+    since these ad-hoc wizard connections aren't backed by a
+    VirtualMachine row. Never assume a connection is live — Guacamole's
+    own activeConnections list is the only genuine signal, matching
+    the proven never-trust-a-timer pattern used everywhere else this
+    app embeds Guacamole."""
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        from .services.guacamole_service import get_guacamole_service
+
+        connection_id = request.query_params.get('connection_id', '').strip()
+        if not connection_id:
+            return Response({'success': False, 'message': 'connection_id is required.'}, status=400)
+
+        gs = get_guacamole_service()
+        try:
+            active = gs.get_active_connection_id(connection_id) is not None
+        except Exception as e:
+            logger.warning('Could not check connection status for %s: %s', connection_id, e)
+            active = False
+
+        return Response({'success': True, 'data': {'active': active}})
 
 
 def _serialize_job(job):

@@ -3,6 +3,7 @@ import { Loader2, CheckCircle2, XCircle, Terminal, Server, Monitor, ArrowRight, 
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import GuacamoleEmbed from '../../components/shared/GuacamoleEmbed';
+import useTunnelHealth from '../../hooks/useTunnelHealth';
 
 const STEP_LABELS = {
   vm_creating: 'Creating VM',
@@ -53,6 +54,15 @@ export default function AdminTemplateWizardPage() {
   const [vmIp, setVmIp] = useState(null);
   const [showTerminal, setShowTerminal] = useState(false);
   const [terminalUrl, setTerminalUrl] = useState(null);
+  // Real, live-polled tunnel-health signals — never a hardcoded
+  // `true` — matching the exact proven pattern already used for the
+  // member-facing desktop view and the Take Control modal, so
+  // Guacamole's own raw connecting/disconnected text can never leak
+  // through the cover.
+  const [terminalConnectionId, setTerminalConnectionId] = useState(null);
+  const terminalTunnelActive = useTunnelHealth(terminalConnectionId);
+  const [consoleConnectionId, setConsoleConnectionId] = useState(null);
+  const consoleTunnelActive = useTunnelHealth(consoleConnectionId);
   // Real, embedded install console (VNC via a local Proxmox-websocket
   // bridge) — replaces "open Proxmox in another tab" for Step 2.
   const [consoleTab, setConsoleTab] = useState('console'); // 'console' | 'terminal'
@@ -284,9 +294,11 @@ export default function AdminTemplateWizardPage() {
     if (!job?.id) return;
     setConsoleLoading(true);
     setConsoleUrl2(null);
+    setConsoleConnectionId(null);
     try {
       const r = await api.post(`/admin/templates/jobs/${job.id}/open-console/`);
       setConsoleUrl2(r.data.data.guacamole_url);
+      setConsoleConnectionId(r.data.data.connection_id);
     } catch (e) {
       toast.error(e.response?.data?.message || 'Could not open the real install console.');
     } finally {
@@ -312,6 +324,7 @@ export default function AdminTemplateWizardPage() {
     try {
       const r = await api.post(`/admin/templates/jobs/${job.id}/open-terminal/`, { ...sshCreds, vm_ip: manualIp || undefined });
       setTerminalUrl(r.data.data.guacamole_url);
+      setTerminalConnectionId(r.data.data.connection_id);
       setShowTerminal(true);
     } catch (e) {
       toast.error(e.response?.data?.message || 'Could not open terminal.');
@@ -497,7 +510,7 @@ export default function AdminTemplateWizardPage() {
           </div>
           <div style={{ height: '440px', background: '#000', borderRadius: '0 10px 10px 10px', overflow: 'hidden', border: '1px solid var(--border-color)', marginBottom: '16px' }}>
             {consoleTab === 'console' && consoleUrl2 && (
-              <GuacamoleEmbed url={consoleUrl2} title="Install Console" loadingText="Connecting to the real install console..." tunnelActive={true} />
+              <GuacamoleEmbed url={consoleUrl2} title="Install Console" loadingText="Connecting to the real install console..." tunnelActive={consoleTunnelActive} />
             )}
             {consoleTab === 'console' && !consoleUrl2 && (
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
@@ -505,7 +518,7 @@ export default function AdminTemplateWizardPage() {
               </div>
             )}
             {consoleTab === 'terminal' && terminalUrl && (
-              <GuacamoleEmbed url={terminalUrl} title="Terminal" loadingText="Connecting to terminal..." tunnelActive={true} />
+              <GuacamoleEmbed url={terminalUrl} title="Terminal" loadingText="Connecting to terminal..." tunnelActive={terminalTunnelActive} />
             )}
             {consoleTab === 'terminal' && !terminalUrl && (
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center', padding: '0 20px' }}>
@@ -660,7 +673,7 @@ export default function AdminTemplateWizardPage() {
             }}>
               <X size={16} style={{ color: 'var(--text-primary)' }} />
             </button>
-            <GuacamoleEmbed url={terminalUrl} title="Wizard Terminal" loadingText="Connecting to terminal..." tunnelActive={true} />
+            <GuacamoleEmbed url={terminalUrl} title="Wizard Terminal" loadingText="Connecting to terminal..." tunnelActive={terminalTunnelActive} />
           </div>
         </div>
       )}

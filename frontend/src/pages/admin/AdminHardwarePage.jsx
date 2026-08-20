@@ -16,6 +16,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tool
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import useBreakpoint from '../../hooks/useBreakpoint';
+import useTunnelHealth from '../../hooks/useTunnelHealth';
 import ConfirmModal from '../../components/shared/ConfirmModal';
 import GuacamoleEmbed from '../../components/shared/GuacamoleEmbed';
 
@@ -131,6 +132,11 @@ function InfrastructureHealth({ isMobile }) {
   const [terminalCreds, setTerminalCreds] = useState({ ssh_username: 'ospace', ssh_password: '' });
   const [terminalUrl, setTerminalUrl] = useState(null);
   const [terminalLoading, setTerminalLoading] = useState(false);
+  // Real, live-polled tunnel-health signal — never a hardcoded `true` —
+  // matching the exact proven pattern used for the member-facing
+  // desktop view and the Take Control modal.
+  const [terminalConnectionId, setTerminalConnectionId] = useState(null);
+  const terminalTunnelActive = useTunnelHealth(terminalConnectionId);
 
   const openVmTerminal = async (vmid) => {
     if (!terminalCreds.ssh_password) {
@@ -141,6 +147,7 @@ function InfrastructureHealth({ isMobile }) {
     try {
       const res = await api.post(`/admin/vms/${vmid}/open-terminal/`, terminalCreds);
       setTerminalUrl(res.data.data.guacamole_url);
+      setTerminalConnectionId(res.data.data.connection_id);
       setTerminalPromptVmid(null);
     } catch (e) {
       toast.error(e.response?.data?.message || `Could not open a terminal to VM ${vmid}.`);
@@ -443,7 +450,7 @@ function InfrastructureHealth({ isMobile }) {
             }}>
               <X size={16} style={{ color: 'var(--text-primary)' }} />
             </button>
-            <GuacamoleEmbed url={terminalUrl} title="VM Terminal" loadingText="Connecting to terminal..." tunnelActive={true} />
+            <GuacamoleEmbed url={terminalUrl} title="VM Terminal" loadingText="Connecting to terminal..." tunnelActive={terminalTunnelActive} />
           </div>
         </div>
       )}

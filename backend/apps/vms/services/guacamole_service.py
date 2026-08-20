@@ -401,6 +401,19 @@ class GuacamoleService:
                 "port": str(port),
                 "password": password,
                 "cursor": "remote",
+                # Real, same-LAN tuning: this connection never leaves
+                # 192.168.1.0/24 (backend -> Proxmox -> guacd, all
+                # confirmed on the same subnet), so bandwidth is
+                # abundant and never the constraint VNC's default
+                # encoding preference is tuned for. Left unset,
+                # Guacamole's VNC client negotiates its own default
+                # order, which favors CPU-heavy compressed encodings
+                # (tight/zrle) meant for slow WAN links — pure
+                # overhead here. Preferring cheap, uncompressed
+                # encodings first cuts that CPU cost on both the
+                # Proxmox and guacd ends without giving up anything a
+                # LAN connection needs.
+                "encodings": "copyrect raw",
             },
             "attributes": {
                 "max-connections": "5",

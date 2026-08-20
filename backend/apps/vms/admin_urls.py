@@ -8,6 +8,7 @@ urlpatterns = [
     path('templates/isos/upload/', wizard.AdminISOUploadView.as_view(), name='admin-template-iso-upload'),
     path('templates/isos/download-url/', wizard.AdminISODownloadUrlView.as_view(), name='admin-template-iso-download-url'),
     path('templates/isos/download-status/', wizard.AdminISODownloadStatusView.as_view(), name='admin-template-iso-download-status'),
+    path('templates/connection-status/', wizard.AdminConnectionStatusView.as_view(), name='admin-template-connection-status'),
     path('templates/desktop-environments/', wizard.AdminDesktopEnvironmentProfilesView.as_view(), name='admin-template-desktop-environments'),
     path('templates/create-job/', wizard.AdminTemplateJobCreateView.as_view(), name='admin-template-create-job'),
     path('templates/jobs/<int:pk>/', wizard.AdminTemplateJobDetailView.as_view(), name='admin-template-job-detail'),

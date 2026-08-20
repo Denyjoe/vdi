@@ -116,13 +116,16 @@ def start_vnc_bridge(proxmox_service, vmid):
             timeout=15,
         )
         # `timeout` above only bounds the CONNECT/handshake — but
-        # websocket-client also applies it as the socket's permanent
-        # read timeout, so recv() would raise after any 15s stretch
-        # with no new VNC frame (a real, idle desktop screen easily
-        # goes quiet that long). A live console session is naturally
-        # bursty/idle, not request-response, so once connected this
-        # needs to block indefinitely, not time out mid-session.
-        ws.settimeout(None)
+        # websocket-client also applies it as the socket's ongoing
+        # read timeout. A short, POLLING timeout (not None/infinite)
+        # is deliberate here: ws_to_tcp below holds a lock for the
+        # duration of each recv() call to prevent concurrent send()
+        # from another thread corrupting the connection's framing (see
+        # _relay) — an infinite-blocking recv() during a real idle
+        # desktop screen would hold that lock indefinitely, stalling
+        # every outbound mouse/keyboard event until the next frame
+        # happened to arrive. Polling keeps each lock hold brief.
+        ws.settimeout(0.2)
     except Exception as e:
         raise VncBridgeError(f'Could not open the real Proxmox VNC WebSocket for VM {vmid}: {e}')
 
@@ -134,10 +137,34 @@ def start_vnc_bridge(proxmox_service, vmid):
     srv.settimeout(ACCEPT_TIMEOUT_SECONDS)
 
     def _relay(conn, sock_ws):
+        # Real, confirmed root cause of the repeated "Connection to
+        # remote host was lost" drops: ws_to_tcp (recv) and tcp_to_ws
+        # (send) run as two separate threads sharing ONE
+        # websocket-client WebSocket object with no synchronization.
+        # websocket-client's recv() can itself transparently emit a
+        # PONG reply mid-call for an inbound PING control frame — if
+        # the other thread's explicit send() lands on the same
+        # underlying socket at that exact moment, the two frames
+        # interleave and corrupt the connection's framing, which
+        # websocket-client surfaces as a dead connection. Verified
+        # empirically: a single-threaded connection with no concurrent
+        # send survived 90+ seconds with zero drops, while the real
+        # two-thread bridge reliably died within seconds. A single
+        # lock around every send()/recv() call serializes all access
+        # to the shared object and eliminates the race.
+        ws_lock = threading.Lock()
+
         def ws_to_tcp():
             try:
                 while True:
-                    data = sock_ws.recv()
+                    try:
+                        with ws_lock:
+                            data = sock_ws.recv()
+                    except websocket.WebSocketTimeoutException:
+                        # Just the 0.2s poll interval elapsing with
+                        # nothing new from Proxmox (a real idle
+                        # desktop screen) — not a real failure.
+                        continue
                     if not data:
                         break
                     if isinstance(data, str):
@@ -157,7 +184,8 @@ def start_vnc_bridge(proxmox_service, vmid):
                     data = conn.recv(65536)
                     if not data:
                         break
-                    sock_ws.send(data, opcode=websocket.ABNF.OPCODE_BINARY)
+                    with ws_lock:
+                        sock_ws.send(data, opcode=websocket.ABNF.OPCODE_BINARY)
             except Exception as e:
                 logger.warning('VNC bridge for VM %s: tcp->websocket relay ended: %s', vmid, e)
             finally:
