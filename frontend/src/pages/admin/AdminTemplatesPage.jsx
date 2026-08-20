@@ -167,7 +167,7 @@ export default function AdminTemplatesPage() {
 
   const handleDelete = async (template) => {
     try {
-      const res = await api.delete(`/vms/admin/templates/${template.id}/delete/`);
+      const res = await api.delete(`/vms/admin/templates/${template.id}/`);
       if (res.data.success) {
         showToast('Template deleted');
         setDeleteTarget(null);
