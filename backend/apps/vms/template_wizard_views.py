@@ -17,7 +17,7 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
-from .models import DesktopEnvironmentProfile, TemplateCreationJob, VMTemplate
+from .models import DesktopEnvironmentProfile, TemplateCreationJob, VMTemplate, IsoDownloadTracking
 from .admin_views import IsAdminUser
 
 logger = logging.getLogger(__name__)
@@ -117,6 +117,13 @@ class AdminISODownloadUrlView(views.APIView):
             logger.error('ISO download-from-url failed to start: %s', e, exc_info=True)
             return Response({'success': False, 'message': f'Could not start download: {e}'}, status=502)
 
+        # Real, server-side persistent tracking — a download commonly
+        # starts before any TemplateCreationJob exists yet (it's on
+        # the wizard's create-new-job form), so this can't live on a
+        # job. Lets the wizard resume showing real progress after a
+        # navigation away and back.
+        IsoDownloadTracking.objects.create(upid=upid, filename=filename, url=url, created_by=request.user)
+
         return Response({'success': True, 'data': {'upid': upid, 'filename': filename}})
 
 
@@ -124,7 +131,10 @@ class AdminISODownloadStatusView(views.APIView):
     """GET /api/admin/templates/isos/download-status/?upid=<real_task_id>
     Polls Proxmox's real task status API — genuine progress/completion
     state for either an upload or a download-url task, since both
-    return the same kind of real, pollable UPID."""
+    return the same kind of real, pollable UPID. Confirmed real via a
+    live task's own log: a genuine wget-style percent/speed/ETA is
+    available for download-url tasks (get_task_progress parses it),
+    not just a running/stopped state."""
     permission_classes = [IsAdminUser]
 
     def get(self, request):
@@ -136,12 +146,69 @@ class AdminISODownloadStatusView(views.APIView):
 
         ps = ProxmoxService()
         try:
-            task_status = ps.get_task_status(upid)
+            task_status = ps.get_task_progress(upid)
         except Exception as e:
             logger.error('Could not poll task status for %s: %s', upid, e)
             return Response({'success': False, 'message': f'Could not check task status: {e}'}, status=502)
 
+        if task_status['finished']:
+            IsoDownloadTracking.objects.filter(upid=upid, finished=False).update(finished=True)
+
         return Response({'success': True, 'data': task_status})
+
+
+class AdminActiveIsoDownloadView(views.APIView):
+    """GET /api/admin/templates/isos/active-download/
+    Real, server-side-persistent "do I have an ISO download still in
+    flight" check for the current admin — independent of any
+    TemplateCreationJob, since a download commonly starts before one
+    exists. Returns the most recent not-yet-finished tracked download,
+    re-verifying its real current Proxmox status (never trusting a
+    stale DB flag) so a download that finished/failed while nobody was
+    watching gets marked finished here rather than being offered as
+    still-active forever."""
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        from .services.proxmox_service import ProxmoxService
+
+        tracking = IsoDownloadTracking.objects.filter(created_by=request.user, finished=False).first()
+        if not tracking:
+            return Response({'success': True, 'data': None})
+
+        ps = ProxmoxService()
+        try:
+            task_status = ps.get_task_progress(tracking.upid)
+        except Exception as e:
+            logger.warning('Could not verify active download %s: %s', tracking.upid, e)
+            return Response({'success': True, 'data': {
+                'upid': tracking.upid, 'filename': tracking.filename,
+                'percent': None, 'bytes_downloaded': None, 'speed': None, 'eta': None,
+                'finished': False, 'success': False,
+            }})
+
+        if task_status['finished']:
+            tracking.finished = True
+            tracking.save(update_fields=['finished'])
+
+        return Response({'success': True, 'data': {
+            'upid': tracking.upid, 'filename': tracking.filename, **task_status,
+        }})
+
+
+class AdminActiveTemplateJobsView(views.APIView):
+    """GET /api/admin/templates/jobs/active/
+    Real, currently-in-progress TemplateCreationJob rows for the admin
+    making the request (status not in completed/failed), most recent
+    first — lets the wizard offer to resume a real job on page load
+    instead of silently forcing either a fresh start or a resume."""
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        jobs = TemplateCreationJob.objects.filter(
+            created_by=request.user,
+        ).exclude(status__in=['completed', 'failed']).order_by('-created_at')
+        return Response({'success': True, 'data': [_serialize_job(j) for j in jobs]})
 
 
 class AdminDesktopEnvironmentProfilesView(views.APIView):

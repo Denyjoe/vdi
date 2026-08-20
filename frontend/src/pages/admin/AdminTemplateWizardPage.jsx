@@ -82,8 +82,18 @@ export default function AdminTemplateWizardPage() {
   const [isoUrl, setIsoUrl] = useState('');
   const [isoUrlFilename, setIsoUrlFilename] = useState('');
   const [downloading, setDownloading] = useState(false);
-  const [downloadStatusText, setDownloadStatusText] = useState('');
+  // Real percent/speed/eta/bytes parsed server-side from Proxmox's
+  // own wget-style download-task log — not a vague "in progress"
+  // message. null fields just mean Proxmox hasn't logged a progress
+  // line yet (e.g. still resolving DNS).
+  const [downloadProgress, setDownloadProgress] = useState(null);
   const downloadPollRef = useRef(null);
+  // Real in-progress jobs found on mount, so the admin can choose to
+  // resume one instead of the wizard silently starting fresh — same
+  // real job data (status/log/etc.) the rest of this page already
+  // knows how to render at any step.
+  const [activeJobs, setActiveJobs] = useState([]);
+  const [resumeChoiceMade, setResumeChoiceMade] = useState(false);
   const [sshCreds, setSshCreds] = useState({ ssh_username: 'ospace', ssh_password: '' });
   // Guest-agent isn't installed on a freshly, manually-installed VM
   // until finalize() installs it — so IP auto-discovery genuinely
@@ -99,6 +109,26 @@ export default function AdminTemplateWizardPage() {
   useEffect(() => {
     loadIsos();
     api.get('/admin/templates/desktop-environments/').then(r => setProfiles(r.data.data || [])).catch(() => toast.error('Could not load desktop environment profiles.'));
+
+    // Real "do I have an in-progress job" check — never silently
+    // force resume OR silently force a fresh start; let the admin
+    // choose via the banner below.
+    api.get('/admin/templates/jobs/active/').then(r => setActiveJobs(r.data.data || [])).catch(() => {});
+
+    // Real "do I have an ISO download still in flight" check,
+    // independent of any job (a download commonly starts before one
+    // exists) — genuinely resume showing its current progress rather
+    // than starting the admin's awareness over from zero.
+    api.get('/admin/templates/isos/active-download/').then(r => {
+      const active = r.data?.data;
+      if (!active || active.finished) return;
+      setIsoMode('url');
+      setIsoUrlFilename(active.filename);
+      setDownloading(true);
+      setDownloadProgress(active);
+      resumeIsoDownloadPolling(active.upid, active.filename);
+    }).catch(() => {});
+
     return () => clearInterval(downloadPollRef.current);
   }, []);
 
@@ -124,7 +154,7 @@ export default function AdminTemplateWizardPage() {
         },
       });
       toast.success(`"${file.name}" uploaded — Proxmox is finalizing it...`);
-      await pollUntilFinished(r.data.data.upid);
+      await pollUntilFinished(r.data.data.upid, file.name);
       await loadIsos();
       setForm(f => ({ ...f, iso_volid: `local:iso/${file.name}` }));
       setIsoMode('existing');
@@ -138,39 +168,42 @@ export default function AdminTemplateWizardPage() {
   };
 
   // Real server-side download — Proxmox itself fetches the URL; we
-  // only trigger it and poll its real, genuine task status.
+  // only trigger it and poll its real, genuine task status/progress.
   const handleUrlDownload = async () => {
     if (!isoUrl.trim() || !isoUrlFilename.trim()) {
       toast.error('Enter both a URL and a filename ending in .iso');
       return;
     }
     setDownloading(true);
-    setDownloadStatusText('Starting server-side download...');
+    setDownloadProgress(null);
     try {
       const r = await api.post('/admin/templates/isos/download-url/', { url: isoUrl.trim(), filename: isoUrlFilename.trim() });
       toast.success('Proxmox started downloading the ISO on the server.');
-      setDownloadStatusText('Downloading on the server — this may take several minutes for large ISOs...');
-      await pollUntilFinished(r.data.data.upid);
+      await pollUntilFinished(r.data.data.upid, isoUrlFilename.trim());
       await loadIsos();
       setForm(f => ({ ...f, iso_volid: `local:iso/${isoUrlFilename.trim()}` }));
       setIsoMode('existing');
       toast.success(`"${isoUrlFilename.trim()}" is now genuinely available in Proxmox storage.`);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Could not start the download.');
+      toast.error(err.response?.data?.message || err.message || 'Could not start the download.');
     } finally {
       setDownloading(false);
-      setDownloadStatusText('');
+      setDownloadProgress(null);
     }
   };
 
-  // Real polling of Proxmox's own task status API — used by both the
-  // upload and the download-url path, since both return the same
-  // kind of real, pollable UPID.
-  const pollUntilFinished = (upid) => new Promise((resolve, reject) => {
+  // Real polling of Proxmox's own task status/progress API — used by
+  // both the upload and the download-url path, since both return the
+  // same kind of real, pollable UPID. Reports live percent/speed/eta
+  // into downloadProgress on every tick, not just a fire-and-forget
+  // wait — this is also what resumeIsoDownloadPolling below reuses to
+  // pick a download back up after a navigation away and back.
+  const pollUntilFinished = (upid, filename) => new Promise((resolve, reject) => {
     const poll = async () => {
       try {
         const r = await api.get('/admin/templates/isos/download-status/', { params: { upid } });
         const data = r.data.data;
+        setDownloadProgress({ ...data, upid, filename });
         if (data.finished) {
           clearInterval(downloadPollRef.current);
           if (data.success) resolve(data);
@@ -181,6 +214,26 @@ export default function AdminTemplateWizardPage() {
     poll();
     downloadPollRef.current = setInterval(poll, 3000);
   });
+
+  // On mount, if a real ISO download is still genuinely running
+  // (found via /isos/active-download/), pick its progress display back
+  // up and run the exact same completion handling handleUrlDownload
+  // would — same real success/failure path, just entered from a
+  // resume instead of a fresh click.
+  const resumeIsoDownloadPolling = async (upid, filename) => {
+    try {
+      await pollUntilFinished(upid, filename);
+      await loadIsos();
+      setForm(f => ({ ...f, iso_volid: `local:iso/${filename}` }));
+      setIsoMode('existing');
+      toast.success(`"${filename}" is now genuinely available in Proxmox storage.`);
+    } catch (err) {
+      toast.error(err.message || 'The resumed download failed.');
+    } finally {
+      setDownloading(false);
+      setDownloadProgress(null);
+    }
+  };
 
   // Real-time job polling — genuine progress, not fake
   useEffect(() => {
@@ -363,6 +416,29 @@ export default function AdminTemplateWizardPage() {
         </div>
       )}
 
+      {/* Resume banner — a real, still-in-progress job exists; let the
+          admin choose rather than silently forcing either path. */}
+      {!job && !resumeChoiceMade && activeJobs.length > 0 && (
+        <div style={{ ...cardStyle, marginBottom: '16px', border: '1px solid var(--accent-primary)' }}>
+          <p style={{ fontSize: '13px', color: 'var(--text-primary)', marginBottom: '10px' }}>
+            You have an in-progress template: <strong>{activeJobs[0].name}</strong> — currently at{' '}
+            <strong>{STEP_LABELS[activeJobs[0].status] || activeJobs[0].status}</strong>.
+            {activeJobs.length > 1 && ` (${activeJobs.length - 1} more in progress.)`}
+          </p>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button style={primaryBtn} onClick={() => { setJob(activeJobs[0]); setResumeChoiceMade(true); }}>
+              Resume
+            </button>
+            <button
+              style={{ ...primaryBtn, background: 'var(--bg-input)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}
+              onClick={() => setResumeChoiceMade(true)}
+            >
+              Start New Instead
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* STEP 1: form */}
       {!job && (
         <div style={cardStyle}>
@@ -450,7 +526,28 @@ export default function AdminTemplateWizardPage() {
                 Start Download
               </button>
               {downloading && (
-                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '10px' }}>{downloadStatusText}</p>
+                <div style={{ marginTop: '10px' }}>
+                  <div style={{ height: '8px', borderRadius: '4px', background: 'var(--bg-input)', overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%',
+                      width: `${downloadProgress?.percent ?? 3}%`,
+                      background: 'var(--accent-primary)',
+                      transition: 'width 0.4s',
+                    }} />
+                  </div>
+                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>
+                    {downloadProgress?.percent != null
+                      ? `Downloading on the server... ${downloadProgress.percent}%`
+                        + (downloadProgress.speed ? ` · ${downloadProgress.speed}B/s` : '')
+                        + (downloadProgress.eta ? ` · ETA ${downloadProgress.eta}` : '')
+                      : 'Starting server-side download...'}
+                  </p>
+                  {downloadProgress?.bytes_downloaded != null && (
+                    <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      {(downloadProgress.bytes_downloaded / 1e9).toFixed(2)} GB downloaded so far
+                    </p>
+                  )}
+                </div>
               )}
               {form.iso_volid && !downloading && isoMode === 'url' && (
                 <p style={{ fontSize: '12px', color: 'var(--status-success, #10B981)', marginTop: '8px' }}>

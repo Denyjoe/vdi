@@ -520,3 +520,31 @@ class TemplateCreationJob(models.Model):
             'message': message,
         })
         self.save(update_fields=['log'])
+
+
+class IsoDownloadTracking(models.Model):
+    """Real, server-side-persistent tracking for a Proxmox
+    download-url task. Deliberately NOT a field on TemplateCreationJob:
+    a real ISO download commonly starts on the wizard's create-new-job
+    form, before any job exists yet, so job-scoped tracking alone
+    can't cover that case. Lets the wizard resume showing real,
+    current progress after a navigation away and back, rather than
+    starting the admin's awareness of an in-flight download over from
+    zero."""
+    upid = models.CharField(max_length=255, unique=True)
+    filename = models.CharField(max_length=255)
+    url = models.URLField(max_length=1000, blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    finished = models.BooleanField(
+        default=False,
+        help_text="Set once the real Proxmox task is confirmed stopped, so it stops being offered as 'active'.")
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'ISO Download Tracking'
+        verbose_name_plural = 'ISO Download Tracking'
+
+    def __str__(self):
+        return f"{self.filename} ({'finished' if self.finished else 'in progress'})"

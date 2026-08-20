@@ -15,6 +15,7 @@ This service handles:
 from decouple import config
 import time
 import logging
+import re
 import requests
 
 logger = logging.getLogger(__name__)
@@ -208,6 +209,63 @@ class ProxmoxService:
             'finished': finished,
             'success': finished and status.get('exitstatus') == 'OK',
         }
+
+    # Real, confirmed via a live download task's own log: Proxmox's
+    # download-url task runs wget under the hood, whose progress lines
+    # look like ' 32768K ........ ........ ........ ........  1% 4.47M 16m45s'
+    # (bytes-so-far, dot-progress, percent, speed, ETA) — genuine
+    # percentage IS available, not just a running/stopped state, but
+    # only by parsing the task's real log output.
+    _WGET_PROGRESS_RE = re.compile(
+        r'^\s*(?P<bytes>\d+)K\s.*?\s(?P<percent>\d{1,3})%\s+(?P<speed>\S+)\s+(?P<eta>\S+)\s*$'
+    )
+
+    def get_task_progress(self, upid):
+        """
+        Real, richer progress for an async Proxmox task — parses the
+        task's own log for the most recent wget-style progress line
+        (download-url tasks) in addition to the plain status/exitstatus
+        get_task_status() already provides. Uploads (imgcopy tasks)
+        don't emit these lines, so percent/speed/eta stay None for
+        those — callers get everything get_task_status() has either
+        way (status, exit_status, finished, success).
+
+        Returns:
+            dict: {status, exit_status, finished, success, percent,
+            bytes_downloaded, speed, eta, log_tail} — percent/speed/eta/
+            bytes_downloaded are None when the log has no progress line
+            yet (e.g. still resolving DNS) or the task type doesn't
+            emit them (e.g. a real upload).
+        """
+        result = self.get_task_status(upid)
+        result.update({'percent': None, 'bytes_downloaded': None, 'speed': None, 'eta': None, 'log_tail': []})
+
+        try:
+            # Real, confirmed bug this replaced: Proxmox's task-log
+            # endpoint rejects a negative `start` outright ("value
+            # must have a minimum value of 0") — there's no
+            # from-the-end tailing param, so fetch the whole log and
+            # take the tail ourselves. A download task's log is small
+            # (wget logs one progress line per few MB, not per byte),
+            # so this is cheap even for a large ISO.
+            log = self.proxmox.nodes(self.node).tasks(upid).log.get()
+        except Exception as e:
+            logger.warning("Could not read task log for %s: %s", upid, e)
+            return result
+
+        lines = [l.get('t', '') for l in log]
+        result['log_tail'] = lines[-5:]
+
+        for line in reversed(lines):
+            m = self._WGET_PROGRESS_RE.match(line)
+            if m:
+                result['percent'] = int(m.group('percent'))
+                result['bytes_downloaded'] = int(m.group('bytes')) * 1024
+                result['speed'] = m.group('speed')
+                result['eta'] = m.group('eta')
+                break
+
+        return result
 
     def create_vm(self, name, cpu_cores, ram_gb, disk_gb, iso_volid):
         """
