@@ -301,7 +301,29 @@ class ProxmoxService:
             scsi0=f'{self.storage}:{disk_gb},iothread=1',
             ide2=f'{iso_volid},media=cdrom',
             net0='virtio,bridge=vmbr0,firewall=1',
-            boot='order=ide2;scsi0;net0',
+            # Real, confirmed root-cause fix: booting ISO-first
+            # (order=ide2;...) was correct only for the very first
+            # boot, and nothing reliably ran in time to flip it back
+            # before the OS installer's OWN internal post-install
+            # reboot — apply-configuration's boot-order fix can only
+            # run once an admin has completed install AND successfully
+            # reached the wizard's next step, which is always AFTER
+            # that first automatic reboot already happened. So every
+            # install hit the exact same "boots back into the
+            # installer" loop before the app ever got a chance to fix
+            # it. Disk-first boot order fixes this at the root instead
+            # of racing to patch it after the fact: a genuinely blank
+            # disk has no boot record, so standard BIOS/SeaBIOS
+            # fallback behavior tries the next device in the list (the
+            # ISO) for that one first boot — confirmed for real via a
+            # raw RFB/VNC session against a disposable test VM (real
+            # VNC auth, real display, real actively-growing framebuffer
+            # updates matching genuine boot progression, not a stuck
+            # "no bootable device" screen). Once Linux is actually
+            # installed onto the disk, EVERY later boot — including the
+            # installer's own reboot — picks the now-bootable disk
+            # automatically, with zero app timing dependency.
+            boot='order=scsi0;ide2;net0',
             agent=1,
         )
 
