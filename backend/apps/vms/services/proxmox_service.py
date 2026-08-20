@@ -308,6 +308,41 @@ class ProxmoxService:
         logger.info("Created VM %s", new_vmid)
         return int(new_vmid)
 
+    def detach_install_iso_and_fix_boot_order(self, vmid):
+        """
+        Real, permanent fix for a real, confirmed, repeating bug: every
+        VM create_vm() makes boots ISO-first ('order=ide2;scsi0;net0')
+        so the OS installer can actually run — correct at creation
+        time, but nothing ever reverted it afterward. The ISO stayed
+        attached and boot-priority forever, so EVERY reboot after a
+        real, successful OS install re-launched the installer instead
+        of booting the just-installed OS. This was patched once by
+        hand for a single VM (9027) via a direct Proxmox API call, not
+        in code — so it silently kept happening for every job created
+        after that. Called from apply-configuration, the first point
+        the wizard has confirmed (via a real, successful SSH
+        connection) that the OS is genuinely installed and bootable
+        from disk, so it's safe to stop booting from the ISO.
+
+        Args:
+            vmid (int): The real Proxmox VM ID to fix.
+        """
+        logger.info("Detaching install ISO and fixing boot order for VM %s (was ISO-first)", vmid)
+        self.proxmox.nodes(self.node).qemu(vmid).config.post(
+            ide2='none,media=cdrom',
+            boot='order=scsi0',
+        )
+        # Verify it genuinely took effect — never trust the POST's
+        # exit code alone for something this easy to get silently
+        # wrong again.
+        cfg = self.proxmox.nodes(self.node).qemu(vmid).config.get()
+        if cfg.get('boot') != 'order=scsi0' or not str(cfg.get('ide2', '')).startswith('none'):
+            raise Exception(
+                f'Boot-order fix did not genuinely take effect for VM {vmid} '
+                f'(boot={cfg.get("boot")!r}, ide2={cfg.get("ide2")!r}).'
+            )
+        logger.info("VM %s now boots disk-first — real, verified.", vmid)
+
     def clone_template(self, template_id, name):
         """
         Clone a Proxmox template into a new VM.

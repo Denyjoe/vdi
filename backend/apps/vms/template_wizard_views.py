@@ -437,6 +437,27 @@ class AdminTemplateJobApplyConfigurationView(views.APIView):
             return Response({'success': False, 'message': f'SSH connection failed: {msg}'}, status=502)
         job.log_step('SSH connection verified.')
 
+        # Real, confirmed, previously-repeating bug fixed here: the VM
+        # was created with the ISO boot-first (required so the
+        # installer could actually run) and NOTHING ever reverted that
+        # afterward, so every reboot from here on kept re-launching
+        # the installer instead of booting the OS that was just
+        # installed — happened before, was only ever hand-patched for
+        # one specific VM, never fixed in code, so it kept recurring
+        # for every new job. This is the first point the wizard has
+        # real, confirmed proof (a genuine SSH login) that the OS is
+        # actually installed and bootable from disk, so it's now safe
+        # to stop booting from the ISO — permanently, for every job.
+        try:
+            ps.detach_install_iso_and_fix_boot_order(job.proxmox_vmid)
+            job.log_step('Install ISO detached and boot order fixed — future reboots will boot the installed OS, not the installer.')
+        except Exception as e:
+            job.status = 'failed'
+            job.error_message = f'Could not fix boot order after install: {e}'
+            job.save(update_fields=['status', 'error_message'])
+            job.log_step(job.error_message, level='error')
+            return Response({'success': False, 'message': job.error_message}, status=502)
+
         if de.fix_script.strip():
             job.log_step(f'Running fix_script for {de.display_name}...')
             result = run_ssh_script(ip, ssh_username, ssh_password, de.fix_script)
