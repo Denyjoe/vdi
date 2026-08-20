@@ -67,6 +67,25 @@ const GuacamoleEmbed = React.memo(forwardRef(function GuacamoleEmbed({
   minCoverMs = 4500,
 }, ref) {
   const [minCoverElapsed, setMinCoverElapsed] = useState(false);
+  // Real, confirmed gap the external `tunnelActive` signal alone
+  // doesn't cover: Guacamole's server-side activeConnections API (what
+  // tunnelActive is polled from) reports a tunnel "active" the instant
+  // guacd accepts a client — BEFORE the real remote-desktop handshake
+  // to the actual VM has succeeded, and that can flap true/false for a
+  // stretch after a real disruption (e.g. the VM itself rebooting)
+  // rather than settling immediately. Reproduced live: after a real
+  // VM stop/start, tunnelActive read positive for long enough to
+  // satisfy its own confirm-strikes and lift the cover while
+  // Guacamole's OWN client was still internally stuck showing "Waiting
+  // for response…" — a real, raw leak the external signal alone
+  // can't see. Guacamole's client exposes its own authoritative
+  // connection state via onstatechange (0=IDLE, 1=CONNECTING,
+  // 2=WAITING, 3=CONNECTED, 4=DISCONNECTING, 5=DISCONNECTED) — reading
+  // that directly from inside the iframe (same-origin, already proven
+  // reachable elsewhere in this file) is what "waiting for response"
+  // actually means internally, not an assumption. Requiring BOTH
+  // signals closes the gap without weakening either one.
+  const [clientReallyConnected, setClientReallyConnected] = useState(false);
   const iframeRef = useRef(null);
   // Bumping this forces React to fully unmount/remount the iframe, which
   // makes Guacamole open a brand new connection. This is the fix for
@@ -83,7 +102,50 @@ const GuacamoleEmbed = React.memo(forwardRef(function GuacamoleEmbed({
     return () => clearTimeout(t);
   }, [url, minCoverMs, reloadKey]);
 
-  const ready = minCoverElapsed && tunnelActive;
+  // Real client-state observation — see clientReallyConnected above.
+  // The scope/client object isn't reachable the instant the iframe
+  // starts loading (Guacamole's own Angular app has to bootstrap
+  // first), so this polls briefly until it's found rather than
+  // assuming a single check will land at the right moment; once found,
+  // it hooks the client's own onstatechange for the real, live signal
+  // going forward instead of continuing to poll.
+  useEffect(() => {
+    if (!url) return undefined;
+    setClientReallyConnected(false);
+    let cancelled = false;
+    let attachedClient = null;
+    let prevOnStateChange = null;
+
+    const findAndAttach = () => {
+      if (cancelled) return true;
+      const win = iframeRef.current?.contentWindow;
+      const scope = findGuacScope(win);
+      const client = scope?.focusedClient?.client;
+      if (!client) return false;
+      attachedClient = client;
+      prevOnStateChange = client.onstatechange;
+      client.onstatechange = (state) => {
+        if (typeof prevOnStateChange === 'function') prevOnStateChange(state);
+        if (!cancelled) setClientReallyConnected(state === 3);
+      };
+      return true;
+    };
+
+    let pollId = null;
+    if (!findAndAttach()) {
+      pollId = setInterval(() => {
+        if (findAndAttach() && pollId) clearInterval(pollId);
+      }, 250);
+    }
+
+    return () => {
+      cancelled = true;
+      if (pollId) clearInterval(pollId);
+      if (attachedClient) attachedClient.onstatechange = prevOnStateChange;
+    };
+  }, [url, reloadKey]);
+
+  const ready = minCoverElapsed && tunnelActive && clientReallyConnected;
 
   useEffect(() => {
     if (!ready) return;
