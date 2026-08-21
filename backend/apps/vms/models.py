@@ -56,6 +56,16 @@ class VMTemplate(models.Model):
         max_length=100,
         help_text="Operating system (e.g. 'Windows 10', 'Ubuntu 22.04').",
     )
+    os_family = models.CharField(
+        max_length=30,
+        blank=True,
+        default='',
+        help_text=(
+            "Simple OS family key used to pick a real, correctly-licensed "
+            "icon (e.g. 'ubuntu', 'debian', 'parrot', 'zorin', 'windows') "
+            "— distinct from the free-text 'os' display string."
+        ),
+    )
     is_available = models.BooleanField(
         default=True,
         help_text="If False, this template is hidden from the student catalogue.",

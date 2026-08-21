@@ -131,7 +131,7 @@ export default function AdminTemplateWizardPage() {
   const [manualIp, setManualIp] = useState('');
   const [selectedApps, setSelectedApps] = useState([]);
   const [customApp, setCustomApp] = useState('');
-  const [promoteForm, setPromoteForm] = useState({ name: '', description: '', price_per_hour: 0, price_per_month: 0, icon: '🖥️' });
+  const [promoteForm, setPromoteForm] = useState({ name: '', description: '', price_per_hour: 0, price_per_month: 0, icon: '🖥️', os_family: '' });
 
   const loadIsos = () => api.get('/admin/templates/available-isos/').then(r => setIsos(r.data.data || [])).catch(() => toast.error('Could not load real ISOs from Proxmox.'));
 
@@ -902,8 +902,24 @@ export default function AdminTemplateWizardPage() {
               <input style={inputStyle} value={promoteForm.name} onChange={e => setPromoteForm({ ...promoteForm, name: e.target.value })} />
             </div>
             <div>
-              <label style={labelStyle}>Icon (emoji)</label>
+              <label style={labelStyle}>Icon (emoji fallback — only used if no OS family below)</label>
               <input style={inputStyle} value={promoteForm.icon} onChange={e => setPromoteForm({ ...promoteForm, icon: e.target.value })} />
+            </div>
+            <div>
+              <label style={labelStyle}>OS family (picks the real, correctly-licensed OS icon shown everywhere)</label>
+              <input
+                style={inputStyle}
+                list="os-family-options"
+                value={promoteForm.os_family}
+                onChange={e => setPromoteForm({ ...promoteForm, os_family: e.target.value })}
+                placeholder="e.g. ubuntu, debian, parrot, zorin, windows"
+              />
+              <datalist id="os-family-options">
+                <option value="ubuntu" /><option value="debian" /><option value="parrot" />
+                <option value="zorin" /><option value="kali" /><option value="fedora" />
+                <option value="arch" /><option value="centos" /><option value="mint" />
+                <option value="windows" /><option value="macos" /><option value="linux" />
+              </datalist>
             </div>
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={labelStyle}>Description</label>
@@ -911,11 +927,11 @@ export default function AdminTemplateWizardPage() {
             </div>
             <div>
               <label style={labelStyle}>Price/hour (TZS)</label>
-              <input type="number" style={inputStyle} value={promoteForm.price_per_hour} onChange={e => setPromoteForm({ ...promoteForm, price_per_hour: e.target.value })} />
+              <input type="number" step="0.01" min={0} style={inputStyle} value={promoteForm.price_per_hour} onChange={e => setPromoteForm({ ...promoteForm, price_per_hour: e.target.value })} />
             </div>
             <div>
               <label style={labelStyle}>Price/month (TZS)</label>
-              <input type="number" style={inputStyle} value={promoteForm.price_per_month} onChange={e => setPromoteForm({ ...promoteForm, price_per_month: e.target.value })} />
+              <input type="number" step="0.01" min={0} style={inputStyle} value={promoteForm.price_per_month} onChange={e => setPromoteForm({ ...promoteForm, price_per_month: e.target.value })} />
             </div>
           </div>
           <button style={primaryBtn} onClick={handlePromote} disabled={loading}>

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useBreakpoint from '../../hooks/useBreakpoint';
-import { 
-  Plus, ChevronDown, ChevronUp, Edit2, Eye, EyeOff, Trash2, 
+import {
+  ChevronDown, ChevronUp, Edit2, Eye, EyeOff, Trash2,
   X, Check, Save, Loader2, RefreshCw, Monitor, Server, AlertTriangle, CheckCircle,
   Code, Zap, AppWindow, HardDrive, Database, Shield, Globe, Terminal, Film,
   Smartphone, Cpu, Palette, Network
@@ -11,18 +11,7 @@ import api from '../../services/api';
 import Toast from '../../components/shared/Toast';
 import ConfirmModal from '../../components/shared/ConfirmModal';
 import TemplateLinkModal from '../../components/admin/TemplateLinkModal';
-
-const OS_OPTIONS = [
-  'Windows 10 Pro',
-  'Windows 11 Pro',
-  'Ubuntu 22.04 LTS',
-  'Ubuntu 20.04 LTS',
-  'Kali Linux 2024',
-  'CentOS 8',
-  'Custom',
-];
-
-import OsIcon, { OS_ICONS } from '../../components/shared/OsIcon';
+import { getOsIcon } from '../../utils/osIcons';
 
 const ICON_MAP = {
   Monitor, Code, Zap, AppWindow,
@@ -31,28 +20,27 @@ const ICON_MAP = {
   Smartphone, Cpu, Palette, Network,
 };
 
-function TemplateIcon({ name, size = 16, color, templateName }) {
-  if (templateName && OS_ICONS[templateName]) {
-    return <span style={{ display: 'inline-flex' }}><OsIcon templateName={templateName} size={size} color={color} /></span>;
+// Real OS icon (react-icons/Simple Icons) when the template has a known
+// os_family; otherwise the manually-picked lucide icon (only ever
+// relevant for the rare non-OS-identified row).
+function TemplateIcon({ name, size = 16, color, osFamily }) {
+  if (osFamily) {
+    const IconComponent = getOsIcon(osFamily);
+    return <span style={{ display: 'inline-flex' }}><IconComponent size={size} color={color} /></span>;
   }
   const IconComponent = ICON_MAP[name] || Monitor;
   return <IconComponent size={size} style={{ color }} />;
 }
 
-const EMPTY_FORM = {
+// Edit-only form: a real, wizard-built template's OS/specs are
+// permanently baked into the actual Proxmox VM behind it, so only
+// display/pricing fields are ever safe to change after the fact.
+const EMPTY_EDIT_FORM = {
   name: '',
-  template_type: 'desktop',
-  os: 'Ubuntu 22.04 LTS',
-  cpu_cores: 2,
-  ram_gb: 4,
-  storage_gb: 40,
   price_per_hour: 0,
   price_per_month: 0,
   monthly_cap: 0,
-  software_list: [],
   icon: 'Monitor',
-  description: '',
-  is_available: true,
 };
 
 export default function AdminTemplatesPage() {
@@ -65,9 +53,7 @@ export default function AdminTemplatesPage() {
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [softwareInput, setSoftwareInput] = useState('');
-  const [customOs, setCustomOs] = useState('');
+  const [form, setForm] = useState(EMPTY_EDIT_FORM);
   const [formErrors, setFormErrors] = useState({});
 
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -103,54 +89,21 @@ export default function AdminTemplatesPage() {
   };
 
   const resetForm = () => {
-    setForm(EMPTY_FORM);
-    setSoftwareInput('');
-    setCustomOs('');
+    setForm(EMPTY_EDIT_FORM);
     setFormErrors({});
     setEditingId(null);
-  };
-
-  const openCreateForm = () => {
-    resetForm();
-    setFormOpen(true);
   };
 
   const openEditForm = (template) => {
     setEditingId(template.id);
     setForm({
       name: template.name || '',
-      template_type: template.template_type || 'desktop',
-      os: OS_OPTIONS.includes(template.os) ? template.os : 'Custom',
-      cpu_cores: template.cpu_cores || 2,
-      ram_gb: template.ram_gb || 4,
-      storage_gb: template.storage_gb || 40,
       price_per_hour: parseFloat(template.price_per_hour) || 0,
       price_per_month: parseFloat(template.price_per_month) || 0,
       monthly_cap: parseFloat(template.monthly_cap) || 0,
-      software_list: template.software_list || [],
       icon: template.icon || 'Monitor',
-      description: template.description || '',
-      is_available: template.is_available,
     });
-    if (!OS_OPTIONS.includes(template.os)) {
-      setCustomOs(template.os);
-    }
     setFormOpen(true);
-  };
-
-  const handleSoftwareKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const val = softwareInput.trim();
-      if (val && !form.software_list.includes(val)) {
-        setForm(p => ({ ...p, software_list: [...p.software_list, val] }));
-      }
-      setSoftwareInput('');
-    }
-  };
-
-  const removeSoftwareTag = (sw) => {
-    setForm(p => ({ ...p, software_list: p.software_list.filter(item => item !== sw) }));
   };
 
   const toggleAvailability = async (template) => {
@@ -178,24 +131,26 @@ export default function AdminTemplatesPage() {
     }
   };
 
+  // Edit-only: this form only ever touches display/pricing fields on an
+  // ALREADY-real, wizard-built template — there is no create path here
+  // anymore. The backend also enforces this (AdminTemplateDetailView
+  // rejects spec/OS changes on is_real templates), so this is real
+  // defense in depth, not just a frontend convention.
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!editingId) return;
     if (!form.name) return setFormErrors({ name: 'Name is required' });
 
     setSaving(true);
     try {
-      const payload = {
-        ...form,
-        os: form.os === 'Custom' ? customOs : form.os,
-      };
-      
-      if (editingId) {
-        await api.put(`/vms/admin/templates/${editingId}/`, payload);
-        showToast('Template updated successfully');
-      } else {
-        await api.post('/vms/admin/templates/create/', payload);
-        showToast('Template created successfully');
-      }
+      await api.put(`/vms/admin/templates/${editingId}/`, {
+        name: form.name,
+        price_per_hour: form.price_per_hour,
+        price_per_month: form.price_per_month,
+        monthly_cap: form.monthly_cap,
+        icon: form.icon,
+      });
+      showToast('Template updated successfully');
       setFormOpen(false);
       resetForm();
       fetchTemplates();
@@ -238,20 +193,15 @@ export default function AdminTemplatesPage() {
             {refreshing ? 'Refreshing...' : 'Refresh'}
           </button>
           {!formOpen && (
-            <>
-              <button onClick={() => navigate('/admin/templates/new')} style={{
-                display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
-                borderRadius: '10px', background: 'var(--bg-card)', color: 'var(--text-primary)',
-                border: '1px solid var(--border-color)', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-              }} title="Build a genuinely new OS template from scratch — real VM, real install, real config">
-                <Server size={14} />
-                New OS Template
-              </button>
-              <button onClick={openCreateForm} className="flex items-center gap-2 bg-[var(--accent-primary)] hover:opacity-90 text-white px-4 py-2 rounded-xl transition-opacity font-medium shadow-lg shadow-[var(--accent-primary)]/20">
-                <Plus size={18} />
-                Add Template
-              </button>
-            </>
+            // The only way to create a template: the real wizard, which
+            // requires an actual, verified Proxmox VM behind every
+            // template it produces. There is no manual/fake-entry path
+            // anymore — a template row with no real VM behind it was a
+            // genuine risk (members could see and try to launch it).
+            <button onClick={() => navigate('/admin/templates/new')} className="flex items-center gap-2 bg-[var(--accent-primary)] hover:opacity-90 text-white px-4 py-2 rounded-xl transition-opacity font-medium shadow-lg shadow-[var(--accent-primary)]/20" title="Build a genuinely new OS template from scratch — real VM, real install, real config">
+              <Server size={16} />
+              New OS Template
+            </button>
           )}
         </div>
       </div>
@@ -259,7 +209,7 @@ export default function AdminTemplatesPage() {
       {formOpen && (
         <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-[var(--text-primary)]">{editingId ? 'Edit Template' : 'Create New Template'}</h2>
+            <h2 className="text-lg font-bold text-[var(--text-primary)]">Edit Template</h2>
             <button onClick={() => { setFormOpen(false); resetForm(); }} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1 transition-colors">
               <X size={20} />
             </button>
@@ -274,7 +224,7 @@ export default function AdminTemplatesPage() {
               </div>
 
               <div>
-                <label style={labelStyle}>Icon</label>
+                <label style={labelStyle}>Icon (fallback — real templates show their real OS icon automatically)</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '8px' }}>
                   {Object.entries(ICON_MAP).map(([name, Icon]) => (
                     <button key={name} type="button" onClick={() => setForm(f => ({ ...f, icon: name }))} style={{
@@ -289,93 +239,31 @@ export default function AdminTemplatesPage() {
                 </div>
               </div>
 
-              <div style={{ marginBottom: '16px', gridColumn: '1 / -1' }}>
-                <label style={labelStyle}>Template Type *</label>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button type="button" onClick={() => setForm(f => ({ ...f, template_type: 'desktop' }))} style={{
-                    flex: 1, padding: '12px', borderRadius: '10px',
-                    border: form.template_type === 'desktop' ? '2px solid var(--accent-primary)' : '1px solid var(--border-color)',
-                    background: form.template_type === 'desktop' ? 'var(--accent-primary-soft)' : 'var(--bg-input)',
-                    color: form.template_type === 'desktop' ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '13px', fontWeight: 600,
-                  }}>
-                    <Monitor size={16} /> Desktop
-                  </button>
-                  <button type="button" onClick={() => setForm(f => ({ ...f, template_type: 'server' }))} style={{
-                    flex: 1, padding: '12px', borderRadius: '10px',
-                    border: form.template_type === 'server' ? '2px solid var(--accent-primary)' : '1px solid var(--border-color)',
-                    background: form.template_type === 'server' ? 'var(--accent-primary-soft)' : 'var(--bg-input)',
-                    color: form.template_type === 'server' ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '13px', fontWeight: 600,
-                  }}>
-                    <Server size={16} /> Server
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label style={labelStyle}>Operating System *</label>
-                <select style={inputStyle} value={form.os} onChange={e => setForm(f => ({ ...f, os: e.target.value }))}>
-                  {OS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
-                {form.os === 'Custom' && (
-                  <input style={{...inputStyle, marginTop: '8px'}} type="text" value={customOs} onChange={e => setCustomOs(e.target.value)} placeholder="e.g. Debian 12" required />
-                )}
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div><label style={labelStyle}>vCPU Cores</label><input style={inputStyle} type="number" min="1" max="64" value={form.cpu_cores} onChange={e => setForm(f => ({ ...f, cpu_cores: parseInt(e.target.value)||1 }))} /></div>
-                <div><label style={labelStyle}>RAM (GB)</label><input style={inputStyle} type="number" min="1" max="256" value={form.ram_gb} onChange={e => setForm(f => ({ ...f, ram_gb: parseInt(e.target.value)||1 }))} /></div>
-                <div><label style={labelStyle}>Storage (GB)</label><input style={inputStyle} type="number" min="10" max="2000" value={form.storage_gb} onChange={e => setForm(f => ({ ...f, storage_gb: parseInt(e.target.value)||10 }))} /></div>
-              </div>
-
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px', gridColumn: '1 / -1' }}>
                 <div>
                   <label style={labelStyle}>Price per Hour (TZS)</label>
-                  <input type="number" min={0} value={form.price_per_hour} onChange={e => setForm(f => ({ ...f, price_per_hour: parseFloat(e.target.value) || 0 }))} placeholder="0" style={inputStyle} />
+                  <input type="number" min={0} step="0.01" value={form.price_per_hour} onChange={e => setForm(f => ({ ...f, price_per_hour: parseFloat(e.target.value) || 0 }))} placeholder="0" style={inputStyle} />
                   <p style={{ fontSize: '10px', color: 'var(--text-faint)', marginTop: '4px' }}>Charged when a user buys hours</p>
                 </div>
                 <div>
                   <label style={labelStyle}>Price per Month (TZS)</label>
-                  <input type="number" min={0} value={form.price_per_month} onChange={e => setForm(f => ({ ...f, price_per_month: parseFloat(e.target.value) || 0 }))} placeholder="0" style={inputStyle} />
+                  <input type="number" min={0} step="0.01" value={form.price_per_month} onChange={e => setForm(f => ({ ...f, price_per_month: parseFloat(e.target.value) || 0 }))} placeholder="0" style={inputStyle} />
                   <p style={{ fontSize: '10px', color: 'var(--text-faint)', marginTop: '4px' }}>Flat monthly subscription for unlimited access</p>
                 </div>
                 <div>
                   <label style={labelStyle}>Monthly Cap (TZS)</label>
-                  <input type="number" min={0} value={form.monthly_cap} onChange={e => setForm(f => ({ ...f, monthly_cap: parseFloat(e.target.value) || 0 }))} placeholder="0" style={inputStyle} />
+                  <input type="number" min={0} step="0.01" value={form.monthly_cap} onChange={e => setForm(f => ({ ...f, monthly_cap: parseFloat(e.target.value) || 0 }))} placeholder="0" style={inputStyle} />
                   <p style={{ fontSize: '10px', color: 'var(--text-faint)', marginTop: '4px' }}>Maximum monthly charge</p>
                 </div>
               </div>
 
-              <div className="md:col-span-2">
-                <label style={labelStyle}>Included Software</label>
-                <div style={{...inputStyle, padding: '8px', minHeight: '80px', display: 'flex', flexDirection: 'column', gap: '8px'}}>
-                  <div style={{display: 'flex', flexWrap: 'wrap', gap: '8px'}}>
-                    {form.software_list.map(sw => (
-                      <span key={sw} style={{display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--accent-primary-soft)', color: 'var(--accent-primary)', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600}}>
-                        {sw}
-                        <button type="button" onClick={() => removeSoftwareTag(sw)} style={{background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: 0}}><X size={12} /></button>
-                      </span>
-                    ))}
-                  </div>
-                  <input type="text" value={softwareInput} onChange={e => setSoftwareInput(e.target.value)} onKeyDown={handleSoftwareKeyDown} placeholder="Type software name and press Enter..." style={{background: 'transparent', border: 'none', color: 'var(--text-primary)', outline: 'none', fontSize: '13px', width: '100%'}} />
-                </div>
-              </div>
-
-              <div className="md:col-span-2">
-                <label style={labelStyle}>Description (optional)</label>
-                <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={3} placeholder="Brief description of what this template is used for..." style={{...inputStyle, resize: 'vertical'}} />
-              </div>
             </div>
 
             <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
               <button type="button" onClick={() => { setFormOpen(false); resetForm(); }} style={{ padding: '10px 20px', background: 'none', border: 'none', color: 'var(--text-primary)', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
-              <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-                <button type="submit" disabled={saving} style={{ padding: '10px 24px', background: 'var(--accent-primary)', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>
-                  {saving ? 'Saving...' : (editingId ? 'Update Template' : 'Create Template')}
-                </button>
-                {!editingId && <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '12px', textAlign: 'center' }}>After creating, link this template to a Proxmox VM from the templates table to make it available for users to launch.</p>}
-              </div>
+              <button type="submit" disabled={saving} style={{ padding: '10px 24px', background: 'var(--accent-primary)', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>
+                {saving ? 'Saving...' : 'Update Template'}
+              </button>
             </div>
           </form>
         </div>
@@ -396,14 +284,14 @@ export default function AdminTemplatesPage() {
             )}
             {!loading && templates.length === 0 && (
               <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px' }}>
-                No templates found. Tap "Add Template" to create one.
+                No templates found. Click "New OS Template" to build one via the real wizard.
               </div>
             )}
             {templates.map(t => (
               <div key={t.id} style={{ border: '1px solid var(--border-color)', borderRadius: '12px', padding: '14px', background: 'var(--bg-card)', opacity: t.is_available ? 1 : 0.6 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
                   <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', flexShrink: 0 }}>
-                    <TemplateIcon name={t.icon} templateName={t.name} size={18} color="var(--accent-primary)" />
+                    <TemplateIcon name={t.icon} osFamily={t.os_family} size={18} color="var(--accent-primary)" />
                   </div>
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '14px', wordBreak: 'break-word' }}>{t.name}</div>
@@ -476,13 +364,13 @@ export default function AdminTemplatesPage() {
             </thead>
             <tbody>
               {loading && <tr><td colSpan="8" style={{ padding: '40px', textAlign: 'center' }}><Loader2 size={24} style={{ color: 'var(--accent-primary)', margin: '0 auto', animation: 'spin 1s linear infinite' }} /></td></tr>}
-              {!loading && templates.length === 0 && <tr><td colSpan="8" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>No templates found. Click "Add Template" to create one.</td></tr>}
+              {!loading && templates.length === 0 && <tr><td colSpan="8" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>No templates found. Click "New OS Template" to build one via the real wizard.</td></tr>}
               {templates.map(t => (
                 <tr key={t.id} style={{ borderBottom: '1px solid var(--border-color)', opacity: t.is_available ? 1 : 0.6 }}>
                   <td style={{ padding: '12px 16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
-                         <TemplateIcon name={t.icon} templateName={t.name} size={18} color="var(--accent-primary)" />
+                         <TemplateIcon name={t.icon} osFamily={t.os_family} size={18} color="var(--accent-primary)" />
                       </div>
                       <div>
                         <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '14px' }}>{t.name}</div>

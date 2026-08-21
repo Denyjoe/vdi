@@ -492,6 +492,39 @@ class AdminTemplateJobApplyConfigurationView(views.APIView):
             job.log_step(job.error_message, level='error')
             return Response({'success': False, 'message': job.error_message}, status=502)
 
+        # Real, confirmed, repeatable class of bug fixed here — not one
+        # specific package: a freshly-installed Parrot VM can carry
+        # ANY number of held/conflicting packages from backports-vs-
+        # stable version drift (openssh-client/openssh-server was the
+        # first one actually hit; gnome-shell/gstreamer1.0-pipewire/
+        # pipewire was the second, on a completely different job/VM —
+        # confirming this is a genuine class of problem, not a single
+        # package to special-case). Chasing individual packages one at
+        # a time as they surface doesn't scale and just means the next
+        # admin hits the next one. A real `apt full-upgrade` resolves
+        # the entire dependency tree in one pass — including pulling
+        # backports-pinned packages back in line with whatever the
+        # rest of the system actually needs — so it runs first, before
+        # either the openssh-specific pin-check below or the desktop
+        # fix_script, both of which assume a consistent package state
+        # to work from. Full-upgrade across an entire fresh OS install
+        # can genuinely take several real minutes, hence the long
+        # timeout; non-fatal on failure (logged, not blocking) since a
+        # full-upgrade timing out shouldn't by itself fail the whole
+        # job when the specific packages this wizard actually needs
+        # might still install fine afterward.
+        job.log_step('Running apt full-upgrade to resolve any backports/stable package drift before configuring...')
+        full_upgrade_result = run_ssh_script(
+            ip, ssh_username, ssh_password,
+            'apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get full-upgrade -y',
+            timeout=900,
+        )
+        job.log_step(
+            'apt full-upgrade complete.' if full_upgrade_result['success']
+            else f'apt full-upgrade failed (non-fatal, continuing): {full_upgrade_result.get("stderr") or full_upgrade_result.get("error")}',
+            level='info' if full_upgrade_result['success'] else 'warning',
+        )
+
         # Real, confirmed, repeatable bug fixed here: Parrot OS (and any
         # Debian-family system with backports enabled the same way)
         # ships openssh-client at a HIGHER version from its backports
@@ -895,6 +928,19 @@ class AdminTemplateJobPromoteView(views.APIView):
         price_per_hour = request.data.get('price_per_hour', 0)
         price_per_month = request.data.get('price_per_month', 0)
         icon = request.data.get('icon', '🖥️')
+        # Real, open choice — an admin can pick/confirm any OS family key
+        # here (not limited to a fixed list), used only to select the
+        # correct real icon (see frontend osIcons.js). Falls back to a
+        # best-effort guess from the job/ISO name so promoting still
+        # works if the admin skips this, rather than defaulting to a
+        # misleading generic icon.
+        os_family = (request.data.get('os_family') or '').strip().lower()
+        if not os_family:
+            guess_source = f'{job.name} {job.iso_filename or ""}'.lower()
+            for candidate in ('ubuntu', 'debian', 'parrot', 'zorin', 'kali', 'fedora', 'arch', 'centos', 'mint', 'windows'):
+                if candidate in guess_source:
+                    os_family = candidate
+                    break
 
         template = VMTemplate.objects.create(
             name=name,
@@ -903,6 +949,7 @@ class AdminTemplateJobPromoteView(views.APIView):
             ram_gb=job.ram_gb,
             storage_gb=job.disk_gb,
             os=job.desktop_environment.display_name,
+            os_family=os_family,
             icon=icon,
             proxmox_template_id=job.final_template_id,
             is_real=True,

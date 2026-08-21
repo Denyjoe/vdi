@@ -5,7 +5,7 @@ import PublicNavbar from '../../components/public/PublicNavbar';
 import useAuthStore from '../../store/authStore';
 import api from '../../services/api';
 
-import OsIcon, { OS_ICONS } from '../../components/shared/OsIcon';
+import { getOsIcon } from '../../utils/osIcons';
 
 const TEMPLATE_ICONS = {
   Code2, Compass, Terminal, Palette,
@@ -14,9 +14,12 @@ const TEMPLATE_ICONS = {
   HardDrive,
 };
 
-const TemplateIcon = ({ iconName, templateName, size = 20, color, className }) => {
-  if (templateName && OS_ICONS[templateName]) {
-    return <span className={className} style={{ display: 'inline-flex', color }}><OsIcon templateName={templateName} size={size} color="currentColor" /></span>
+// Real OS icon (react-icons/Simple Icons) when we know the OS family;
+// otherwise the manually-picked lucide icon for non-OS templates.
+const TemplateIcon = ({ iconName, osFamily, size = 20, color, className }) => {
+  if (osFamily) {
+    const IconComponent = getOsIcon(osFamily);
+    return <span className={className} style={{ display: 'inline-flex', color }}><IconComponent size={size} color="currentColor" /></span>
   }
   const IconComponent = TEMPLATE_ICONS[iconName] || Monitor;
   return <IconComponent size={size} color={color} className={className} />;
@@ -134,7 +137,7 @@ export default function TemplatesPage() {
                   <div key={template.id} className="group flex flex-col bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] overflow-hidden hover:border-indigo-500/50 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300">
                     <div className={`p-8 bg-gradient-to-br ${getGradientByOS(template.os)} border-b`}>
                       <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center mb-6 shadow-inner border border-white/10">
-                        <TemplateIcon iconName={template.icon} templateName={template.name} className="w-8 h-8 text-primary" size={32} />
+                        <TemplateIcon iconName={template.icon} osFamily={template.os_family} className="w-8 h-8 text-primary" size={32} />
                       </div>
                       <h3 className="text-2xl font-bold text-primary mb-2">{template.name}</h3>
                       <p className="text-primary/70 font-medium">{template.os}</p>

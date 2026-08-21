@@ -13,7 +13,7 @@ import JoinByCodeModal from '../components/shared/JoinByCodeModal'
 import useBreakpoint from '../hooks/useBreakpoint'
 import NetworkGlobe from '../components/shared/NetworkGlobe'
 
-import OsIcon, { OS_ICONS } from '../components/shared/OsIcon';
+import { getOsIcon } from '../utils/osIcons';
 
 const TEMPLATE_ICONS = {
   Code: Code, Code2: Code, Compass: Compass, Terminal: Terminal, Palette: Palette,
@@ -22,9 +22,12 @@ const TEMPLATE_ICONS = {
   HardDrive: HardDrive, Server: Server, AppWindow: AppWindow
 }
 
-const TemplateIcon = ({ icon, className, size, templateName }) => {
-  if (templateName && OS_ICONS[templateName]) {
-    return <span className={className} style={{ display: 'inline-flex' }}><OsIcon templateName={templateName} size={size} color="currentColor" /></span>
+// Real OS icon (react-icons/Simple Icons) when we know the OS family;
+// otherwise the manually-picked lucide icon for non-OS templates.
+const TemplateIcon = ({ icon, className, size, osFamily }) => {
+  if (osFamily) {
+    const Icon = getOsIcon(osFamily);
+    return <span className={className} style={{ display: 'inline-flex' }}><Icon size={size} color="currentColor" /></span>
   }
   const Icon = TEMPLATE_ICONS[icon] || Monitor
   return <Icon className={className} size={size} />
@@ -567,9 +570,9 @@ export default function DashboardPage() {
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                       t.template_type === 'server' ? 'bg-[#FF6B00]/10' : 'bg-[#00A3FF]/10'
                     }`}>
-                      <TemplateIcon 
+                      <TemplateIcon
                         icon={t.icon}
-                        templateName={t.name}
+                        osFamily={t.os_family}
                         className={t.template_type === 'server' ? 'text-[#FF6B00]' : 'text-[#00A3FF]'}
                         size={20} />
                     </div>

@@ -17,7 +17,7 @@ import ConfirmDialog from '../../components/shared/ConfirmDialog'
 import useConfirm from '../../hooks/useConfirm'
 import PowerOnAnimation from '../../components/shared/PowerOnAnimation'
 
-import OsIcon, { OS_ICONS } from '../../components/shared/OsIcon'
+import { getOsIcon } from '../../utils/osIcons'
 
 // Maps backend icon name → lucide-react component
 const iconMap = {
@@ -29,9 +29,12 @@ const iconMap = {
   'AppWindow': AppWindow
 }
 
-const TemplateIcon = ({ iconName, templateName, size = 20, color, className }) => {
-  if (templateName && OS_ICONS[templateName]) {
-    return <span className={className} style={{ display: 'inline-flex', color }}><OsIcon templateName={templateName} size={size} color="currentColor" /></span>
+// Real OS icon (react-icons/Simple Icons) when we know the OS family;
+// otherwise the manually-picked lucide icon for non-OS templates.
+const TemplateIcon = ({ iconName, osFamily, size = 20, color, className }) => {
+  if (osFamily) {
+    const IconComponent = getOsIcon(osFamily)
+    return <span className={className} style={{ display: 'inline-flex', color }}><IconComponent size={size} color="currentColor" /></span>
   }
   const IconComponent = iconMap[iconName] || Monitor
   return <IconComponent size={size} color={color} className={className} />
@@ -437,7 +440,7 @@ export default function WorkspacesPage() {
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">
                           <div className={`w-10 h-10 rounded-xl ${isRunning ? 'bg-[#00FF87]/10' : isProvisioning ? 'bg-[#00A3FF]/10' : 'bg-nav-hover'} flex items-center justify-center shrink-0`}>
-                            <TemplateIcon iconName={ws.vm_template_details?.icon} templateName={ws.vm_template_details?.name} size={20} className={isRunning ? "text-[#00FF87]" : isProvisioning ? "text-[#00A3FF]" : "text-secondary"} />
+                            <TemplateIcon iconName={ws.vm_template_details?.icon} osFamily={ws.vm_template_details?.os_family} size={20} className={isRunning ? "text-[#00FF87]" : isProvisioning ? "text-[#00A3FF]" : "text-secondary"} />
                           </div>
                           <div className="min-w-0">
                             <h3 className="text-sm font-bold text-primary uppercase tracking-wide truncate">
@@ -542,7 +545,7 @@ export default function WorkspacesPage() {
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-[#00A3FF]/10 flex items-center justify-center shrink-0">
-                          <TemplateIcon iconName={ws.vm_template_details?.icon} templateName={ws.vm_template_details?.name} size={20} className="text-[#00A3FF]" />
+                          <TemplateIcon iconName={ws.vm_template_details?.icon} osFamily={ws.vm_template_details?.os_family} size={20} className="text-[#00A3FF]" />
                         </div>
                         <div className="min-w-0">
                           <h3 className="text-sm font-bold text-primary uppercase tracking-wide truncate">{ws.name}</h3>
@@ -591,7 +594,7 @@ export default function WorkspacesPage() {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-[#FF6B00]/10 flex items-center justify-center shrink-0">
-                        <TemplateIcon iconName={ws.vm_template_details?.icon} templateName={ws.vm_template_details?.name} size={20} className="text-[#FF6B00]" />
+                        <TemplateIcon iconName={ws.vm_template_details?.icon} osFamily={ws.vm_template_details?.os_family} size={20} className="text-[#FF6B00]" />
                       </div>
                       <div className="min-w-0">
                         <h3 className="text-sm font-bold text-primary uppercase tracking-wide truncate">{ws.name}</h3>
@@ -745,7 +748,7 @@ export default function WorkspacesPage() {
                       >
                         <div className="flex justify-between items-start mb-3">
                           <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isSelected ? 'bg-[#0066FF]/20 text-[#00A3FF]' : 'bg-nav-hover text-secondary'}`}>
-                            <TemplateIcon iconName={template.icon} templateName={template.name} size={20} />
+                            <TemplateIcon iconName={template.icon} osFamily={template.os_family} size={20} />
                           </div>
                           {!template.is_real && (
                             <span className="text-[10px] font-semibold uppercase tracking-wider text-muted bg-canvas px-2 py-1 rounded">Coming Soon</span>

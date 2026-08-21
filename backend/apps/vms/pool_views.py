@@ -258,6 +258,7 @@ class PoolTemplateListView(APIView):
                 'id': t.id,
                 'name': t.name,
                 'os': t.os,
+                'os_family': getattr(t, 'os_family', ''),
                 'cpu_cores': t.cpu_cores,
                 'ram_gb': t.ram_gb,
                 'storage_gb': t.storage_gb,
@@ -567,43 +568,6 @@ class TemplatePreviewCleanupView(APIView):
             return Response({'success': False, 'message': str(e)}, status=500)
 
 
-class AdminTemplateCreateView(APIView):
-    permission_classes = [IsAuthenticated, IsAdmin]
-    
-    def post(self, request):
-        from apps.vms.models import VMTemplate
-        
-        data = request.data
-        
-        template = VMTemplate.objects.create(
-            name=data.get('name'),
-            template_type=data.get('template_type', 'desktop'),
-            os=data.get('os'),
-            icon=data.get('icon', 'Monitor'),
-            cpu_cores=data.get('cpu_cores'),
-            ram_gb=data.get('ram_gb'),
-            storage_gb=data.get('storage_gb'),
-            price_per_hour=data.get('price_per_hour', 0),
-            price_per_month=data.get('price_per_month', 0),
-            monthly_cap=data.get('monthly_cap', 0),
-            software_list=data.get('software_list', []),
-            description=data.get('description', ''),
-            is_available=data.get('is_available', True),
-            is_real=False,  # Not linked to Proxmox yet
-        )
-        
-        from apps.users.admin_services import log_admin_action
-        log_admin_action(
-            request.user, 
-            'template_created',
-            f'Created template "{template.name}"')
-        
-        return Response({
-            'success': True,
-            'id': template.id,
-            'message': 'Template created. Link it to Proxmox from the table to make it available for launch.'
-        })
-
 class AdminTemplateDetailView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
     
@@ -616,21 +580,39 @@ class AdminTemplateDetailView(APIView):
             return Response({'error': 'Not found'}, status=404)
             
         data = request.data
-        
+
+        # Real safety guard, not just a frontend convention: a real,
+        # wizard-built template (is_real=True) has an actual Proxmox VM
+        # baked in with these exact specs/OS already installed — editing
+        # them here would silently lie about what the real VM actually
+        # is, without changing the VM itself. Only price/availability/
+        # display fields are ever safe to edit after the fact. A
+        # non-real (legacy) row can still have these edited via the
+        # admin's real Proxmox link/pool-config flow, not this endpoint.
+        if t.is_real:
+            for locked_field in ('template_type', 'os', 'cpu_cores', 'ram_gb', 'storage_gb', 'software_list'):
+                if locked_field in data:
+                    return Response({
+                        'success': False,
+                        'message': f'"{locked_field}" is permanently set by the real VM this template was built from and cannot be edited here.',
+                    }, status=400)
+        else:
+            if 'template_type' in data: t.template_type = data['template_type']
+            if 'os' in data: t.os = data['os']
+            if 'cpu_cores' in data: t.cpu_cores = data['cpu_cores']
+            if 'ram_gb' in data: t.ram_gb = data['ram_gb']
+            if 'storage_gb' in data: t.storage_gb = data['storage_gb']
+            if 'software_list' in data: t.software_list = data['software_list']
+
         if 'name' in data: t.name = data['name']
-        if 'template_type' in data: t.template_type = data['template_type']
-        if 'os' in data: t.os = data['os']
         if 'icon' in data: t.icon = data['icon']
-        if 'cpu_cores' in data: t.cpu_cores = data['cpu_cores']
-        if 'ram_gb' in data: t.ram_gb = data['ram_gb']
-        if 'storage_gb' in data: t.storage_gb = data['storage_gb']
+        if 'os_family' in data: t.os_family = data['os_family']
         if 'price_per_hour' in data: t.price_per_hour = data['price_per_hour']
         if 'price_per_month' in data: t.price_per_month = data['price_per_month']
         if 'monthly_cap' in data: t.monthly_cap = data['monthly_cap']
-        if 'software_list' in data: t.software_list = data['software_list']
         if 'description' in data: t.description = data['description']
         if 'is_available' in data: t.is_available = data['is_available']
-        
+
         t.save()
         
         from apps.users.admin_services import log_admin_action

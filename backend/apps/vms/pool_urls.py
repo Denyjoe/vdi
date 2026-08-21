@@ -19,7 +19,6 @@ from apps.vms.pool_views import (
     TemplateTestLinkView,
     TemplatePreviewView,
     TemplatePreviewCleanupView,
-    AdminTemplateCreateView,
     AdminTemplateDetailView,
 )
 
@@ -31,7 +30,13 @@ urlpatterns = [
     path('pool/capacity/', PoolCapacityView.as_view(), name='pool-capacity'),
     path('pool/<int:entry_id>/', PoolDeleteEntryView.as_view(), name='pool-delete'),
     path('templates/', PoolTemplateListView.as_view(), name='pool-templates'),
-    path('templates/create/', AdminTemplateCreateView.as_view(), name='admin-template-create'),
+    # Real, deliberate absence: template creation only ever happens
+    # through the real wizard (template_wizard_views.AdminTemplateJobPromoteView),
+    # which requires an actual verified Proxmox VM behind it. The old
+    # AdminTemplateCreateView let an admin create a VMTemplate row with
+    # is_real=False and nothing real backing it — a fake catalogue
+    # entry a member could see and try to launch. Removed entirely so
+    # there is exactly one way to create a template.
     path('templates/<int:template_id>/', AdminTemplateDetailView.as_view(), name='admin-template-detail'),
     path('templates/<int:template_id>/link/', TemplateLinkView.as_view(), name='template-link'),
     path('templates/<int:template_id>/test-link/', TemplateTestLinkView.as_view(), name='template-test-link'),
