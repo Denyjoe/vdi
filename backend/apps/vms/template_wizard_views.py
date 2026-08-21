@@ -492,6 +492,40 @@ class AdminTemplateJobApplyConfigurationView(views.APIView):
             job.log_step(job.error_message, level='error')
             return Response({'success': False, 'message': job.error_message}, status=502)
 
+        # Real, confirmed, repeatable bug fixed here: Parrot OS (and any
+        # Debian-family system with backports enabled the same way)
+        # ships openssh-client at a HIGHER version from its backports
+        # repo alongside an openssh-server candidate from the main repo
+        # that has an EXACT-version dependency on openssh-client — e.g.
+        # confirmed live: "openssh-server : Depends: openssh-client
+        # (= 1:10.0p1-7+deb13u4) but 1:10.3p1-1~bpo13+1 is to be
+        # installed". Once that drift happens (a plain `apt full-
+        # upgrade` at the console can cause it), openssh-server can
+        # never be installed until openssh-client is pinned back down
+        # to match — and no earlier step in this wizard can fix it,
+        # since it can only be fixed FROM an already-working SSH/
+        # console session. Runs every time, unconditionally and
+        # idempotently (a no-op "already the newest version" when
+        # there's no drift) so every future job self-heals from this
+        # automatically instead of an admin ever needing to diagnose
+        # apt dependency output by hand again.
+        job.log_step('Checking for the known Parrot openssh-client/openssh-server backports version mismatch...')
+        ssh_fix_script = (
+            "CANDIDATE=$(apt-cache policy openssh-server 2>/dev/null | awk '/Candidate:/{print $2; exit}')\n"
+            "if [ -n \"$CANDIDATE\" ] && [ \"$CANDIDATE\" != \"(none)\" ]; then\n"
+            "  apt-get update -qq || true\n"
+            "  DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-downgrades "
+            "openssh-client=\"$CANDIDATE\" openssh-server=\"$CANDIDATE\" openssh-sftp-server=\"$CANDIDATE\"\n"
+            "  systemctl enable --now ssh 2>/dev/null || systemctl enable --now sshd 2>/dev/null || true\n"
+            "fi\n"
+        )
+        ssh_fix_result = run_ssh_script(ip, ssh_username, ssh_password, ssh_fix_script, timeout=180)
+        job.log_step(
+            'openssh version-pin check complete.' if ssh_fix_result['success']
+            else f'openssh version-pin fix failed (non-fatal, continuing): {ssh_fix_result.get("stderr") or ssh_fix_result.get("error")}',
+            level='info' if ssh_fix_result['success'] else 'warning',
+        )
+
         if de.fix_script.strip():
             job.log_step(f'Running fix_script for {de.display_name}...')
             result = run_ssh_script(ip, ssh_username, ssh_password, de.fix_script)
