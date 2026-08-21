@@ -740,12 +740,12 @@ export default function AdminTemplateWizardPage() {
                   }}>
                     <PowerOff size={14} /> Shutdown
                   </button>
-                  <button onClick={() => { if (window.confirm('Hard power-off the VM? Use this only if Shutdown doesn\'t work (e.g. a hung guest).')) handlePower('stop'); }} disabled={powerBusy} style={{
+                  <button onClick={() => { if (window.confirm('Force-stop the VM? This is a hard power-cut, not a graceful shutdown — use it when the guest is hung and Shutdown/Restart time out without doing anything.')) handlePower('stop'); }} disabled={powerBusy} style={{
                     display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px', borderRadius: '8px',
-                    fontSize: '12px', fontWeight: 600, cursor: 'pointer', border: '1px solid var(--border-color)',
-                    background: 'transparent', color: 'var(--text-secondary)',
+                    fontSize: '12px', fontWeight: 600, cursor: 'pointer', border: '1px solid var(--status-offline, #EF4444)',
+                    background: 'transparent', color: 'var(--status-offline, #EF4444)',
                   }}>
-                    <PowerOff size={14} /> Force Off
+                    <PowerOff size={14} /> Force Stop
                   </button>
                 </>
               )}
