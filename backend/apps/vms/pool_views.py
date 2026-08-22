@@ -680,3 +680,172 @@ class AdminTemplateDetailView(APIView):
             'success': True,
             'message': 'Template deleted'
         })
+
+
+class UnlinkedTemplatesView(APIView):
+    """
+    GET /api/admin/templates/unlinked/
+
+    Real, direct comparison between what Proxmox actually has marked as
+    a template and what VMTemplate rows exist in the DB — closes the
+    exact blind spot a real admin just hit: a genuine Proxmox template
+    (e.g. an old golden template kept as a fallback, or one an admin
+    forgot to promote) that has no VMTemplate record is otherwise
+    completely invisible anywhere in the app, discoverable only by
+    manually querying Proxmox directly.
+    """
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        from apps.vms.services.proxmox_service import ProxmoxService
+
+        ps = ProxmoxService()
+        try:
+            proxmox_vms = ps.proxmox.nodes(ps.node).qemu.get()
+        except Exception as e:
+            return Response({'success': False, 'message': f'Could not query Proxmox: {e}'}, status=502)
+
+        proxmox_template_ids = {
+            v.get('vmid') for v in proxmox_vms if v.get('template', 0)
+        }
+        linked_ids = set(
+            VMTemplate.objects.filter(proxmox_template_id__isnull=False)
+            .values_list('proxmox_template_id', flat=True)
+        )
+        unlinked_ids = proxmox_template_ids - linked_ids
+
+        data = []
+        for v in proxmox_vms:
+            vmid = v.get('vmid')
+            if vmid not in unlinked_ids:
+                continue
+            try:
+                cfg = ps.proxmox.nodes(ps.node).qemu(vmid).config.get()
+            except Exception:
+                cfg = {}
+            data.append({
+                'proxmox_vmid': vmid,
+                'name': v.get('name'),
+                'status': v.get('status'),
+                'cpu_cores': int(cfg.get('cores') or 0) or None,
+                'ram_gb': round(float(cfg.get('memory') or 0) / 1024, 1),
+                'disk': cfg.get('scsi0') or cfg.get('sata0') or cfg.get('virtio0'),
+            })
+        data.sort(key=lambda x: x['proxmox_vmid'])
+
+        return Response({'success': True, 'data': data})
+
+
+class UnlinkedTemplateLinkView(APIView):
+    """
+    POST /api/admin/templates/unlinked/link/
+    {proxmox_vmid, name, price_per_hour, price_per_month, os_family}
+
+    Creates a real, new VMTemplate row pointing at an EXISTING, already-
+    real Proxmox template — for a genuinely good template that just
+    isn't connected to the platform yet. Never creates a fake row: the
+    Proxmox template must genuinely exist and genuinely be marked as a
+    template first.
+    """
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def post(self, request):
+        from apps.vms.services.proxmox_service import ProxmoxService
+
+        proxmox_vmid = request.data.get('proxmox_vmid')
+        if not proxmox_vmid:
+            return Response({'success': False, 'message': 'proxmox_vmid is required.'}, status=400)
+
+        if VMTemplate.objects.filter(proxmox_template_id=proxmox_vmid).exists():
+            return Response({'success': False, 'message': f'A template is already linked to Proxmox vmid {proxmox_vmid}.'}, status=400)
+
+        ps = ProxmoxService()
+        try:
+            cfg = ps.proxmox.nodes(ps.node).qemu(proxmox_vmid).config.get()
+        except Exception as e:
+            return Response({'success': False, 'message': f'Could not find real Proxmox template {proxmox_vmid}: {e}'}, status=404)
+        if not cfg.get('template'):
+            return Response({'success': False, 'message': f'Proxmox VM {proxmox_vmid} is not marked as a template.'}, status=400)
+
+        name = (request.data.get('name') or cfg.get('name') or f'Template {proxmox_vmid}').strip()
+        disk_gb = 20
+        disk_field = cfg.get('scsi0') or cfg.get('sata0') or cfg.get('virtio0') or ''
+        for part in disk_field.split(','):
+            if part.strip().lower().startswith('size='):
+                try:
+                    disk_gb = int(float(part.split('=', 1)[1].rstrip('G')))
+                except ValueError:
+                    pass
+
+        template = VMTemplate.objects.create(
+            name=name,
+            description=request.data.get('description', '') or f'Linked from existing Proxmox template {proxmox_vmid}.',
+            cpu_cores=int(cfg.get('cores') or 2),
+            ram_gb=round(float(cfg.get('memory') or 2048) / 1024),
+            storage_gb=disk_gb,
+            os=request.data.get('os', name),
+            os_family=(request.data.get('os_family') or '').strip().lower(),
+            icon=request.data.get('icon', '🖥️'),
+            proxmox_template_id=proxmox_vmid,
+            is_real=True,
+            is_available=True,
+            template_type='desktop',
+            price_per_hour=request.data.get('price_per_hour', 0),
+            price_per_month=request.data.get('price_per_month', 0),
+        )
+
+        from apps.users.admin_services import log_admin_action
+        log_admin_action(
+            request.user,
+            'template_linked_existing',
+            f'Linked existing Proxmox template {proxmox_vmid} as new VMTemplate "{name}" (#{template.id})')
+
+        return Response({'success': True, 'data': {'template_id': template.id}}, status=201)
+
+
+class UnlinkedTemplateDeleteView(APIView):
+    """
+    POST /api/admin/templates/unlinked/delete/
+    {proxmox_vmid}
+
+    Genuinely deletes an unlinked (no VMTemplate row) Proxmox template —
+    real disk space recovery for old/deprecated fallbacks an admin
+    decides they no longer need. Refuses to touch a vmid that IS linked
+    to a real VMTemplate — that path is AdminTemplateDetailView.delete()
+    instead, which also removes the DB row.
+    """
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def post(self, request):
+        from apps.vms.services.proxmox_service import ProxmoxService
+
+        proxmox_vmid = request.data.get('proxmox_vmid')
+        if not proxmox_vmid:
+            return Response({'success': False, 'message': 'proxmox_vmid is required.'}, status=400)
+
+        if VMTemplate.objects.filter(proxmox_template_id=proxmox_vmid).exists():
+            return Response({
+                'success': False,
+                'message': f'Proxmox vmid {proxmox_vmid} is linked to a real VMTemplate — delete it from the Templates table instead.',
+            }, status=400)
+
+        ps = ProxmoxService()
+        try:
+            cfg = ps.proxmox.nodes(ps.node).qemu(proxmox_vmid).config.get()
+        except Exception as e:
+            return Response({'success': False, 'message': f'Could not find Proxmox VM {proxmox_vmid}: {e}'}, status=404)
+        name = cfg.get('name', str(proxmox_vmid))
+
+        try:
+            ps.delete_vm_completely(proxmox_vmid)
+        except Exception as e:
+            logging.getLogger(__name__).error(f'Failed to delete unlinked Proxmox template {proxmox_vmid}: {e}', exc_info=True)
+            return Response({'success': False, 'message': f'Could not delete Proxmox template {proxmox_vmid}: {e}'}, status=502)
+
+        from apps.users.admin_services import log_admin_action
+        log_admin_action(
+            request.user,
+            'unlinked_template_deleted',
+            f'Deleted unlinked Proxmox template "{name}" (vmid {proxmox_vmid}) — was never connected to a VMTemplate record')
+
+        return Response({'success': True, 'message': f'Proxmox template {proxmox_vmid} deleted.'})

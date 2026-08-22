@@ -11,6 +11,7 @@ import api from '../../services/api';
 import Toast from '../../components/shared/Toast';
 import ConfirmModal from '../../components/shared/ConfirmModal';
 import TemplateLinkModal from '../../components/admin/TemplateLinkModal';
+import LinkUnlinkedTemplateModal from '../../components/admin/LinkUnlinkedTemplateModal';
 import { getOsIcon } from '../../utils/osIcons';
 
 const ICON_MAP = {
@@ -60,6 +61,15 @@ export default function AdminTemplatesPage() {
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
   const [linkModalTemplate, setLinkModalTemplate] = useState(null);
 
+  // Real Proxmox-vs-DB reconciliation for templates — the exact blind
+  // spot an admin just hit: a genuine Proxmox template with no
+  // VMTemplate record is otherwise invisible anywhere in the app.
+  const [unlinkedTemplates, setUnlinkedTemplates] = useState([]);
+  const [unlinkedLoading, setUnlinkedLoading] = useState(true);
+  const [linkUnlinkedTarget, setLinkUnlinkedTarget] = useState(null);
+  const [deleteUnlinkedTarget, setDeleteUnlinkedTarget] = useState(null);
+  const [deletingUnlinked, setDeletingUnlinked] = useState(false);
+
   const fetchTemplates = async (isManual = false) => {
     if (!isManual) setLoading(true);
     try {
@@ -74,11 +84,37 @@ export default function AdminTemplatesPage() {
     }
   };
 
-  useEffect(() => { fetchTemplates(); }, []);
+  const fetchUnlinkedTemplates = async () => {
+    setUnlinkedLoading(true);
+    try {
+      const res = await api.get('/vms/admin/templates/unlinked/', { params: { t: Date.now() } });
+      setUnlinkedTemplates(res.data.data);
+    } catch {
+      showToast('Could not check Proxmox for unlinked templates', 'error');
+    } finally {
+      setUnlinkedLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchTemplates(); fetchUnlinkedTemplates(); }, []);
+
+  const handleDeleteUnlinked = async (u) => {
+    setDeletingUnlinked(true);
+    try {
+      await api.post('/vms/admin/templates/unlinked/delete/', { proxmox_vmid: u.proxmox_vmid });
+      showToast(`Proxmox template ${u.proxmox_vmid} deleted`);
+      setDeleteUnlinkedTarget(null);
+      fetchUnlinkedTemplates();
+    } catch (e) {
+      showToast(e.response?.data?.message || 'Failed to delete Proxmox template', 'error');
+    } finally {
+      setDeletingUnlinked(false);
+    }
+  };
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await fetchTemplates(true);
+    await Promise.all([fetchTemplates(true), fetchUnlinkedTemplates()]);
     setTimeout(() => {
       setRefreshing(false);
     }, 500); // 500ms min delay so spinner animation is visible
@@ -175,8 +211,21 @@ export default function AdminTemplatesPage() {
       `}</style>
       {toast.show && <Toast message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, show: false })} />}
       <ConfirmModal isOpen={!!deleteTarget} title="Delete Template" message={`Are you sure you want to delete ${deleteTarget?.name}? This action cannot be undone.`} confirmText="Delete" cancelText="Cancel" onConfirm={() => handleDelete(deleteTarget)} onCancel={() => setDeleteTarget(null)} isDanger={true} />
-      
+
       <TemplateLinkModal template={linkModalTemplate} isOpen={!!linkModalTemplate} onClose={() => setLinkModalTemplate(null)} onLinked={() => { setLinkModalTemplate(null); fetchTemplates(); }} />
+
+      <LinkUnlinkedTemplateModal unlinked={linkUnlinkedTarget} isOpen={!!linkUnlinkedTarget} onClose={() => setLinkUnlinkedTarget(null)} onLinked={() => { setLinkUnlinkedTarget(null); fetchTemplates(); fetchUnlinkedTemplates(); }} />
+
+      <ConfirmModal
+        isOpen={!!deleteUnlinkedTarget}
+        title="Delete Proxmox Template"
+        message={`Permanently delete "${deleteUnlinkedTarget?.name}" (vmid ${deleteUnlinkedTarget?.proxmox_vmid}) from Proxmox? This frees its real disk space and cannot be undone. It has no VMTemplate record, so nothing in the app links to it.`}
+        confirmText={deletingUnlinked ? 'Deleting...' : 'Delete from Proxmox'}
+        cancelText="Cancel"
+        onConfirm={() => handleDeleteUnlinked(deleteUnlinkedTarget)}
+        onCancel={() => setDeleteUnlinkedTarget(null)}
+        isDanger={true}
+      />
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -266,6 +315,57 @@ export default function AdminTemplatesPage() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Real Proxmox-vs-DB reconciliation, same class of blind spot as
+          the earlier orphaned-VM work: a genuine Proxmox template with
+          no VMTemplate record was completely invisible anywhere in the
+          app until now. Only rendered when there's actually something
+          to show, so it doesn't clutter the page once everything is
+          linked. */}
+      {!unlinkedLoading && unlinkedTemplates.length > 0 && (
+        <div style={{ background: 'var(--status-warning-bg)', border: '1px solid var(--status-warning)', borderRadius: '16px', padding: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+            <AlertTriangle size={18} style={{ color: 'var(--status-warning)' }} />
+            <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>
+              Unlinked Proxmox Templates ({unlinkedTemplates.length})
+            </h2>
+          </div>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px' }}>
+            These real VMs are marked as templates in Proxmox but have no VMTemplate record — invisible to members and to the rest of this page until you link or remove them.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {unlinkedTemplates.map(u => (
+              <div key={u.proxmox_vmid} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px',
+                background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '12px 16px',
+              }}>
+                <div>
+                  <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '14px' }}>
+                    {u.name} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(vmid {u.proxmox_vmid})</span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                    {u.cpu_cores ?? '?'} vCPU · {u.ram_gb ?? '?'}GB RAM · {u.status}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => setLinkUnlinkedTarget(u)} style={{
+                    padding: '8px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                    border: '1px solid var(--accent-primary)', background: 'var(--accent-primary-soft)', color: 'var(--accent-primary)',
+                  }}>
+                    Link to Platform
+                  </button>
+                  <button onClick={() => setDeleteUnlinkedTarget(u)} style={{
+                    padding: '8px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                    border: '1px solid var(--status-error)', background: 'transparent', color: 'var(--status-error)',
+                  }}>
+                    Delete from Proxmox
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

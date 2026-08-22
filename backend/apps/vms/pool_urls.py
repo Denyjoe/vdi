@@ -20,6 +20,9 @@ from apps.vms.pool_views import (
     TemplatePreviewView,
     TemplatePreviewCleanupView,
     AdminTemplateDetailView,
+    UnlinkedTemplatesView,
+    UnlinkedTemplateLinkView,
+    UnlinkedTemplateDeleteView,
 )
 
 urlpatterns = [
@@ -37,6 +40,11 @@ urlpatterns = [
     # is_real=False and nothing real backing it — a fake catalogue
     # entry a member could see and try to launch. Removed entirely so
     # there is exactly one way to create a template.
+    # Real Proxmox-vs-DB reconciliation for templates — must come before
+    # the <int:template_id> catch-all below.
+    path('templates/unlinked/', UnlinkedTemplatesView.as_view(), name='unlinked-templates'),
+    path('templates/unlinked/link/', UnlinkedTemplateLinkView.as_view(), name='unlinked-template-link'),
+    path('templates/unlinked/delete/', UnlinkedTemplateDeleteView.as_view(), name='unlinked-template-delete'),
     path('templates/<int:template_id>/', AdminTemplateDetailView.as_view(), name='admin-template-detail'),
     path('templates/<int:template_id>/link/', TemplateLinkView.as_view(), name='template-link'),
     path('templates/<int:template_id>/test-link/', TemplateTestLinkView.as_view(), name='template-test-link'),
