@@ -397,6 +397,56 @@ export default function AdminTemplateWizardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [job?.proxmox_vmid, job?.status]);
 
+  // Real, confirmed root cause (found investigating today's recurring
+  // black-screen reports): vnc_bridge.py's bridge is genuinely
+  // single-shot — it mints one Proxmox VNC ticket, relays exactly one
+  // TCP connection, and has zero automatic-reconnect logic. Any
+  // transient drop (a network blip between this backend and Proxmox,
+  // guacd hiccuping, the underlying VNC session ending) kills the
+  // console permanently until an admin notices the black screen and
+  // manually clicks "Refresh Console". True mid-session reconnection
+  // isn't feasible without RFB protocol awareness the bridge
+  // deliberately doesn't have (a fresh Proxmox ticket starts a brand
+  // new RFB handshake, which would corrupt guacd's already-established
+  // session if spliced in transparently) — so the real, honest fix is
+  // at the connection-establishment layer: reuse the exact same
+  // tunnel-health signal already proven elsewhere today, and the
+  // moment a previously-healthy console tunnel is confirmed dead,
+  // automatically mint a whole fresh ticket/bridge/Guacamole connection
+  // (exactly what "Refresh Console" already does) — self-healing
+  // without ever waiting on the admin to notice.
+  const hadConsoleTunnelRef = useRef(false);
+  const consoleReconnectTimerRef = useRef(null);
+  useEffect(() => {
+    if (consoleTunnelActive) {
+      hadConsoleTunnelRef.current = true;
+      if (consoleReconnectTimerRef.current) {
+        clearTimeout(consoleReconnectTimerRef.current);
+        consoleReconnectTimerRef.current = null;
+      }
+      return;
+    }
+    // Only auto-heal a tunnel that was genuinely up before — never
+    // fires while the very first connection is still establishing.
+    if (!hadConsoleTunnelRef.current) return;
+    if (job?.status !== 'awaiting_os_install') return;
+    if (consoleLoading) return;
+    // A short debounce (matching useTunnelHealth's own 2s poll) avoids
+    // reconnect-storming on a single transient blip that resolves on
+    // its own within a couple of polls.
+    consoleReconnectTimerRef.current = setTimeout(() => {
+      if (!consoleTunnelActive && job?.status === 'awaiting_os_install') {
+        hadConsoleTunnelRef.current = false;
+        toast('Console connection dropped — reconnecting automatically...', { icon: '🔄' });
+        openConsole();
+      }
+    }, 6000);
+    return () => {
+      if (consoleReconnectTimerRef.current) clearTimeout(consoleReconnectTimerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [consoleTunnelActive, job?.status]);
+
   // Real, live power-state polling — the console/terminal tab has no
   // other way to tell a genuinely stopped/hung VM apart from a display
   // bug, so this has to reflect Proxmox's actual current state, not a

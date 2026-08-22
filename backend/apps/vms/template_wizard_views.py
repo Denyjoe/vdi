@@ -513,6 +513,34 @@ class AdminTemplateJobApplyConfigurationView(views.APIView):
         # full-upgrade timing out shouldn't by itself fail the whole
         # job when the specific packages this wizard actually needs
         # might still install fine afterward.
+        # Real, confirmed cascading-failure bug fixed here (found via
+        # job 18's actual log): if full-upgrade gets interrupted mid-run
+        # for ANY reason (a guest-agent hiccup, a power action, the SSH
+        # session dropping), dpkg is left in a genuine "interrupted"
+        # state that's written to disk, not memory — it survives
+        # reboots and retries. Every subsequent apt-get on this VM then
+        # fails immediately with "dpkg was interrupted, you must
+        # manually run 'dpkg --configure -a'" — which is exactly what
+        # then made the openssh pin-check AND the desktop fix_script
+        # both fail too on the very next apply-configuration retry,
+        # even though the real underlying cause (an interrupted
+        # package op) had nothing to do with either of them. Running
+        # `dpkg --configure -a` first is a real, safe, idempotent
+        # self-heal — a no-op when nothing was interrupted, and the
+        # actual fix when something was — so a bad state from one
+        # attempt can never cascade into every retry after it.
+        job.log_step('Recovering from any interrupted dpkg state before upgrading...')
+        dpkg_fix_result = run_ssh_script(
+            ip, ssh_username, ssh_password,
+            'DEBIAN_FRONTEND=noninteractive dpkg --configure -a',
+            timeout=180,
+        )
+        job.log_step(
+            'dpkg state verified clean.' if dpkg_fix_result['success']
+            else f'dpkg --configure -a reported an issue (continuing): {dpkg_fix_result.get("stderr") or dpkg_fix_result.get("error")}',
+            level='info' if dpkg_fix_result['success'] else 'warning',
+        )
+
         job.log_step('Running apt full-upgrade to resolve any backports/stable package drift before configuring...')
         full_upgrade_result = run_ssh_script(
             ip, ssh_username, ssh_password,
@@ -524,6 +552,12 @@ class AdminTemplateJobApplyConfigurationView(views.APIView):
             else f'apt full-upgrade failed (non-fatal, continuing): {full_upgrade_result.get("stderr") or full_upgrade_result.get("error")}',
             level='info' if full_upgrade_result['success'] else 'warning',
         )
+        # If full-upgrade itself got interrupted this time (e.g. the
+        # exact same class of hiccup), leave dpkg clean for the NEXT
+        # step (the openssh pin-check) rather than letting this
+        # attempt's interruption cascade forward too.
+        if not full_upgrade_result['success']:
+            run_ssh_script(ip, ssh_username, ssh_password, 'DEBIAN_FRONTEND=noninteractive dpkg --configure -a', timeout=180)
 
         # Real, confirmed, repeatable bug fixed here: Parrot OS (and any
         # Debian-family system with backports enabled the same way)
