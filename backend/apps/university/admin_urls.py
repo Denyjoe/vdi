@@ -17,6 +17,7 @@ from .admin_views import (
     UniversityAnalyticsView,
     UniversityHardwareView,
     UniversityTemplateLibraryView,
+    UniversityOverviewView,
 )
 from .lecturer_views import MyCoursesView, CourseRosterView, CourseBroadcastView, MyCourseworkView
 from .context_views import MyContextsView
@@ -33,6 +34,7 @@ urlpatterns = [
     path('universities/<int:university_id>/departments/', DepartmentListCreateView.as_view(), name='university-admin-departments'),
     path('universities/<int:university_id>/enroll/bulk-csv/', BulkEnrollCSVView.as_view(), name='university-admin-bulk-csv'),
     path('universities/<int:university_id>/analytics/', UniversityAnalyticsView.as_view(), name='university-admin-analytics'),
+    path('universities/<int:university_id>/overview/', UniversityOverviewView.as_view(), name='university-admin-overview'),
     path('universities/<int:university_id>/hardware/', UniversityHardwareView.as_view(), name='university-admin-hardware'),
     path('universities/<int:university_id>/lecturers/', UniversityLecturersView.as_view(), name='university-admin-lecturers'),
     path('universities/<int:university_id>/templates/', UniversityTemplateLibraryView.as_view(), name='university-admin-template-library'),

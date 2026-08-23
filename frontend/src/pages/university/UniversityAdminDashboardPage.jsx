@@ -3,12 +3,90 @@ import {
   Landmark, Plus, X, Upload, Link2, Copy, UserPlus, UserMinus,
   BarChart3, BookOpen, Users, RefreshCw, Server, GraduationCap,
   Package, Cpu, MemoryStick, HardDrive, Clock, Layers,
+  LayoutGrid, GaugeCircle, PackagePlus, FolderOpen, TrendingUp,
 } from 'lucide-react';
+import {
+  AreaChart, Area, BarChart, Bar, LineChart, Line,
+  XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
+} from 'recharts';
 import api from '../../services/api';
 import { toast } from 'react-hot-toast';
 import UniversityHardwarePanel from '../../components/university/UniversityHardwarePanel';
 import TemplateRequestQueuePanel from '../../components/university/TemplateRequestQueuePanel';
 import { getOsIcon, getOsIconColor } from '../../utils/osIcons';
+
+// Reused verbatim from AdminAnalyticsPage's own empty-chart pattern —
+// same visual language, not a new one invented for this page.
+function EmptyChartState({ icon: Icon, message, submessage }) {
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      height: '100%', minHeight: '200px', gap: '10px',
+    }}>
+      <div style={{
+        width: '44px', height: '44px', borderRadius: '12px', background: 'var(--bg-input)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Icon size={20} style={{ color: 'var(--text-faint)' }} />
+      </div>
+      <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>{message}</p>
+      {submessage && (
+        <p style={{ fontSize: '11px', color: 'var(--text-faint)', textAlign: 'center', maxWidth: '260px' }}>{submessage}</p>
+      )}
+    </div>
+  );
+}
+
+// A real, empty LIST (not a chart) — same icon-badge language, phrased
+// for "nothing here yet" rather than "no chart data". `bare` drops its
+// own glass-card background for use inside an already-carded section
+// (avoids a card-inside-a-card look).
+function EmptyListState({ icon: Icon, message, submessage, bare = false }) {
+  return (
+    <div className={bare ? 'text-center py-6' : 'glass-card rounded-2xl p-8 text-center'}>
+      <div className="w-11 h-11 rounded-xl bg-[var(--bg-input)] flex items-center justify-center mx-auto mb-3">
+        <Icon size={20} className="text-[var(--text-faint)]" />
+      </div>
+      <p className="text-sm font-semibold text-[var(--text-secondary)] mb-1">{message}</p>
+      {submessage && <p className="text-xs text-[var(--text-faint)] max-w-xs mx-auto">{submessage}</p>}
+    </div>
+  );
+}
+
+// Exact KPI card pattern from the platform's own Admin Dashboard —
+// reused, not reinvented, so the University Admin's first screen reads
+// as the same product, not a lighter cousin of it.
+//
+// Tailwind's build-time scanner only picks up LITERAL class strings, so
+// the tint classes are a static lookup, never a template-literal
+// interpolation (`bg-${tint}-500/20` would silently compile to nothing).
+const KPI_TINTS = {
+  indigo: { badge: 'bg-indigo-500/20', icon: 'text-indigo-400', sub: 'text-indigo-400' },
+  purple: { badge: 'bg-purple-500/20', icon: 'text-purple-400', sub: 'text-purple-400' },
+  emerald: { badge: 'bg-emerald-500/20', icon: 'text-emerald-400', sub: 'text-emerald-400' },
+  amber: { badge: 'bg-amber-500/20', icon: 'text-amber-400', sub: 'text-amber-400' },
+  blue: { badge: 'bg-blue-500/20', icon: 'text-blue-400', sub: 'text-blue-400' },
+  red: { badge: 'bg-red-500/20', icon: 'text-red-400', sub: 'text-red-400' },
+};
+
+function KpiCard({ icon: Icon, label, value, tint = 'indigo', sub }) {
+  const c = KPI_TINTS[tint] || KPI_TINTS.indigo;
+  return (
+    <div className="bg-[var(--bg-card)]/80 backdrop-blur-md rounded-2xl p-6 shadow-lg border border-[var(--border-color)] relative overflow-hidden group">
+      <div className="absolute top-0 right-0 p-4 opacity-[0.04] dark:opacity-10 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity">
+        <Icon size={64} />
+      </div>
+      <div className="flex items-center gap-4 mb-4 relative z-10">
+        <div className={`${c.badge} p-3 rounded-xl`}>
+          <Icon className={`w-5 h-5 ${c.icon}`} />
+        </div>
+        <p className="text-[var(--text-secondary)] font-medium text-sm">{label}</p>
+      </div>
+      <p className="text-3xl font-bold text-[var(--text-primary)] relative z-10">{value}</p>
+      {sub && <p className={`text-sm ${c.sub} mt-2 relative z-10`}>{sub}</p>}
+    </div>
+  );
+}
 
 // Real OS icon (react-icons/Simple Icons) when we know the OS family —
 // same real icon system TemplatesPage/WorkspacesPage already use;
@@ -24,12 +102,13 @@ function TemplateIcon({ osFamily, size = 20 }) {
 export default function UniversityAdminDashboardPage() {
   const [universities, setUniversities] = useState(null); // null = loading
   const [university, setUniversity] = useState(null);
-  const [tab, setTab] = useState('departments');
+  const [tab, setTab] = useState('overview');
   const [departments, setDepartments] = useState([]);
   const [selectedDept, setSelectedDept] = useState(null);
   const [courses, setCourses] = useState([]);
   const [invites, setInvites] = useState([]);
   const [analytics, setAnalytics] = useState(null);
+  const [overview, setOverview] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const [showDeptModal, setShowDeptModal] = useState(false);
@@ -70,6 +149,15 @@ export default function UniversityAdminDashboardPage() {
     setAnalytics(res.data?.data || null);
   }, []);
 
+  const fetchOverview = useCallback(async (uniId) => {
+    try {
+      const res = await api.get(`/university-admin/universities/${uniId}/overview/`);
+      setOverview(res.data?.data || null);
+    } catch (err) {
+      setOverview(null);
+    }
+  }, []);
+
   const fetchLecturers = useCallback(async (uniId) => {
     try {
       const res = await api.get(`/university-admin/universities/${uniId}/lecturers/`);
@@ -95,7 +183,8 @@ export default function UniversityAdminDashboardPage() {
     fetchAnalytics(university.id);
     fetchLecturers(university.id);
     fetchTemplates(university.id);
-  }, [university, fetchDepartments, fetchAnalytics, fetchLecturers, fetchTemplates]);
+    fetchOverview(university.id);
+  }, [university, fetchDepartments, fetchAnalytics, fetchLecturers, fetchTemplates, fetchOverview]);
 
   const fetchCourses = useCallback(async (deptId) => {
     const res = await api.get(`/university-admin/departments/${deptId}/courses/`);
@@ -119,6 +208,7 @@ export default function UniversityAdminDashboardPage() {
     setRefreshing(true);
     await fetchDepartments(university.id);
     await fetchAnalytics(university.id);
+    await fetchOverview(university.id);
     if (selectedDept) {
       await fetchCourses(selectedDept.id);
       await fetchInvites(selectedDept.id);
@@ -300,7 +390,7 @@ export default function UniversityAdminDashboardPage() {
       </div>
 
       <div className="flex gap-2 border-b border-[var(--border-color)] overflow-x-auto">
-        {[['departments', 'Departments'], ['lecturers', 'Lecturers'], ['templates', 'Template Library'], ['requests', 'Template Requests'], ['hardware', 'Hardware & Performance'], ['analytics', 'Analytics']].map(([key, label]) => (
+        {[['overview', 'Overview'], ['departments', 'Departments'], ['lecturers', 'Lecturers'], ['templates', 'Template Library'], ['requests', 'Template Requests'], ['hardware', 'Hardware & Performance'], ['analytics', 'Analytics']].map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)}
             className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               tab === key
@@ -311,6 +401,112 @@ export default function UniversityAdminDashboardPage() {
           </button>
         ))}
       </div>
+
+      {/* ── Overview — Phase 3 (Premium Rebuild): the real FIRST thing
+           an admin sees, same visual bar as the platform's own Admin
+           Dashboard. Every number/series here is real, derived from
+           data that already exists elsewhere — no synthetic data. ─── */}
+      {tab === 'overview' && (
+        <div className="space-y-6">
+          {overview === null ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="bg-[var(--bg-card)]/80 rounded-2xl p-6 border border-[var(--border-color)] h-[132px] animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <KpiCard icon={Users} tint="indigo" label="Active Students" value={overview.kpis.active_student_count} />
+                <KpiCard icon={GraduationCap} tint="purple" label="Active Lecturers" value={overview.kpis.active_lecturer_count} />
+                <KpiCard icon={BookOpen} tint="blue" label="Active Courses" value={overview.kpis.active_course_count} />
+                <KpiCard icon={GaugeCircle}
+                  tint={overview.kpis.quota_utilization_pct === null ? 'indigo' : overview.kpis.quota_utilization_pct >= 90 ? 'red' : overview.kpis.quota_utilization_pct >= 70 ? 'amber' : 'emerald'}
+                  label="Quota Utilization"
+                  value={overview.kpis.quota_utilization_pct === null ? '—' : `${overview.kpis.quota_utilization_pct}%`}
+                  sub={overview.kpis.quota_utilization_pct === null ? 'No approved quota yet' : undefined} />
+                <KpiCard icon={PackagePlus} tint="amber" label="Pending Requests" value={overview.kpis.pending_request_count}
+                  sub={overview.kpis.pending_request_count > 0 ? 'Needs your review' : undefined} />
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-[var(--bg-card)] rounded-xl shadow-md border border-[var(--border-color)] p-6">
+                  <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-1">Enrollment Trend</h3>
+                  <p className="text-xs text-[var(--text-faint)] mb-6">Real student headcount, last 30 days</p>
+                  <div className="h-[260px]">
+                    {overview.enrollment_trend.some(p => p.students > 0) ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={overview.enrollment_trend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="enrollGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="var(--accent-primary)" stopOpacity={0.3} />
+                              <stop offset="95%" stopColor="var(--accent-primary)" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <XAxis dataKey="date" stroke="var(--text-faint)" fontSize={10} tickFormatter={d => d.slice(5)} minTickGap={30} />
+                          <YAxis stroke="var(--text-faint)" fontSize={11} allowDecimals={false} />
+                          <RechartsTooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }} />
+                          <Area type="monotone" dataKey="students" name="Students" stroke="var(--accent-primary)" fill="url(#enrollGrad)" strokeWidth={2} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <EmptyChartState icon={Users} message="No real enrollments yet"
+                        submessage="Once students join via bulk CSV or a self-enroll link, real growth shows up here." />
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-[var(--bg-card)] rounded-xl shadow-md border border-[var(--border-color)] p-6">
+                  <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-1">Usage by Department</h3>
+                  <p className="text-xs text-[var(--text-faint)] mb-6">Real students and class sessions per department</p>
+                  <div className="h-[260px]">
+                    {overview.by_department.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={overview.by_department} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
+                          <XAxis dataKey="department_name" stroke="var(--text-faint)" fontSize={11} tick={{ fontSize: 10 }} />
+                          <YAxis stroke="var(--text-faint)" fontSize={11} allowDecimals={false} />
+                          <RechartsTooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }} />
+                          <Bar dataKey="student_count" name="Students" fill="var(--accent-primary)" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                          <Bar dataKey="session_count" name="Sessions" fill="var(--status-info, #3B82F6)" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <EmptyChartState icon={FolderOpen} message="No departments yet"
+                        submessage="Create a department under the Departments tab to see real usage here." />
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-[var(--bg-card)] rounded-xl shadow-md border border-[var(--border-color)] p-6">
+                <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-1 flex items-center gap-2">
+                  <TrendingUp size={18} className="text-emerald-400" /> Quota Consumption Trend
+                </h3>
+                <p className="text-xs text-[var(--text-faint)] mb-6">Real, cumulative committed vCPU as templates were added to this university's library</p>
+                <div className="h-[240px]">
+                  {overview.quota_trend.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={overview.quota_trend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
+                        <XAxis dataKey="date" stroke="var(--text-faint)" fontSize={10} />
+                        <YAxis stroke="var(--text-faint)" fontSize={11} allowDecimals={false} />
+                        <RechartsTooltip
+                          contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)' }}
+                          formatter={(value, name, props) => [`${value} vCPU`, props.payload.template_name]} />
+                        <Line type="stepAfter" dataKey="vcpu" name="Committed vCPU" stroke="#10B981" strokeWidth={3} dot={{ r: 4, fill: '#10B981', strokeWidth: 2 }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <EmptyChartState icon={Package} message="No templates in the library yet"
+                      submessage="As templates are approved and built for this university, real committed capacity shows up here." />
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {tab === 'departments' && (
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -324,9 +520,8 @@ export default function UniversityAdminDashboardPage() {
               </button>
             </div>
             {departments.length === 0 && (
-              <div className="glass-card rounded-xl p-6 text-center text-sm text-[var(--text-secondary)]">
-                No departments yet.
-              </div>
+              <EmptyListState icon={FolderOpen} message="No departments yet"
+                submessage="Create your first department to start adding courses and enrolling students." />
             )}
             {departments.map(d => (
               <button key={d.id} onClick={() => selectDept(d)}
@@ -354,7 +549,8 @@ export default function UniversityAdminDashboardPage() {
                     </button>
                   </div>
                   {courses.length === 0 ? (
-                    <p className="text-sm text-[var(--text-secondary)]">No courses yet.</p>
+                    <EmptyListState bare icon={BookOpen} message="No courses in this department yet"
+                      submessage="Add a course, then assign a lecturer and a template from the library." />
                   ) : (
                     <div className="space-y-2">
                       {courses.map(c => (
@@ -401,7 +597,8 @@ export default function UniversityAdminDashboardPage() {
                     </button>
                   </div>
                   {invites.length === 0 ? (
-                    <p className="text-sm text-[var(--text-secondary)]">No active invite links yet.</p>
+                    <EmptyListState bare icon={Link2} message="No active invite links yet"
+                      submessage="Create one so students or lecturers can self-enroll with a single click." />
                   ) : (
                     <div className="space-y-2">
                       {invites.map(inv => (
@@ -611,7 +808,8 @@ export default function UniversityAdminDashboardPage() {
           <div className="glass-card rounded-2xl p-5">
             <h3 className="font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2"><BarChart3 size={16} /> By Course</h3>
             {analytics.by_course.length === 0 ? (
-              <p className="text-sm text-[var(--text-secondary)]">No courses yet.</p>
+              <EmptyListState bare icon={BarChart3} message="No courses yet"
+                submessage="Real per-course session and enrollment activity will appear here." />
             ) : (
               <div className="space-y-2">
                 {analytics.by_course.map(c => (

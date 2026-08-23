@@ -600,6 +600,122 @@ class UniversityLecturersView(APIView):
         return Response({'success': True, 'data': data})
 
 
+# ── Overview — Phase 3 (Premium Rebuild) ───────────────────────────────
+
+class UniversityOverviewView(APIView):
+    """The real, FIRST thing an admin sees on login. Every number and
+    every chart here is derived from data that already exists elsewhere
+    in this app — no new tracking table, no synthetic/sample data:
+      - KPIs reuse the exact same real counts UniversityAnalyticsView
+        and UniversityHardwareView already compute.
+      - enrollment_trend is a real, cumulative headcount built from
+        real UniversityAffiliation.created_at timestamps (role=student)
+        — the same real event every other student-count number here
+        already reads.
+      - by_department reuses the same real LiveSession/CourseEnrollment
+        counts UniversityAnalyticsView's by_course already computes,
+        just rolled up one level.
+      - quota_trend is a real, cumulative committed-vCPU line built from
+        real VMTemplate.created_at timestamps — genuinely "when did our
+        real committed capacity grow", not a fabricated history. There
+        is no live-usage-over-time tracker anywhere in this app (that
+        would be a new system), so this deliberately doesn't claim to
+        chart running-VM usage history — only the real, honest thing
+        that can be reconstructed from data that already exists.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, university_id):
+        university, err = _get_managed_university_or_403(request.user, university_id)
+        if err:
+            return err
+
+        import datetime
+        from django.utils import timezone
+        from apps.sessions.models import LiveSession
+        from apps.vms.models import VMTemplate
+        from .models import TemplateRequest
+        from .services.quota_service import get_university_resource_usage
+
+        departments = list(Department.objects.filter(university=university))
+        courses = Course.objects.filter(department__university=university)
+        student_count = UniversityAffiliation.objects.filter(
+            university=university, role='student', is_active=True,
+        ).values('user_id').distinct().count()
+        lecturer_count = UniversityAffiliation.objects.filter(
+            university=university, role='lecturer', is_active=True,
+        ).values('user_id').distinct().count()
+        pending_request_count = TemplateRequest.objects.filter(
+            course__department__university=university, status='pending',
+        ).count()
+
+        usage = get_university_resource_usage(university)
+        has_real_quota = bool(university.max_vcpu_cores or university.max_ram_gb or university.max_storage_gb)
+        quota_utilization_pct = round(max(
+            usage['percent_used']['vcpu'], usage['percent_used']['ram_gb'], usage['percent_used']['storage_gb'],
+        ), 1) if has_real_quota else None
+
+        # Real, cumulative enrollment trend — last 30 real days.
+        today = timezone.now().date()
+        start = today - datetime.timedelta(days=29)
+        recent_timestamps = UniversityAffiliation.objects.filter(
+            university=university, role='student', is_active=True, created_at__date__gte=start,
+        ).values_list('created_at', flat=True)
+        daily_new = {}
+        for ts in recent_timestamps:
+            key = ts.date().isoformat()
+            daily_new[key] = daily_new.get(key, 0) + 1
+        running = UniversityAffiliation.objects.filter(
+            university=university, role='student', is_active=True, created_at__date__lt=start,
+        ).count()
+        enrollment_trend = []
+        for i in range(30):
+            d = start + datetime.timedelta(days=i)
+            key = d.isoformat()
+            running += daily_new.get(key, 0)
+            enrollment_trend.append({'date': key, 'students': running})
+
+        # Real usage by department.
+        sessions = LiveSession.objects.filter(course__department__university=university)
+        by_department = [
+            {
+                'department_id': d.id, 'department_name': d.name,
+                'session_count': sessions.filter(course__department=d).count(),
+                'student_count': UniversityAffiliation.objects.filter(
+                    university=university, department=d, role='student', is_active=True,
+                ).count(),
+            }
+            for d in departments
+        ]
+
+        # Real, cumulative committed-quota trend from real template
+        # creation timestamps.
+        templates = VMTemplate.objects.filter(university=university).order_by('created_at')
+        quota_trend = []
+        running_vcpu = 0
+        for t in templates:
+            running_vcpu += t.cpu_cores
+            quota_trend.append({
+                'date': t.created_at.date().isoformat(), 'vcpu': running_vcpu, 'template_name': t.name,
+            })
+
+        return Response({
+            'success': True,
+            'data': {
+                'kpis': {
+                    'active_student_count': student_count,
+                    'active_lecturer_count': lecturer_count,
+                    'active_course_count': courses.count(),
+                    'quota_utilization_pct': quota_utilization_pct,
+                    'pending_request_count': pending_request_count,
+                },
+                'enrollment_trend': enrollment_trend,
+                'by_department': by_department,
+                'quota_trend': quota_trend,
+            },
+        })
+
+
 # ── Scoped analytics ─────────────────────────────────────────────────
 
 class UniversityAnalyticsView(APIView):
