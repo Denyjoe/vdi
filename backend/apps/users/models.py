@@ -345,6 +345,14 @@ class AdminActionLog(models.Model):
             ('config_changed', 'System Config Changed'),
             ('backup_triggered', 'Backup Triggered'),
             ('maintenance_toggled', 'Maintenance Mode Toggled'),
+            ('university_approved', 'University Approved'),
+            ('university_rejected', 'University Rejected'),
+            ('university_invoice_created', 'University Invoice Created'),
+            ('university_invoice_status_changed', 'University Invoice Status Changed'),
+            ('university_suspended', 'University Suspended'),
+            ('university_reactivated', 'University Reactivated'),
+            ('university_terms_updated', 'University Terms Updated'),
+            ('university_deleted', 'University Deleted'),
         ])
     description = models.TextField()
     target_type = models.CharField(

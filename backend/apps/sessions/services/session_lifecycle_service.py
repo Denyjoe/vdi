@@ -3,19 +3,45 @@ from apps.vms.services.vm_orchestrator import VMOrchestrator
 class SessionLifecycleService:
     @staticmethod
     def handle_participant_join(participant):
-        """Handle participant joining a session by provisioning their VM."""
+        """Handle participant joining a session by provisioning their VM.
+
+        Returns None on success (existing contract, unchanged), or a real
+        {'error': message} dict if a university hardware quota blocked
+        provisioning — callers that don't check the return value (none
+        did, before this) keep working exactly as before for every
+        non-university-scoped session (template.university is None for
+        100% of today's real traffic)."""
         participant.status = 'joined'
         participant.save()
-        
+
         session = participant.session
         template = session.required_vm_template
-        
+
         if not template:
             return
-            
+
         if not participant.vm:
+            # Real hardware quota enforcement — only for a university-
+            # scoped template. Checked BEFORE any VM row/real provisioning
+            # starts, so a blocked join never leaves an orphaned VM behind.
+            if template.university_id:
+                from apps.university.services.quota_service import check_quota_allows, check_university_active
+                active_ok, active_message = check_university_active(template.university)
+                if not active_ok:
+                    participant.status = 'error'
+                    participant.save(update_fields=['status'])
+                    return {'error': active_message}
+                allowed, quota_message = check_quota_allows(
+                    template.university, additional_vcpu=template.cpu_cores,
+                    additional_ram_gb=template.ram_gb, additional_storage_gb=0,
+                )
+                if not allowed:
+                    participant.status = 'error'
+                    participant.save(update_fields=['status'])
+                    return {'error': quota_message}
+
             from apps.vms.models import VirtualMachine
-            
+
             vm = VirtualMachine.objects.create(
                 name=f"session-{session.id}-{participant.user.username}",
                 owner=participant.user,

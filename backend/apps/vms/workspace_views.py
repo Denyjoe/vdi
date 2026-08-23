@@ -148,9 +148,27 @@ class WorkspaceListView(generics.ListAPIView):
         # serializer, is what actually avoids the per-row query.
         from django.db.models import Prefetch
         from apps.vms.models import WorkspaceIdleNotification
+
+        # Phase 6 — account context switching. Workspace itself carries no
+        # scope field (reused, not duplicated): a workspace's real context
+        # is derived from its own vm_template's university, the same field
+        # already used to scope the template catalogue itself. Personal
+        # (default) = templates with no university; a validated university
+        # context = only workspaces launched against that university's
+        # templates. resolve_context_university raises 400/403 for a bad/
+        # unauthorized value before this filter is ever applied.
+        from apps.university.permissions import resolve_context_university
+        _is_scoped, university_id = resolve_context_university(self.request)
+
+        qs = Workspace.objects.filter(owner=self.request.user).exclude(status='deleted')
+        if university_id:
+            qs = qs.filter(vm_template__university_id=university_id)
+        else:
+            from django.db.models import Q
+            qs = qs.filter(Q(vm_template__isnull=True) | Q(vm_template__university__isnull=True))
+
         return (
-            Workspace.objects.filter(owner=self.request.user)
-            .exclude(status='deleted')
+            qs
             # vm__template reaches one level deeper than vm alone -
             # VirtualMachineSerializer (nested as vm_details) reads
             # vm.template.name, a separate FK from workspace.vm_template,
@@ -223,6 +241,23 @@ class WorkspaceLaunchView(APIView):
 
         if workspace.status == 'deleted':
             return Response({"success": False, "message": "Workspace is deleted"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Real hardware quota enforcement — only applies to workspaces
+        # launched against a university-scoped template (university IS
+        # NULL for every existing/personal template, so this is a genuine
+        # no-op for 100% of today's real traffic).
+        template = workspace.vm_template
+        if template and template.university_id:
+            from apps.university.services.quota_service import check_quota_allows, check_university_active
+            active_ok, active_message = check_university_active(template.university)
+            if not active_ok:
+                return Response({"success": False, "message": active_message}, status=status.HTTP_409_CONFLICT)
+            allowed, quota_message = check_quota_allows(
+                template.university, additional_vcpu=template.cpu_cores,
+                additional_ram_gb=template.ram_gb, additional_storage_gb=0,
+            )
+            if not allowed:
+                return Response({"success": False, "message": quota_message}, status=status.HTTP_409_CONFLICT)
 
         access = get_workspace_access(request.user, workspace.vm_template)
         if not access['can_launch']:
