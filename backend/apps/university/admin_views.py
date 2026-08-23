@@ -149,6 +149,8 @@ def _course_summary(c):
     return {
         'id': c.id, 'department_id': c.department_id, 'name': c.name, 'code': c.code,
         'default_template_id': c.default_template_id,
+        'default_template_name': c.default_template.name if c.default_template_id else None,
+        'default_template_price_per_hour': float(c.default_template.price_per_hour) if c.default_template_id else None,
         'default_restrictions': c.default_restrictions,
         'schedule_day': c.schedule_day,
         'schedule_time': c.schedule_time.strftime('%H:%M') if c.schedule_time else None,
@@ -246,7 +248,7 @@ class CourseListCreateView(APIView):
             return err
         return Response({
             'success': True,
-            'data': [_course_summary(c) for c in department.courses.all()],
+            'data': [_course_summary(c) for c in department.courses.select_related('default_template').all()],
         })
 
     def post(self, request, department_id):
@@ -280,7 +282,20 @@ class CourseDetailView(APIView):
         if 'name' in request.data:
             course.name = (request.data.get('name') or '').strip() or course.name
         if 'default_template_id' in request.data:
-            course.default_template_id = request.data.get('default_template_id') or None
+            new_template_id = request.data.get('default_template_id') or None
+            if new_template_id:
+                # Real cross-tenant boundary — Phase 1 template-library
+                # assignment must only ever offer THIS university's own
+                # templates; without this check a crafted request could
+                # point a course at another university's (or a personal,
+                # non-university) template id.
+                from apps.vms.models import VMTemplate
+                if not VMTemplate.objects.filter(id=new_template_id, university=course.department.university).exists():
+                    return Response({
+                        'success': False,
+                        'message': 'That template does not belong to this university\'s library.',
+                    }, status=400)
+            course.default_template_id = new_template_id
         if 'default_restrictions' in request.data:
             course.default_restrictions = request.data.get('default_restrictions') or {}
         if 'schedule_day' in request.data:
@@ -681,3 +696,52 @@ class UniversityHardwareView(APIView):
                 'vm_health': health,
             },
         })
+
+
+class UniversityTemplateLibraryView(APIView):
+    """Phase 1 (Premium Rebuild) — every real template already scoped to
+    this university, whether it arrived via a lecturer's template
+    request (Product Depth Layer Phase 2) or was built proactively by
+    the admin. This is the real, existing set of things a course can be
+    assigned WITHOUT a new build cycle — the request/wizard flow only
+    applies once nothing suitable already exists here.
+
+    Real, not duplicated: quota cost per hour is the template's own
+    real price_per_hour (same field the student catalogue and pricing
+    already use) — never a second, parallel cost figure."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, university_id):
+        university, err = _get_managed_university_or_403(request.user, university_id)
+        if err:
+            return err
+
+        from apps.vms.models import VMTemplate
+
+        templates = VMTemplate.objects.filter(university=university).order_by('name')
+        # One query for every course currently pointing at ANY of this
+        # university's templates, grouped by template — avoids an N+1
+        # per-template course lookup.
+        courses_by_template = {}
+        for c in Course.objects.filter(
+            department__university=university, default_template_id__isnull=False,
+        ).select_related('department'):
+            courses_by_template.setdefault(c.default_template_id, []).append(
+                {'id': c.id, 'code': c.code, 'name': c.name, 'department_name': c.department.name}
+            )
+
+        data = [
+            {
+                'id': t.id, 'name': t.name, 'description': t.description,
+                'os': t.os, 'os_family': t.os_family, 'icon': t.icon,
+                'cpu_cores': t.cpu_cores, 'ram_gb': t.ram_gb, 'storage_gb': t.storage_gb,
+                'price_per_hour': float(t.price_per_hour), 'price_per_month': float(t.price_per_month),
+                'is_available': t.is_available,
+                # The SAME real courses list, whether the template is
+                # shared by one course or several — a shared template is
+                # still exactly one real VMTemplate row, counted once.
+                'courses': courses_by_template.get(t.id, []),
+            }
+            for t in templates
+        ]
+        return Response({'success': True, 'data': data})

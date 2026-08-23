@@ -2,11 +2,24 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Landmark, Plus, X, Upload, Link2, Copy, UserPlus, UserMinus,
   BarChart3, BookOpen, Users, RefreshCw, Server, GraduationCap,
+  Package, Cpu, MemoryStick, HardDrive, Clock, Layers,
 } from 'lucide-react';
 import api from '../../services/api';
 import { toast } from 'react-hot-toast';
 import UniversityHardwarePanel from '../../components/university/UniversityHardwarePanel';
 import TemplateRequestQueuePanel from '../../components/university/TemplateRequestQueuePanel';
+import { getOsIcon, getOsIconColor } from '../../utils/osIcons';
+
+// Real OS icon (react-icons/Simple Icons) when we know the OS family —
+// same real icon system TemplatesPage/WorkspacesPage already use;
+// falls back to a generic package icon for a template with no os_family.
+function TemplateIcon({ osFamily, size = 20 }) {
+  if (osFamily) {
+    const Icon = getOsIcon(osFamily);
+    return <Icon size={size} color={getOsIconColor(osFamily)} />;
+  }
+  return <Package size={size} className="text-[var(--text-faint)]" />;
+}
 
 export default function UniversityAdminDashboardPage() {
   const [universities, setUniversities] = useState(null); // null = loading
@@ -34,6 +47,18 @@ export default function UniversityAdminDashboardPage() {
 
   const [csvResults, setCsvResults] = useState(null);
   const [uploadingCsv, setUploadingCsv] = useState(false);
+
+  const [templates, setTemplates] = useState(null);
+  const [assigningCourseId, setAssigningCourseId] = useState(null);
+
+  const fetchTemplates = useCallback(async (uniId) => {
+    try {
+      const res = await api.get(`/university-admin/universities/${uniId}/templates/`);
+      setTemplates(res.data?.data || []);
+    } catch (err) {
+      setTemplates([]);
+    }
+  }, []);
 
   const fetchDepartments = useCallback(async (uniId) => {
     const res = await api.get(`/university-admin/universities/${uniId}/departments/`);
@@ -69,7 +94,8 @@ export default function UniversityAdminDashboardPage() {
     fetchDepartments(university.id);
     fetchAnalytics(university.id);
     fetchLecturers(university.id);
-  }, [university, fetchDepartments, fetchAnalytics, fetchLecturers]);
+    fetchTemplates(university.id);
+  }, [university, fetchDepartments, fetchAnalytics, fetchLecturers, fetchTemplates]);
 
   const fetchCourses = useCallback(async (deptId) => {
     const res = await api.get(`/university-admin/departments/${deptId}/courses/`);
@@ -199,6 +225,22 @@ export default function UniversityAdminDashboardPage() {
     }
   };
 
+  const assignTemplate = async (courseId, templateId) => {
+    setAssigningCourseId(courseId);
+    try {
+      await api.patch(`/university-admin/courses/${courseId}/`, {
+        default_template_id: templateId || null,
+      });
+      toast.success(templateId ? 'Template assigned.' : 'Template unassigned.');
+      if (selectedDept) fetchCourses(selectedDept.id);
+      fetchTemplates(university.id);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not assign template');
+    } finally {
+      setAssigningCourseId(null);
+    }
+  };
+
   const uploadCsv = async (file) => {
     if (!file) return;
     setUploadingCsv(true);
@@ -258,7 +300,7 @@ export default function UniversityAdminDashboardPage() {
       </div>
 
       <div className="flex gap-2 border-b border-[var(--border-color)] overflow-x-auto">
-        {[['departments', 'Departments'], ['lecturers', 'Lecturers'], ['requests', 'Template Requests'], ['hardware', 'Hardware & Performance'], ['analytics', 'Analytics']].map(([key, label]) => (
+        {[['departments', 'Departments'], ['lecturers', 'Lecturers'], ['templates', 'Template Library'], ['requests', 'Template Requests'], ['hardware', 'Hardware & Performance'], ['analytics', 'Analytics']].map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)}
             className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               tab === key
@@ -316,14 +358,34 @@ export default function UniversityAdminDashboardPage() {
                   ) : (
                     <div className="space-y-2">
                       {courses.map(c => (
-                        <div key={c.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-0.5 text-sm py-2 border-b border-[var(--border-color)] last:border-0">
-                          <span className="text-[var(--text-primary)]">{c.code} — {c.name}</span>
-                          <span className="text-[var(--text-secondary)] text-xs">
-                            {c.student_count} student(s) ·{' '}
-                            {c.lecturers.length > 0
-                              ? `Lecturer: ${c.lecturers.map(l => l.name).join(', ')}`
-                              : 'No lecturer assigned'}
-                          </span>
+                        <div key={c.id} className="py-2.5 border-b border-[var(--border-color)] last:border-0">
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-0.5 text-sm mb-1.5">
+                            <span className="text-[var(--text-primary)]">{c.code} — {c.name}</span>
+                            <span className="text-[var(--text-secondary)] text-xs">
+                              {c.student_count} student(s) ·{' '}
+                              {c.lecturers.length > 0
+                                ? `Lecturer: ${c.lecturers.map(l => l.name).join(', ')}`
+                                : 'No lecturer assigned'}
+                            </span>
+                          </div>
+                          {/* Phase 1 — Template Library assignment: pick
+                              from the EXISTING real library in one
+                              action, no wizard trip when a suitable
+                              template already exists. */}
+                          <div className="flex items-center gap-2">
+                            <Layers size={12} className="text-[var(--text-faint)] flex-shrink-0" />
+                            <select
+                              value={c.default_template_id || ''}
+                              disabled={assigningCourseId === c.id}
+                              onChange={e => assignTemplate(c.id, e.target.value ? parseInt(e.target.value, 10) : null)}
+                              className="flex-1 bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-2 py-1 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)] disabled:opacity-50"
+                            >
+                              <option value="">No template assigned</option>
+                              {(templates || []).map(t => (
+                                <option key={t.id} value={t.id}>{t.name} — {t.cpu_cores}vCPU/{t.ram_gb}GB</option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -446,6 +508,71 @@ export default function UniversityAdminDashboardPage() {
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/15 text-red-400 text-xs font-semibold hover:bg-red-500/25 self-start sm:self-auto">
                     <UserMinus size={13} /> Revoke
                   </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Template Library — Phase 1 (Premium Rebuild): every real
+           template already scoped to this university, whichever way it
+           arrived (lecturer request or built proactively). ─────────── */}
+      {tab === 'templates' && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-semibold text-[var(--text-primary)] flex items-center gap-2"><Package size={16} /> Template Library</h3>
+              <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                Real templates already available to this university — assign one to a course directly, no new build needed.
+              </p>
+            </div>
+          </div>
+          {templates === null ? (
+            <div className="glass-card rounded-2xl p-10 text-center text-sm text-[var(--text-secondary)]">Loading...</div>
+          ) : templates.length === 0 ? (
+            <div className="glass-card rounded-2xl p-10 text-center">
+              <Package className="mx-auto mb-3 text-[var(--text-faint)]" size={32} />
+              <p className="text-sm text-[var(--text-secondary)] mb-1">No templates in this university's library yet.</p>
+              <p className="text-xs text-[var(--text-faint)]">
+                Have a lecturer submit a Template Request, or approve one from the Template Requests tab — it lands here automatically once built.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {templates.map(t => (
+                <div key={t.id} className="glass-card rounded-2xl p-5">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-[var(--bg-input)] flex items-center justify-center flex-shrink-0">
+                      <TemplateIcon osFamily={t.os_family} size={20} />
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-semibold text-[var(--text-primary)] text-sm truncate">{t.name}</h4>
+                      <p className="text-xs text-[var(--text-faint)] truncate">{t.os}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-[var(--text-secondary)] mb-3">
+                    <span className="flex items-center gap-1"><Cpu size={12} /> {t.cpu_cores} vCPU</span>
+                    <span className="flex items-center gap-1"><MemoryStick size={12} /> {t.ram_gb}GB</span>
+                    <span className="flex items-center gap-1"><HardDrive size={12} /> {t.storage_gb}GB</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs text-emerald-400 font-medium mb-3">
+                    <Clock size={12} /> {t.price_per_hour.toLocaleString()} TZS/hour
+                  </div>
+                  <div className="pt-3 border-t border-[var(--border-color)]">
+                    <p className="text-[10px] uppercase tracking-wider text-[var(--text-faint)] mb-1.5">
+                      {t.courses.length > 0 ? `Used by ${t.courses.length} course(s)` : 'Not assigned to any course yet'}
+                    </p>
+                    {t.courses.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {t.courses.map(c => (
+                          <span key={c.id} className="px-2 py-0.5 rounded-full bg-[var(--accent-primary-soft)] text-[var(--accent-primary)] text-[10px] font-semibold">
+                            {c.code}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

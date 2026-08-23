@@ -16,6 +16,7 @@ from .admin_views import (
     UniversityLecturersView,
     UniversityAnalyticsView,
     UniversityHardwareView,
+    UniversityTemplateLibraryView,
 )
 from .lecturer_views import MyCoursesView, CourseRosterView, CourseBroadcastView, MyCourseworkView
 from .context_views import MyContextsView
@@ -34,6 +35,7 @@ urlpatterns = [
     path('universities/<int:university_id>/analytics/', UniversityAnalyticsView.as_view(), name='university-admin-analytics'),
     path('universities/<int:university_id>/hardware/', UniversityHardwareView.as_view(), name='university-admin-hardware'),
     path('universities/<int:university_id>/lecturers/', UniversityLecturersView.as_view(), name='university-admin-lecturers'),
+    path('universities/<int:university_id>/templates/', UniversityTemplateLibraryView.as_view(), name='university-admin-template-library'),
     path('departments/<int:department_id>/', DepartmentDetailView.as_view(), name='university-admin-department-detail'),
     path('departments/<int:department_id>/courses/', CourseListCreateView.as_view(), name='university-admin-courses'),
     path('departments/<int:department_id>/invites/', DepartmentInviteListCreateView.as_view(), name='university-admin-invites'),
