@@ -4,6 +4,7 @@ import {
   BarChart3, BookOpen, Users, RefreshCw, Server, GraduationCap,
   Package, Cpu, MemoryStick, HardDrive, Clock, Layers,
   LayoutGrid, GaugeCircle, PackagePlus, FolderOpen, TrendingUp,
+  Pencil, Trash2, AlertTriangle,
 } from 'lucide-react';
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
@@ -14,6 +15,8 @@ import { toast } from 'react-hot-toast';
 import UniversityHardwarePanel from '../../components/university/UniversityHardwarePanel';
 import TemplateRequestQueuePanel from '../../components/university/TemplateRequestQueuePanel';
 import { getOsIcon, getOsIconColor } from '../../utils/osIcons';
+import ConfirmDialog from '../../components/shared/ConfirmDialog';
+import useConfirm from '../../hooks/useConfirm';
 
 // Reused verbatim from AdminAnalyticsPage's own empty-chart pattern —
 // same visual language, not a new one invented for this page.
@@ -129,6 +132,21 @@ export default function UniversityAdminDashboardPage() {
 
   const [templates, setTemplates] = useState(null);
   const [assigningCourseId, setAssigningCourseId] = useState(null);
+
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirm();
+
+  const [editDeptTarget, setEditDeptTarget] = useState(null);
+  const [editDeptForm, setEditDeptForm] = useState({ name: '', code: '' });
+  const [savingDept, setSavingDept] = useState(false);
+
+  const [editCourseTarget, setEditCourseTarget] = useState(null);
+  const [editCourseForm, setEditCourseForm] = useState({ name: '', code: '' });
+  const [savingCourse, setSavingCourse] = useState(false);
+
+  const [deleteDeptTarget, setDeleteDeptTarget] = useState(null);
+  const [deleteDeptConfirmInput, setDeleteDeptConfirmInput] = useState('');
+  const [deleteDeptError, setDeleteDeptError] = useState(null);
+  const [deletingDept, setDeletingDept] = useState(false);
 
   const fetchTemplates = useCallback(async (uniId) => {
     try {
@@ -246,6 +264,105 @@ export default function UniversityAdminDashboardPage() {
       fetchDepartments(university.id);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Could not create course');
+    }
+  };
+
+  const openEditDept = (dept, e) => {
+    e.stopPropagation();
+    setEditDeptTarget(dept);
+    setEditDeptForm({ name: dept.name, code: dept.code });
+  };
+
+  const saveEditDept = async () => {
+    if (!editDeptForm.name.trim() || !editDeptForm.code.trim()) {
+      toast.error('Name and code are required.');
+      return;
+    }
+    setSavingDept(true);
+    try {
+      const res = await api.patch(`/university-admin/departments/${editDeptTarget.id}/`, editDeptForm);
+      if (res.data?.success === false) {
+        toast.error(res.data.message || 'Could not update department');
+        return;
+      }
+      toast.success('Department updated.');
+      setEditDeptTarget(null);
+      fetchDepartments(university.id);
+      fetchOverview(university.id);
+      if (selectedDept?.id === editDeptTarget.id) setSelectedDept(res.data.data);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not update department');
+    } finally {
+      setSavingDept(false);
+    }
+  };
+
+  const openDeleteDept = (dept, e) => {
+    e.stopPropagation();
+    setDeleteDeptTarget(dept);
+    setDeleteDeptConfirmInput('');
+    setDeleteDeptError(null);
+  };
+
+  const submitDeleteDept = async () => {
+    setDeletingDept(true);
+    setDeleteDeptError(null);
+    try {
+      await api.delete(`/university-admin/departments/${deleteDeptTarget.id}/`, {
+        data: { confirm_name: deleteDeptConfirmInput },
+      });
+      toast.success(`${deleteDeptTarget.name} permanently deleted.`);
+      if (selectedDept?.id === deleteDeptTarget.id) setSelectedDept(null);
+      setDeleteDeptTarget(null);
+      fetchDepartments(university.id);
+      fetchOverview(university.id);
+    } catch (err) {
+      setDeleteDeptError(err.response?.data?.message || 'Could not delete department');
+    } finally {
+      setDeletingDept(false);
+    }
+  };
+
+  const openEditCourse = (course) => {
+    setEditCourseTarget(course);
+    setEditCourseForm({ name: course.name, code: course.code });
+  };
+
+  const saveEditCourse = async () => {
+    if (!editCourseForm.name.trim() || !editCourseForm.code.trim()) {
+      toast.error('Name and code are required.');
+      return;
+    }
+    setSavingCourse(true);
+    try {
+      const res = await api.patch(`/university-admin/courses/${editCourseTarget.id}/`, editCourseForm);
+      if (res.data?.success === false) {
+        toast.error(res.data.message || 'Could not update course');
+        return;
+      }
+      toast.success('Course updated.');
+      setEditCourseTarget(null);
+      fetchCourses(selectedDept.id);
+      fetchTemplates(university.id);
+      fetchOverview(university.id);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not update course');
+    } finally {
+      setSavingCourse(false);
+    }
+  };
+
+  const deleteCourse = async (course) => {
+    const ok = await confirm('Delete Course', `Delete ${course.code} — ${course.name}? This cannot be undone.`, true);
+    if (!ok) return;
+    try {
+      await api.delete(`/university-admin/courses/${course.id}/`);
+      toast.success(`${course.code} deleted.`);
+      fetchCourses(selectedDept.id);
+      fetchDepartments(university.id);
+      fetchOverview(university.id);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not delete course');
     }
   };
 
@@ -524,11 +641,23 @@ export default function UniversityAdminDashboardPage() {
                 submessage="Create your first department to start adding courses and enrolling students." />
             )}
             {departments.map(d => (
-              <button key={d.id} onClick={() => selectDept(d)}
-                className={`w-full text-left glass-card rounded-xl p-4 transition-colors ${selectedDept?.id === d.id ? 'ring-2 ring-[var(--accent-primary)]' : ''}`}>
-                <p className="font-medium text-[var(--text-primary)]">{d.name}</p>
-                <p className="text-xs text-[var(--text-secondary)]">{d.code} · {d.course_count} course(s)</p>
-              </button>
+              <div key={d.id}
+                className={`w-full glass-card rounded-xl p-4 transition-colors flex items-center justify-between gap-2 ${selectedDept?.id === d.id ? 'ring-2 ring-[var(--accent-primary)]' : ''}`}>
+                <button onClick={() => selectDept(d)} className="flex-1 min-w-0 text-left">
+                  <p className="font-medium text-[var(--text-primary)] truncate">{d.name}</p>
+                  <p className="text-xs text-[var(--text-secondary)]">{d.code} · {d.course_count} course(s)</p>
+                </button>
+                <div className="flex gap-1 flex-shrink-0">
+                  <button onClick={(e) => openEditDept(d, e)} title="Edit department"
+                    className="p-1.5 rounded-lg bg-blue-500/15 text-blue-400 hover:bg-blue-500/25">
+                    <Pencil size={13} />
+                  </button>
+                  <button onClick={(e) => openDeleteDept(d, e)} title="Delete department"
+                    className="p-1.5 rounded-lg bg-red-500/15 text-red-400 hover:bg-red-500/25">
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </div>
             ))}
           </div>
 
@@ -555,9 +684,19 @@ export default function UniversityAdminDashboardPage() {
                     <div className="space-y-2">
                       {courses.map(c => (
                         <div key={c.id} className="py-2.5 border-b border-[var(--border-color)] last:border-0">
-                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-0.5 text-sm mb-1.5">
-                            <span className="text-[var(--text-primary)]">{c.code} — {c.name}</span>
-                            <span className="text-[var(--text-secondary)] text-xs">
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 text-sm mb-1.5">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="text-[var(--text-primary)] truncate">{c.code} — {c.name}</span>
+                              <button onClick={() => openEditCourse(c)} title="Edit course"
+                                className="p-1 rounded-md text-[var(--text-faint)] hover:text-blue-400 hover:bg-blue-500/10 flex-shrink-0">
+                                <Pencil size={12} />
+                              </button>
+                              <button onClick={() => deleteCourse(c)} title="Delete course"
+                                className="p-1 rounded-md text-[var(--text-faint)] hover:text-red-400 hover:bg-red-500/10 flex-shrink-0">
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                            <span className="text-[var(--text-secondary)] text-xs flex-shrink-0">
                               {c.student_count} student(s) ·{' '}
                               {c.lecturers.length > 0
                                 ? `Lecturer: ${c.lecturers.map(l => l.name).join(', ')}`
@@ -872,6 +1011,103 @@ export default function UniversityAdminDashboardPage() {
         </div>
       )}
 
+      {/* ── Edit Department Modal ────────────────────────────────── */}
+      {editDeptTarget && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-[var(--text-primary)] flex items-center gap-2"><Pencil size={18} /> Edit Department</h3>
+              <button onClick={() => setEditDeptTarget(null)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]"><X size={20} /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">Department name</label>
+                <input type="text" value={editDeptForm.name} onChange={e => setEditDeptForm({ ...editDeptForm, name: e.target.value })}
+                  className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">Code</label>
+                <input type="text" value={editDeptForm.code} onChange={e => setEditDeptForm({ ...editDeptForm, code: e.target.value.toUpperCase() })}
+                  className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]" />
+              </div>
+              <button onClick={saveEditDept} disabled={savingDept}
+                className="w-full py-3 rounded-xl bg-[var(--accent-primary)] hover:opacity-90 text-white font-semibold disabled:opacity-50">
+                {savingDept ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete Department Modal — typed-confirmation, same real
+           pattern as University deletion (Phase 0) ─────────────── */}
+      {deleteDeptTarget && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[var(--bg-card)] border-2 border-red-500/20 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <div className="flex items-start gap-3 mb-4">
+              <AlertTriangle size={20} className="text-red-400 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="text-sm font-bold text-red-400">Delete {deleteDeptTarget.name}</h3>
+                <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
+                  This permanently deletes the department and cascades to its courses, invites, and affiliations.
+                  Blocked if any real enrolled students or an active class session exist — remove or reassign them first.
+                </p>
+              </div>
+              <button onClick={() => setDeleteDeptTarget(null)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex-shrink-0"><X size={18} /></button>
+            </div>
+            {deleteDeptError && (
+              <div className="px-3 py-2 rounded-lg text-xs font-medium bg-red-500/10 border border-red-500/20 text-red-400 mb-3">
+                {deleteDeptError}
+              </div>
+            )}
+            <p className="text-xs text-[var(--text-secondary)] mb-3">
+              To confirm, type the department's exact name <strong className="text-[var(--text-primary)]">{deleteDeptTarget.name}</strong> below:
+            </p>
+            <input type="text" value={deleteDeptConfirmInput} onChange={e => setDeleteDeptConfirmInput(e.target.value)}
+              placeholder={deleteDeptTarget.name} autoComplete="off" autoCapitalize="off" spellCheck="false"
+              className="w-full bg-[var(--bg-input)] border border-red-500/20 rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none mb-4 focus:border-red-500/50" />
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteDeptTarget(null)}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-[var(--bg-nav-hover)] border border-[var(--border-color)] text-[var(--text-secondary)] text-xs font-semibold">
+                Cancel
+              </button>
+              <button onClick={submitDeleteDept} disabled={deleteDeptConfirmInput !== deleteDeptTarget.name || deletingDept}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white text-xs font-bold disabled:opacity-30">
+                {deletingDept ? 'Deleting...' : 'Permanently Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit Course Modal ─────────────────────────────────────── */}
+      {editCourseTarget && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-[var(--text-primary)] flex items-center gap-2"><Pencil size={18} /> Edit Course</h3>
+              <button onClick={() => setEditCourseTarget(null)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]"><X size={20} /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">Course name</label>
+                <input type="text" value={editCourseForm.name} onChange={e => setEditCourseForm({ ...editCourseForm, name: e.target.value })}
+                  className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">Code</label>
+                <input type="text" value={editCourseForm.code} onChange={e => setEditCourseForm({ ...editCourseForm, code: e.target.value.toUpperCase() })}
+                  className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]" />
+              </div>
+              <button onClick={saveEditCourse} disabled={savingCourse}
+                className="w-full py-3 rounded-xl bg-[var(--accent-primary)] hover:opacity-90 text-white font-semibold disabled:opacity-50">
+                {savingCourse ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── New Invite Modal ─────────────────────────────────────── */}
       {showInviteModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -895,6 +1131,7 @@ export default function UniversityAdminDashboardPage() {
         </div>
       )}
 
+      <ConfirmDialog {...confirmState} onConfirm={handleConfirm} onCancel={handleCancel} />
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );

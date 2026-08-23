@@ -236,6 +236,65 @@ class DepartmentDetailView(APIView):
         department.save()
         return Response({'success': True, 'data': _department_summary(department)})
 
+    def delete(self, request, department_id):
+        """A real, potentially destructive action — real courses, real
+        enrolled students, possibly real active sessions live under a
+        department. Requires the department's exact real name typed to
+        confirm (the SAME typed-confirmation pattern already built for
+        University deletion in Phase 0). Blocked (409) if any real
+        student — enrolled in one of its courses, or affiliated with
+        the department directly (e.g. a department-wide bulk-CSV/invite
+        enrollment with no specific course) — or any real active class
+        session exists. A genuinely empty department cascades cleanly
+        via real on_delete=CASCADE relations (courses, invites,
+        affiliations)."""
+        department, err = _get_managed_department_or_403(request.user, department_id)
+        if err:
+            return err
+
+        confirm_name = (request.data.get('confirm_name') or '').strip()
+        if confirm_name != department.name:
+            return Response({
+                'success': False,
+                'message': "Type the department's exact name to confirm deletion.",
+            }, status=400)
+
+        course_ids = list(department.courses.values_list('id', flat=True))
+        course_enrolled_ids = set(
+            CourseEnrollment.objects.filter(course_id__in=course_ids, role='student').values_list('user_id', flat=True)
+        )
+        dept_wide_ids = set(
+            UniversityAffiliation.objects.filter(department=department, role='student', is_active=True).values_list('user_id', flat=True)
+        )
+        total_students = course_enrolled_ids | dept_wide_ids
+        if total_students:
+            affected_courses = CourseEnrollment.objects.filter(
+                course_id__in=course_ids, role='student',
+            ).values_list('course_id', flat=True).distinct().count()
+            course_note = f' across {affected_courses} course(s)' if affected_courses else ''
+            return Response({
+                'success': False,
+                'message': (
+                    f'This department has {len(total_students)} real, enrolled student(s){course_note}. '
+                    'Remove or reassign them before deleting.'
+                ),
+            }, status=409)
+
+        from apps.sessions.models import LiveSession
+        active_sessions = LiveSession.objects.filter(course_id__in=course_ids, status='active').count()
+        if active_sessions:
+            return Response({
+                'success': False,
+                'message': (
+                    f'This department has {active_sessions} real, currently active class session(s). '
+                    'End them before deleting.'
+                ),
+            }, status=409)
+
+        name = department.name
+        department.delete()
+        return Response({'success': True, 'message': f'{name} was permanently deleted.'})
+
 
 # ── Courses ───────────────────────────────────────────────────────────
 
@@ -281,6 +340,13 @@ class CourseDetailView(APIView):
             return err
         if 'name' in request.data:
             course.name = (request.data.get('name') or '').strip() or course.name
+        if 'code' in request.data:
+            new_code = (request.data.get('code') or '').strip().upper()
+            if new_code and Course.objects.filter(
+                department=course.department, code=new_code,
+            ).exclude(pk=course.pk).exists():
+                return Response({'success': False, 'message': f'Course code "{new_code}" already exists.'}, status=400)
+            course.code = new_code or course.code
         if 'default_template_id' in request.data:
             new_template_id = request.data.get('default_template_id') or None
             if new_template_id:
@@ -315,6 +381,43 @@ class CourseDetailView(APIView):
                 course.schedule_time = None
         course.save()
         return Response({'success': True, 'data': _course_summary(course)})
+
+    def delete(self, request, course_id):
+        """A real, potentially destructive action. Blocked (409 — a
+        real, resolvable conflict, not a bad request) if any real
+        student is enrolled or any real class session is currently
+        active — matching the exact same protective pattern already
+        built for University deletion. A genuinely empty course
+        cascades cleanly via its own real on_delete=CASCADE relations
+        (enrollments, invites pointing at it, template requests)."""
+        course, err = _get_managed_course_or_403(request.user, course_id)
+        if err:
+            return err
+
+        student_count = CourseEnrollment.objects.filter(course=course, role='student').count()
+        if student_count:
+            return Response({
+                'success': False,
+                'message': (
+                    f'This course has {student_count} real, enrolled student(s). '
+                    'Remove or reassign them before deleting.'
+                ),
+            }, status=409)
+
+        from apps.sessions.models import LiveSession
+        active_sessions = LiveSession.objects.filter(course=course, status='active').count()
+        if active_sessions:
+            return Response({
+                'success': False,
+                'message': (
+                    f'This course has {active_sessions} real, currently active class session(s). '
+                    'End them before deleting.'
+                ),
+            }, status=409)
+
+        name = f'{course.code} — {course.name}'
+        course.delete()
+        return Response({'success': True, 'message': f'{name} was permanently deleted.'})
 
 
 # ── Enrollment ────────────────────────────────────────────────────────
