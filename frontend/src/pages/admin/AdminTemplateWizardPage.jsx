@@ -19,6 +19,12 @@ const STEP_LABELS = {
 
 const COMMON_APPS = ['firefox', 'libreoffice', 'gimp', 'code', 'vlc', 'thunderbird', 'blender', 'audacity'];
 
+// Matches the backend's AdminTemplateJobPowerView.BUSY_STATUSES exactly —
+// real, backend-automated work (SSH/apt commands) runs during these,
+// so destructive power actions are blocked server-side too, not just
+// hidden here.
+const BUSY_JOB_STATUSES = ['configuring', 'installing_apps', 'finalizing'];
+
 const cardStyle = {
   background: 'var(--bg-card)',
   border: '1px solid var(--border-color)',
@@ -452,7 +458,8 @@ export default function AdminTemplateWizardPage() {
   // bug, so this has to reflect Proxmox's actual current state, not a
   // cached/assumed one. Polls only while the console step is visible.
   useEffect(() => {
-    if (!job?.proxmox_vmid || job.status !== 'awaiting_os_install') {
+    const relevant = job?.status === 'awaiting_os_install' || BUSY_JOB_STATUSES.includes(job?.status);
+    if (!job?.proxmox_vmid || !relevant) {
       setPowerStatus(null);
       return;
     }
@@ -876,6 +883,46 @@ export default function AdminTemplateWizardPage() {
       {job && (job.status === 'installing_apps' || job.status === 'configuring') && (
         <div style={cardStyle}>
           <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Step 3/4 — Configuration &amp; Apps</h2>
+
+          {/* Real, confirmed fix: a power action sent while this step is
+              genuinely running is what left dpkg interrupted before
+              (job 18's actual log). The backend rejects it outright
+              (409) — this banner + disabled buttons make that visible
+              up front instead of the admin discovering it via an error
+              toast, and the live log right below proves real,
+              ongoing progress instead of a static, ambiguous screen. */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap',
+            padding: '10px 14px', background: 'var(--status-warning-bg)',
+            border: '1px solid var(--status-warning)', borderRadius: '10px', marginBottom: '14px',
+          }}>
+            <span style={{ fontSize: '13px', color: 'var(--text-primary)', flex: 1, minWidth: '240px' }}>
+              ⏳ <b>Configuration in progress</b> — this can take several minutes (full-upgrade alone
+              typically takes ~13 minutes). Power controls are disabled to protect the installation —
+              watch the live log below for real, ongoing progress.
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{
+                width: '8px', height: '8px', borderRadius: '50%',
+                background: powerStatus === 'running' ? 'var(--status-online, #10B981)' : 'var(--text-muted)',
+              }} />
+              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                {powerStatus === null ? 'Checking…' : powerStatus === 'running' ? 'Running' : 'Stopped'}
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              {['Restart', 'Shutdown', 'Force Stop'].map(label => (
+                <button key={label} disabled title="Blocked while configuration is actively running" style={{
+                  padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+                  border: '1px solid var(--border-color)', background: 'var(--bg-input)',
+                  color: 'var(--text-muted)', cursor: 'not-allowed', opacity: 0.6,
+                }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <JobLog job={job} />
           <div style={{ marginTop: '20px' }}>
             <label style={labelStyle}>Common Apps</label>

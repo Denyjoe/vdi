@@ -407,6 +407,28 @@ class AdminTemplateJobApplyConfigurationView(views.APIView):
         if not ssh_username or not ssh_password:
             return Response({'success': False, 'message': 'ssh_username and ssh_password are required.'}, status=400)
 
+        # Real, confirmed root cause fixed here: this entire method (SSH
+        # check, boot-order fix, dpkg repair, full-upgrade — which alone
+        # took ~13 real minutes today — the openssh pin-check, and the
+        # desktop fix_script) used to run while job.status stayed
+        # 'awaiting_os_install' the whole time, since nothing ever set
+        # it to 'configuring'. That status is exactly what the wizard's
+        # power-control bar treats as "safe to show power buttons" — so
+        # an admin genuinely had no way to tell "still working" from
+        # "stuck" during the single longest, most fragile stretch of
+        # the whole wizard, and a well-intentioned restart/stop here is
+        # exactly what leaves dpkg interrupted (confirmed via job 18's
+        # real log: a burst of power actions, then the very next
+        # full-upgrade attempt failed immediately with "dpkg was
+        # interrupted"). Flipping to 'configuring' up front makes the
+        # existing Step 3/4 UI (live JobLog, already built) take over
+        # from the power-control view automatically, and makes the new
+        # power-endpoint BUSY_STATUSES check actually able to block
+        # power actions for the ENTIRE duration of this real work, not
+        # just some of it.
+        job.status = 'configuring'
+        job.save(update_fields=['status'])
+
         ps = ProxmoxService()
         # A freshly, manually-installed VM has no qemu-guest-agent yet
         # (finalize() is what installs it) — get_vm_ip() depends on the
@@ -422,6 +444,12 @@ class AdminTemplateJobApplyConfigurationView(views.APIView):
                 ip = None
         if not ip:
             job.log_step('Could not determine VM IP — no guest agent yet and no vm_ip supplied.', level='error')
+            # Real, deliberate revert: nothing destructive has run yet
+            # (no SSH session even opened), so it's genuinely safe to
+            # hand power controls back to the admin here rather than
+            # leaving the job looking permanently "busy".
+            job.status = 'awaiting_os_install'
+            job.save(update_fields=['status'])
             return Response({'success': False, 'message': 'Could not reach the VM — guest-agent is not installed yet at this stage, so pass vm_ip explicitly (check the console for the real IP).'}, status=502)
 
         job.log_step(f'Reached VM at {ip}. Applying real desktop-environment configuration...')
@@ -468,6 +496,10 @@ class AdminTemplateJobApplyConfigurationView(views.APIView):
             else:
                 actionable = f'SSH connection failed: {raw}'
             job.log_step(f'SSH connection check failed: {raw}', level='error')
+            # Same real revert as above — SSH never even connected, so
+            # nothing on the VM could have been touched yet.
+            job.status = 'awaiting_os_install'
+            job.save(update_fields=['status'])
             return Response({'success': False, 'message': actionable}, status=502)
         job.log_step('SSH connection verified.')
 
@@ -1124,7 +1156,26 @@ class AdminTemplateJobPowerView(views.APIView):
 
     VALID_ACTIONS = {'start', 'stop', 'shutdown', 'restart'}
 
+    # Real, confirmed root cause (job 18's actual log): a burst of power
+    # actions sent while backend-automated configuration work was
+    # genuinely in progress was immediately followed by dpkg being left
+    # "interrupted" — the exact state that then cascaded into repeated
+    # install failures. These are the statuses where this view's own
+    # backend is actively running real SSH/apt commands on the guest —
+    # 'start' is deliberately excluded (never destructive) and this
+    # never applies to 'awaiting_os_install' (the manual console/
+    # install phase), where the admin genuinely may need to force-
+    # restart a hung installer and no automated backend work is running.
+    BUSY_STATUSES = {'configuring', 'installing_apps', 'finalizing'}
+    DESTRUCTIVE_ACTIONS = {'restart', 'stop', 'shutdown'}
+    # Generous real timeout — full-upgrade alone measured ~13 real
+    # minutes today — past which a BUSY status is treated as a genuine
+    # hang rather than trusted blindly, so an admin is never permanently
+    # locked out if a step really does get stuck.
+    STUCK_AFTER_MINUTES = 30
+
     def post(self, request, pk):
+        from datetime import datetime
         from .services.proxmox_service import ProxmoxService
 
         job = get_object_or_404(TemplateCreationJob, pk=pk)
@@ -1137,6 +1188,35 @@ class AdminTemplateJobPowerView(views.APIView):
                 'success': False,
                 'message': f"action must be one of {sorted(self.VALID_ACTIONS)}.",
             }, status=400)
+
+        if job.status in self.BUSY_STATUSES and action in self.DESTRUCTIVE_ACTIONS:
+            last_log_ts = None
+            if job.log:
+                try:
+                    last_log_ts = datetime.fromisoformat(job.log[-1]['ts'])
+                except (KeyError, ValueError, TypeError):
+                    last_log_ts = None
+            minutes_since_activity = (
+                (timezone.now() - last_log_ts).total_seconds() / 60
+                if last_log_ts else None
+            )
+            if minutes_since_activity is None or minutes_since_activity < self.STUCK_AFTER_MINUTES:
+                return Response({
+                    'success': False,
+                    'message': (
+                        f'Cannot {action} while configuration is actively running (status: {job.status}). '
+                        f'This VM is busy, not stuck — interrupting it now risks corrupting the installation '
+                        f'(exactly what happened before: a power action mid-install left dpkg in a broken state). '
+                        f'Please wait for the current step to complete — check the live log above for progress.'
+                    ),
+                }, status=409)
+            # Genuinely no log activity for STUCK_AFTER_MINUTES — treat
+            # as a real hang, not a guess: mark it failed honestly and
+            # let this power action through.
+            job.status = 'failed'
+            job.error_message = f'Step timed out after {self.STUCK_AFTER_MINUTES}+ minutes with no progress — may genuinely be stuck.'
+            job.save(update_fields=['status', 'error_message'])
+            job.log_step(job.error_message, level='error')
 
         ps = ProxmoxService()
         try:
