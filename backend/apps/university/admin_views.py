@@ -60,6 +60,81 @@ def _get_managed_course_or_403(user, course_id):
     return course, None
 
 
+def grant_role_in_department(user, department, role, course=None, granted_by=None):
+    """THE one real place every grant path (department-scoped lecturer
+    grant, course-scoped lecturer grant, bulk-CSV enrollment, self-
+    enroll invite redemption) creates its real UniversityAffiliation and
+    — where a real course is genuinely relevant — CourseEnrollment
+    row(s). Written once, used everywhere a role is granted, so the
+    exact class of bug found twice already (one code path creates
+    record type A, a different part of the system checks for record
+    type B) becomes structurally impossible to reintroduce per-callsite.
+
+    - ALWAYS creates/reuses the real UniversityAffiliation — this is
+      the one real thing get_active_affiliations() (the context
+      switcher) and every "does this account hold any role here" check
+      actually looks for. get_or_create so it never clobbers an
+      existing, different role this same account might also hold.
+    - If a specific `course` is given, ALSO creates/reuses a real
+      CourseEnrollment for that course — the one real thing
+      MyCoursesView / MyCourseworkView (and therefore the lecturer's
+      "My Courses" page and the Sidebar's Teaching/Student nav
+      sections) actually query.
+    - If NO course is given and role == 'lecturer': a department-wide
+      lecturer grant is real intent to teach in that department, not a
+      no-op — so this creates a real CourseEnrollment for EVERY course
+      that currently exists in the department. Without this, a
+      department-wide lecturer has a real, valid affiliation (so the
+      context switcher shows the university) but zero courses, so
+      MyCoursesView legitimately returns nothing and the whole Teaching
+      section — and the account's entire visible lecturer capability —
+      stays permanently empty, exactly the real bug reported. A
+      department with zero courses yet genuinely has nothing to enroll
+      them in — that's an honest state, not a bug, until a real course
+      exists.
+    - If NO course is given and role == 'student': no CourseEnrollment
+      is created — a department-wide student without a specific course
+      genuinely isn't "in" any course yet (unlike a lecturer, who
+      reasonably teaches everything already in their department),
+      matching the existing, correct MyCourseworkView behavior.
+
+    Returns (affiliation, enrolled_course_codes: list[str]).
+    """
+    affiliation, _created = UniversityAffiliation.objects.get_or_create(
+        user=user, university=department.university, department=department, role=role,
+        defaults={'granted_by': granted_by},
+    )
+
+    enrolled_codes = []
+    if course is not None:
+        CourseEnrollment.objects.get_or_create(course=course, user=user, defaults={'role': role})
+        enrolled_codes.append(course.code)
+    elif role == 'lecturer':
+        for c in Course.objects.filter(department=department):
+            CourseEnrollment.objects.get_or_create(course=c, user=user, defaults={'role': role})
+            enrolled_codes.append(c.code)
+
+    return affiliation, enrolled_codes
+
+
+def revoke_role_in_department(user, department, role, course=None):
+    """The symmetric counterpart to grant_role_in_department. Revoking a
+    department-wide grant also removes every CourseEnrollment that
+    grant itself created (every course in the department, for
+    lecturers) — otherwise a revoke would leave phantom lecturer
+    entries a course's own roster/detail view would keep showing
+    forever with no way to remove them."""
+    if course is not None:
+        CourseEnrollment.objects.filter(course=course, user=user, role=role).delete()
+        return
+
+    UniversityAffiliation.objects.filter(
+        user=user, university=department.university, department=department, role=role,
+    ).delete()
+    if role == 'lecturer':
+        CourseEnrollment.objects.filter(course__department=department, user=user, role=role).delete()
+
+
 def _department_summary(d):
     return {
         'id': d.id, 'university_id': d.university_id, 'name': d.name, 'code': d.code,
@@ -276,12 +351,7 @@ class BulkEnrollCSVView(APIView):
                 results.append({'row': i, 'email': email, 'status': 'error', 'message': f'No department "{dept_code}" in this university.'})
                 continue
 
-            UniversityAffiliation.objects.get_or_create(
-                user=user, university=university, department=department, role=role,
-                defaults={'granted_by': request.user},
-            )
-
-            course_note = ''
+            course = None
             if course_code:
                 course = Course.objects.filter(department=department, code=course_code).first()
                 if not course:
@@ -290,8 +360,17 @@ class BulkEnrollCSVView(APIView):
                         'message': f'Enrolled in department "{dept_code}", but course "{course_code}" not found there.',
                     })
                     continue
-                CourseEnrollment.objects.get_or_create(course=course, user=user, defaults={'role': role})
-                course_note = f' + course {course_code}'
+
+            # Same real, shared helper every grant path now uses — a
+            # lecturer row with no course_code still ends up with real
+            # CourseEnrollment(s) for the department's existing courses,
+            # not just an affiliation nothing actually checks for.
+            _affiliation, enrolled_codes = grant_role_in_department(
+                user, department, role, course=course, granted_by=request.user,
+            )
+            course_note = f' + course {course.code}' if course else (
+                f' + {len(enrolled_codes)} existing course(s)' if enrolled_codes else ''
+            )
 
             results.append({'row': i, 'email': email, 'status': 'ok', 'message': f'Enrolled as {role} in {dept_code}{course_note}.'})
 
@@ -367,16 +446,12 @@ class InviteRedeemView(APIView):
         if not invite:
             return Response({'success': False, 'message': 'Invalid or inactive invite code.'}, status=404)
 
-        affiliation, _created = UniversityAffiliation.objects.get_or_create(
-            user=request.user, university=invite.department.university, department=invite.department,
-            role=invite.role, defaults={'granted_by': invite.created_by},
+        # Same real, shared helper — a lecturer invite with no specific
+        # course attached still results in real CourseEnrollment(s) for
+        # the department's existing courses, not a silent dead end.
+        _affiliation, enrolled_codes = grant_role_in_department(
+            request.user, invite.department, invite.role, course=invite.course, granted_by=invite.created_by,
         )
-        enrolled_course = None
-        if invite.course:
-            CourseEnrollment.objects.get_or_create(
-                course=invite.course, user=request.user, defaults={'role': invite.role},
-            )
-            enrolled_course = invite.course.code
 
         return Response({
             'success': True,
@@ -384,7 +459,8 @@ class InviteRedeemView(APIView):
                 'university': invite.department.university.name,
                 'department': invite.department.name,
                 'role': invite.role,
-                'course': enrolled_course,
+                'course': invite.course.code if invite.course else None,
+                'courses': enrolled_codes,
             },
         })
 
@@ -403,34 +479,32 @@ class DepartmentLecturerGrantView(APIView):
             return Response({'success': False, 'message': f'No existing Ospace account for {email}.'}, status=400)
 
         course_id = request.data.get('course_id')
+        course = None
         if course_id:
             course = Course.objects.filter(pk=course_id, department=department).first()
             if not course:
                 return Response({'success': False, 'message': 'That course does not belong to this department.'}, status=400)
-            CourseEnrollment.objects.update_or_create(
-                course=course, user=user, defaults={'role': 'lecturer'},
-            )
-            # Real bug found during the Phase 3 context-isolation audit:
-            # a course-scoped grant used to create ONLY the
-            # CourseEnrollment row — with no real UniversityAffiliation,
-            # get_active_affiliations() (which powers the account
-            # context switcher) never surfaced this university for them
-            # at all, making their own real "Teaching" nav section
-            # permanently unreachable (no way to ever switch into that
-            # context). A lecturer of even one course is a genuine real
-            # member of the university — get_or_create so this never
-            # clobbers an existing, different role they might also hold.
-            UniversityAffiliation.objects.get_or_create(
-                user=user, university=department.university, department=department, role='lecturer',
-                defaults={'granted_by': request.user},
-            )
-            return Response({'success': True, 'message': f'{email} is now lecturer for {course.code}.'})
 
-        UniversityAffiliation.objects.get_or_create(
-            user=user, university=department.university, department=department, role='lecturer',
-            defaults={'granted_by': request.user},
+        # Real bug (found twice now): a grant that only wrote ONE of the
+        # two real record types a lecturer's own dashboard/nav actually
+        # checks for left them with zero visible teaching capability.
+        # grant_role_in_department is the one real place this is done
+        # correctly and consistently — see its docstring.
+        _affiliation, enrolled_codes = grant_role_in_department(
+            user, department, 'lecturer', course=course, granted_by=request.user,
         )
-        return Response({'success': True, 'message': f'{email} is now a lecturer in {department.name}.'})
+
+        if course:
+            return Response({'success': True, 'message': f'{email} is now lecturer for {course.code}.'})
+        if enrolled_codes:
+            return Response({
+                'success': True,
+                'message': f'{email} is now a lecturer in {department.name} — enrolled as lecturer in {len(enrolled_codes)} existing course(s): {", ".join(enrolled_codes)}.',
+            })
+        return Response({
+            'success': True,
+            'message': f'{email} is now a lecturer in {department.name}. No courses exist in this department yet — they\'ll need to be assigned once one is created.',
+        })
 
 
 class DepartmentLecturerRevokeView(APIView):
@@ -447,17 +521,17 @@ class DepartmentLecturerRevokeView(APIView):
             return Response({'success': False, 'message': f'No existing Ospace account for {email}.'}, status=400)
 
         course_id = request.data.get('course_id')
+        course = None
         if course_id:
             course = Course.objects.filter(pk=course_id, department=department).first()
             if not course:
                 return Response({'success': False, 'message': 'That course does not belong to this department.'}, status=400)
-            CourseEnrollment.objects.filter(course=course, user=user, role='lecturer').delete()
-            return Response({'success': True, 'message': f'{email} removed as lecturer for {course.code}.'})
 
-        UniversityAffiliation.objects.filter(
-            user=user, university=department.university, department=department, role='lecturer',
-        ).delete()
-        return Response({'success': True, 'message': f'{email} removed as lecturer in {department.name}.'})
+        revoke_role_in_department(user, department, 'lecturer', course=course)
+
+        if course:
+            return Response({'success': True, 'message': f'{email} removed as lecturer for {course.code}.'})
+        return Response({'success': True, 'message': f'{email} removed as lecturer in {department.name} (and every course in it).'})
 
 
 class UniversityLecturersView(APIView):

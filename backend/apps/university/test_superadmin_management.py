@@ -323,13 +323,22 @@ class UniversityLecturersVisibilityTests(TestCase):
         }, format='json')
         self.assertEqual(grant_resp.status_code, 200, grant_resp.data)
 
+        # Real fix (lecturer-visibility bug): a department-wide grant now
+        # ALSO enrolls every real, existing course in that department —
+        # this setUp's self.course ('LC101') is one — so BOTH the real
+        # department-wide row and a real course-scoped row show up here.
         list_resp = self.client.get(f'/api/university-admin/universities/{self.uni.id}/lecturers/')
         self.assertEqual(list_resp.status_code, 200)
         rows = list_resp.data['data']
-        self.assertEqual(len(rows), 1)
-        self.assertEqual(rows[0]['email'], lecturer.email)
-        self.assertEqual(rows[0]['kind'], 'department')
-        self.assertEqual(rows[0]['department_id'], self.dept.id)
+        self.assertEqual(len(rows), 2)
+        dept_rows = [r for r in rows if r['kind'] == 'department']
+        course_rows = [r for r in rows if r['kind'] == 'course']
+        self.assertEqual(len(dept_rows), 1)
+        self.assertEqual(dept_rows[0]['email'], lecturer.email)
+        self.assertEqual(dept_rows[0]['department_id'], self.dept.id)
+        self.assertEqual(len(course_rows), 1)
+        self.assertEqual(course_rows[0]['email'], lecturer.email)
+        self.assertEqual(course_rows[0]['course_code'], 'LC101')
 
     def test_course_scoped_grant_appears_in_lecturers_list_and_on_course_summary(self):
         lecturer = User.objects.create_user(
