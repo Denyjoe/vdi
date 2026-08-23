@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Radio, Users, RefreshCw, X, PackagePlus, Clock, CheckCircle2, XCircle, Hammer, CalendarDays, MessageSquare, Send, TrendingUp } from 'lucide-react';
+import { BookOpen, Radio, Users, RefreshCw, X, PackagePlus, Clock, CheckCircle2, XCircle, Hammer, CalendarDays, MessageSquare, Send, TrendingUp, Sparkles, ChevronRight } from 'lucide-react';
 import api from '../../services/api';
 import { toast } from 'react-hot-toast';
 import ActiveSessionPanel from '../../components/university/ActiveSessionPanel';
@@ -205,6 +205,20 @@ export default function LecturerDashboardPage() {
     );
   }
 
+  // Phase 4 (Premium Rebuild) — real visual hierarchy: what genuinely
+  // needs the lecturer's attention right now (a live session, a real
+  // class scheduled for today, a real rejected request they haven't
+  // seen) versus routine, browse-at-leisure course information below.
+  const todayKey = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+  const liveCourses = courses.filter(c => c.active_session);
+  const todayCourses = courses.filter(c => !c.active_session && c.schedule_day === todayKey);
+  const rejectedRequests = myRequests.filter(r => r.status === 'rejected' && r.admin_notes);
+  const hasAttentionItems = liveCourses.length > 0 || todayCourses.length > 0 || rejectedRequests.length > 0;
+
+  const scrollToCourse = (courseId) => {
+    document.getElementById(`course-${courseId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-8 animate-[fadeIn_0.4s_ease-out]">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -225,6 +239,59 @@ export default function LecturerDashboardPage() {
         </button>
       </div>
 
+      {/* ── Needs Your Attention — Phase 4 (Premium Rebuild) ────────
+           Real, urgent-first hierarchy: live sessions, today's real
+           scheduled classes, real rejected requests with feedback —
+           never a fabricated "all clear", but a genuine one when
+           there's truly nothing pending. */}
+      {courses.length > 0 && (
+        <div className={`glass-card rounded-2xl p-5 ${hasAttentionItems ? 'border-2 border-amber-500/25' : ''}`}>
+          <h3 className="font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+            <Sparkles size={16} className={hasAttentionItems ? 'text-amber-400' : 'text-emerald-400'} /> Needs Your Attention
+          </h3>
+          {hasAttentionItems ? (
+            <div className="space-y-1.5">
+              {liveCourses.map(c => (
+                <button key={`live-${c.id}`} onClick={() => scrollToCourse(c.id)}
+                  className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-left hover:bg-emerald-500/15 transition-colors">
+                  <span className="flex items-center gap-2 text-sm text-emerald-400 font-medium">
+                    <span className="relative flex h-2 w-2 flex-shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                    </span>
+                    {c.code} is live right now
+                  </span>
+                  <ChevronRight size={14} className="text-emerald-400 flex-shrink-0" />
+                </button>
+              ))}
+              {todayCourses.map(c => (
+                <button key={`today-${c.id}`} onClick={() => scrollToCourse(c.id)}
+                  className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-left hover:bg-blue-500/15 transition-colors">
+                  <span className="flex items-center gap-2 text-sm text-blue-400 font-medium">
+                    <CalendarDays size={14} className="flex-shrink-0" />
+                    {c.code} — class today{c.schedule_time ? ` at ${c.schedule_time}` : ''}
+                  </span>
+                  <ChevronRight size={14} className="text-blue-400 flex-shrink-0" />
+                </button>
+              ))}
+              {rejectedRequests.map(r => (
+                <div key={`rej-${r.id}`} className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20">
+                  <XCircle size={14} className="text-red-400 flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-red-400">
+                    <span className="font-medium">{r.course_code} template request rejected</span> — {r.admin_notes}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-[var(--text-secondary)] flex items-center gap-2">
+              <CheckCircle2 size={15} className="text-emerald-400" />
+              You're all caught up — no live sessions, no classes scheduled today, nothing awaiting your response.
+            </p>
+          )}
+        </div>
+      )}
+
       {courses.length === 0 ? (
         <div className="glass-card rounded-2xl p-10 text-center text-[var(--text-secondary)]">
           You aren't listed as the lecturer for any course yet.
@@ -232,7 +299,7 @@ export default function LecturerDashboardPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {courses.map(c => (
-            <div key={c.id} className="glass-card rounded-2xl p-5">
+            <div key={c.id} id={`course-${c.id}`} className="glass-card rounded-2xl p-5">
               <p className="text-xs text-[var(--text-faint)] uppercase tracking-wider mb-1">{c.university_name} · {c.department_name}</p>
               <h3 className="font-semibold text-[var(--text-primary)] mb-1">{c.code} — {c.name}</h3>
               <p className="text-sm text-[var(--text-secondary)] mb-1">{c.student_count} student(s) enrolled</p>
