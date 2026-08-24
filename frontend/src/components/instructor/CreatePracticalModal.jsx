@@ -198,7 +198,7 @@ export default function CreatePracticalModal({ onClose, onCreated }) {
               <div>
                 <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">Session Name <span className="text-red-400">*</span></label>
                 <input type="text" name="name" value={formData.name} onChange={handleChange}
-                  placeholder="e.g. AutoCAD Lab 1 — Floor Plan"
+                  placeholder="e.g. AutoCAD Lab 1: Floor Plan"
                   className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-[var(--text-primary)] placeholder-muted focus:outline-none focus:border-indigo-500"
                 />
               </div>
@@ -206,7 +206,7 @@ export default function CreatePracticalModal({ onClose, onCreated }) {
                 <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">Select Class <span className="text-red-400">*</span></label>
                 <select name="class_room" value={formData.class_room} onChange={handleChange}
                   className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500">
-                  <option value="">— Select a class —</option>
+                  <option value="">Select a class</option>
                   {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
@@ -281,7 +281,7 @@ export default function CreatePracticalModal({ onClose, onCreated }) {
                 <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">Required VM Template (Optional)</label>
                 <select name="required_vm_template" value={formData.required_vm_template} onChange={handleChange}
                   className="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-indigo-500">
-                  <option value="">— Any template (Student chooses) —</option>
+                  <option value="">Any template (Student chooses)</option>
                   {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
                 {selectedTemplateObj && (

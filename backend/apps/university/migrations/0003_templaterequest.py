@@ -23,7 +23,7 @@ class Migration(migrations.Migration):
                 ('estimated_vcpu', models.IntegerField()),
                 ('estimated_ram_gb', models.IntegerField()),
                 ('estimated_storage_gb', models.IntegerField()),
-                ('status', models.CharField(choices=[('pending', 'Pending'), ('approved', 'Approved — Building'), ('completed', 'Completed'), ('rejected', 'Rejected')], default='pending', max_length=20)),
+                ('status', models.CharField(choices=[('pending', 'Pending'), ('approved', 'Approved: Building'), ('completed', 'Completed'), ('rejected', 'Rejected')], default='pending', max_length=20)),
                 ('admin_notes', models.TextField(blank=True, default='')),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('reviewed_at', models.DateTimeField(blank=True, null=True)),

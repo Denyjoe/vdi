@@ -50,7 +50,7 @@ export default function SubmissionsModal({ isOpen, onClose, assignment }) {
         {/* Header */}
         <div className="flex items-start justify-between p-6 border-b border-[var(--border-color)] shrink-0">
           <div>
-            <h2 className="text-xl font-bold text-[var(--text-primary)]">{assignment.title} — Submissions</h2>
+            <h2 className="text-xl font-bold text-[var(--text-primary)]">{assignment.title}: Submissions</h2>
             <p className="text-[var(--text-secondary)] mt-1 text-sm">
               Due: {new Date(assignment.due_date).toLocaleString()}
             </p>

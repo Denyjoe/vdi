@@ -41,7 +41,7 @@ export default function ContextSwitcher() {
   if (affiliations.length === 0) return null; // nothing to switch to
 
   const label = current.type === 'university'
-    ? `${current.universityName} — ${current.departmentName || current.role}`
+    ? `${current.universityName}: ${current.departmentName || current.role}`
     : 'Personal Account';
 
   return (
@@ -71,7 +71,7 @@ export default function ContextSwitcher() {
                 className="w-full flex items-center justify-between gap-2 px-4 py-2.5 text-xs text-secondary hover:bg-nav-hover transition-colors">
                 <span className="flex items-center gap-2 text-left">
                   <Landmark size={14} className="flex-shrink-0" />
-                  <span className="truncate">{a.university_name} — {a.department_name || a.role}</span>
+                  <span className="truncate">{a.university_name}: {a.department_name || a.role}</span>
                 </span>
                 {current.type === 'university' && current.universityId === a.university_id && (
                   <Check size={14} className="text-[var(--accent-primary)] flex-shrink-0" />

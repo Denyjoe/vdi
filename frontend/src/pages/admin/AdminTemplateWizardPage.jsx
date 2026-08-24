@@ -121,7 +121,7 @@ export default function AdminTemplateWizardPage() {
   const pollRef = useRef(null);
 
   const [form, setForm] = useState({
-    name: templateRequest ? `${templateRequest.course_code} — ${templateRequest.software_needed}`.slice(0, 100) : '',
+    name: templateRequest ? `${templateRequest.course_code}: ${templateRequest.software_needed}`.slice(0, 100) : '',
     cpu_cores: templateRequest?.estimated_vcpu || 2,
     ram_gb: templateRequest?.estimated_ram_gb || 4,
     disk_gb: templateRequest?.estimated_storage_gb || 20,
@@ -233,7 +233,7 @@ export default function AdminTemplateWizardPage() {
           if (evt.total) setUploadProgress(Math.round((evt.loaded / evt.total) * 100));
         },
       });
-      toast.success(`"${file.name}" uploaded — Proxmox is finalizing it...`);
+      toast.success(`"${file.name}" uploaded. Proxmox is finalizing it...`);
       await pollUntilFinished(r.data.data.upid, file.name);
       await loadIsos();
       setForm(f => ({ ...f, iso_volid: `local:iso/${file.name}` }));
@@ -343,7 +343,7 @@ export default function AdminTemplateWizardPage() {
       const r = await api.post('/admin/templates/create-job/', payload);
       setJob(r.data.data);
       setPromoteForm(p => ({ ...p, name: form.name }));
-      toast.success('Real VM created — booting from the selected ISO.');
+      toast.success('Real VM created. Booting from the selected ISO.');
     } catch (e) {
       toast.error(e.response?.data?.message || 'Failed to create VM.');
     } finally {
@@ -360,9 +360,9 @@ export default function AdminTemplateWizardPage() {
     try {
       const r = await api.post(`/admin/templates/jobs/${job.id}/apply-configuration/`, { ...sshCreds, vm_ip: manualIp || undefined });
       setJob(r.data.data);
-      toast.success('Configuration applied — real commands ran successfully.');
+      toast.success('Configuration applied. Real commands ran successfully.');
     } catch (e) {
-      toast.error(e.response?.data?.message || 'Configuration failed — see the log below.');
+      toast.error(e.response?.data?.message || 'Configuration failed. See the log below.');
       // Real error - re-fetch job so the honest failure/log shows up
       const r = await api.get(`/admin/templates/jobs/${job.id}/`);
       setJob(r.data.data);
@@ -387,7 +387,7 @@ export default function AdminTemplateWizardPage() {
       const r = await api.post(`/admin/templates/jobs/${job.id}/install-apps/`, { packages, ...sshCreds, vm_ip: manualIp || undefined });
       setJob(r.data.data.job);
       if (r.data.success) toast.success('All packages installed.');
-      else toast.error('Some packages failed — see the log below.');
+      else toast.error('Some packages failed. See the log below.');
     } catch (e) {
       toast.error(e.response?.data?.message || 'Install failed.');
     } finally {
@@ -400,7 +400,7 @@ export default function AdminTemplateWizardPage() {
     try {
       const r = await api.post(`/admin/templates/jobs/${job.id}/finalize/`, { ...sshCreds, vm_ip: manualIp || undefined });
       setJob(r.data.data);
-      toast.success('Template finalized — starting verification.');
+      toast.success('Template finalized. Starting verification.');
       const v = await api.post(`/admin/templates/jobs/${job.id}/verify/`);
       setJob(v.data.data);
       if (v.data.success) toast.success('Template genuinely verified and ready.');
@@ -509,7 +509,7 @@ export default function AdminTemplateWizardPage() {
     consoleReconnectTimerRef.current = setTimeout(() => {
       if (!consoleReady && job?.status === 'awaiting_os_install') {
         hadConsoleTunnelRef.current = false;
-        toast('Console connection dropped — reconnecting automatically...', { icon: '🔄' });
+        toast('Console connection dropped. Reconnecting automatically...', { icon: '🔄' });
         openConsole();
       }
     }, 6000);
@@ -557,7 +557,7 @@ export default function AdminTemplateWizardPage() {
       if (consoleReady || hadConsoleTunnelRef.current) return;
       if (consoleAttemptsRef.current < MAX_AUTO_ATTEMPTS) {
         consoleAttemptsRef.current += 1;
-        toast(`Console still not connecting — retrying (attempt ${consoleAttemptsRef.current}/${MAX_AUTO_ATTEMPTS})...`, { icon: '🔄' });
+        toast(`Console still not connecting. Retrying (attempt ${consoleAttemptsRef.current}/${MAX_AUTO_ATTEMPTS})...`, { icon: '🔄' });
         openConsole();
       } else {
         setConsoleFailed(true);
@@ -648,7 +648,7 @@ export default function AdminTemplateWizardPage() {
           <GraduationCap size={18} style={{ color: 'var(--accent-primary)', flexShrink: 0, marginTop: '2px' }} />
           <div>
             <p style={{ fontSize: '13px', color: 'var(--text-primary)', margin: 0 }}>
-              <strong>Building for {templateRequest.course_code}</strong> — requested by {templateRequest.requested_by_name}.
+              <strong>Building for {templateRequest.course_code}</strong>. Requested by {templateRequest.requested_by_name}.
               Pre-filled from their estimated specs; on Promote this will auto-assign to the course and notify them.
             </p>
             {requestQuotaCheck && !requestQuotaCheck.fits_quota && (
@@ -687,7 +687,7 @@ export default function AdminTemplateWizardPage() {
             {activeJobs.map(j => (
               <div key={j.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', background: 'var(--bg-input)', borderRadius: '10px', padding: '10px 12px' }}>
                 <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                  <strong style={{ color: 'var(--text-primary)' }}>{j.name}</strong> — {STEP_LABELS[j.status] || j.status}
+                  <strong style={{ color: 'var(--text-primary)' }}>{j.name}</strong>: {STEP_LABELS[j.status] || j.status}
                   {j.proxmox_vmid ? ` (VM ${j.proxmox_vmid})` : ''}
                 </span>
                 <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
@@ -717,7 +717,7 @@ export default function AdminTemplateWizardPage() {
       <ConfirmModal
         isOpen={!!deleteJobTarget}
         title="Delete Template Job?"
-        message={`This genuinely deletes "${deleteJobTarget?.name}" and its real Proxmox VM${deleteJobTarget?.proxmox_vmid ? ` (vmid ${deleteJobTarget.proxmox_vmid})` : ''} too — unless it's already been promoted into a live template. This cannot be undone.`}
+        message={`This genuinely deletes "${deleteJobTarget?.name}" and its real Proxmox VM${deleteJobTarget?.proxmox_vmid ? ` (vmid ${deleteJobTarget.proxmox_vmid})` : ''} too, unless it's already been promoted into a live template. This cannot be undone.`}
         confirmText="Delete"
         cancelText="Cancel"
         variant="danger"
@@ -728,7 +728,7 @@ export default function AdminTemplateWizardPage() {
       {/* STEP 1: form */}
       {!job && (
         <div style={cardStyle}>
-          <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px' }}>Step 1 — VM Specification</h2>
+          <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px' }}>Step 1: VM Specification</h2>
 
           {/* Real, deliberate first choice (Phase 3): this determines
               everything downstream — a 'server' pick means no desktop
@@ -756,7 +756,7 @@ export default function AdminTemplateWizardPage() {
           <div className="template-type-picker" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '10px', marginBottom: '18px' }}>
             {[
               { value: 'desktop', title: 'Desktop Environment', desc: 'A full graphical desktop, streamed via RDP.', icon: <Monitor size={18} /> },
-              { value: 'server', title: 'Server (CLI only)', desc: 'Headless — no desktop at all. Ongoing access via SSH only.', icon: <Terminal size={18} /> },
+              { value: 'server', title: 'Server (CLI only)', desc: 'Headless. No desktop at all. Ongoing access via SSH only.', icon: <Terminal size={18} /> },
             ].map(opt => {
               const selected = form.template_type === opt.value;
               return (
@@ -919,7 +919,7 @@ export default function AdminTemplateWizardPage() {
       {/* STEP 2: awaiting OS install — real console + terminal, embedded, never leaving the app */}
       {job && job.status === 'awaiting_os_install' && (
         <div style={cardStyle}>
-          <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Step 2 — Install the OS</h2>
+          <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Step 2: Install the OS</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '10px' }}>
             The VM is running and booted from the ISO. Complete the real OS installer directly below —
             language, keyboard, disk, user account — then enable SSH (or install openssh-server) and click Continue.
@@ -931,7 +931,7 @@ export default function AdminTemplateWizardPage() {
             <b style={{ color: 'var(--text-primary)' }}>Before clicking Continue:</b>{' '}
             {job.template_type === 'server' ? (
               <>most server installers (Ubuntu Server included) offer to install OpenSSH Server directly in
-              the setup screens — check that box if you see it. If it wasn't offered or wasn't checked, open a
+              the setup screens. Check that box if you see it. If it wasn't offered or wasn't checked, open a
               terminal in the console above (or the Terminal tab once SSH is up) and run:</>
             ) : (
               <>most desktop Linux distros (Parrot included) don't ship an SSH server by default. Open a
@@ -1008,7 +1008,7 @@ export default function AdminTemplateWizardPage() {
                   }}>
                     <PowerOff size={14} /> Shutdown
                   </button>
-                  <button onClick={() => { if (window.confirm('Force-stop the VM? This is a hard power-cut, not a graceful shutdown — use it when the guest is hung and Shutdown/Restart time out without doing anything.')) handlePower('stop'); }} disabled={powerBusy} style={{
+                  <button onClick={() => { if (window.confirm('Force-stop the VM? This is a hard power-cut, not a graceful shutdown. Use it when the guest is hung and Shutdown/Restart time out without doing anything.')) handlePower('stop'); }} disabled={powerBusy} style={{
                     display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px', borderRadius: '8px',
                     fontSize: '12px', fontWeight: 600, cursor: 'pointer', border: '1px solid var(--status-offline, #EF4444)',
                     background: 'transparent', color: 'var(--status-offline, #EF4444)',
@@ -1096,7 +1096,7 @@ export default function AdminTemplateWizardPage() {
               <input type="password" style={inputStyle} value={sshCreds.ssh_password} onChange={e => setSshCreds({ ...sshCreds, ssh_password: e.target.value })} />
             </div>
             <div style={{ gridColumn: '1 / -1' }}>
-              <label style={labelStyle}>VM IP (only if not auto-detected above — guest-agent isn't installed yet at this stage, so check the console or run `ip a`)</label>
+              <label style={labelStyle}>VM IP (only if not auto-detected above. Guest-agent isn't installed yet at this stage, so check the console or run `ip a`)</label>
               <input style={inputStyle} value={manualIp} onChange={e => setManualIp(e.target.value)} placeholder="e.g. 192.168.1.17" />
             </div>
           </div>
@@ -1112,7 +1112,7 @@ export default function AdminTemplateWizardPage() {
       {/* STEP 3+4: configuring/installing_apps — log + app picker */}
       {job && (job.status === 'installing_apps' || job.status === 'configuring') && (
         <div style={cardStyle}>
-          <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Step 3/4 — Configuration &amp; Apps</h2>
+          <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Step 3/4: Configuration &amp; Apps</h2>
 
           {/* Real, confirmed fix: a power action sent while this step is
               genuinely running is what left dpkg interrupted before
@@ -1127,7 +1127,7 @@ export default function AdminTemplateWizardPage() {
             border: '1px solid var(--status-warning)', borderRadius: '10px', marginBottom: '14px',
           }}>
             <span style={{ fontSize: '13px', color: 'var(--text-primary)', flex: 1, minWidth: '240px' }}>
-              ⏳ <b>Configuration in progress</b> — this can take several minutes (full-upgrade alone
+              ⏳ <b>Configuration in progress</b>. This can take several minutes (full-upgrade alone
               typically takes ~13 minutes). Power controls are disabled to protect the installation —
               watch the live log below for real, ongoing progress.
             </span>
@@ -1156,7 +1156,7 @@ export default function AdminTemplateWizardPage() {
           <JobLog job={job} />
           <div style={{ marginTop: '20px' }}>
             <label style={labelStyle}>
-              {job.template_type === 'server' ? 'Common CLI Tools (optional — a server template needs none of these)' : 'Common Apps'}
+              {job.template_type === 'server' ? 'Common CLI Tools (optional. A server template needs none of these.)' : 'Common Apps'}
             </label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
               {(job.template_type === 'server' ? COMMON_SERVER_PACKAGES : COMMON_APPS).map(app => (
@@ -1184,7 +1184,7 @@ export default function AdminTemplateWizardPage() {
                   style={{ ...primaryBtn, background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}
                   onClick={handleFinalize}
                   disabled={loading}
-                  title="This server template needs no CLI tools beyond the base OS — go straight to finalizing."
+                  title="This server template needs no CLI tools beyond the base OS. Go straight to finalizing."
                 >
                   Skip — Finalize with Base OS Only
                 </button>
@@ -1202,7 +1202,7 @@ export default function AdminTemplateWizardPage() {
           something first. */}
       {job && job.status === 'installing_apps' && (job.template_type === 'server' || job.log?.some(l => l.message.includes('exit'))) && (
         <div style={{ ...cardStyle, marginTop: '16px' }}>
-          <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Step 5 — Finalize Template</h2>
+          <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Step 5: Finalize Template</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px' }}>
             Real finalization: machine-id truncate + verify, SSH host key removal, guest agent install, shutdown, convert to template — then an isolated verification clone.
           </p>
@@ -1246,7 +1246,7 @@ export default function AdminTemplateWizardPage() {
               <input style={inputStyle} value={promoteForm.name} onChange={e => setPromoteForm({ ...promoteForm, name: e.target.value })} />
             </div>
             <div>
-              <label style={labelStyle}>Icon (emoji fallback — only used if no OS family below)</label>
+              <label style={labelStyle}>Icon (emoji fallback. Only used if no OS family below.)</label>
               <input style={inputStyle} value={promoteForm.icon} onChange={e => setPromoteForm({ ...promoteForm, icon: e.target.value })} />
             </div>
             {job.template_type === 'server' && (
@@ -1256,7 +1256,7 @@ export default function AdminTemplateWizardPage() {
                   style={inputStyle}
                   value={promoteForm.os}
                   onChange={e => setPromoteForm({ ...promoteForm, os: e.target.value })}
-                  placeholder="e.g. Ubuntu 22.04 Server — leave blank to guess from the ISO filename"
+                  placeholder="e.g. Ubuntu 22.04 Server. Leave blank to guess from the ISO filename."
                 />
               </div>
             )}

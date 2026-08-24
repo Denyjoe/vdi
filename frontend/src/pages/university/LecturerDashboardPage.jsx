@@ -7,7 +7,7 @@ import ActiveSessionPanel from '../../components/university/ActiveSessionPanel';
 
 const REQUEST_STATUS_META = {
   pending: { label: 'Pending Review', color: '#F59E0B', icon: Clock },
-  approved: { label: 'Approved — Building', color: '#3B82F6', icon: Hammer },
+  approved: { label: 'Approved: Building', color: '#3B82F6', icon: Hammer },
   completed: { label: 'Completed', color: '#10B981', icon: CheckCircle2 },
   rejected: { label: 'Rejected', color: '#EF4444', icon: XCircle },
 };
@@ -226,7 +226,7 @@ export default function LecturerDashboardPage() {
           <h1 className="text-2xl font-bold text-[var(--text-primary)] flex items-center gap-2">
             <BookOpen className="w-6 h-6 text-indigo-400" /> My Courses
           </h1>
-          <p className="text-[var(--text-secondary)] mt-1">Courses you teach — start real class sessions and view rosters.</p>
+          <p className="text-[var(--text-secondary)] mt-1">Courses you teach. Start a class session or view your roster.</p>
         </div>
         <button onClick={handleRefresh} disabled={refreshing}
           style={{
@@ -269,7 +269,7 @@ export default function LecturerDashboardPage() {
                   className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-left hover:bg-blue-500/15 transition-colors">
                   <span className="flex items-center gap-2 text-sm text-blue-400 font-medium">
                     <CalendarDays size={14} className="flex-shrink-0" />
-                    {c.code} — class today{c.schedule_time ? ` at ${c.schedule_time}` : ''}
+                    {c.code}: class today{c.schedule_time ? ` at ${c.schedule_time}` : ''}
                   </span>
                   <ChevronRight size={14} className="text-blue-400 flex-shrink-0" />
                 </button>
@@ -278,7 +278,7 @@ export default function LecturerDashboardPage() {
                 <div key={`rej-${r.id}`} className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20">
                   <XCircle size={14} className="text-red-400 flex-shrink-0 mt-0.5" />
                   <span className="text-sm text-red-400">
-                    <span className="font-medium">{r.course_code} template request rejected</span> — {r.admin_notes}
+                    <span className="font-medium">{r.course_code} template request rejected</span>. {r.admin_notes}
                   </span>
                 </div>
               ))}
@@ -286,7 +286,7 @@ export default function LecturerDashboardPage() {
           ) : (
             <p className="text-sm text-[var(--text-secondary)] flex items-center gap-2">
               <CheckCircle2 size={15} className="text-emerald-400" />
-              You're all caught up — no live sessions, no classes scheduled today, nothing awaiting your response.
+              You're all caught up. No live sessions, no classes scheduled today, nothing awaiting your response.
             </p>
           )}
         </div>
@@ -301,7 +301,7 @@ export default function LecturerDashboardPage() {
           {courses.map(c => (
             <div key={c.id} id={`course-${c.id}`} className="glass-card rounded-2xl p-5">
               <p className="text-xs text-[var(--text-faint)] uppercase tracking-wider mb-1">{c.university_name} · {c.department_name}</p>
-              <h3 className="font-semibold text-[var(--text-primary)] mb-1">{c.code} — {c.name}</h3>
+              <h3 className="font-semibold text-[var(--text-primary)] mb-1">{c.code}: {c.name}</h3>
               <p className="text-sm text-[var(--text-secondary)] mb-1">{c.student_count} student(s) enrolled</p>
               <button onClick={() => openScheduleModal(c)}
                 className="flex items-center gap-1.5 text-xs mb-4 hover:underline"
@@ -359,7 +359,7 @@ export default function LecturerDashboardPage() {
                 <div key={r.id} className="flex justify-between items-center text-sm py-2 border-b border-[var(--border-color)] last:border-0">
                   <div>
                     <span className="text-[var(--text-primary)] font-medium">{r.course_code}</span>{' '}
-                    <span className="text-[var(--text-secondary)]">— {r.software_needed}</span>
+                    <span className="text-[var(--text-secondary)]">({r.software_needed})</span>
                     {r.status === 'rejected' && r.admin_notes && (
                       <p className="text-xs text-red-400 mt-0.5">{r.admin_notes}</p>
                     )}
@@ -380,7 +380,7 @@ export default function LecturerDashboardPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-6 max-w-2xl w-full shadow-2xl max-h-[85vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-[var(--text-primary)]">Roster — {rosterCourse.code}</h3>
+              <h3 className="text-xl font-bold text-[var(--text-primary)]">Roster: {rosterCourse.code}</h3>
               <button onClick={() => { setRosterCourse(null); setRoster(null); }} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
                 <X size={20} />
               </button>
@@ -432,7 +432,7 @@ export default function LecturerDashboardPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-6 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-[var(--text-primary)]">Request Template — {requestCourse.code}</h3>
+              <h3 className="text-xl font-bold text-[var(--text-primary)]">Request Template: {requestCourse.code}</h3>
               <button onClick={() => setRequestCourse(null)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
                 <X size={20} />
               </button>
@@ -475,7 +475,7 @@ export default function LecturerDashboardPage() {
               )}
               {!checkingQuota && quotaPreview && !quotaPreview.fits_quota && (
                 <p className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
-                  ⚠️ Heads up — as of right now, this likely exceeds your university's remaining capacity:{' '}
+                  ⚠️ Heads up. As of right now, this likely exceeds your university's remaining capacity:{' '}
                   {quotaPreview.message} You can still submit; your admin will see the same real check when reviewing.
                 </p>
               )}
@@ -500,7 +500,7 @@ export default function LecturerDashboardPage() {
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-6 max-w-sm w-full shadow-2xl">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold text-[var(--text-primary)] flex items-center gap-2">
-                <CalendarDays size={20} /> Schedule — {scheduleCourse.code}
+                <CalendarDays size={20} /> Schedule: {scheduleCourse.code}
               </h3>
               <button onClick={() => setScheduleCourse(null)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
                 <X size={20} />
@@ -538,7 +538,7 @@ export default function LecturerDashboardPage() {
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-6 max-w-md w-full shadow-2xl">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold text-[var(--text-primary)] flex items-center gap-2">
-                <MessageSquare size={20} /> Message Class — {broadcastCourse.code}
+                <MessageSquare size={20} /> Message Class: {broadcastCourse.code}
               </h3>
               <button onClick={() => setBroadcastCourse(null)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
                 <X size={20} />
@@ -549,10 +549,10 @@ export default function LecturerDashboardPage() {
                 <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">Message</label>
                 <textarea rows={4} value={broadcastMessage}
                   onChange={e => setBroadcastMessage(e.target.value)}
-                  placeholder="e.g. Class moved to Room 204 this week — same time."
+                  placeholder="e.g. Class moved to Room 204 this week. Same time."
                   className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)] resize-none" />
               </div>
-              <p className="text-xs text-[var(--text-faint)]">Sent as a real notification to every student enrolled in {broadcastCourse.code} — no active class session required.</p>
+              <p className="text-xs text-[var(--text-faint)]">Sent as a real notification to every student enrolled in {broadcastCourse.code}. No active class session required.</p>
               <button onClick={sendBroadcast} disabled={sendingBroadcast}
                 className="w-full py-3 rounded-xl bg-[var(--accent-primary)] hover:opacity-90 text-white font-semibold transition-opacity disabled:opacity-50 mt-2 flex items-center justify-center gap-2">
                 <Send size={16} /> {sendingBroadcast ? 'Sending...' : 'Send to Class'}

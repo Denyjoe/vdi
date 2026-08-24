@@ -382,7 +382,7 @@ class VMOrchestrator:
             if not ip_address:
                 vm.status = 'error'
                 vm.notes = ('Failed to detect network after clone. The VM may still be '
-                            'booting — try refreshing in a moment, or contact support if this persists.')
+                            'booting. Try refreshing in a moment, or contact support if this persists.')
                 vm.save(update_fields=['status', 'notes'])
                 self._log_activity(vm, 'VM_PROVISION_FAILED', {'reason': 'no_ip'})
                 return {'error': 'VM did not get IP'}

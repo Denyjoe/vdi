@@ -335,7 +335,7 @@ export default function AdminLogsPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-[var(--text-secondary)] text-sm max-w-xs truncate hidden md:table-cell">
-                      {log.description || '—'}
+                      {log.description || 'N/A'}
                     </td>
                     <td className="px-6 py-4 text-muted text-xs font-mono hidden lg:table-cell">
                       {log.ip_address || 'N/A'}

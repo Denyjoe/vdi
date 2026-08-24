@@ -150,7 +150,7 @@ class ActivityLog(models.Model):
     def __str__(self):
         """Return a short description of the logged event."""
         actor = str(self.user) if self.user else "System"
-        return f"[{self.timestamp:%Y-%m-%d %H:%M}] {actor} — {self.action}"
+        return f"[{self.timestamp:%Y-%m-%d %H:%M}] {actor}: {self.action}"
 
 
 class LiveSession(models.Model):

@@ -149,7 +149,7 @@ export default function ExtendSessionModal({ isOpen, onClose, sessionId, onSucce
               />
 
               <p style={{ fontSize: '10px', color: 'var(--text-faint, #475569)', marginBottom: '16px' }}>
-                Sandbox mode — no real charge will occur.
+                Sandbox mode. No real charge will occur.
               </p>
 
               {error && <p style={{ fontSize: '12px', color: 'var(--status-error, #EF4444)', marginBottom: '12px' }}>{error}</p>}

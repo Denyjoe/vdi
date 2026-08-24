@@ -265,7 +265,7 @@ function InfrastructureHealth({ isMobile }) {
                     <div key={item.vmid} className="flex items-center justify-between gap-3 flex-wrap bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl p-3">
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-[var(--text-primary)]" style={{ wordBreak: 'break-word' }}>
-                          VM {item.vmid} — {item.name || 'unnamed'}
+                          VM {item.vmid}: {item.name || 'unnamed'}
                         </p>
                         <p className="text-xs text-[var(--text-secondary)]">
                           status: {item.status} {item.uptime ? `· uptime ${Math.round(item.uptime / 60)}m` : ''}
@@ -352,7 +352,7 @@ function InfrastructureHealth({ isMobile }) {
                     <div key={item.id} className="flex items-center justify-between gap-3 flex-wrap bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl p-3">
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-[var(--text-primary)]" style={{ wordBreak: 'break-word' }}>
-                          DB #{item.id} — proxmox_vm_id {item.proxmox_vm_id} — {item.name}
+                          DB #{item.id} (proxmox_vm_id {item.proxmox_vm_id}): {item.name}
                         </p>
                         <p className="text-xs text-[var(--text-secondary)]" style={{ wordBreak: 'break-word' }}>
                           owner: {item.owner}
@@ -391,7 +391,7 @@ function InfrastructureHealth({ isMobile }) {
         message={
           confirmTarget?.type === 'orphan'
             ? `This genuinely deletes VM ${confirmTarget?.item?.vmid} (${confirmTarget?.item?.name || 'unnamed'}) from Proxmox. This cannot be undone.`
-            : `This marks VirtualMachine #${confirmTarget?.item?.id} as deleted. The real VM is already gone from Proxmox — this only cleans up the database record.`
+            : `This marks VirtualMachine #${confirmTarget?.item?.id} as deleted. The real VM is already gone from Proxmox. This only cleans up the database record.`
         }
         confirmText="Confirm"
         cancelText="Cancel"

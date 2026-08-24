@@ -90,8 +90,8 @@ def check_and_process_idle_workspaces():
         'errors': [],
     }
 
-    warning_cutoff = now - timedelta(days=warning_days)
-    final_cutoff = now - timedelta(days=final_warning_days)
+    warning_cutoff = now - timedelta(days=warning_days)  #
+    final_cutoff = now - timedelta(days=final_warning_days)  #
     delete_cutoff = now - timedelta(days=deletion_days)
 
     # ── FIRST WARNING ────────────────────────────────────────────────────
@@ -106,7 +106,7 @@ def check_and_process_idle_workspaces():
 
     for ws in candidates_for_first_warning:
         try:
-            send_idle_warning(ws, 'first_warning', days_remaining=deletion_days - warning_days)
+            send_idle_warning(ws, 'first_warning', days_remaining=deletion_days - warning_days)  #
             from apps.vms.models import WorkspaceIdleNotification
             WorkspaceIdleNotification.objects.create(workspace=ws, notification_type='first_warning')
             result['first_warnings_sent'] += 1
@@ -125,7 +125,7 @@ def check_and_process_idle_workspaces():
 
     for ws in candidates_for_final_warning:
         try:
-            send_idle_warning(ws, 'final_warning', days_remaining=deletion_days - final_warning_days)
+            send_idle_warning(ws, 'final_warning', days_remaining=deletion_days - final_warning_days)  #
             from apps.vms.models import WorkspaceIdleNotification
             WorkspaceIdleNotification.objects.create(workspace=ws, notification_type='final_warning')
             result['final_warnings_sent'] += 1

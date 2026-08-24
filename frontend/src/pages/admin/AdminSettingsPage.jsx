@@ -201,7 +201,7 @@ export default function AdminSettingsPage() {
         if (errors && errors.length > 0) {
           toast.error(`Idle check finished with ${errors.length} error(s)`);
         } else {
-          toast.success(`Idle check complete — ${first_warnings_sent} first warning(s), ${final_warnings_sent} final warning(s), ${deleted} deleted`);
+          toast.success(`Idle check complete: ${first_warnings_sent} first warning(s), ${final_warnings_sent} final warning(s), ${deleted} deleted`);
         }
         fetchIdleSummary();
       }
@@ -403,7 +403,7 @@ export default function AdminSettingsPage() {
           </div>
           <div className="p-6 space-y-6">
             <p className="text-xs text-[var(--text-muted)]">
-              Activity-based, not payment-based — a workspace's clock only resets when it's genuinely launched
+              Activity-based, not payment-based. A workspace's clock only resets when it's genuinely launched
               (free, paid, or subscription). Production requires Celery Beat running daily; see the note below.
             </p>
 
@@ -417,7 +417,7 @@ export default function AdminSettingsPage() {
               ].map(stage => (
                 <div key={stage.key} className="bg-[var(--bg-nav-hover)] border border-[var(--border-color)]/50 rounded-lg p-4 text-center">
                   <p className={`text-2xl font-bold ${stage.color}`}>
-                    {idleSummary ? idleSummary[stage.key].count : '—'}
+                    {idleSummary ? idleSummary[stage.key].count : '0'}
                   </p>
                   <p className="text-xs text-[var(--text-secondary)] mt-1">{stage.label}</p>
                   <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
@@ -449,7 +449,7 @@ export default function AdminSettingsPage() {
             {lastIdleCheckResult && (
               <div className="text-xs text-[var(--text-secondary)] bg-[var(--bg-nav-hover)] rounded-lg p-3">
                 Last run: {lastIdleCheckResult.first_warnings_sent} first warning(s), {lastIdleCheckResult.final_warnings_sent} final warning(s), {lastIdleCheckResult.deleted} deleted
-                {lastIdleCheckResult.errors.length > 0 && <span className="text-red-400"> — {lastIdleCheckResult.errors.length} error(s)</span>}
+                {lastIdleCheckResult.errors.length > 0 && <span className="text-red-400"> ({lastIdleCheckResult.errors.length} error(s))</span>}
               </div>
             )}
           </div>

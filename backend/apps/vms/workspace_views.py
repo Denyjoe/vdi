@@ -401,7 +401,7 @@ class PurchaseHoursView(APIView):
         notify(
             user=request.user,
             title='Hours Purchased',
-            message=f'Added {hours}h to {template.name} — {balance.hours_remaining}h remaining.',
+            message=f'Added {hours}h to {template.name}. {balance.hours_remaining}h remaining.',
             notification_type='payment_confirmed',
             link='/workspaces'
         )

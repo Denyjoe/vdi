@@ -277,7 +277,7 @@ export default function AdminWorkspacesPage() {
                 <span style={{ fontWeight: 600 }}>Template:</span> {ws.template_name}
               </div>
               <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-                <span style={{ fontWeight: 600 }}>IP:</span> {ws.ip_address || '—'}
+                <span style={{ fontWeight: 600 }}>IP:</span> {ws.ip_address || 'N/A'}
               </div>
               {ws.has_workspace === false ? (
                 // Real audit finding: VirtualMachine rows in error/
@@ -288,7 +288,7 @@ export default function AdminWorkspacesPage() {
                 // the tool that actually handles orphaned VMs instead of
                 // wiring up a button that would silently fail.
                 <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                  No linked workspace — resolve via Admin → Hardware → Infrastructure Health
+                  No linked workspace. Resolve via Admin → Hardware → Infrastructure Health
                 </p>
               ) : (
               <div style={{ display: 'flex', gap: '6px' }}>
@@ -355,7 +355,7 @@ export default function AdminWorkspacesPage() {
                 </div>
               </td>
               <td style={{ padding: '12px 16px', fontSize: '12px', fontFamily: 'monospace', color: 'var(--text-secondary)' }}>
-                {ws.ip_address || '—'}
+                {ws.ip_address || 'N/A'}
               </td>
               <td style={{ padding: '12px 16px' }}>
                 <span style={{
@@ -382,7 +382,7 @@ export default function AdminWorkspacesPage() {
                   // Delete both require a real workspace id, so point to
                   // the tool that actually resolves orphaned VMs instead.
                   <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                    No linked workspace — see Infrastructure Health
+                    No linked workspace. See Infrastructure Health
                   </span>
                 ) : (
                 <div style={{ display: 'flex', gap: '6px' }}>

@@ -44,7 +44,7 @@ export default function RequestUniversityAccessPage() {
           </div>
           <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-3">Bring Ospace to your university</h1>
           <p className="text-[var(--text-secondary)] max-w-lg mx-auto">
-            Give every department, course, and lecturer real, isolated virtual desktops —
+            Give every department, course, and lecturer real, isolated virtual desktops.
             on top of the same platform your students may already use individually.
             Submit your details and our team will follow up to set up your institution.
           </p>
@@ -55,7 +55,7 @@ export default function RequestUniversityAccessPage() {
             <CheckCircle2 className="mx-auto mb-4 text-emerald-400" size={40} />
             <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-2">Request received</h2>
             <p className="text-[var(--text-secondary)]">
-              Thanks — we've logged your request and our team will reach out at{' '}
+              Thanks. We've logged your request and our team will reach out at{' '}
               <span className="text-[var(--text-primary)] font-medium">{form.contact_email}</span> shortly.
             </p>
           </div>
@@ -98,7 +98,7 @@ export default function RequestUniversityAccessPage() {
             <div>
               <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">Anticipated hardware needs (optional)</label>
               <p className="text-xs text-[var(--text-faint)] mb-3">
-                A rough estimate for your labs/courses — our team will confirm the real, approved capacity with you directly.
+                A rough estimate for your labs/courses. Our team will confirm the real, approved capacity with you directly.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>

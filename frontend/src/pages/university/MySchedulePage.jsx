@@ -14,7 +14,7 @@ function CourseCard({ c, highlight = false }) {
       ? 'rounded-2xl border-2 border-blue-500/25 bg-blue-500/[0.04] p-5'
       : 'glass-card rounded-2xl p-5'}>
       <p className="text-xs text-[var(--text-faint)] uppercase tracking-wider mb-1">{c.university_name} · {c.department_name}</p>
-      <h3 className="font-semibold text-[var(--text-primary)] mb-3">{c.code} — {c.name}</h3>
+      <h3 className="font-semibold text-[var(--text-primary)] mb-3">{c.code}: {c.name}</h3>
 
       <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)] mb-4">
         <Clock size={14} className={highlight ? 'text-blue-400' : 'text-[var(--accent-primary)]'} />
@@ -131,7 +131,7 @@ export default function MySchedulePage() {
             )}
             {otherCourses.length === 0 && todayCourses.length === courses.length ? (
               <p className="text-sm text-[var(--text-faint)] flex items-center gap-2">
-                <CheckCircle2 size={14} className="text-emerald-400" /> That's everything — all your courses have class today.
+                <CheckCircle2 size={14} className="text-emerald-400" /> That's everything. All your courses have class today.
               </p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

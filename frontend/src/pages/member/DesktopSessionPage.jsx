@@ -61,7 +61,7 @@ function GuacToolControls({ oskOn, touchpadOn, onToggleKeyboard, onToggleTouchpa
           <button onClick={onToggleKeyboard} style={btnStyle(oskOn)} title={oskOn ? 'Hide on-screen keyboard' : 'Show on-screen keyboard'}>
             <Keyboard size={18} />
           </button>
-          <button onClick={onToggleTouchpadMode} style={btnStyle(touchpadOn)} title={touchpadOn ? 'Touchpad mode (relative) — tap to switch to Touchscreen' : 'Touchscreen mode (direct tap) — tap to switch to Touchpad'}>
+          <button onClick={onToggleTouchpadMode} style={btnStyle(touchpadOn)} title={touchpadOn ? 'Touchpad mode (relative). Tap to switch to Touchscreen.' : 'Touchscreen mode (direct tap). Tap to switch to Touchpad.'}>
             <MousePointer2 size={18} />
           </button>
           <button onClick={onZoomOut} style={btnStyle(false)} title="Zoom out">
@@ -162,7 +162,7 @@ function FullscreenEdgeControls({
       <button onClick={onToggleKeyboard} style={btnStyle(oskOn)} title={oskOn ? 'Hide on-screen keyboard' : 'Show on-screen keyboard'}>
         <Keyboard size={18} />
       </button>
-      <button onClick={onToggleTouchpadMode} style={btnStyle(touchpadOn)} title={touchpadOn ? 'Touchpad mode (relative) — tap to switch to Touchscreen' : 'Touchscreen mode (direct tap) — tap to switch to Touchpad'}>
+      <button onClick={onToggleTouchpadMode} style={btnStyle(touchpadOn)} title={touchpadOn ? 'Touchpad mode (relative). Tap to switch to Touchscreen.' : 'Touchscreen mode (direct tap). Tap to switch to Touchpad.'}>
         <MousePointer2 size={18} />
       </button>
       <button onClick={onZoomOut} style={btnStyle(false)} title="Zoom out">
@@ -750,14 +750,14 @@ export default function DesktopSessionPage() {
   const handleCustomKeyEvent = (pressed, keysym) => {
     const sent = guacRef.current?.sendKeyEvent(pressed, keysym);
     if (!sent && pressed === 1) {
-      setToast({ show: true, message: 'Desktop not ready yet — try again in a moment.', type: 'warning' });
+      setToast({ show: true, message: 'Desktop not ready yet. Try again in a moment.', type: 'warning' });
     }
   };
 
   const handleToggleTouchpadMode = () => {
     const result = guacRef.current?.toggleTouchpadMode();
     if (result === null || result === undefined) {
-      setToast({ show: true, message: 'Desktop not ready yet — try again in a moment.', type: 'warning' });
+      setToast({ show: true, message: 'Desktop not ready yet. Try again in a moment.', type: 'warning' });
       return;
     }
     setTouchpadOn(result);
@@ -1014,7 +1014,7 @@ export default function DesktopSessionPage() {
               <RefreshCw size={40} className="text-indigo-400 mb-4 animate-spin" />
               <h2 className="text-slate-300 text-xl font-semibold mb-2">Connection Interrupted</h2>
               <p className="text-slate-500 mb-2 max-w-sm">
-                The desktop stream was interrupted — this can happen if the machine restarts. Reconnecting automatically…
+                The desktop stream was interrupted. This can happen if the machine restarts. Reconnecting automatically…
               </p>
             </div>
           )}
@@ -1221,7 +1221,7 @@ export default function DesktopSessionPage() {
             Your instructor has taken control
           </h2>
           <p style={{ color: '#64748b', fontSize: '14px', maxWidth: 360, margin: 0, lineHeight: 1.6 }}>
-            Your instructor is temporarily using your desktop. Your work is safe — nothing
+            Your instructor is temporarily using your desktop. Your work is safe. Nothing
             will be deleted. You can reconnect once they release control.
           </p>
           <button
@@ -1286,7 +1286,7 @@ export default function DesktopSessionPage() {
           <RefreshCw size={40} className="text-indigo-400 mb-4 animate-spin" />
           <h2 className="text-slate-300 text-xl font-semibold mb-2">Connection Interrupted</h2>
           <p className="text-slate-500 mb-2 max-w-sm">
-            The desktop stream was interrupted — this can happen if the machine restarts. Reconnecting automatically…
+            The desktop stream was interrupted. This can happen if the machine restarts. Reconnecting automatically…
           </p>
         </div>
       )}

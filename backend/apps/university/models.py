@@ -130,7 +130,7 @@ class Course(models.Model):
         ordering = ['code']
 
     def __str__(self):
-        return f"{self.code} — {self.name}"
+        return f"{self.code}: {self.name}"
 
 
 class UniversityAffiliation(models.Model):
@@ -230,7 +230,7 @@ class UniversityInvoice(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"Invoice #{self.id} — {self.university.name} ({self.status})"
+        return f"Invoice #{self.id}: {self.university.name} ({self.status})"
 
 
 class TemplateRequest(models.Model):
@@ -242,7 +242,7 @@ class TemplateRequest(models.Model):
 
     STATUS_CHOICES = [
         ('pending', 'Pending'),
-        ('approved', 'Approved — Building'),
+        ('approved', 'Approved: Building'),
         ('completed', 'Completed'),
         ('rejected', 'Rejected'),
     ]

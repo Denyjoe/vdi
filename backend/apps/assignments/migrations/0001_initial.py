@@ -34,7 +34,7 @@ class Migration(migrations.Migration):
             name='File',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(help_text="Display title for this file (e.g. 'Week 3 — Lecture Notes').", max_length=200)),
+                ('title', models.CharField(help_text="Display title for this file (e.g. 'Week 3: Lecture Notes').", max_length=200)),
                 ('file', models.FileField(help_text='The actual file. Stored in MEDIA_ROOT/class_files/.', upload_to='class_files/')),
                 ('description', models.TextField(blank=True, help_text='Optional description of the file contents.', null=True)),
                 ('uploaded_at', models.DateTimeField(auto_now_add=True)),

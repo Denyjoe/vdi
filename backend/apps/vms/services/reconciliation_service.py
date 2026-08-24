@@ -145,7 +145,7 @@ def resolve_orphan(vmid, action, admin_user, owner_email=None, template_id=None)
             return {'success': True, 'message': f'VM {vmid} already gone from Proxmox.'}
 
         if _has_live_tracked_record(vmid):
-            return {'success': False, 'message': f'VM {vmid} is now tracked in the database as a real, live/owned record — refusing to delete it. Refresh the check and use the Workspaces page for this VM instead.'}
+            return {'success': False, 'message': f'VM {vmid} is now tracked in the database as a real, live/owned record. Refusing to delete it. Refresh the check and use the Workspaces page for this VM instead.'}
 
         ps.delete_vm_completely(vmid)
 
@@ -198,7 +198,7 @@ def resolve_orphan(vmid, action, admin_user, owner_email=None, template_id=None)
                 existing.status = mapped_status
                 existing.save(update_fields=['status'])
                 logger.info('Admin %s revived error-state VirtualMachine %s (vmid %s) to %s via ignore', admin_user.email, existing.id, vmid, mapped_status)
-                return {'success': True, 'message': f'VM {vmid} was stuck in a dead error record — revived as VirtualMachine {existing.id} ({mapped_status}).'}
+                return {'success': True, 'message': f'VM {vmid} was stuck in a dead error record. Revived as VirtualMachine {existing.id} ({mapped_status}).'}
             return {'success': True, 'message': f'VM {vmid} is already tracked (DB id {existing.id}).'}
 
         vm = VirtualMachine.objects.create(
@@ -207,7 +207,7 @@ def resolve_orphan(vmid, action, admin_user, owner_email=None, template_id=None)
             name=vm_info.get('name') or f'manual-{vmid}',
             status=mapped_status,
             proxmox_vm_id=vmid,
-            notes='Marked "ignore" via the Infrastructure Health reconciliation tool — a real, tracked record was created so this VM stops appearing as an orphan.',
+            notes='Marked "ignore" via the Infrastructure Health reconciliation tool. A real, tracked record was created so this VM stops appearing as an orphan.',
         )
         logger.info('Admin %s marked Proxmox VM %s as ignored/tracked (new VirtualMachine id %s)', admin_user.email, vmid, vm.id)
         return {'success': True, 'message': f'VM {vmid} is now tracked as VirtualMachine {vm.id}.'}
@@ -236,7 +236,7 @@ def resolve_stale(db_id, action, admin_user):
     real_vms = ps.proxmox.nodes(ps.node).qemu.get()
     real_ids = {v['vmid'] for v in real_vms}
     if db_vm.proxmox_vm_id in real_ids:
-        return {'success': False, 'message': f'VM {db_vm.proxmox_vm_id} genuinely exists in Proxmox again — refusing to touch a real, live record. Refresh the check.'}
+        return {'success': False, 'message': f'VM {db_vm.proxmox_vm_id} genuinely exists in Proxmox again. Refusing to touch a real, live record. Refresh the check.'}
 
     if action == 'mark_stopped':
         db_vm.status = VirtualMachine.Status.STOPPED

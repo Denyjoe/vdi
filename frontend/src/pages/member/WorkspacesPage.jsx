@@ -209,9 +209,9 @@ export default function WorkspacesPage() {
   // silent, so usage never looks indistinguishable from a skipped charge.
   const notifyLaunchOutcome = (data) => {
     if (data?.access_reason === 'hours_balance') {
-      toast.success(`Launched — ${data.hours_remaining}h remaining on this template`)
+      toast.success(`Launched: ${data.hours_remaining}h remaining on this template`)
     } else if (data?.access_reason === 'subscription') {
-      toast.success('Launched — included in your template subscription')
+      toast.success('Launched: included in your template subscription')
     }
   }
 
@@ -569,7 +569,7 @@ export default function WorkspacesPage() {
                     
                     <div className="flex items-center gap-2 mb-4 px-3 py-1.5 bg-canvas rounded-lg w-fit">
                       <Globe size={12} className="text-faint" />
-                      <span className="text-xs font-mono text-muted">—.—.—.—</span>
+                      <span className="text-xs font-mono text-muted">N/A</span>
                     </div>
                     
                     <div className="grid grid-cols-3 gap-3 mb-4">
@@ -622,7 +622,7 @@ export default function WorkspacesPage() {
                     }`}>
                       <AlertCircle size={13} className={ws.idle_warning.level === 'final_warning' ? 'text-red-400' : 'text-yellow-400'} />
                       <span className={`text-[10px] font-semibold ${ws.idle_warning.level === 'final_warning' ? 'text-red-400' : 'text-yellow-400'}`}>
-                        ⚠ Idle — will be deleted in {ws.idle_warning.days_remaining} day{ws.idle_warning.days_remaining === 1 ? '' : 's'} unless used
+                          ⚠ Idle: will be deleted in {ws.idle_warning.days_remaining} day{ws.idle_warning.days_remaining === 1 ? '' : 's'} unless used
                       </span>
                     </div>
                   )}
@@ -634,7 +634,7 @@ export default function WorkspacesPage() {
                       return (
                         <div className="flex items-center gap-2 mb-4 px-3 py-1.5 rounded-lg bg-[#6C63FF]/10 border border-[#6C63FF]/20 w-fit">
                           <Crown size={12} className="text-[#6C63FF]" />
-                          <span className="text-[10px] font-semibold text-[#6C63FF]">Unlimited — subscribed</span>
+                          <span className="text-[10px] font-semibold text-[#6C63FF]">Unlimited (subscribed)</span>
                         </div>
                       )
                     }
@@ -650,7 +650,7 @@ export default function WorkspacesPage() {
                       <div className="flex items-center gap-2 mb-4 px-3 py-1.5 rounded-lg bg-[#FF6B00]/10 border border-[#FF6B00]/20 w-fit">
                         <AlertCircle size={12} className="text-[#FF6B00]" />
                         <span className="text-[10px] font-semibold text-[#FF6B00]">
-                          Out of hours — TZS {Number(acc.price_per_hour).toLocaleString()}/hr
+                          Out of hours: TZS {Number(acc.price_per_hour).toLocaleString()}/hr
                         </span>
                       </div>
                     )
@@ -658,7 +658,7 @@ export default function WorkspacesPage() {
 
                   <div className="flex items-center gap-2 mb-4 px-3 py-1.5 bg-canvas rounded-lg w-fit">
                     <Globe size={12} className="text-faint" />
-                    <span className="text-xs font-mono text-muted">{ws.vm_details?.ip_address || '—.—.—.—'}</span>
+                    <span className="text-xs font-mono text-muted">{ws.vm_details?.ip_address || 'N/A'}</span>
                   </div>
 
                   <div className="grid grid-cols-3 gap-3 mb-4">
@@ -718,7 +718,7 @@ export default function WorkspacesPage() {
                   type="text"
                   value={wsName}
                   onChange={e => setWsName(e.target.value)}
-                  placeholder="e.g. My Ubuntu Dev Machine"
+                  placeholder="Enter a workspace name"
                   className="w-full bg-canvas border border-border rounded-xl px-4 py-3 text-primary placeholder-muted outline-none focus:border-blue-500 transition-colors"
                   maxLength={50}
                 />
@@ -862,7 +862,7 @@ export default function WorkspacesPage() {
                 disabled={!accessModalHours || accessModalHours <= 0}
                 className="w-full py-3 rounded-xl bg-[#0066FF] text-white font-semibold hover:bg-[#0052CC] active:scale-95 transition-all disabled:opacity-40 mb-3"
               >
-                Buy {accessModalHours || 0}h — TZS {(accessModalHours * (templateAccess[accessModal.template?.id]?.price_per_hour || accessModal.template?.price_per_hour || 0)).toLocaleString()}
+                Buy {accessModalHours || 0}h: TZS {(accessModalHours * (templateAccess[accessModal.template?.id]?.price_per_hour || accessModal.template?.price_per_hour || 0)).toLocaleString()}
               </button>
 
               <div className="flex items-center gap-3 my-3">
@@ -875,7 +875,7 @@ export default function WorkspacesPage() {
                 onClick={() => setSubscribeTarget({ workspaceId: accessModal.workspaceId, template: accessModal.template })}
                 className="w-full py-3 rounded-xl border border-[#6C63FF]/40 text-[#6C63FF] font-semibold hover:bg-[#6C63FF]/10 active:scale-95 transition-all"
               >
-                Subscribe monthly — TZS {Number(templateAccess[accessModal.template?.id]?.price_per_month || accessModal.template?.price_per_month || 0).toLocaleString()}/mo, unlimited
+                Subscribe monthly: TZS {Number(templateAccess[accessModal.template?.id]?.price_per_month || accessModal.template?.price_per_month || 0).toLocaleString()}/mo, unlimited
               </button>
             </div>
           </div>
@@ -888,7 +888,7 @@ export default function WorkspacesPage() {
           isOpen={true}
           onClose={() => setBuyHoursTarget(null)}
           onSuccess={handleBuyHoursSuccess}
-          title={`Buy ${buyHoursTarget.hours}h — ${buyHoursTarget.template?.name}`}
+          title={`Buy ${buyHoursTarget.hours}h for ${buyHoursTarget.template?.name}`}
           amountTzs={buyHoursTarget.priceTzs}
           endpoint="/workspaces/purchase-hours/"
           extraPayload={{ template_id: buyHoursTarget.template?.id, hours: buyHoursTarget.hours }}
@@ -902,7 +902,7 @@ export default function WorkspacesPage() {
           isOpen={true}
           onClose={() => setSubscribeTarget(null)}
           onSuccess={handleSubscribeSuccess}
-          title={`Subscribe — ${subscribeTarget.template?.name}`}
+          title={`Subscribe to ${subscribeTarget.template?.name}`}
           amountTzs={templateAccess[subscribeTarget.template?.id]?.price_per_month || subscribeTarget.template?.price_per_month}
           endpoint="/workspaces/subscribe-template/"
           extraPayload={{ template_id: subscribeTarget.template?.id }}

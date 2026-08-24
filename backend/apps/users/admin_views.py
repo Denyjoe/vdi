@@ -343,7 +343,7 @@ class AdminSuspendUserView(APIView):
         log_admin_action(
             request.user, 
             'user_suspended',
-            f'Suspended {u.first_name} {u.last_name} ({u.email})' + (f' — {reason}' if reason else ''),
+            f'Suspended {u.first_name} {u.last_name} ({u.email})' + (f': {reason}' if reason else ''),
             target_type='user',
             target_id=u.id)
         

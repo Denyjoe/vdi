@@ -13,6 +13,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='vmtemplate',
             name='os_family',
-            field=models.CharField(blank=True, default='', help_text="Simple OS family key used to pick a real, correctly-licensed icon (e.g. 'ubuntu', 'debian', 'parrot', 'zorin', 'windows') — distinct from the free-text 'os' display string.", max_length=30),
+            field=models.CharField(blank=True, default='', help_text="Simple OS family key used to pick a real, correctly-licensed icon (e.g. 'ubuntu', 'debian', 'parrot', 'zorin', 'windows'). Distinct from the free-text 'os' display string.", max_length=30),
         ),
     ]

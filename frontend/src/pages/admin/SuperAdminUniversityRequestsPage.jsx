@@ -302,7 +302,7 @@ export default function SuperAdminUniversityRequestsPage() {
             <Landmark className="w-6 h-6 text-indigo-400" />
             University Requests
           </h1>
-          <p className="text-[var(--text-secondary)] mt-1">SuperAdmin only — review, approve, and bill institutional customers.</p>
+          <p className="text-[var(--text-secondary)] mt-1">SuperAdmin only. Review, approve, and bill institutional customers.</p>
         </div>
         <button onClick={handleRefresh} disabled={refreshing}
           style={{
@@ -406,7 +406,7 @@ export default function SuperAdminUniversityRequestsPage() {
                 {active.map(u => (
                   <tr key={u.id} className="border-b border-[var(--border-color)] last:border-0">
                     <td className="px-5 py-3 text-[var(--text-primary)] font-medium">{u.name}</td>
-                    <td className="px-5 py-3 text-[var(--text-secondary)]">{u.admin_user_email || '—'}</td>
+                    <td className="px-5 py-3 text-[var(--text-secondary)]">{u.admin_user_email || 'N/A'}</td>
                     <td className="px-5 py-3 text-[var(--text-secondary)]">{u.seats_allocated}</td>
                     <td className="px-5 py-3 text-[var(--text-secondary)]">{Number(u.price_per_seat_tzs || 0).toLocaleString()} TZS</td>
                     <td className="px-5 py-3 text-[var(--text-secondary)] capitalize">{u.billing_cycle}</td>
@@ -575,8 +575,8 @@ export default function SuperAdminUniversityRequestsPage() {
               </div>
               {(approveTarget.requested_vcpu_cores || approveTarget.requested_ram_gb || approveTarget.requested_storage_gb) && (
                 <p className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
-                  Requested on the form: {approveTarget.requested_vcpu_cores || '—'} vCPU /{' '}
-                  {approveTarget.requested_ram_gb || '—'} GB RAM / {approveTarget.requested_storage_gb || '—'} GB storage.
+                  Requested on the form: {approveTarget.requested_vcpu_cores || 'N/A'} vCPU /{' '}
+                  {approveTarget.requested_ram_gb || 'N/A'} GB RAM / {approveTarget.requested_storage_gb || 'N/A'} GB storage.
                   Real approved quota below is negotiated — it may differ.
                 </p>
               )}
@@ -659,14 +659,14 @@ export default function SuperAdminUniversityRequestsPage() {
           <div className="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-6 max-w-md w-full shadow-2xl animate-[fadeIn_0.2s_ease-out]">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold text-[var(--text-primary)] flex items-center gap-2">
-                <Pencil size={18} /> Edit Terms — {editTermsTarget.name}
+                <Pencil size={18} /> Edit Terms: {editTermsTarget.name}
               </h3>
               <button onClick={() => setEditTermsTarget(null)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
                 <X size={20} />
               </button>
             </div>
             <div className="space-y-4">
-              <p className="text-xs text-[var(--text-faint)]">Real contract renegotiation — changes take effect immediately.</p>
+              <p className="text-xs text-[var(--text-faint)]">Real contract renegotiation. Changes take effect immediately.</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">Seats</label>
@@ -729,7 +729,7 @@ export default function SuperAdminUniversityRequestsPage() {
                 <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
                   This permanently deletes the university and cascades to its departments, courses, enrollments,
                   invites, and template requests. Blocked if any real active students, running VMs, or real
-                  Proxmox templates still exist — suspend and wait, or clear those first.
+                  Proxmox templates still exist. Suspend and wait, or clear those first.
                 </p>
               </div>
               <button onClick={() => setDeleteTarget(null)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex-shrink-0">

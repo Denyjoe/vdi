@@ -275,7 +275,7 @@ export default function VMPoolPage() {
               {poolEntries.map(entry => (
                 <div key={entry.id} className="border border-[var(--border-color)] rounded-xl p-3">
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <span style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--text-primary)', wordBreak: 'break-all' }}>{entry.vm_id || '—'}</span>
+                    <span style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--text-primary)', wordBreak: 'break-all' }}>{entry.vm_id || 'N/A'}</span>
                     <span style={{
                       padding: '3px 10px', borderRadius: '9999px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', flexShrink: 0,
                       background: entry.status === 'ready' ? 'var(--status-online-bg)' : entry.status === 'assigned' ? 'var(--status-info-bg)' : entry.status === 'error' ? 'var(--status-error-bg)' : 'var(--status-warning-bg)',
@@ -285,9 +285,9 @@ export default function VMPoolPage() {
                     </span>
                   </div>
                   <p style={{ fontSize: '12px', color: 'var(--text-primary)' }} className="mb-1">{entry.template_name}</p>
-                  <p style={{ fontSize: '11px', color: 'var(--text-secondary)', wordBreak: 'break-word' }} className="mb-1">Assigned to: {entry.assigned_to || '—'}</p>
-                  <p style={{ fontSize: '11px', fontFamily: 'monospace', color: 'var(--text-secondary)' }} className="mb-1">{entry.ip_address || '—'}</p>
-                  <p style={{ fontSize: '10px', color: 'var(--text-muted)' }} className="mb-2">{entry.created_at ? formatTimeAgo(entry.created_at) : '—'}</p>
+                  <p style={{ fontSize: '11px', color: 'var(--text-secondary)', wordBreak: 'break-word' }} className="mb-1">Assigned to: {entry.assigned_to || 'N/A'}</p>
+                  <p style={{ fontSize: '11px', fontFamily: 'monospace', color: 'var(--text-secondary)' }} className="mb-1">{entry.ip_address || 'N/A'}</p>
+                  <p style={{ fontSize: '10px', color: 'var(--text-muted)' }} className="mb-2">{entry.created_at ? formatTimeAgo(entry.created_at) : 'N/A'}</p>
                   <button onClick={() => handleDeleteEntry(entry.id)}
                     style={{ width: '44px', height: '44px' }}
                     className="flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--status-error)] rounded-lg hover:bg-[var(--status-error-bg)] transition-colors">
@@ -314,7 +314,7 @@ export default function VMPoolPage() {
                 {poolEntries.map(entry => (
                   <tr key={entry.id} style={{ borderBottom: '1px solid var(--border-subtle)', background: 'transparent' }} className="hover:bg-[var(--bg-input)] transition-colors">
                     <td style={{ padding: '10px 16px', fontSize: '12px', fontFamily: 'monospace', color: 'var(--text-primary)' }}>
-                      {entry.vm_id || '—'}
+                      {entry.vm_id || 'N/A'}
                     </td>
                     <td style={{ padding: '10px 16px', fontSize: '12px', color: 'var(--text-primary)' }}>
                       {entry.template_name}
@@ -329,13 +329,13 @@ export default function VMPoolPage() {
                       </span>
                     </td>
                     <td style={{ padding: '10px 16px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                      {entry.created_at ? formatTimeAgo(entry.created_at) : '—'}
+                      {entry.created_at ? formatTimeAgo(entry.created_at) : 'N/A'}
                     </td>
                     <td style={{ padding: '10px 16px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                      {entry.assigned_to || '—'}
+                      {entry.assigned_to || 'N/A'}
                     </td>
                     <td style={{ padding: '10px 16px', fontSize: '12px', fontFamily: 'monospace', color: 'var(--text-secondary)' }}>
-                      {entry.ip_address || '—'}
+                      {entry.ip_address || 'N/A'}
                     </td>
                     <td style={{ padding: '10px 16px' }}>
                       <div className="flex items-center gap-2">
@@ -395,7 +395,7 @@ export default function VMPoolPage() {
                 }}>
                   <AlertTriangle size={12} style={{ color: 'var(--status-warning)' }} />
                   <span style={{ fontSize: '10px', color: 'var(--status-warning)', fontWeight: 600 }}>
-                    Duplicate link — same Proxmox ID as another template
+                    Duplicate link. Same Proxmox ID as another template.
                   </span>
                 </div>
               )}
@@ -501,7 +501,7 @@ export default function VMPoolPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">Number of VMs (1–10)</label>
+                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">Number of VMs (1 to 10)</label>
                 <input 
                   type="number" min="1" max="10" 
                   value={createForm.count}

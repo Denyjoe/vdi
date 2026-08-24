@@ -144,7 +144,7 @@ class UsageHistoryView(APIView):
                 'date': (started.strftime('%Y-%m-%d') if started else ws.created_at.strftime('%Y-%m-%d')),
                 'time_range': (
                     f"{started.strftime('%H:%M')} - {ended.strftime('%H:%M') if ended else 'Active'}"
-                    if started else '—'),
+                    if started else 'N/A'),
                 'template': template_name,
                 'template_specs': (
                     f"{ws.vm_template.cpu_cores} vCPU · {ws.vm_template.ram_gb}GB RAM"

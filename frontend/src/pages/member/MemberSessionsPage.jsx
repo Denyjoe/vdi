@@ -538,25 +538,25 @@ export default function MemberSessionsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-[10px] uppercase tracking-widest text-muted font-medium mb-1">Hours Purchased</p>
-                  <p className="text-sm font-semibold text-primary">{viewingSession.hours_purchased ?? '—'}h</p>
+                  <p className="text-sm font-semibold text-primary">{viewingSession.hours_purchased ?? 'N/A'}h</p>
                 </div>
                 <div>
                   <p className="text-[10px] uppercase tracking-widest text-muted font-medium mb-1">Session Duration</p>
                   <p className="text-sm font-semibold text-primary">
                     {viewingSession.start_time && viewingSession.scheduled_end_at
                       ? `${((new Date(viewingSession.scheduled_end_at) - new Date(viewingSession.start_time)) / 3600000).toFixed(1)}h`
-                      : '—'}
+                      : 'N/A'}
                   </p>
                 </div>
                 <div>
                   <p className="text-[10px] uppercase tracking-widest text-muted font-medium mb-1">Amount Paid</p>
                   <p className="text-sm font-semibold text-primary">
-                    {viewingSession.amount_paid_tzs != null ? `TZS ${Number(viewingSession.amount_paid_tzs).toLocaleString()}` : '—'}
+                    {viewingSession.amount_paid_tzs != null ? `TZS ${Number(viewingSession.amount_paid_tzs).toLocaleString()}` : 'N/A'}
                   </p>
                 </div>
                 <div>
                   <p className="text-[10px] uppercase tracking-widest text-muted font-medium mb-1">Status</p>
-                  <p className="text-sm font-semibold text-primary capitalize">{viewingSession.status || '—'}</p>
+                  <p className="text-sm font-semibold text-primary capitalize">{viewingSession.status || 'N/A'}</p>
                 </div>
               </div>
 

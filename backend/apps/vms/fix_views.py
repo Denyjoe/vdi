@@ -60,7 +60,7 @@ new_view = '''class AdminTemplateDetailView(APIView):
         if active_workspaces > 0:
             return Response({
                 'success': False,
-                'message': f'Cannot delete — {active_workspaces} workspace(s) use this template'
+                'message': f'Cannot delete. {active_workspaces} workspace(s) use this template'
             }, status=400)
         
         name = t.name

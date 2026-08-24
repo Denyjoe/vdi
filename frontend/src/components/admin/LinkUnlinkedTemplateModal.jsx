@@ -78,7 +78,7 @@ export default function LinkUnlinkedTemplateModal({ unlinked, isOpen, onClose, o
             Link Proxmox Template {unlinked.proxmox_vmid} to the Platform
           </h3>
           <p style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px' }}>
-            "{unlinked.name}" already exists in Proxmox — this creates a real VMTemplate record pointing at it. No new VM is created.
+            "{unlinked.name}" already exists in Proxmox. This creates a real VMTemplate record pointing at it. No new VM is created.
           </p>
         </div>
 

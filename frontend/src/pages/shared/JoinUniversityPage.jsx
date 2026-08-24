@@ -34,7 +34,7 @@ export default function JoinUniversityPage() {
       .then(res => {
         setStatus('success');
         const d = res.data.data;
-        setMessage(`You've joined ${d.university} — ${d.department} as a ${d.role}${d.course ? ` (${d.course})` : ''}.`);
+        setMessage(`You've joined ${d.university}: ${d.department} as a ${d.role}${d.course ? ` (${d.course})` : ''}.`);
       })
       .catch(err => {
         setStatus('error');

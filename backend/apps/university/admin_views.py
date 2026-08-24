@@ -415,7 +415,7 @@ class CourseDetailView(APIView):
                 ),
             }, status=409)
 
-        name = f'{course.code} — {course.name}'
+        name = f'{course.code}: {course.name}'
         course.delete()
         return Response({'success': True, 'message': f'{name} was permanently deleted.'})
 
@@ -617,11 +617,11 @@ class DepartmentLecturerGrantView(APIView):
         if enrolled_codes:
             return Response({
                 'success': True,
-                'message': f'{email} is now a lecturer in {department.name} — enrolled as lecturer in {len(enrolled_codes)} existing course(s): {", ".join(enrolled_codes)}.',
+                'message': f'{email} is now a lecturer in {department.name}. Enrolled as lecturer in {len(enrolled_codes)} existing course(s): {", ".join(enrolled_codes)}.',
             })
         return Response({
             'success': True,
-            'message': f'{email} is now a lecturer in {department.name}. No courses exist in this department yet — they\'ll need to be assigned once one is created.',
+            'message': f'{email} is now a lecturer in {department.name}. No courses exist in this department yet. They\'ll need to be assigned once one is created.',
         })
 
 

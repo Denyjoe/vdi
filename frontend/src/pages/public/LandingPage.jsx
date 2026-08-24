@@ -18,23 +18,23 @@ const TRUST_CATEGORIES = [
 const FAQ_ITEMS = [
   {
     q: 'What is Ospace, and why should I choose it?',
-    a: 'Ospace is a browser-based virtual desktop platform. Launch CAD, Data Science, or Programming environments instantly no local installs, no hardware upgrades, just a browser tab.',
+    a: 'Ospace is a browser-based virtual desktop platform. Launch CAD, Data Science, or Programming environments instantly without local installs or hardware upgrades. All you need is a browser tab.',
   },
   {
     q: 'How does pricing work?',
-    a: 'Joining sessions is always free. Hosting a live session is pay-per-hour, billed only when you start one. Personal workspaces are priced per VM type , buy exactly the hours you need, or subscribe to a specific template for unlimited monthly access.',
+    a: 'Joining sessions is always free. Hosting a live session is pay-per-hour, billed only when you start one. Personal workspaces are priced per VM type. Buy exactly the hours you need or subscribe to a specific template for unlimited monthly access.',
   },
   {
     q: 'What is Exam Mode?',
-    a: 'Exam Mode locks down internet access, disables copy-paste, and lets hosts monitor participants in real time built for assessments and proctored testing.',
+    a: 'Exam Mode locks down internet access, disables copy-paste, and lets hosts monitor participants in real time. It is built for assessments and proctored testing.',
   },
   {
     q: 'Can I host a workshop or class?',
-    a: 'Yes. Hosting plans let you spin up a live session and invite participants by code each one gets their own isolated, pre-configured workspace.',
+    a: 'Yes. Hosting plans let you spin up a live session and invite participants by code. Each participant gets their own isolated, pre-configured workspace.',
   },
   {
     q: 'Is my data and session secure?',
-    a: 'Each workspace is isolated per user or team. Only your account and invited participants can access a given session no one else has visibility by default.',
+    a: 'Each workspace is isolated per user or team. Only your account and invited participants can access a given session. No one else has visibility by default.',
   },
 ];
 
@@ -174,7 +174,7 @@ function GlobeCard() {
     <div className="h-full flex flex-col p-8 rounded-lg bg-white dark:bg-[#0F172A] border border-[#E2E8F0] dark:border-slate-800 hover:border-[#6C63FF]/40 hover:-translate-y-1 transition-all duration-300">
       <h3 className="text-lg font-bold text-[#0F172A] dark:text-white mb-3">Instant Provisioning</h3>
       <p className="text-[#475569] dark:text-slate-300 text-sm leading-relaxed mb-4">
-        Launch a cloud desktop in seconds from anywhere. No complex setup — just click and start working.
+        Launch a cloud desktop in seconds from anywhere. Skip the complex setup and start working immediately.
       </p>
       <div className="flex-1 min-h-40 flex items-center justify-center">
         <NetworkGlobe size={160} />
@@ -289,7 +289,7 @@ function TemplatesFeature() {
         <div>
           <h3 className="text-lg font-bold text-[#0F172A] dark:text-white mb-2">CAD, Data Science & Dev Templates</h3>
           <p className="text-[#475569] dark:text-slate-300 text-sm leading-relaxed">
-            Pre-configured environments for the tools your team already uses — spin one up in a click.
+            Pre-configured environments for the tools your team already uses. Spin one up with a single click.
           </p>
         </div>
       </div>
@@ -421,10 +421,10 @@ function MonitoringFeature() {
 // ---------- for universities section ----------
 
 const UNIVERSITY_POINTS = [
-  'Real per-department and per-course isolation — not just labels on shared data',
+  'Real per-department and per-course isolation, not just labels on shared data',
   'Lecturers manage rosters, recurring schedules, and template requests themselves',
   'Hardware quotas tied to your institution\'s real, negotiated capacity',
-  'One login for admins, lecturers, and students — switch context anytime',
+  'One login for admins, lecturers, and students. Switch context anytime.',
 ];
 
 function UniversityDashboardMock() {
@@ -488,7 +488,7 @@ function ForUniversitiesSection() {
               One platform. Every department, genuinely isolated.
             </h2>
             <p className="text-slate-300 mb-8 leading-relaxed max-w-lg">
-              Bring Ospace to your university — real, isolated virtual desktops for every
+              Bring Ospace to your university. Get real, isolated virtual desktops for every
               department, course, lecturer, and student, built on the same infrastructure
               your students may already use individually.
             </p>
@@ -788,7 +788,7 @@ export default function LandingPage() {
               Everything you need to teach, host, and build
             </h2>
             <p className="text-[#475569] dark:text-slate-300">
-              From instant templates to live proctored sessions Ospace gives you the building blocks, with a clean experience.
+              From instant templates to live proctored sessions, Ospace gives you the building blocks with a clean experience.
             </p>
           </Reveal>
 
@@ -853,7 +853,7 @@ export default function LandingPage() {
                     <p className="text-[#475569] dark:text-slate-300 mb-6 text-sm">Buy hours for the VM type you need, pay only for time used</p>
                     <div className="mb-8">
                       <span className="text-4xl font-bold text-[#0F172A] dark:text-white">Per Hour</span>
-                      <span className="text-sm text-[#475569] dark:text-slate-400 font-mono ml-1">— set per template</span>
+                      <span className="text-sm text-[#475569] dark:text-slate-400 font-mono ml-1">(set per template)</span>
                     </div>
                     <ul className="space-y-3 mb-8 flex-1">
                       <li className="flex items-center gap-3 text-sm text-[#0F172A] dark:text-white">
@@ -881,7 +881,7 @@ export default function LandingPage() {
                     <p className="text-[#475569] dark:text-slate-300 mb-6 text-sm">Subscribe to a specific VM type for unlimited monthly access</p>
                     <div className="mb-8">
                       <span className="text-4xl font-bold text-[#0F172A] dark:text-white">Per Month</span>
-                      <span className="text-sm text-[#475569] dark:text-slate-400 font-mono ml-1">— set per template</span>
+                      <span className="text-sm text-[#475569] dark:text-slate-400 font-mono ml-1">(set per template)</span>
                     </div>
                     <ul className="space-y-3 mb-8 flex-1">
                       <li className="flex items-center gap-3 text-sm text-[#0F172A] dark:text-white">

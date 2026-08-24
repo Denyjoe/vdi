@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='workspace',
             name='last_accessed_at',
-            field=models.DateTimeField(default=django.utils.timezone.now, help_text='Last genuine launch (any launch path — free, paid, subscription, or power-up). The activity signal for idle-workspace detection.'),
+            field=models.DateTimeField(default=django.utils.timezone.now, help_text='Last genuine launch (any launch path: free, paid, subscription, or power-up). The activity signal for idle-workspace detection.'),
         ),
         migrations.CreateModel(
             name='WorkspaceIdleNotification',

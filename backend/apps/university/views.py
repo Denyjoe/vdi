@@ -211,7 +211,7 @@ class SuperAdminUniversityApproveView(APIView):
 
         log_admin_action(
             request.user, 'university_approved',
-            f'Approved "{university.name}" — {seats_allocated} seats @ '
+            f'Approved "{university.name}": {seats_allocated} seats @ '
             f'{price_per_seat_tzs} TZS/seat ({billing_cycle}), admin={admin_user.email}, '
             f'quota={max_vcpu_cores} vCPU / {max_ram_gb}GB RAM / {max_storage_gb}GB storage',
             target_type='university', target_id=university.id,
@@ -239,7 +239,7 @@ class SuperAdminUniversityRejectView(APIView):
 
         log_admin_action(
             request.user, 'university_rejected',
-            f'Rejected "{university.name}" — {reason}',
+            f'Rejected "{university.name}": {reason}',
             target_type='university', target_id=university.id,
         )
 
@@ -276,7 +276,7 @@ class SuperAdminUniversitySuspendView(APIView):
 
         log_admin_action(
             request.user, 'university_suspended',
-            f'Suspended "{university.name}"' + (f' — {reason}' if reason else ''),
+            f'Suspended "{university.name}"' + (f': {reason}' if reason else ''),
             target_type='university', target_id=university.id,
         )
 
@@ -434,7 +434,7 @@ class SuperAdminUniversityDeleteView(APIView):
             return Response({
                 'success': False,
                 'message': (
-                    f'Blocked — {university.name} still has {student_count} real, active student(s). '
+                    f'Blocked. {university.name} still has {student_count} real, active student(s). '
                     'Suspend the university instead, or revoke every student affiliation first.'
                 ),
             }, status=409)
@@ -448,7 +448,7 @@ class SuperAdminUniversityDeleteView(APIView):
             return Response({
                 'success': False,
                 'message': (
-                    f'Blocked — {university.name} has {running_vm_count} real, running VM(s). '
+                    f'Blocked. {university.name} has {running_vm_count} real, running VM(s). '
                     'Suspend the university and wait for these to stop, or force-stop them first.'
                 ),
             }, status=409)
@@ -458,8 +458,8 @@ class SuperAdminUniversityDeleteView(APIView):
             return Response({
                 'success': False,
                 'message': (
-                    f'Blocked — {university.name} still has {template_count} real template(s) provisioned on '
-                    'Proxmox. Delete or reassign those first — deleting the university would otherwise turn '
+                    f'Blocked. {university.name} still has {template_count} real template(s) provisioned on '
+                    'Proxmox. Delete or reassign those first. Deleting the university would otherwise turn '
                     'them into platform-wide templates visible to everyone.'
                 ),
             }, status=409)
@@ -467,7 +467,7 @@ class SuperAdminUniversityDeleteView(APIView):
         name = university.name
         log_admin_action(
             request.user, 'university_deleted',
-            f'Deleted "{name}" (id={university.id}) — genuinely empty, no active students, running VMs, or templates.',
+            f'Deleted "{name}" (id={university.id}). Genuinely empty, no active students, running VMs, or templates.',
             target_type='university', target_id=university.id,
         )
         university.delete()
@@ -539,7 +539,7 @@ class SuperAdminUniversityInvoiceListView(APIView):
 
         log_admin_action(
             request.user, 'university_invoice_created',
-            f'Created invoice #{invoice.id} for "{university.name}" — {amount_tzs} TZS',
+            f'Created invoice #{invoice.id} for "{university.name}": {amount_tzs} TZS',
             target_type='university_invoice', target_id=invoice.id,
         )
 

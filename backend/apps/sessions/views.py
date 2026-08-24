@@ -235,7 +235,7 @@ class PayAndStartSessionView(APIView):
                     request.user,
                     'config_changed',
                     f'{request.user.email} started a {hours}hr university-sponsored class session '
-                    f'for {course.code} (no charge — university quota)',
+                    f'for {course.code} (no charge, university quota)',
                 )
             else:
                 log_admin_action(

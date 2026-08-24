@@ -271,7 +271,7 @@ class Workspace(models.Model):
     default=0)
   last_accessed_at = models.DateTimeField(
     default=timezone.now,
-    help_text="Last genuine launch (any launch path — free, paid, subscription, "
+    help_text="Last genuine launch (any launch path: free, paid, subscription, "
               "or power-up). The activity signal for idle-workspace detection.")
   created_at = models.DateTimeField(
     auto_now_add=True)

@@ -60,7 +60,7 @@ export default function UniversityHardwarePanel({ universityId }) {
             Real usage against your institution's approved quota.
             {!data.proxmox_reachable && (
               <span className="inline-flex items-center gap-1 text-amber-400 ml-2">
-                <AlertTriangle size={12} /> Some live status checks were unreachable — showing last-known state.
+                <AlertTriangle size={12} /> Some live status checks were unreachable. Showing last-known state.
               </span>
             )}
           </p>

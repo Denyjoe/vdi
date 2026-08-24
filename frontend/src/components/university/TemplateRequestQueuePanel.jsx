@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 
 const STATUS_META = {
   pending: { label: 'Pending', color: '#F59E0B', icon: Clock },
-  approved: { label: 'Approved — Building', color: '#3B82F6', icon: Hammer },
+  approved: { label: 'Approved: Building', color: '#3B82F6', icon: Hammer },
   completed: { label: 'Completed', color: '#10B981', icon: CheckCircle2 },
   rejected: { label: 'Rejected', color: '#EF4444', icon: XCircle },
 };
@@ -49,7 +49,7 @@ export default function TemplateRequestQueuePanel({ universityId }) {
       if (quota && !quota.fits_quota) {
         toast(`Approved, but heads up: ${quota.message}`, { icon: '⚠️', duration: 8000 });
       } else {
-        toast.success('Approved — opening the template wizard...');
+        toast.success('Approved. Opening the template wizard...');
       }
       // Reuses the EXISTING template wizard page, pre-filled from this
       // request — not a parallel build UI.
@@ -151,7 +151,7 @@ export default function TemplateRequestQueuePanel({ universityId }) {
               const Icon = meta.icon;
               return (
                 <div key={r.id} className="flex justify-between items-center text-sm py-2 border-b border-[var(--border-color)] last:border-0 gap-3">
-                  <span className="text-[var(--text-primary)]">{r.course_code} — {r.software_needed}</span>
+                  <span className="text-[var(--text-primary)]">{r.course_code}: {r.software_needed}</span>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: `${meta.color}1a`, color: meta.color }}>
                       <Icon size={12} /> {meta.label}

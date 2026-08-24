@@ -552,7 +552,7 @@ class ProxmoxService:
                 import logging
                 logger = logging.getLogger(__name__)
                 logger.info(
-                    f'VM {vmid} already does not exist in Proxmox — '
+                    f'VM {vmid} already does not exist in Proxmox. '
                     f'treating as already deleted'
                 )
                 return True
@@ -874,11 +874,11 @@ class ProxmoxService:
             try:
                 node.qemu(vmid).firewall.rules.post(
                     type='out', proto='udp', dport='53', dest=ip, action='ACCEPT', enable=1,
-                    comment='Allow DNS queries (UDP) — resolvers only',
+                    comment='Allow DNS queries (UDP). Resolvers only',
                 )
                 node.qemu(vmid).firewall.rules.post(
                     type='out', proto='tcp', dport='53', dest=ip, action='ACCEPT', enable=1,
-                    comment='Allow DNS queries (TCP) — resolvers only',
+                    comment='Allow DNS queries (TCP). Resolvers only',
                 )
             except Exception as e:
                 logger.warning("Could not add DNS firewall rule for %s on VM %s: %s", ip, vmid, e)

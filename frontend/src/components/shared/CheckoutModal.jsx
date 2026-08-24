@@ -189,7 +189,7 @@ export default function CheckoutModal({ isOpen, onClose, onSuccess, title, amoun
                 color: 'var(--text-faint, #475569)',
                 marginBottom: '16px',
               }}>
-                Sandbox mode — no real charge will occur.
+                Sandbox mode. No real charge will occur.
               </p>
 
               {error && (

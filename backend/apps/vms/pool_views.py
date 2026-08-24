@@ -642,7 +642,7 @@ class AdminTemplateDetailView(APIView):
         if active_workspaces > 0:
             return Response({
                 'success': False,
-                'message': f'Cannot delete — {active_workspaces} workspace(s) use this template'
+                'message': f'Cannot delete. {active_workspaces} workspace(s) use this template'
             }, status=400)
 
         name = t.name
@@ -840,7 +840,7 @@ class UnlinkedTemplateDeleteView(APIView):
         if VMTemplate.objects.filter(proxmox_template_id=proxmox_vmid).exists():
             return Response({
                 'success': False,
-                'message': f'Proxmox vmid {proxmox_vmid} is linked to a real VMTemplate — delete it from the Templates table instead.',
+                'message': f'Proxmox vmid {proxmox_vmid} is linked to a real VMTemplate. Delete it from the Templates table instead.',
             }, status=400)
 
         ps = ProxmoxService()
@@ -860,6 +860,6 @@ class UnlinkedTemplateDeleteView(APIView):
         log_admin_action(
             request.user,
             'unlinked_template_deleted',
-            f'Deleted unlinked Proxmox template "{name}" (vmid {proxmox_vmid}) — was never connected to a VMTemplate record')
+            f'Deleted unlinked Proxmox template "{name}" (vmid {proxmox_vmid}). Was never connected to a VMTemplate record')
 
         return Response({'success': True, 'message': f'Proxmox template {proxmox_vmid} deleted.'})

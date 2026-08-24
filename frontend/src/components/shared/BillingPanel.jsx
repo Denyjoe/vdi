@@ -212,7 +212,7 @@ export default function BillingPanel({ isOpen, onClose }) {
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-primary">
-                {sub.template_name} — Unlimited
+                {sub.template_name}: Unlimited
               </span>
               <span className="px-2 py-0.5 rounded-full bg-[#6C63FF]/10 text-[9px] font-bold text-[#6C63FF] uppercase tracking-wider">
                 Active
@@ -821,7 +821,7 @@ export default function BillingPanel({ isOpen, onClose }) {
                     </div>
                     
                     <div class="footer">
-                      <p><strong>Ospace</strong> — 
+                      <p><strong>Ospace</strong>: 
                         Cloud Virtual Desktop 
                         Infrastructure</p>
                       <p>Dar es Salaam, Tanzania · 

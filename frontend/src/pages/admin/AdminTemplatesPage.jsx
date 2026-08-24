@@ -247,7 +247,7 @@ export default function AdminTemplatesPage() {
             // template it produces. There is no manual/fake-entry path
             // anymore — a template row with no real VM behind it was a
             // genuine risk (members could see and try to launch it).
-            <button onClick={() => navigate('/admin/templates/new')} className="flex items-center gap-2 bg-[var(--accent-primary)] hover:opacity-90 text-white px-4 py-2 rounded-xl transition-opacity font-medium shadow-lg shadow-[var(--accent-primary)]/20" title="Build a genuinely new OS template from scratch — real VM, real install, real config">
+            <button onClick={() => navigate('/admin/templates/new')} className="flex items-center gap-2 bg-[var(--accent-primary)] hover:opacity-90 text-white px-4 py-2 rounded-xl transition-opacity font-medium shadow-lg shadow-[var(--accent-primary)]/20" title="Build a genuinely new OS template from scratch. Real VM, real install, real config.">
               <Server size={16} />
               New OS Template
             </button>
@@ -273,7 +273,7 @@ export default function AdminTemplatesPage() {
               </div>
 
               <div>
-                <label style={labelStyle}>Icon (fallback — real templates show their real OS icon automatically)</label>
+                <label style={labelStyle}>Icon (fallback. Real templates show their real OS icon automatically.)</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '8px' }}>
                   {Object.entries(ICON_MAP).map(([name, Icon]) => (
                     <button key={name} type="button" onClick={() => setForm(f => ({ ...f, icon: name }))} style={{

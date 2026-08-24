@@ -353,7 +353,7 @@ export default function UniversityAdminDashboardPage() {
   };
 
   const deleteCourse = async (course) => {
-    const ok = await confirm('Delete Course', `Delete ${course.code} — ${course.name}? This cannot be undone.`, true);
+    const ok = await confirm('Delete Course', `Delete ${course.code}: ${course.name}? This cannot be undone.`, true);
     if (!ok) return;
     try {
       await api.delete(`/university-admin/courses/${course.id}/`);
@@ -460,7 +460,7 @@ export default function UniversityAdminDashboardPage() {
         formData, { headers: { 'Content-Type': 'multipart/form-data' } },
       );
       setCsvResults(res.data?.data || null);
-      toast.success(`Processed ${res.data.data.total_rows} row(s) — ${res.data.data.ok} enrolled.`);
+      toast.success(`Processed ${res.data.data.total_rows} row(s): ${res.data.data.ok} enrolled.`);
     } catch (err) {
       toast.error(err.response?.data?.message || 'CSV upload failed');
     } finally {
@@ -493,7 +493,7 @@ export default function UniversityAdminDashboardPage() {
           <h1 className="text-2xl font-bold text-[var(--text-primary)] flex items-center gap-2">
             <Landmark className="w-6 h-6 text-indigo-400" /> {university.name}
           </h1>
-          <p className="text-[var(--text-secondary)] mt-1">University admin dashboard — departments, courses, and enrollment.</p>
+          <p className="text-[var(--text-secondary)] mt-1">University admin dashboard. Manage departments, courses, and enrollment.</p>
         </div>
         <button onClick={handleRefresh} disabled={refreshing}
           style={{
@@ -540,7 +540,7 @@ export default function UniversityAdminDashboardPage() {
                 <KpiCard icon={GaugeCircle}
                   tint={overview.kpis.quota_utilization_pct === null ? 'indigo' : overview.kpis.quota_utilization_pct >= 90 ? 'red' : overview.kpis.quota_utilization_pct >= 70 ? 'amber' : 'emerald'}
                   label="Quota Utilization"
-                  value={overview.kpis.quota_utilization_pct === null ? '—' : `${overview.kpis.quota_utilization_pct}%`}
+                  value={overview.kpis.quota_utilization_pct === null ? 'N/A' : `${overview.kpis.quota_utilization_pct}%`}
                   sub={overview.kpis.quota_utilization_pct === null ? 'No approved quota yet' : undefined} />
                 <KpiCard icon={PackagePlus} tint="amber" label="Pending Requests" value={overview.kpis.pending_request_count}
                   sub={overview.kpis.pending_request_count > 0 ? 'Needs your review' : undefined} />
@@ -686,7 +686,7 @@ export default function UniversityAdminDashboardPage() {
                         <div key={c.id} className="py-2.5 border-b border-[var(--border-color)] last:border-0">
                           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 text-sm mb-1.5">
                             <div className="flex items-center gap-1.5 min-w-0">
-                              <span className="text-[var(--text-primary)] truncate">{c.code} — {c.name}</span>
+                              <span className="text-[var(--text-primary)] truncate">{c.code}: {c.name}</span>
                               <button onClick={() => openEditCourse(c)} title="Edit course"
                                 className="p-1 rounded-md text-[var(--text-faint)] hover:text-blue-400 hover:bg-blue-500/10 flex-shrink-0">
                                 <Pencil size={12} />
@@ -717,7 +717,7 @@ export default function UniversityAdminDashboardPage() {
                             >
                               <option value="">No template assigned</option>
                               {(templates || []).map(t => (
-                                <option key={t.id} value={t.id}>{t.name} — {t.cpu_cores}vCPU/{t.ram_gb}GB</option>
+                                <option key={t.id} value={t.id}>{t.name} ({t.cpu_cores}vCPU/{t.ram_gb}GB)</option>
                               ))}
                             </select>
                           </div>
@@ -860,7 +860,7 @@ export default function UniversityAdminDashboardPage() {
             <div>
               <h3 className="font-semibold text-[var(--text-primary)] flex items-center gap-2"><Package size={16} /> Template Library</h3>
               <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                Real templates already available to this university — assign one to a course directly, no new build needed.
+                Real templates already available to this university. Assign one to a course directly, no new build needed.
               </p>
             </div>
           </div>
@@ -953,7 +953,7 @@ export default function UniversityAdminDashboardPage() {
               <div className="space-y-2">
                 {analytics.by_course.map(c => (
                   <div key={c.course_id} className="flex justify-between text-sm py-2 border-b border-[var(--border-color)] last:border-0">
-                    <span className="text-[var(--text-primary)]">{c.course_code} — {c.course_name}</span>
+                    <span className="text-[var(--text-primary)]">{c.course_code}: {c.course_name}</span>
                     <span className="text-[var(--text-secondary)]">{c.enrolled_count} enrolled · {c.session_count} class session(s)</span>
                   </div>
                 ))}
@@ -1050,7 +1050,7 @@ export default function UniversityAdminDashboardPage() {
                 <h3 className="text-sm font-bold text-red-400">Delete {deleteDeptTarget.name}</h3>
                 <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
                   This permanently deletes the department and cascades to its courses, invites, and affiliations.
-                  Blocked if any real enrolled students or an active class session exist — remove or reassign them first.
+                  Blocked if any real enrolled students or an active class session exist. Remove or reassign them first.
                 </p>
               </div>
               <button onClick={() => setDeleteDeptTarget(null)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex-shrink-0"><X size={18} /></button>

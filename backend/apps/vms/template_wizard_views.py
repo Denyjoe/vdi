@@ -274,7 +274,7 @@ class AdminActiveTemplateJobsView(views.APIView):
                     job.status = 'failed'
                     job.error_message = (
                         f'Real Proxmox VM {job.proxmox_vmid} was reused by a later template build '
-                        f'(job #{superseded_by.id}, "{superseded_by.name}") — this job\'s real VM no longer '
+                        f'(job #{superseded_by.id}, "{superseded_by.name}"). This job\'s real VM no longer '
                         'reflects its own history. Please start a new template.'
                     )
                     job.save(update_fields=['status', 'error_message'])
@@ -422,7 +422,7 @@ class AdminTemplateJobCreateView(views.APIView):
             template_request=template_request,
         )
         job.log_step(
-            f'Job created for "{name}" ({cpu_cores} vCPU / {ram_gb}GB RAM / {disk_gb}GB disk) — '
+            f'Job created for "{name}" ({cpu_cores} vCPU / {ram_gb}GB RAM / {disk_gb}GB disk). '
             + ('CLI-only server (no desktop environment).' if is_server else f'desktop ({desktop_environment.display_name}).')
         )
 
@@ -575,14 +575,14 @@ class AdminTemplateJobApplyConfigurationView(views.APIView):
             except Exception:
                 ip = None
         if not ip:
-            job.log_step('Could not determine VM IP — no guest agent yet and no vm_ip supplied.', level='error')
+            job.log_step('Could not determine VM IP. No guest agent yet and no vm_ip supplied.', level='error')
             # Real, deliberate revert: nothing destructive has run yet
             # (no SSH session even opened), so it's genuinely safe to
             # hand power controls back to the admin here rather than
             # leaving the job looking permanently "busy".
             job.status = 'awaiting_os_install'
             job.save(update_fields=['status'])
-            return Response({'success': False, 'message': 'Could not reach the VM — guest-agent is not installed yet at this stage, so pass vm_ip explicitly (check the console for the real IP).'}, status=502)
+            return Response({'success': False, 'message': 'Could not reach the VM. Guest-agent is not installed yet at this stage, so pass vm_ip explicitly (check the console for the real IP).'}, status=502)
 
         is_server = job.template_type == 'server'
         job.log_step(
@@ -618,14 +618,14 @@ class AdminTemplateJobApplyConfigurationView(views.APIView):
                 )
             elif 'refused' in lower or 'unable to connect to port' in lower:
                 actionable = (
-                    f'SSH reached {ip}, but nothing is listening on port 22 — openssh-server is not '
+                    f'SSH reached {ip}, but nothing is listening on port 22. openssh-server is not '
                     'installed/running on this VM yet (common on fresh Parrot/desktop-Linux installs, '
                     'which do not ship it by default). Open the console above, log in, and run: '
-                    'sudo apt update && sudo apt install openssh-server -y — then click Continue again.'
+                    'sudo apt update && sudo apt install openssh-server -y. Then click Continue again.'
                 )
             elif 'timed out' in lower or 'timeout' in lower:
                 actionable = (
-                    f'Connection to {ip}:22 timed out — no response at all, not even a refusal. '
+                    f'Connection to {ip}:22 timed out. No response at all, not even a refusal. '
                     'This usually means the VM is still booting, the IP is stale (re-check it with '
                     '`ip a` in the console), or something on the network path is silently dropping the '
                     'connection. Confirm the VM is fully booted and the IP is current, then try again.'
@@ -653,7 +653,7 @@ class AdminTemplateJobApplyConfigurationView(views.APIView):
         # to stop booting from the ISO — permanently, for every job.
         try:
             ps.detach_install_iso_and_fix_boot_order(job.proxmox_vmid)
-            job.log_step('Install ISO detached and boot order fixed — future reboots will boot the installed OS, not the installer.')
+            job.log_step('Install ISO detached and boot order fixed. Future reboots will boot the installed OS, not the installer.')
         except Exception as e:
             job.status = 'failed'
             job.error_message = f'Could not fix boot order after install: {e}'
@@ -825,7 +825,7 @@ class AdminTemplateJobApplyConfigurationView(views.APIView):
         # skipped entirely for a server job, which has no
         # DesktopEnvironmentProfile (`de` is None) and no xrdp at all.
         if is_server:
-            job.log_step('Server (CLI-only) template — skipping desktop-environment configuration entirely.')
+            job.log_step('Server (CLI-only) template. Skipping desktop-environment configuration entirely.')
         else:
             if de.fix_script.strip():
                 job.log_step(f'Running fix_script for {de.display_name}...')
@@ -862,7 +862,7 @@ class AdminTemplateJobApplyConfigurationView(views.APIView):
                 job.save(update_fields=['status', 'error_message'])
                 job.log_step(job.error_message, level='error')
                 return Response({'success': False, 'message': job.error_message}, status=502)
-            job.log_step('session_command verified on disk — content matches exactly.')
+            job.log_step('session_command verified on disk. Content matches exactly.')
 
         job.status = 'installing_apps'
         job.save(update_fields=['status'])
@@ -936,7 +936,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y firefox
         # same manual-IP fallback.
         ip = manual_ip or ps.get_vm_ip(job.proxmox_vmid, max_wait=10)
         if not ip:
-            return Response({'success': False, 'message': 'Could not reach the VM to install apps — guest-agent is not installed yet at this stage, so pass vm_ip explicitly.'}, status=502)
+            return Response({'success': False, 'message': 'Could not reach the VM to install apps. Guest-agent is not installed yet at this stage, so pass vm_ip explicitly.'}, status=502)
 
         results = []
         for pkg in packages:
@@ -958,7 +958,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y firefox
             results.append({'package': pkg, 'success': ok, 'exit_code': result.get('exit_code')})
             job.log_step(
                 f'{pkg}: {"installed" if ok else "FAILED"} (exit {result.get("exit_code")})'
-                + ('' if ok else f' — {result.get("stderr", "")[:300] or result.get("error", "")}'),
+                + ('' if ok else f': {result.get("stderr", "")[:300] or result.get("error", "")}'),
                 level='info' if ok else 'error',
             )
 
@@ -1004,7 +1004,7 @@ class AdminTemplateJobFinalizeView(views.APIView):
         # manual-IP fallback as apply-configuration/install-apps.
         ip = manual_ip or ps.get_vm_ip(job.proxmox_vmid, max_wait=10)
         if not ip:
-            return Response({'success': False, 'message': 'Could not reach the VM to finalize it — guest-agent may not be installed yet, so pass vm_ip explicitly.'}, status=502)
+            return Response({'success': False, 'message': 'Could not reach the VM to finalize it. Guest-agent may not be installed yet, so pass vm_ip explicitly.'}, status=502)
 
         job.status = 'finalizing'
         job.save(update_fields=['status'])
@@ -1086,7 +1086,7 @@ class AdminTemplateJobFinalizeView(views.APIView):
                 pass
             time.sleep(4)
         if not stopped:
-            job.log_step('VM did not shut down cleanly in time — forcing stop.', level='error')
+            job.log_step('VM did not shut down cleanly in time. Forcing stop.', level='error')
             ps.stop_vm(job.proxmox_vmid)
         job.log_step(f'VM stopped (clean shutdown: {stopped}).')
 
@@ -1110,7 +1110,7 @@ class AdminTemplateJobFinalizeView(views.APIView):
             job.log_step(job.error_message, level='error')
             return Response({'success': False, 'message': job.error_message}, status=502)
 
-        job.log_step('Template conversion verified — template flag genuinely set.')
+        job.log_step('Template conversion verified. Template flag genuinely set.')
         job.status = 'verifying'
         job.save(update_fields=['status'])
 
@@ -1323,7 +1323,7 @@ class AdminTemplateJobOpenTerminalView(views.APIView):
         ps = ProxmoxService()
         ip = manual_ip or ps.get_vm_ip(job.proxmox_vmid, max_wait=10)
         if not ip:
-            return Response({'success': False, 'message': 'Could not reach the VM to open a terminal — guest-agent may not be installed yet, so pass vm_ip explicitly.'}, status=502)
+            return Response({'success': False, 'message': 'Could not reach the VM to open a terminal. Guest-agent may not be installed yet, so pass vm_ip explicitly.'}, status=502)
 
         gs = get_guacamole_service()
         try:
@@ -1504,16 +1504,16 @@ class AdminTemplateJobPowerView(views.APIView):
                     'success': False,
                     'message': (
                         f'Cannot {action} while configuration is actively running (status: {job.status}). '
-                        f'This VM is busy, not stuck — interrupting it now risks corrupting the installation '
+                        f'This VM is busy, not stuck. Interrupting it now risks corrupting the installation '
                         f'(exactly what happened before: a power action mid-install left dpkg in a broken state). '
-                        f'Please wait for the current step to complete — check the live log above for progress.'
+                        f'Please wait for the current step to complete. Check the live log above for progress.'
                     ),
                 }, status=409)
             # Genuinely no log activity for STUCK_AFTER_MINUTES — treat
             # as a real hang, not a guess: mark it failed honestly and
             # let this power action through.
             job.status = 'failed'
-            job.error_message = f'Step timed out after {self.STUCK_AFTER_MINUTES}+ minutes with no progress — may genuinely be stuck.'
+            job.error_message = f'Step timed out after {self.STUCK_AFTER_MINUTES}+ minutes with no progress. May genuinely be stuck.'
             job.save(update_fields=['status', 'error_message'])
             job.log_step(job.error_message, level='error')
 
@@ -1564,7 +1564,7 @@ class AdminVMOpenTerminalView(views.APIView):
             except Exception as e:
                 return Response({'success': False, 'message': f'Could not query VM {proxmox_vmid}: {e}'}, status=502)
         if not ip:
-            return Response({'success': False, 'message': f'Could not reach VM {proxmox_vmid} — is it running with a network connection? If it has no guest-agent yet, pass vm_ip explicitly.'}, status=502)
+            return Response({'success': False, 'message': f'Could not reach VM {proxmox_vmid}. Is it running with a network connection? If it has no guest-agent yet, pass vm_ip explicitly.'}, status=502)
 
         gs = get_guacamole_service()
         try:

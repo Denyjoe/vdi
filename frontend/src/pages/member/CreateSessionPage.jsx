@@ -191,7 +191,7 @@ export default function CreateSessionPage() {
   // template catalogue are loaded — editable afterward, not locked.
   useEffect(() => {
     if (!courseInfo || coursePrefilled || templates.length === 0) return;
-    setSessionName(`${courseInfo.code} — Class Session`);
+    setSessionName(`${courseInfo.code} Class Session`);
     setSessionType('lecture');
     if (courseInfo.default_template_id) {
       const t = templates.find(t => t.id === courseInfo.default_template_id);
@@ -330,7 +330,7 @@ export default function CreateSessionPage() {
         }}>
           <GraduationCap size={18} style={{ color: 'var(--accent-primary)' }} />
           <p style={{ fontSize: '13px', color: 'var(--text-primary)', margin: 0 }}>
-            <strong>Class Session</strong> for {courseInfo.code} — {courseInfo.name}. Pre-filled from the course's defaults — feel free to adjust before starting.
+            <strong>Class Session</strong> for {courseInfo.code}: {courseInfo.name}. Pre-filled from the course's defaults. Feel free to adjust before starting.
           </p>
         </div>
       )}
@@ -355,7 +355,7 @@ export default function CreateSessionPage() {
             <input
               value={sessionName}
               onChange={e => setSessionName(e.target.value)}
-              placeholder="e.g. Intro to Python Lab"
+              placeholder="Enter a name for the session"
               style={inputStyle}
             />
           </div>
@@ -501,7 +501,7 @@ export default function CreateSessionPage() {
                   <input
                     value={allowedDomainsInput}
                     onChange={e => setAllowedDomainsInput(e.target.value)}
-                    placeholder="e.g. github.com, docs.python.org"
+                    placeholder="Enter domains (e.g., github.com)"
                     style={inputStyle}
                   />
                   {/* Honest limitation, not hidden: whitelisting resolves each
@@ -511,7 +511,7 @@ export default function CreateSessionPage() {
                       host setting this up for a real exam should know large,
                       many-server sites can be unreliable. */}
                   <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>
-                    Best for simple, single-IP sites (e.g. institutional LMS). Large sites with many servers (Google, YouTube) may not work reliably.
+                    Best for simple, single-IP sites like institutional LMS. Large sites with many servers (Google, YouTube) may not work reliably.
                   </p>
                 </div>
               )}
@@ -592,7 +592,7 @@ export default function CreateSessionPage() {
                     Covered by {courseInfo?.university_name || 'your university'}
                   </div>
                   <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    No individual charge — uses your university's resource allocation.
+                    No individual charge. Uses your university's resource allocation.
                   </div>
                 </div>
               </div>
@@ -787,7 +787,7 @@ function CheckoutSessionModal({ payload, isOpen, onClose, onSuccess }) {
               <label style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-muted, #94A3B8)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
                 Mobile Number
               </label>
-              <input value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} placeholder="e.g. 0712345678"
+              <input value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} placeholder="0712345678"
                 style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border-color, #334155)', background: 'var(--bg-input, transparent)', color: 'var(--text-primary, #F8FAFC)', fontSize: '14px', marginBottom: '8px' }}
               />
               

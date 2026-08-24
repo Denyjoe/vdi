@@ -15,6 +15,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='vmtemplate',
             name='university',
-            field=models.ForeignKey(blank=True, help_text='Optional. Null = platform-wide template, visible to everyone (existing behavior, unchanged). Set = scoped to this university only — used for course-specific templates.', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='templates', to='university.university'),
+            field=models.ForeignKey(blank=True, help_text='Optional. Null = platform-wide template, visible to everyone (existing behavior, unchanged). Set = scoped to this university only. Used for course-specific templates.', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='templates', to='university.university'),
         ),
     ]

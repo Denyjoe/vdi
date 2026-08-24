@@ -108,7 +108,7 @@ class Command(BaseCommand):
                 user.save()
                 self.stdout.write(self.style.SUCCESS(f'  ✓ Created user {email}'))
             else:
-                self.stdout.write(self.style.WARNING(f'  – User {email} already exists'))
+                self.stdout.write(self.style.WARNING(f'  - User {email} already exists'))
             created_users[email] = user
 
         return created_users
@@ -198,7 +198,7 @@ class Command(BaseCommand):
             if created:
                 self.stdout.write(self.style.SUCCESS(f'  ✓ Created template: {name}'))
             else:
-                self.stdout.write(self.style.WARNING(f'  – Template exists: {name}'))
+                self.stdout.write(self.style.WARNING(f'  - Template exists: {name}'))
 
         total = VMTemplate.objects.count()
         self.stdout.write(self.style.SUCCESS(f'  Total VM templates in DB: {total}'))
@@ -227,9 +227,9 @@ class Command(BaseCommand):
         for d in departments_data:
             dept, created = Department.objects.get_or_create(code=d['code'], defaults=d)
             if created:
-                self.stdout.write(self.style.SUCCESS(f'  ✓ Created department: {d["code"]} — {d["name"]}'))
+                self.stdout.write(self.style.SUCCESS(f'  ✓ Created department: {d["code"]}: {d["name"]}'))
             else:
-                self.stdout.write(self.style.WARNING(f'  – Department exists: {d["code"]}'))
+                self.stdout.write(self.style.WARNING(f'  - Department exists: {d["code"]}'))
 
     def _seed_programmes(self):
         self.stdout.write('\n── Seeding Programmes ──')
@@ -295,13 +295,13 @@ class Command(BaseCommand):
                 defaults={**p, 'department': dept}
             )
             if created:
-                self.stdout.write(self.style.SUCCESS(f'  ✓ Created programme: {p["code"]} — {p["name"]}'))
+                self.stdout.write(self.style.SUCCESS(f'  ✓ Created programme: {p["code"]}: {p["name"]}'))
             else:
                 for attr, value in p.items():
                     setattr(prog, attr, value)
                 prog.department = dept
                 prog.save()
-                self.stdout.write(self.style.WARNING(f'  – Programme exists/updated: {p["code"]}'))
+                self.stdout.write(self.style.WARNING(f'  - Programme exists/updated: {p["code"]}'))
             programmes[prog.code] = prog
 
         return programmes
@@ -372,7 +372,7 @@ class Command(BaseCommand):
             else:
                 stream.programme = prog
                 stream.save()
-                self.stdout.write(self.style.WARNING(f'  – Stream exists/updated: {s["code"]}'))
+                self.stdout.write(self.style.WARNING(f'  - Stream exists/updated: {s["code"]}'))
 
     def _seed_class(self, created_users):
         """
@@ -386,7 +386,7 @@ class Command(BaseCommand):
         lecturer = created_users.get('shija@dit.ac.tz')
         admin_user = created_users.get('admin@dit.ac.tz')
         if not lecturer:
-            self.stdout.write(self.style.WARNING('  – Lecturer not found, skipping class creation.'))
+            self.stdout.write(self.style.WARNING('  - Lecturer not found, skipping class creation.'))
             return
 
         cs = Department.objects.get(code='CS')
@@ -419,7 +419,7 @@ class Command(BaseCommand):
             class_room.class_type = 'official'
             class_room.created_by = admin_user
             class_room.save()
-            self.stdout.write(self.style.WARNING('  – Class already exists: Computer Engineering Lab (updated type)'))
+            self.stdout.write(self.style.WARNING('  - Class already exists: Computer Engineering Lab (updated type)'))
 
         # Enroll students
         student_emails = ['denis@dit.ac.tz', 'student2@dit.ac.tz', 'student3@dit.ac.tz']
@@ -433,7 +433,7 @@ class Command(BaseCommand):
                 if created:
                     self.stdout.write(self.style.SUCCESS(f'  ✓ Enrolled {email}'))
                 else:
-                    self.stdout.write(self.style.WARNING(f'  – {email} already enrolled'))
+                    self.stdout.write(self.style.WARNING(f'  - {email} already enrolled'))
 
     def _assign_user_profiles(self, created_users):
         """
@@ -460,7 +460,7 @@ class Command(BaseCommand):
                     f'  ✓ Denis → {cs_dept.code}/{bcoe.code}/{beng24_coe2.code}/Y4'
                 ))
         except (Department.DoesNotExist, Programme.DoesNotExist, CourseStream.DoesNotExist) as e:
-            self.stdout.write(self.style.WARNING(f'  – Could not assign Denis profile: {e}'))
+            self.stdout.write(self.style.WARNING(f'  - Could not assign Denis profile: {e}'))
 
         # Mr. Shija → CS department
         try:
@@ -473,7 +473,7 @@ class Command(BaseCommand):
                 shija.save()
                 self.stdout.write(self.style.SUCCESS(f'  ✓ Mr. Shija → {cs_dept.code}/{bcoe.code}'))
         except Department.DoesNotExist:
-            self.stdout.write(self.style.WARNING('  – CS department not found.'))
+            self.stdout.write(self.style.WARNING('  - CS department not found.'))
         # student2 → Amina Hassan
         try:
             student2 = created_users.get('student2@dit.ac.tz')
@@ -488,7 +488,7 @@ class Command(BaseCommand):
                 student2.save()
                 self.stdout.write(self.style.SUCCESS(f'  ✓ student2 → {cs_dept.code}/{bcoe.code}/{beng24_coe2.code}/Y4'))
         except Exception as e:
-            self.stdout.write(self.style.WARNING(f'  – Could not assign student2: {e}'))
+            self.stdout.write(self.style.WARNING(f'  - Could not assign student2: {e}'))
 
         # student3 → John Mbeki
         try:
@@ -504,7 +504,7 @@ class Command(BaseCommand):
                 student3.save()
                 self.stdout.write(self.style.SUCCESS(f'  ✓ student3 → {cs_dept.code}/{bcoe.code}/{beng24_coe1.code}/Y4'))
         except Exception as e:
-            self.stdout.write(self.style.WARNING(f'  – Could not assign student3: {e}'))
+            self.stdout.write(self.style.WARNING(f'  - Could not assign student3: {e}'))
 
 
     def _seed_practical_session(self, created_users):
@@ -518,12 +518,12 @@ class Command(BaseCommand):
 
         lecturer = created_users.get('shija@dit.ac.tz')
         if not lecturer:
-            self.stdout.write(self.style.WARNING('  – Lecturer not found, skipping.'))
+            self.stdout.write(self.style.WARNING('  - Lecturer not found, skipping.'))
             return
 
         class_room = Class.objects.filter(name='Computer Engineering Lab').first()
         if not class_room:
-            self.stdout.write(self.style.WARNING('  – Class not found, skipping.'))
+            self.stdout.write(self.style.WARNING('  - Class not found, skipping.'))
             return
 
         autocad_template = VMTemplate.objects.filter(name='AutoCAD Workstation').first()
@@ -566,4 +566,4 @@ class Command(BaseCommand):
                 f'  ✓ Created practical session: {session.name} ({enrollments.count()} students)'
             ))
         else:
-            self.stdout.write(self.style.WARNING(f'  – Practical session exists: {session.name}'))
+            self.stdout.write(self.style.WARNING(f'  - Practical session exists: {session.name}'))

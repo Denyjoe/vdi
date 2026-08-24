@@ -40,7 +40,7 @@ const CircularGauge = ({ percentage, label, subtext, format = 'percent', offline
         </svg>
         <div className="absolute flex flex-col items-center justify-center text-center">
           <span className={`text-lg font-bold text-[var(--text-primary)] leading-none`}>
-            {offline ? "—" : (format === 'percent' ? `${Math.round(percentage)}%` : Math.round(percentage))}
+            {offline ? "N/A" : (format === 'percent' ? `${Math.round(percentage)}%` : Math.round(percentage))}
           </span>
         </div>
       </div>
@@ -415,13 +415,13 @@ export default function AdminDashboard() {
             <div>
               <h3 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
                 <Server className="w-5 h-5 text-indigo-400" />
-                Proxmox Server — {systemStats?.proxmox?.node || 'pve'}
+                Proxmox Server: {systemStats?.proxmox?.node || 'pve'}
               </h3>
               <p className="text-sm text-[var(--text-secondary)] mt-1">Resource utilization</p>
             </div>
             <div className="text-right">
               <p className="text-xs text-[var(--text-secondary)] uppercase tracking-wider mb-1">Uptime</p>
-              <p className="text-[var(--text-primary)] font-mono">{stats.systemStatus === 'Healthy' ? formatUptime(systemStats?.proxmox?.uptime_seconds) : '—'}</p>
+              <p className="text-[var(--text-primary)] font-mono">{stats.systemStatus === 'Healthy' ? formatUptime(systemStats?.proxmox?.uptime_seconds) : 'N/A'}</p>
             </div>
           </div>
           
@@ -434,13 +434,13 @@ export default function AdminDashboard() {
             <CircularGauge 
               percentage={(systemStats?.proxmox?.ram_used / systemStats?.proxmox?.ram_total * 100) || 0} 
               label="RAM" 
-              subtext={stats.systemStatus === 'Healthy' ? `${systemStats?.proxmox?.ram_used || 0} / ${systemStats?.proxmox?.ram_total || 0} GB` : '—'} 
+              subtext={stats.systemStatus === 'Healthy' ? `${systemStats?.proxmox?.ram_used || 0} / ${systemStats?.proxmox?.ram_total || 0} GB` : 'N/A'} 
               offline={stats.systemStatus !== 'Healthy'}
             />
             <CircularGauge 
               percentage={stats.systemStatus === 'Healthy' && systemStats?.proxmox?.storage_total > 0 ? (systemStats.proxmox.storage_used / systemStats.proxmox.storage_total * 100) : 0} 
               label="Storage" 
-              subtext={stats.systemStatus === 'Healthy' && systemStats?.proxmox?.storage_total > 0 ? `${systemStats.proxmox.storage_used} / ${systemStats.proxmox.storage_total} GB` : "—"} 
+              subtext={stats.systemStatus === 'Healthy' && systemStats?.proxmox?.storage_total > 0 ? `${systemStats.proxmox.storage_used} / ${systemStats.proxmox.storage_total} GB` : "N/A"} 
               offline={stats.systemStatus !== 'Healthy'}
             />
           </div>
@@ -561,7 +561,7 @@ export default function AdminDashboard() {
                   )}
                   <div className={`w-4 h-4 rounded-full mt-1 shrink-0 bg-indigo-500 ring-4 ring-[var(--bg-card)] z-10`}></div>
                   <div>
-                    <p className="text-[var(--text-primary)] font-medium text-sm">{log.admin_name} — {log.action_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                    <p className="text-[var(--text-primary)] font-medium text-sm">{log.admin_name}: {log.action_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
                     <p className="text-[var(--text-secondary)] text-sm mt-0.5">{log.description}</p>
                     <p className="text-xs text-muted mt-1">{new Date(log.created_at).toLocaleString()}</p>
                   </div>

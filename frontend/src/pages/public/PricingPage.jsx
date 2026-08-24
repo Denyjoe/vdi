@@ -50,7 +50,7 @@ export default function PricingPage() {
       highlight: false,
     },
     {
-      name: 'Personal Workspace — Hours',
+      name: 'Personal Workspace: Hours',
       tagline: 'Buy hours for the specific VM type you need',
       price: 'Per Hour',
       period: 'real rate set per template',
@@ -64,14 +64,14 @@ export default function PricingPage() {
       highlight: false,
     },
     {
-      name: 'Personal Workspace — Unlimited',
+      name: 'Personal Workspace: Unlimited',
       tagline: 'Subscribe to one VM type for unlimited monthly access',
       price: 'Per Month',
       period: 'real rate set per template',
       features: [
         'Unlimited hours on that specific VM type',
         'Flat monthly fee, no per-hour charges',
-        'Expires 30 days after purchase — calendar based',
+        'Expires 30 calendar days after purchase',
         'Subscribe to multiple templates independently',
       ],
       cta: 'Go Unlimited',
@@ -82,11 +82,11 @@ export default function PricingPage() {
   const faqs = [
     {
       q: 'Do I need a subscription to host a session?',
-      a: 'No. Hosting is pure pay-per-hour — pay for exactly the hours you need, when you need them. There is no monthly plan required.'
+      a: 'No. Hosting is pure pay-per-hour. Pay for exactly the hours you need, when you need them. There is no monthly plan required.'
     },
     {
       q: 'How does workspace pricing work?',
-      a: 'Every VM template has its own hourly and monthly price, set by the platform. You either buy a specific number of hours (usage-metered — time only counts while the VM is actually running) or subscribe to that specific template for unlimited monthly access.'
+      a: 'Every VM template has its own hourly and monthly price, set by the platform. You either buy a specific number of hours (usage-metered, so time only counts while the VM is actually running) or subscribe to that specific template for unlimited monthly access.'
     },
     {
       q: 'Is the workspace price the same for every VM type?',
@@ -94,7 +94,7 @@ export default function PricingPage() {
     },
     {
       q: 'What happens when my purchased hours run out?',
-      a: "Your workspace simply can't be launched until you buy more hours or subscribe — it is never deleted for running out of balance. It's only removed if it goes genuinely unused for 30 days, regardless of any remaining balance."
+      a: "Your workspace simply can't be launched until you buy more hours or subscribe. It is never deleted for running out of balance. It's only removed if it goes genuinely unused for 30 days, regardless of any remaining balance."
     }
   ];
 
