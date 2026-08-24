@@ -450,3 +450,61 @@ class ApplyConfigurationServerTypeTests(TestCase):
         self.assertEqual(resp.data['data']['status'], 'installing_apps')
         all_script_calls = [str(call) for call in mock_run_script.call_args_list]
         self.assertTrue(any('xrdp' in c for c in all_script_calls), all_script_calls)
+
+
+class UnlinkedTemplateLinkViewServerTypeTests(TestCase):
+    """Phase 4: the 'link an existing Proxmox template' admin flow
+    (pool_views.py's UnlinkedTemplateLinkView) also gained template_type
+    support in Phase 3, but had no direct test yet. Real Django
+    request/response cycle; only the actual Proxmox network call is
+    faked, at the real module boundary the view imports it from."""
+
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username='__t_unlinked_admin__', email='unlinked_admin@t.com', password='pw12345', role='admin')
+        self.client = APIClient()
+        self.client.force_authenticate(self.admin)
+
+    def tearDown(self):
+        VMTemplate.objects.filter(name__startswith='__TEST__').delete()
+
+    @patch('apps.vms.services.proxmox_service.ProxmoxService')
+    def test_linking_with_server_type_sets_it_on_the_real_template(self, MockPS):
+        instance = MockPS.return_value
+        instance.proxmox.nodes.return_value.qemu.return_value.config.get.return_value = {
+            'template': 1, 'name': 'unlinked-server', 'cores': 2, 'memory': 2048,
+        }
+        resp = self.client.post('/api/vms/admin/templates/unlinked/link/', {
+            'proxmox_vmid': 12345, 'name': '__TEST__ Linked Server', 'template_type': 'server',
+        }, format='json')
+        self.assertEqual(resp.status_code, 201, resp.content)
+        template = VMTemplate.objects.get(name='__TEST__ Linked Server')
+        self.assertEqual(template.template_type, 'server')
+
+    @patch('apps.vms.services.proxmox_service.ProxmoxService')
+    def test_linking_with_no_template_type_defaults_to_desktop_regression(self, MockPS):
+        instance = MockPS.return_value
+        instance.proxmox.nodes.return_value.qemu.return_value.config.get.return_value = {
+            'template': 1, 'name': 'unlinked-desktop', 'cores': 2, 'memory': 2048,
+        }
+        resp = self.client.post('/api/vms/admin/templates/unlinked/link/', {
+            'proxmox_vmid': 12346, 'name': '__TEST__ Linked Desktop',
+        }, format='json')
+        self.assertEqual(resp.status_code, 201, resp.content)
+        template = VMTemplate.objects.get(name='__TEST__ Linked Desktop')
+        self.assertEqual(template.template_type, 'desktop')
+
+    @patch('apps.vms.services.proxmox_service.ProxmoxService')
+    def test_linking_with_invalid_template_type_falls_back_to_desktop(self, MockPS):
+        # Adversarial: a nonsense/garbage template_type must never
+        # silently create an ambiguous VMTemplate row.
+        instance = MockPS.return_value
+        instance.proxmox.nodes.return_value.qemu.return_value.config.get.return_value = {
+            'template': 1, 'name': 'unlinked-garbage', 'cores': 2, 'memory': 2048,
+        }
+        resp = self.client.post('/api/vms/admin/templates/unlinked/link/', {
+            'proxmox_vmid': 12347, 'name': '__TEST__ Linked Garbage', 'template_type': 'not-a-real-type',
+        }, format='json')
+        self.assertEqual(resp.status_code, 201, resp.content)
+        template = VMTemplate.objects.get(name='__TEST__ Linked Garbage')
+        self.assertEqual(template.template_type, 'desktop')

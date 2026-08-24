@@ -16,6 +16,14 @@ export default function LinkUnlinkedTemplateModal({ unlinked, isOpen, onClose, o
   const [osFamily, setOsFamily] = useState('');
   const [pricePerHour, setPricePerHour] = useState(0);
   const [pricePerMonth, setPricePerMonth] = useState(0);
+  // Real, deliberate (Phase 4): the backend link-unlinked-template
+  // endpoint has accepted template_type since Phase 3, but this modal
+  // never sent one — every template linked this way silently defaulted
+  // to 'desktop', even a real, already-built headless server template
+  // an admin created outside the wizard. Defaulting the picker itself
+  // to 'desktop' keeps every existing linking flow's behavior
+  // unchanged unless the admin actively picks otherwise.
+  const [templateType, setTemplateType] = useState('desktop');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -24,6 +32,7 @@ export default function LinkUnlinkedTemplateModal({ unlinked, isOpen, onClose, o
       setOsFamily('');
       setPricePerHour(0);
       setPricePerMonth(0);
+      setTemplateType('desktop');
     }
   }, [unlinked]);
 
@@ -42,6 +51,7 @@ export default function LinkUnlinkedTemplateModal({ unlinked, isOpen, onClose, o
         os_family: osFamily,
         price_per_hour: pricePerHour,
         price_per_month: pricePerMonth,
+        template_type: templateType,
       });
       toast.success(`"${name}" is now a real, linked template.`);
       onLinked();
@@ -73,6 +83,27 @@ export default function LinkUnlinkedTemplateModal({ unlinked, isOpen, onClose, o
         </div>
 
         <div style={{ padding: '24px' }}>
+          <label style={labelStyle}>Template Type</label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
+            {[
+              { value: 'desktop', label: 'Desktop' },
+              { value: 'server', label: 'Server (CLI only)' },
+            ].map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => setTemplateType(opt.value)}
+                style={{
+                  padding: '9px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                  border: `1px solid ${templateType === opt.value ? 'var(--accent-primary)' : 'var(--border-color)'}`,
+                  background: templateType === opt.value ? 'var(--accent-primary)' : 'var(--bg-input)',
+                  color: templateType === opt.value ? '#fff' : 'var(--text-secondary)',
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
           <label style={labelStyle}>Display Name *</label>
           <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} />
 
