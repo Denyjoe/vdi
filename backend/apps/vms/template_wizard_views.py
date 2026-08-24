@@ -762,6 +762,59 @@ class AdminTemplateJobApplyConfigurationView(views.APIView):
             level='info' if ssh_fix_result['success'] else 'warning',
         )
 
+        # Real, confirmed, systemic root cause fixed here: every real
+        # production RDP/SSH login this platform ever makes — pool
+        # assignment, direct provisioning, server-type SSH — is
+        # hardcoded everywhere else in this app to VM_DEFAULT_USER/
+        # VM_DEFAULT_PASSWORD (see guacamole_service.py,
+        # vm_orchestrator.py, pool_service.py). Nothing in this wizard
+        # ever actually provisioned that exact account on the template
+        # itself — the OS installer's own account-creation screen lets
+        # the admin type ANY username/password they want for their OWN
+        # manual SSH work here, and neither desktop fix_script has ever
+        # touched user accounts at all. A template built by an admin
+        # who (reasonably) named their own account something other than
+        # the platform's real default silently promotes fine, finalizes
+        # fine, verifies fine — then every real student session against
+        # it fails at the exact same real xrdp-sesman step confirmed
+        # live: "pam_authenticate failed: Authentication failure /
+        # Username or password error for user: ospace" — because
+        # `ospace` genuinely does not exist on the VM at all. Confirmed
+        # against a real, live, currently-affected template (built via
+        # this exact wizard, admin's own account named "bengcoe";
+        # `id ospace` on the real VM: "no such user").
+        #
+        # Fixed here, not per-template: the platform's real login
+        # account is created/repaired — real, unconditionally, every
+        # single build, regardless of what the admin named their own
+        # account — with the SAME real VM_DEFAULT_USER/VM_DEFAULT_PASSWORD
+        # every other real launch path already assumes exists. Runs
+        # for both desktop and server jobs (a server template's SSH
+        # login uses the exact same real account).
+        from decouple import config as _config
+        platform_user = _config('VM_DEFAULT_USER', default='student')
+        platform_password = _config('VM_DEFAULT_PASSWORD', default='student123')
+        job.log_step(f'Ensuring the real platform login account ("{platform_user}") exists with the correct password...')
+        provision_account_script = (
+            f"if ! id {platform_user} >/dev/null 2>&1; then\n"
+            f"  useradd -m -s /bin/bash {platform_user}\n"
+            f"fi\n"
+            f"echo '{platform_user}:{platform_password}' | chpasswd\n"
+            f"usermod -aG sudo {platform_user} 2>/dev/null || usermod -aG wheel {platform_user} 2>/dev/null || true\n"
+            f"id {platform_user}\n"
+        )
+        account_result = run_ssh_script(ip, ssh_username, ssh_password, provision_account_script, timeout=60)
+        if not account_result['success']:
+            job.status = 'failed'
+            job.error_message = (
+                f'Could not provision the real platform login account ("{platform_user}"): '
+                f'{account_result.get("stderr") or account_result.get("error")}'
+            )
+            job.save(update_fields=['status', 'error_message'])
+            job.log_step(job.error_message, level='error')
+            return Response({'success': False, 'message': job.error_message}, status=502)
+        job.log_step(f'Platform login account verified: {account_result["stdout"].strip()}')
+
         # Real, deliberate branch point (Phase 3): everything above this
         # (dpkg/full-upgrade/openssh version-pin) is genuine, valuable
         # hardening for ANY Linux VM — server templates get it too, and
