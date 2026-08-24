@@ -779,3 +779,84 @@ def get_guacamole_service():
         GuacamoleService: A ready-to-use service instance.
     """
     return GuacamoleService()
+
+
+# --- Real, template-type-aware connection helpers (Phase 3: CLI-only/
+# headless server templates) -------------------------------------------
+#
+# Every real production VM-launch path (vm_orchestrator.py's
+# start_real_vm/provision_real_vm, pool_service.py's create_pool_vm/
+# assign_vm_to_user) used to unconditionally wait on RDP's port 3389 and
+# mint an RDP Guacamole connection, with zero awareness that a
+# VMTemplate could be template_type='server' (CLI-only, no desktop
+# environment, no RDP server ever installed on it at all). Confirmed by
+# direct code read: this field has existed on VMTemplate since before
+# this phase, with real seeded 'server' rows already in seed_data.py,
+# but nothing at actual session-launch time ever consulted it — a real
+# student assigned a server-type VM would have had this code wait 120s
+# for RDP that would never come up, then fail with a misleading "remote
+# desktop service did not become ready" error. These two helpers are
+# the single, shared fix point for that gap — used by every real launch
+# path below instead of each duplicating its own RDP-only wait/connect
+# logic (the exact kind of duplicated, easy-to-miss-one-of-them logic
+# that already caused a real disconnect bug earlier in this build, see
+# apps/university/admin_views.py's grant_role_in_department).
+
+def wait_for_remote_access_ready(ip, template_type, timeout=120, poll_interval=2):
+    """Wait until the real, template-type-appropriate remote-access
+    service is genuinely accepting TCP connections — SSH (port 22) for
+    a 'server' template, RDP (port 3389) for a 'desktop' template.
+    Never waits on the wrong port: a server template has no RDP server
+    installed at all, so waiting on 3389 there would time out for a
+    reason that has nothing to do with the VM's real readiness."""
+    import socket
+    import time as _time
+
+    port = 22 if template_type == 'server' else 3389
+    elapsed = 0
+    while elapsed < timeout:
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(3)
+            result = sock.connect_ex((ip, port))
+            sock.close()
+            if result == 0:
+                return True
+        except Exception:
+            pass
+        _time.sleep(poll_interval)
+        elapsed += poll_interval
+    return False
+
+
+def create_connection_for_template(guacamole, template_type, name, ip, restrictions=None):
+    """Mint the real, correct-protocol Guacamole connection for a
+    template's type: SSH for 'server' (never RDP — there is no desktop
+    stream to create), RDP for 'desktop' (existing, unchanged
+    behavior). Raises on failure either way, so every call site's
+    existing except-block handles both protocols identically.
+
+    `restrictions` (session clipboard/file-transfer/etc. controls) only
+    applies to the RDP path today — Guacamole's SSH protocol doesn't
+    expose the same parameter set, and no real call site has needed
+    session restrictions on a CLI-only connection yet."""
+    from decouple import config
+
+    username = config('VM_DEFAULT_USER', default='student')
+    password = config('VM_DEFAULT_PASSWORD', default='student123')
+
+    if template_type == 'server':
+        # create_ssh_connection() raises on real failure rather than
+        # returning None (see its own docstring) — let that propagate
+        # to the caller's existing except-block unchanged.
+        return guacamole.create_ssh_connection(
+            name=name, hostname=ip, username=username, password=password,
+        )
+
+    conn_id = guacamole.create_connection(
+        name=name, hostname=ip, username=username, password=password,
+        restrictions=restrictions,
+    )
+    if not conn_id:
+        raise Exception('Guacamole connection failed: create_connection returned None')
+    return conn_id

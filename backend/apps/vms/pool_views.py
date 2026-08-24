@@ -772,6 +772,8 @@ class UnlinkedTemplateLinkView(APIView):
             return Response({'success': False, 'message': f'Proxmox VM {proxmox_vmid} is not marked as a template.'}, status=400)
 
         name = (request.data.get('name') or cfg.get('name') or f'Template {proxmox_vmid}').strip()
+        requested_template_type = (request.data.get('template_type') or '').strip().lower()
+        template_type = requested_template_type if requested_template_type in ('desktop', 'server') else 'desktop'
         disk_gb = 20
         disk_field = cfg.get('scsi0') or cfg.get('sata0') or cfg.get('virtio0') or ''
         for part in disk_field.split(','):
@@ -793,7 +795,15 @@ class UnlinkedTemplateLinkView(APIView):
             proxmox_template_id=proxmox_vmid,
             is_real=True,
             is_available=True,
-            template_type='desktop',
+            # Real, deliberate (Phase 3): an admin linking an existing
+            # Proxmox template built outside the wizard might genuinely
+            # be linking a headless server template — defaulting this
+            # to 'desktop' unconditionally would silently mislabel it,
+            # and every real session-launch path now trusts this field
+            # to decide RDP vs SSH. Let the admin say which it is;
+            # 'desktop' remains the default for a bare request, matching
+            # existing behavior for every template actually built this way.
+            template_type=template_type,
             price_per_hour=request.data.get('price_per_hour', 0),
             price_per_month=request.data.get('price_per_month', 0),
         )

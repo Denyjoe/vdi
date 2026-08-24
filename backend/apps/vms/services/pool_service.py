@@ -96,16 +96,32 @@ class VMPoolService:
             entry.ip_address = ip_address
             entry.save()
 
-            # 4. Wait for RDP to be ready
-            time.sleep(RDP_READY_WAIT_SECONDS)
+            # 4. Wait for the real, template-type-appropriate remote-
+            # access service — SSH for a 'server' template, RDP for a
+            # 'desktop' template. A fixed sleep-and-hope here used to be
+            # RDP-only and blind to whether the service was actually up;
+            # this actively confirms the correct port before minting a
+            # connection to it.
+            from apps.vms.services.guacamole_service import wait_for_remote_access_ready, create_connection_for_template
+            template_type = template.template_type
+            access_ready = wait_for_remote_access_ready(ip_address, template_type, timeout=RDP_READY_WAIT_SECONDS + 60)
+            if not access_ready:
+                logger.error(
+                    "Pool VM %s: %s never became ready", new_vmid,
+                    'SSH' if template_type == 'server' else 'RDP',
+                )
+                entry.status = 'error'
+                entry.save()
+                return entry
 
-            # 5. Create Guacamole connection
-            conn_id = self.guacamole.create_connection(
-                name=clone_name,
-                hostname=ip_address,
-                username=config('VM_DEFAULT_USER', default='student'),
-                password=config('VM_DEFAULT_PASSWORD', default='student123'),
-            )
+            # 5. Create the real, correct-protocol Guacamole connection
+            # (SSH for server, RDP for desktop — never RDP against a
+            # server template, which has no RDP server at all).
+            try:
+                conn_id = create_connection_for_template(self.guacamole, template_type, clone_name, ip_address)
+            except Exception as conn_exc:
+                logger.error("Pool VM %s: Guacamole connection failed: %s", new_vmid, conn_exc)
+                conn_id = None
 
             if conn_id:
                 entry.guacamole_connection_id = conn_id
@@ -191,14 +207,16 @@ class VMPoolService:
                 except ImportError:
                     pass
 
-                # Create new one with correct IP
+                # Create new one with correct IP — real, correct
+                # protocol for this template's real type (SSH for
+                # server, RDP for desktop; never RDP against a server
+                # template).
                 try:
-                    conn_id = self.guacamole.create_connection(
-                        name=f'user-{user.id}-vm-{entry.proxmox_vmid}',
-                        hostname=ip_address,
-                        username=config('VM_DEFAULT_USER', default='student'),
-                        password=config('VM_DEFAULT_PASSWORD', default='student123'),
-                        restrictions=session_restrictions
+                    from apps.vms.services.guacamole_service import create_connection_for_template
+                    conn_id = create_connection_for_template(
+                        self.guacamole, template.template_type,
+                        f'user-{user.id}-vm-{entry.proxmox_vmid}', ip_address,
+                        restrictions=session_restrictions,
                     )
                     entry.guacamole_connection_id = conn_id
                     entry.save()

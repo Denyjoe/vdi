@@ -498,10 +498,34 @@ class TemplateCreationJob(models.Model):
         ('failed', 'Failed'),
     ]
 
+    TEMPLATE_TYPE_CHOICES = [
+        ('desktop', 'Desktop'),
+        ('server', 'Server (CLI only)'),
+    ]
+
     name = models.CharField(max_length=100)
     proxmox_vmid = models.IntegerField(null=True, blank=True)
+    # Real, deliberate choice made here (Phase 3, CLI-only/headless
+    # server templates): a 'server' job never gets a
+    # DesktopEnvironmentProfile at all — there is no desktop to
+    # configure, so forcing one onto every job (the old, non-nullable
+    # PROTECT FK) would mean either lying about a fake desktop
+    # environment for a real CLI-only build, or blocking the feature
+    # entirely. null=True here is exactly what makes the server path
+    # possible; every desktop-path call site must now handle
+    # desktop_environment being None for a server job (see
+    # template_wizard_views.py and _serialize_job).
     desktop_environment = models.ForeignKey(
-        DesktopEnvironmentProfile, on_delete=models.PROTECT)
+        DesktopEnvironmentProfile, on_delete=models.PROTECT, null=True, blank=True)
+    template_type = models.CharField(
+        max_length=20, choices=TEMPLATE_TYPE_CHOICES, default='desktop',
+        help_text=(
+            "'desktop' = the existing flow (a chosen DesktopEnvironmentProfile "
+            "is configured and streamed via RDP). 'server' = CLI-only/headless: "
+            "no desktop environment at all, ongoing access is via Guacamole SSH "
+            "only, never RDP/VNC."
+        ),
+    )
     cpu_cores = models.IntegerField(default=2)
     ram_gb = models.IntegerField(default=4)
     disk_gb = models.IntegerField(default=20)

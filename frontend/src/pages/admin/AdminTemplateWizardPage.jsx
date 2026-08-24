@@ -19,6 +19,10 @@ const STEP_LABELS = {
 };
 
 const COMMON_APPS = ['firefox', 'libreoffice', 'gimp', 'code', 'vlc', 'thunderbird', 'blender', 'audacity'];
+// Real, deliberate separate list for the server (CLI-only) path — the
+// desktop list above is entirely GUI apps, meaningless on a headless
+// template. Genuinely common real-world server tooling instead.
+const COMMON_SERVER_PACKAGES = ['git', 'htop', 'curl', 'wget', 'build-essential', 'python3-pip', 'docker.io', 'nginx', 'postgresql', 'nodejs'];
 
 // Matches the backend's AdminTemplateJobPowerView.BUSY_STATUSES exactly —
 // real, backend-automated work (SSH/apt commands) runs during these,
@@ -122,6 +126,11 @@ export default function AdminTemplateWizardPage() {
     ram_gb: templateRequest?.estimated_ram_gb || 4,
     disk_gb: templateRequest?.estimated_storage_gb || 20,
     iso_volid: '', desktop_environment_id: '',
+    // Real, deliberate default: 'desktop' matches every existing
+    // template ever built through this wizard — a brand new admin
+    // landing on this page for the first time gets the exact old
+    // flow unless they actively pick "Server (CLI only)" below.
+    template_type: 'desktop',
   });
   // ISO acquisition — real upload straight to Proxmox, or a real
   // server-side download Proxmox itself performs from a URL. Neither
@@ -173,7 +182,7 @@ export default function AdminTemplateWizardPage() {
   const [manualIp, setManualIp] = useState('');
   const [selectedApps, setSelectedApps] = useState([]);
   const [customApp, setCustomApp] = useState('');
-  const [promoteForm, setPromoteForm] = useState({ name: '', description: '', price_per_hour: 0, price_per_month: 0, icon: '🖥️', os_family: '' });
+  const [promoteForm, setPromoteForm] = useState({ name: '', description: '', price_per_hour: 0, price_per_month: 0, icon: '🖥️', os_family: '', os: '' });
 
   const loadIsos = () => api.get('/admin/templates/available-isos/').then(r => setIsos(r.data.data || [])).catch(() => toast.error('Could not load real ISOs from Proxmox.'));
 
@@ -321,9 +330,11 @@ export default function AdminTemplateWizardPage() {
     return () => clearInterval(pollRef.current);
   }, [job?.id, job?.status]);
 
+  const isServerType = form.template_type === 'server';
+
   const handleCreateVm = async () => {
-    if (!form.name || !form.iso_volid || !form.desktop_environment_id) {
-      toast.error('Name, ISO, and desktop environment are all required.');
+    if (!form.name || !form.iso_volid || (!isServerType && !form.desktop_environment_id)) {
+      toast.error(isServerType ? 'Name and ISO are required.' : 'Name, ISO, and desktop environment are all required.');
       return;
     }
     setLoading(true);
@@ -718,18 +729,55 @@ export default function AdminTemplateWizardPage() {
       {!job && (
         <div style={cardStyle}>
           <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px' }}>Step 1 — VM Specification</h2>
+
+          {/* Real, deliberate first choice (Phase 3): this determines
+              everything downstream — a 'server' pick means no desktop
+              environment is ever configured, ongoing access is via
+              Guacamole SSH only (never RDP/VNC), and the promote form
+              won't ask for a desktop environment either. Locked to
+              whatever it was at Create VM time — the backend job row
+              itself is immutable on this field once created, so
+              changing it after the VM already exists would just be
+              lying to the UI. */}
+          <label style={labelStyle}>Template Type</label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '18px' }}>
+            {[
+              { value: 'desktop', title: 'Desktop Environment', desc: 'A full graphical desktop, streamed via RDP.', icon: <Monitor size={16} /> },
+              { value: 'server', title: 'Server (CLI only)', desc: 'Headless — no desktop at all. Ongoing access via SSH only.', icon: <Terminal size={16} /> },
+            ].map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => setForm({ ...form, template_type: opt.value })}
+                style={{
+                  display: 'flex', alignItems: 'flex-start', gap: '10px', textAlign: 'left',
+                  padding: '12px 14px', borderRadius: '10px', cursor: 'pointer',
+                  border: `1px solid ${form.template_type === opt.value ? 'var(--accent-primary)' : 'var(--border-color)'}`,
+                  background: form.template_type === opt.value ? 'var(--accent-primary-bg, rgba(99,102,241,0.08))' : 'var(--bg-input)',
+                }}
+              >
+                <div style={{ color: form.template_type === opt.value ? 'var(--accent-primary)' : 'var(--text-secondary)', marginTop: '2px' }}>{opt.icon}</div>
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>{opt.title}</div>
+                  <div style={{ fontSize: '11.5px', color: 'var(--text-secondary)', marginTop: '2px' }}>{opt.desc}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
             <div>
               <label style={labelStyle}>Template Name</label>
               <input style={inputStyle} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Debian Dev Workstation" />
             </div>
-            <div>
-              <label style={labelStyle}>Desktop Environment</label>
-              <select style={inputStyle} value={form.desktop_environment_id} onChange={e => setForm({ ...form, desktop_environment_id: e.target.value })}>
-                <option value="">Select...</option>
-                {profiles.map(p => <option key={p.id} value={p.id}>{p.display_name}</option>)}
-              </select>
-            </div>
+            {!isServerType && (
+              <div>
+                <label style={labelStyle}>Desktop Environment</label>
+                <select style={inputStyle} value={form.desktop_environment_id} onChange={e => setForm({ ...form, desktop_environment_id: e.target.value })}>
+                  <option value="">Select...</option>
+                  {profiles.map(p => <option key={p.id} value={p.id}>{p.display_name}</option>)}
+                </select>
+              </div>
+            )}
             <div>
               <label style={labelStyle}>vCPU Cores</label>
               <input type="number" style={inputStyle} value={form.cpu_cores} onChange={e => setForm({ ...form, cpu_cores: e.target.value })} />
@@ -1071,9 +1119,11 @@ export default function AdminTemplateWizardPage() {
 
           <JobLog job={job} />
           <div style={{ marginTop: '20px' }}>
-            <label style={labelStyle}>Common Apps</label>
+            <label style={labelStyle}>
+              {job.template_type === 'server' ? 'Common CLI Tools (optional — a server template needs none of these)' : 'Common Apps'}
+            </label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
-              {COMMON_APPS.map(app => (
+              {(job.template_type === 'server' ? COMMON_SERVER_PACKAGES : COMMON_APPS).map(app => (
                 <button key={app} onClick={() => toggleApp(app)} style={{
                   padding: '6px 14px', borderRadius: '999px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
                   border: '1px solid var(--border-color)',
@@ -1084,7 +1134,7 @@ export default function AdminTemplateWizardPage() {
             </div>
             <label style={labelStyle}>Other packages (comma-separated apt package names)</label>
             <input style={inputStyle} value={customApp} onChange={e => setCustomApp(e.target.value)} placeholder="e.g. htop, git, curl" />
-            <div style={{ marginTop: '14px', display: 'flex', gap: '10px' }}>
+            <div style={{ marginTop: '14px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               <button style={primaryBtn} onClick={handleInstallApps} disabled={loading}>
                 {loading ? <Loader2 size={14} className="animate-spin" style={{ display: 'inline', marginRight: 6 }} /> : null}
                 Install Selected
@@ -1093,13 +1143,28 @@ export default function AdminTemplateWizardPage() {
                 <Terminal size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
                 Open Terminal
               </button>
+              {job.template_type === 'server' && (
+                <button
+                  style={{ ...primaryBtn, background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}
+                  onClick={handleFinalize}
+                  disabled={loading}
+                  title="This server template needs no CLI tools beyond the base OS — go straight to finalizing."
+                >
+                  Skip — Finalize with Base OS Only
+                </button>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* STEP 5: finalize (shown once at least one app install attempt happened, or admin wants to skip apps) */}
-      {job && job.status === 'installing_apps' && job.log?.some(l => l.message.includes('exit')) && (
+      {/* STEP 5: finalize. For a desktop job, shown once at least one
+          app install attempt happened (existing behavior, unchanged).
+          For a server job, CLI tools are genuinely optional (see the
+          Skip button above) — always available the moment the job
+          reaches installing_apps, never gated behind having installed
+          something first. */}
+      {job && job.status === 'installing_apps' && (job.template_type === 'server' || job.log?.some(l => l.message.includes('exit'))) && (
         <div style={{ ...cardStyle, marginTop: '16px' }}>
           <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Step 5 — Finalize Template</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px' }}>
@@ -1148,6 +1213,17 @@ export default function AdminTemplateWizardPage() {
               <label style={labelStyle}>Icon (emoji fallback — only used if no OS family below)</label>
               <input style={inputStyle} value={promoteForm.icon} onChange={e => setPromoteForm({ ...promoteForm, icon: e.target.value })} />
             </div>
+            {job.template_type === 'server' && (
+              <div>
+                <label style={labelStyle}>OS Display Name (this template has no desktop environment to derive one from)</label>
+                <input
+                  style={inputStyle}
+                  value={promoteForm.os}
+                  onChange={e => setPromoteForm({ ...promoteForm, os: e.target.value })}
+                  placeholder="e.g. Ubuntu 22.04 Server — leave blank to guess from the ISO filename"
+                />
+              </div>
+            )}
             <div>
               <label style={labelStyle}>OS family (picks the real, correctly-licensed OS icon shown everywhere)</label>
               <input

@@ -178,51 +178,41 @@ class VMOrchestrator:
         
         try:
             from apps.vms.services.proxmox_service import get_proxmox_service
-            from apps.vms.services.guacamole_service import get_guacamole_service
-            from decouple import config
+            from apps.vms.services.guacamole_service import (
+                get_guacamole_service, wait_for_remote_access_ready, create_connection_for_template,
+            )
             import time
             from django.utils import timezone
-            
+
             proxmox = get_proxmox_service()
             guacamole = get_guacamole_service()
-            
+            # Real, deliberate: read the template's real type ONCE, here
+            # — every downstream branch (which port to wait on, which
+            # Guacamole protocol to mint) reads from this same value, so
+            # they can never disagree with each other.
+            template_type = vm.template.template_type
+
             if not vm.proxmox_vm_id:
                 raise Exception("VM does not have a proxmox_vm_id")
-                
+
             proxmox.start_vm(vm.proxmox_vm_id)
-            
+
             ASSIGN_IP_WAIT_SECONDS = 120
             ip_address = proxmox.get_vm_ip(vm.proxmox_vm_id, max_wait=ASSIGN_IP_WAIT_SECONDS)
             if not ip_address:
                 raise Exception('VM did not acquire IP address within timeout')
-                
+
             vm.ip_address = ip_address
             vm.save()
 
-            # Wait for RDP to be genuinely ready (TCP port check)
-            import socket
-            def wait_for_rdp_ready(ip, port=3389, timeout=120, poll_interval=2):
-                """Wait until xrdp is actually accepting connections."""
-                elapsed = 0
-                while elapsed < timeout:
-                    try:
-                        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                        sock.settimeout(3)
-                        result = sock.connect_ex((ip, port))
-                        sock.close()
-                        if result == 0:
-                            return True
-                    except Exception:
-                        pass
-                    time.sleep(poll_interval)
-                    elapsed += poll_interval
-                return False
-
-            vm.notes = 'Waiting for remote desktop service to start...'
+            vm.notes = (
+                'Waiting for SSH to start...' if template_type == 'server'
+                else 'Waiting for remote desktop service to start...'
+            )
             vm.save(update_fields=['notes'])
 
-            rdp_ready = wait_for_rdp_ready(ip_address, timeout=120)
-            if not rdp_ready:
+            access_ready = wait_for_remote_access_ready(ip_address, template_type, timeout=120)
+            if not access_ready:
                 # Clean up the orphaned Proxmox VM
                 try:
                     proxmox.delete_vm_completely(vm.proxmox_vm_id)
@@ -230,16 +220,17 @@ class VMOrchestrator:
                     import logging
                     logging.getLogger(__name__).error(
                         f'Failed to clean up orphaned VM {vm.proxmox_vm_id} '
-                        f'after RDP timeout: {cleanup_err}')
+                        f'after {"SSH" if template_type == "server" else "RDP"} timeout: {cleanup_err}')
                 vm.status = 'error'
                 vm.notes = (
-                    'VM started but the remote desktop service did not '
-                    'become ready in time. The VM has been cleaned up. '
-                    'Please try again.')
+                    ('VM started but SSH did not become ready in time. '
+                     if template_type == 'server' else
+                     'VM started but the remote desktop service did not become ready in time. ')
+                    + 'The VM has been cleaned up. Please try again.')
                 vm.save()
                 workspace.status = 'error'
                 workspace.save()
-                return {'error': 'RDP port did not become ready'}
+                return {'error': f'{"SSH" if template_type == "server" else "RDP"} port did not become ready'}
 
             session_restrictions = {}
             try:
@@ -249,24 +240,19 @@ class VMOrchestrator:
                     session_restrictions = participant.session.restrictions
             except ImportError:
                 pass
-                
+
             if vm.guacamole_connection_id:
                 try:
                     guacamole.delete_connection(vm.guacamole_connection_id)
                 except Exception:
                     pass
-            
+
             clone_name = f'vm-{vm.owner.id}-{vm.id}'
             try:
-                conn_id = guacamole.create_connection(
-                    name=clone_name,
-                    hostname=ip_address,
-                    username=config('VM_DEFAULT_USER', default='student'),
-                    password=config('VM_DEFAULT_PASSWORD', default='student123'),
-                    restrictions=session_restrictions
+                conn_id = create_connection_for_template(
+                    guacamole, template_type, clone_name, ip_address,
+                    restrictions=session_restrictions,
                 )
-                if not conn_id:
-                    raise Exception('Guacamole connection failed: create_connection returned None')
                 vm.guacamole_connection_id = conn_id
             except Exception as e:
                 import logging
@@ -286,8 +272,8 @@ class VMOrchestrator:
                 vm.notes = (
                     'VM started successfully but '
                     'failed to connect to the '
-                    'remote desktop service. '
-                    'The VM has been cleaned up. '
+                    + ('SSH service. ' if template_type == 'server' else 'remote desktop service. ')
+                    + 'The VM has been cleaned up. '
                     'Please try again or contact '
                     'support.')
                 vm.save()
@@ -367,11 +353,13 @@ class VMOrchestrator:
             vm.save(update_fields=['status', 'notes'])
 
             from apps.vms.services.proxmox_service import get_proxmox_service
-            from apps.vms.services.guacamole_service import get_guacamole_service
-            from decouple import config
+            from apps.vms.services.guacamole_service import (
+                get_guacamole_service, wait_for_remote_access_ready, create_connection_for_template,
+            )
 
             proxmox = get_proxmox_service()
             guacamole = get_guacamole_service()
+            template_type = template.template_type
 
             clone_name = f'vm-{vm.owner.id}-{vm.id}'
             new_vmid = proxmox.clone_template(
@@ -384,7 +372,7 @@ class VMOrchestrator:
             proxmox.start_vm(new_vmid)
 
             DIRECT_CLONE_IP_WAIT = 90
-            
+
             def ip_progress_cb(waited):
                 vm.notes = f'Waiting for network ({waited}s)...'
                 vm.save(update_fields=['notes'])
@@ -402,30 +390,14 @@ class VMOrchestrator:
             vm.ip_address = ip_address
             vm.save()
 
-            # Wait for RDP to be genuinely ready
-            import socket
-            def wait_for_rdp_ready(ip, port=3389, timeout=120, poll_interval=2):
-                """Wait until xrdp is actually accepting connections."""
-                elapsed = 0
-                while elapsed < timeout:
-                    try:
-                        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                        sock.settimeout(3)
-                        result = sock.connect_ex((ip, port))
-                        sock.close()
-                        if result == 0:
-                            return True
-                    except Exception:
-                        pass
-                    time.sleep(poll_interval)
-                    elapsed += poll_interval
-                return False
-
-            vm.notes = 'Waiting for remote desktop service to start...'
+            vm.notes = (
+                'Waiting for SSH to start...' if template_type == 'server'
+                else 'Waiting for remote desktop service to start...'
+            )
             vm.save(update_fields=['notes'])
 
-            rdp_ready = wait_for_rdp_ready(ip_address, timeout=120)
-            if not rdp_ready:
+            access_ready = wait_for_remote_access_ready(ip_address, template_type, timeout=120)
+            if not access_ready:
                 # Clean up the orphaned Proxmox VM
                 try:
                     from apps.vms.services.proxmox_service import get_proxmox_service
@@ -434,18 +406,19 @@ class VMOrchestrator:
                     import logging
                     logging.getLogger(__name__).error(
                         f'Failed to clean up orphaned VM {vm.proxmox_vm_id} '
-                        f'after RDP timeout: {cleanup_err}')
+                        f'after {"SSH" if template_type == "server" else "RDP"} timeout: {cleanup_err}')
                 vm.status = 'error'
                 vm.notes = (
-                    'VM started but the remote desktop service did not '
-                    'become ready in time. The VM has been cleaned up. '
-                    'Please try again.')
+                    ('VM started but SSH did not become ready in time. '
+                     if template_type == 'server' else
+                     'VM started but the remote desktop service did not become ready in time. ')
+                    + 'The VM has been cleaned up. Please try again.')
                 vm.save()
                 workspace = vm.workspace_set.first()
                 if workspace:
                     workspace.status = 'error'
                     workspace.save()
-                return {'error': 'RDP port did not become ready'}
+                return {'error': f'{"SSH" if template_type == "server" else "RDP"} port did not become ready'}
 
             session_restrictions = {}
             try:
@@ -457,15 +430,10 @@ class VMOrchestrator:
                 pass
 
             try:
-                conn_id = guacamole.create_connection(
-                    name=clone_name,
-                    hostname=ip_address,
-                    username=config('VM_DEFAULT_USER', default='student'),
-                    password=config('VM_DEFAULT_PASSWORD', default='student123'),
-                    restrictions=session_restrictions
+                conn_id = create_connection_for_template(
+                    guacamole, template_type, clone_name, ip_address,
+                    restrictions=session_restrictions,
                 )
-                if not conn_id:
-                    raise Exception('Guacamole connection failed: create_connection returned None')
                 vm.guacamole_connection_id = conn_id
             except Exception as e:
                 import logging
@@ -486,8 +454,8 @@ class VMOrchestrator:
                 vm.notes = (
                     'VM started successfully but '
                     'failed to connect to the '
-                    'remote desktop service. '
-                    'The VM has been cleaned up. '
+                    + ('SSH service. ' if template_type == 'server' else 'remote desktop service. ')
+                    + 'The VM has been cleaned up. '
                     'Please try again or contact '
                     'support.')
                 vm.save()

@@ -322,11 +322,26 @@ class AdminTemplateJobCreateView(views.APIView):
         disk_gb = request.data.get('disk_gb')
         iso_volid = request.data.get('iso_volid')
         de_id = request.data.get('desktop_environment_id')
+        # Real, deliberate default: any pre-Phase-3 caller that never
+        # sends template_type at all (none should exist post-frontend-
+        # update, but a stale cached bundle or a direct API call could)
+        # gets the exact old behavior — 'desktop', desktop_environment
+        # required below — never a silent server-type job nobody asked for.
+        template_type = (request.data.get('template_type') or 'desktop').strip().lower()
+        if template_type not in ('desktop', 'server'):
+            return Response({'success': False, 'message': "template_type must be 'desktop' or 'server'."}, status=400)
+        is_server = template_type == 'server'
 
-        if not all([name, cpu_cores, ram_gb, disk_gb, iso_volid, de_id]):
+        required = [name, cpu_cores, ram_gb, disk_gb, iso_volid]
+        if not is_server:
+            required.append(de_id)
+        if not all(required):
             return Response({
                 'success': False,
-                'message': 'name, cpu_cores, ram_gb, disk_gb, iso_volid, and desktop_environment_id are all required.',
+                'message': (
+                    'name, cpu_cores, ram_gb, disk_gb, and iso_volid are all required'
+                    + ('.' if is_server else ', and desktop_environment_id is required for a desktop template.')
+                ),
             }, status=400)
 
         template_request = None
@@ -366,11 +381,12 @@ class AdminTemplateJobCreateView(views.APIView):
                 'message': 'A university admin may only start a build from an approved template request.',
             }, status=403)
 
-        desktop_environment = get_object_or_404(DesktopEnvironmentProfile, id=de_id)
+        desktop_environment = None if is_server else get_object_or_404(DesktopEnvironmentProfile, id=de_id)
 
         job = TemplateCreationJob.objects.create(
             name=name,
             desktop_environment=desktop_environment,
+            template_type=template_type,
             cpu_cores=cpu_cores,
             ram_gb=ram_gb,
             disk_gb=disk_gb,
@@ -380,7 +396,10 @@ class AdminTemplateJobCreateView(views.APIView):
             university=university,
             template_request=template_request,
         )
-        job.log_step(f'Job created for "{name}" ({cpu_cores} vCPU / {ram_gb}GB RAM / {disk_gb}GB disk).')
+        job.log_step(
+            f'Job created for "{name}" ({cpu_cores} vCPU / {ram_gb}GB RAM / {disk_gb}GB disk) — '
+            + ('CLI-only server (no desktop environment).' if is_server else f'desktop ({desktop_environment.display_name}).')
+        )
 
         ps = ProxmoxService()
         try:
@@ -549,7 +568,12 @@ class AdminTemplateJobApplyConfigurationView(views.APIView):
             job.save(update_fields=['status'])
             return Response({'success': False, 'message': 'Could not reach the VM — guest-agent is not installed yet at this stage, so pass vm_ip explicitly (check the console for the real IP).'}, status=502)
 
-        job.log_step(f'Reached VM at {ip}. Applying real desktop-environment configuration...')
+        is_server = job.template_type == 'server'
+        job.log_step(
+            f'Reached VM at {ip}. '
+            + ('Applying real base configuration (CLI-only server, no desktop step)...' if is_server
+               else 'Applying real desktop-environment configuration...')
+        )
 
         de = job.desktop_environment
 
@@ -722,46 +746,61 @@ class AdminTemplateJobApplyConfigurationView(views.APIView):
             level='info' if ssh_fix_result['success'] else 'warning',
         )
 
-        if de.fix_script.strip():
-            job.log_step(f'Running fix_script for {de.display_name}...')
-            result = run_ssh_script(ip, ssh_username, ssh_password, de.fix_script)
-            job.log_step(
-                f'fix_script exit_code={result.get("exit_code")}.'
-                + (f' stderr: {result["stderr"][:500]}' if not result['success'] else ''),
-                level='info' if result['success'] else 'error',
+        # Real, deliberate branch point (Phase 3): everything above this
+        # (dpkg/full-upgrade/openssh version-pin) is genuine, valuable
+        # hardening for ANY Linux VM — server templates get it too, and
+        # arguably need the openssh pin-check even more, since SSH is
+        # their ONLY access method. Everything below is desktop-specific
+        # (a desktop environment's fix_script, and writing its
+        # session_command into xrdp's startwm.sh for RDP to launch) —
+        # skipped entirely for a server job, which has no
+        # DesktopEnvironmentProfile (`de` is None) and no xrdp at all.
+        if is_server:
+            job.log_step('Server (CLI-only) template — skipping desktop-environment configuration entirely.')
+        else:
+            if de.fix_script.strip():
+                job.log_step(f'Running fix_script for {de.display_name}...')
+                result = run_ssh_script(ip, ssh_username, ssh_password, de.fix_script)
+                job.log_step(
+                    f'fix_script exit_code={result.get("exit_code")}.'
+                    + (f' stderr: {result["stderr"][:500]}' if not result['success'] else ''),
+                    level='info' if result['success'] else 'error',
+                )
+                if not result['success']:
+                    job.status = 'failed'
+                    job.error_message = f'fix_script failed (exit {result.get("exit_code")}): {result.get("stderr") or result.get("error")}'
+                    job.save(update_fields=['status', 'error_message'])
+                    return Response({'success': False, 'message': job.error_message}, status=502)
+
+            job.log_step('Writing real session_command to /etc/xrdp/startwm.sh...')
+            write_result = run_ssh_script(
+                ip, ssh_username, ssh_password,
+                f"cat > /etc/xrdp/startwm.sh << 'SESSIONCOMMANDEOF'\n{de.session_command}SESSIONCOMMANDEOF\nchmod +x /etc/xrdp/startwm.sh",
             )
-            if not result['success']:
+            if not write_result['success']:
                 job.status = 'failed'
-                job.error_message = f'fix_script failed (exit {result.get("exit_code")}): {result.get("stderr") or result.get("error")}'
+                job.error_message = f'Writing session_command failed: {write_result.get("stderr") or write_result.get("error")}'
                 job.save(update_fields=['status', 'error_message'])
+                job.log_step(job.error_message, level='error')
                 return Response({'success': False, 'message': job.error_message}, status=502)
 
-        job.log_step('Writing real session_command to /etc/xrdp/startwm.sh...')
-        write_result = run_ssh_script(
-            ip, ssh_username, ssh_password,
-            f"cat > /etc/xrdp/startwm.sh << 'SESSIONCOMMANDEOF'\n{de.session_command}SESSIONCOMMANDEOF\nchmod +x /etc/xrdp/startwm.sh",
-        )
-        if not write_result['success']:
-            job.status = 'failed'
-            job.error_message = f'Writing session_command failed: {write_result.get("stderr") or write_result.get("error")}'
-            job.save(update_fields=['status', 'error_message'])
-            job.log_step(job.error_message, level='error')
-            return Response({'success': False, 'message': job.error_message}, status=502)
-
-        # Verify honestly — read the file back rather than trusting the
-        # write command's exit code alone.
-        verify = run_ssh_command(ip, ssh_username, ssh_password, 'cat /etc/xrdp/startwm.sh')
-        if not verify['success'] or verify['stdout'].strip() != de.session_command.strip():
-            job.status = 'failed'
-            job.error_message = 'startwm.sh content did not verify after writing.'
-            job.save(update_fields=['status', 'error_message'])
-            job.log_step(job.error_message, level='error')
-            return Response({'success': False, 'message': job.error_message}, status=502)
-        job.log_step('session_command verified on disk — content matches exactly.')
+            # Verify honestly — read the file back rather than trusting the
+            # write command's exit code alone.
+            verify = run_ssh_command(ip, ssh_username, ssh_password, 'cat /etc/xrdp/startwm.sh')
+            if not verify['success'] or verify['stdout'].strip() != de.session_command.strip():
+                job.status = 'failed'
+                job.error_message = 'startwm.sh content did not verify after writing.'
+                job.save(update_fields=['status', 'error_message'])
+                job.log_step(job.error_message, level='error')
+                return Response({'success': False, 'message': job.error_message}, status=502)
+            job.log_step('session_command verified on disk — content matches exactly.')
 
         job.status = 'installing_apps'
         job.save(update_fields=['status'])
-        job.log_step(f'Configuration for {de.display_name} applied successfully.')
+        job.log_step(
+            'Base server configuration applied successfully.' if is_server
+            else f'Configuration for {de.display_name} applied successfully.'
+        )
 
         return Response({'success': True, 'data': _serialize_job(job)})
 
@@ -1113,22 +1152,38 @@ class AdminTemplateJobPromoteView(views.APIView):
                     os_family = candidate
                     break
 
+        # Real branch (Phase 3): a server job has no
+        # DesktopEnvironmentProfile to read os/description/software_list
+        # off of — `job.desktop_environment` is genuinely None. `os` and
+        # `software_list` can be supplied by the admin in the promote
+        # form for a server template; falling back to an honest,
+        # best-effort name derived from the real ISO filename rather
+        # than a misleading desktop label.
+        if job.template_type == 'server':
+            os_display = (request.data.get('os') or '').strip() or _friendly_os_name_from_iso(job.iso_filename)
+            default_description = f'{os_display} server (CLI only, SSH access), created via the admin template wizard.'
+            software_list = request.data.get('software_list') or []
+        else:
+            os_display = job.desktop_environment.display_name
+            default_description = f'{os_display} desktop, created via the admin template wizard.'
+            software_list = request.data.get('software_list') or job.desktop_environment.default_apps
+
         template = VMTemplate.objects.create(
             name=name,
-            description=description or f'{job.desktop_environment.display_name} desktop, created via the admin template wizard.',
+            description=description or default_description,
             cpu_cores=job.cpu_cores,
             ram_gb=job.ram_gb,
             storage_gb=job.disk_gb,
-            os=job.desktop_environment.display_name,
+            os=os_display,
             os_family=os_family,
             icon=icon,
             proxmox_template_id=job.final_template_id,
             is_real=True,
             is_available=True,
-            template_type='desktop',
+            template_type=job.template_type,
             price_per_hour=price_per_hour,
             price_per_month=price_per_month,
-            software_list=job.desktop_environment.default_apps,
+            software_list=software_list,
             university=job.university,
         )
         job.log_step(f'Promoted: VMTemplate #{template.id} ("{name}") is now genuinely live for real users.')
@@ -1452,12 +1507,42 @@ class AdminConnectionStatusView(views.APIView):
         return Response({'success': True, 'data': {'active': active}})
 
 
+def _friendly_os_name_from_iso(iso_filename):
+    """Best-effort, honest OS display name derived from a real ISO
+    filename (e.g. 'ubuntu-22.04.5-live-server-amd64.iso' ->
+    'Ubuntu 22.04.5 Server') — used only as a server-template promote
+    default when the admin doesn't type one explicitly. Never invents
+    an OS that wasn't in the filename; falls back to the raw stem
+    rather than guessing.
+
+    Real, confirmed bug this guards against (caught by this function's
+    own test, not by inspection): job.iso_filename is stored as the
+    RAW iso_volid the admin selected in Step 1 — e.g.
+    'local:iso/ubuntu-22.04.5-live-server-amd64.iso', including the
+    Proxmox storage-name prefix — never just a bare filename. Without
+    stripping everything up to the last '/' first, the storage prefix
+    itself ('local:iso') leaked into the guessed OS name."""
+    import re
+    if not iso_filename:
+        return 'Server'
+    basename = iso_filename.rsplit('/', 1)[-1]
+    stem = re.sub(r'\.iso$', '', basename, flags=re.IGNORECASE)
+    stem = re.sub(r'-(amd64|x86_64|arm64)$', '', stem, flags=re.IGNORECASE)
+    stem = stem.replace('-', ' ').replace('_', ' ')
+    words = [w for w in stem.split() if w.lower() not in ('live',)]
+    return ' '.join(w.capitalize() if not any(c.isdigit() for c in w) else w for w in words) or 'Server'
+
+
 def _serialize_job(job):
     return {
         'id': job.id,
         'name': job.name,
         'proxmox_vmid': job.proxmox_vmid,
-        'desktop_environment': job.desktop_environment.name,
+        # Real, null-safe: a 'server' job genuinely has no
+        # desktop_environment (see the model's field comment) — None
+        # here is the honest value, not a bug to paper over.
+        'desktop_environment': job.desktop_environment.name if job.desktop_environment else None,
+        'template_type': job.template_type,
         'status': job.status,
         'error_message': job.error_message,
         'log': job.log,
