@@ -6,6 +6,7 @@ import {
 import { classService } from '../../services/classService';
 import { practicalService } from '../../services/practicalService';
 import api from '../../services/api';
+import useContextStore from '../../store/contextStore';
 
 const SESSION_TYPES = [
   { id: 'lab', label: 'Lab Session', icon: <FlaskConical className="w-5 h-5 text-emerald-500" /> },
@@ -76,7 +77,7 @@ export default function CreatePracticalModal({ onClose, onCreated }) {
       try {
         const [clsRes, tplRes] = await Promise.all([
           classService.getMyClasses(),
-          api.get('/vms/templates/')
+          api.get('/vms/templates/', { params: { context: useContextStore.getState().contextParam() } })
         ]);
         if (clsRes.data.success) setClasses(clsRes.data.data);
         if (tplRes.data.success) setTemplates(tplRes.data.data);

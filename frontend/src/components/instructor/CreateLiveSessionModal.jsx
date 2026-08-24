@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, CheckCircle, Copy, Link as LinkIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import useContextStore from '../../store/contextStore';
 
 export default function CreateLiveSessionModal({ onClose, onCreated }) {
     const navigate = useNavigate();
@@ -32,7 +33,7 @@ export default function CreateLiveSessionModal({ onClose, onCreated }) {
             try {
                 const [groupsRes, templatesRes] = await Promise.all([
                     api.get('/groups/'),
-                    api.get('/vms/templates/')
+                    api.get('/vms/templates/', { params: { context: useContextStore.getState().contextParam() } })
                 ]);
                 if (groupsRes.data?.success) setGroups(groupsRes.data.data);
                 if (templatesRes.data?.success) setTemplates(templatesRes.data.data);

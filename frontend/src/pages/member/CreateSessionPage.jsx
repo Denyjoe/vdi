@@ -1,9 +1,10 @@
 import useBreakpoint from '../../hooks/useBreakpoint';
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Radio, ArrowLeft, Rocket, Monitor as MonitorIcon, Database, Terminal, Check, X } from 'lucide-react';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { Radio, ArrowLeft, Rocket, Monitor as MonitorIcon, Database, Terminal, Check, X, GraduationCap } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import useContextStore from '../../store/contextStore';
 
 const SESSION_TYPES = [
   { value: 'workshop', label: 'Workshop' },
@@ -104,7 +105,15 @@ export default function CreateSessionPage() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { isDesktop } = useBreakpoint();
-  
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const courseId = searchParams.get('course_id');
+
+  // "Start Class Session" (Phase 5) — reuses this exact page/flow, just
+  // pre-filled from the course and tagged with course_id on submit.
+  const [courseInfo, setCourseInfo] = useState(location.state?.course || null);
+  const [coursePrefilled, setCoursePrefilled] = useState(false);
+
   const [sessionName, setSessionName] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [maxParticipants, setMaxParticipants] = useState(10);
@@ -130,17 +139,67 @@ export default function CreateSessionPage() {
   const [restrictInternet, setRestrictInternet] = useState(false);
   const [allowedDomainsInput, setAllowedDomainsInput] = useState('');
 
-  useEffect(() => {
-    api.get('/vms/templates/').then(res => {
+  // Determine the correct context for the template catalogue.
+  // Class-session flow: the course's university_id is the authoritative
+  // scope — not the navbar's current context (which could be 'personal'
+  // or even a different university). Non-course flow: respect the
+  // context store's active context so personal vs university switching
+  // works as expected.
+  const resolveTemplateContext = () => {
+    if (courseInfo?.university_id) return String(courseInfo.university_id);
+    return useContextStore.getState().contextParam();
+  };
+
+  const fetchTemplates = (ctx) => {
+    api.get('/vms/templates/', { params: { context: ctx } }).then(res => {
       const data = Array.isArray(res.data) ? res.data : res.data?.data || [];
       setTemplates(data);
     });
+  };
+
+  useEffect(() => {
+    fetchTemplates(resolveTemplateContext());
     api.get('/config/session-rate/').then(res => {
       if (res.data.success) {
         setRate(res.data.rate_tzs);
       }
     }).catch(err => console.error(err));
   }, []);
+
+  // When courseInfo arrives after the initial fetch (e.g. from
+  // /my-courses/ fallback), re-fetch templates scoped to the course's
+  // university so the assigned default_template is in the catalogue.
+  useEffect(() => {
+    if (!courseInfo?.university_id) return;
+    fetchTemplates(String(courseInfo.university_id));
+  }, [courseInfo?.university_id]);
+
+  // A direct link/reload (course_id in the URL but no router state — the
+  // LecturerDashboardPage's fast path) still needs the real course data,
+  // so fall back to the same endpoint that page already uses.
+  useEffect(() => {
+    if (!courseId || courseInfo) return;
+    api.get('/university-admin/lecturer/my-courses/').then(res => {
+      const found = (res.data?.data || []).find(c => String(c.id) === String(courseId));
+      if (found) setCourseInfo(found);
+    }).catch(() => {});
+  }, [courseId, courseInfo]);
+
+  // Pre-fill from the course's real defaults once both the course and the
+  // template catalogue are loaded — editable afterward, not locked.
+  useEffect(() => {
+    if (!courseInfo || coursePrefilled || templates.length === 0) return;
+    setSessionName(`${courseInfo.code} — Class Session`);
+    setSessionType('lecture');
+    if (courseInfo.default_template_id) {
+      const t = templates.find(t => t.id === courseInfo.default_template_id);
+      if (t) setSelectedTemplate(t);
+    }
+    if (courseInfo.default_restrictions && Object.keys(courseInfo.default_restrictions).length > 0) {
+      setRestrictions(r => ({ ...r, ...courseInfo.default_restrictions }));
+    }
+    setCoursePrefilled(true);
+  }, [courseInfo, templates, coursePrefilled]);
 
   const canProceed = () => {
     return sessionName.trim().length > 0 && selectedTemplate != null && hours >= 0.5 && hours <= 24;
@@ -163,7 +222,8 @@ export default function CreateSessionPage() {
         hours: hours,
         restrictions: restrictions,
         restrict_internet: restrictInternet || domains.length > 0,
-        allowed_domains: domains
+        allowed_domains: domains,
+        ...(courseId ? { course_id: courseId } : {}),
       }
     });
     
@@ -225,6 +285,19 @@ export default function CreateSessionPage() {
           <ArrowLeft size={16} /> Cancel
         </button>
       </div>
+
+      {courseInfo && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '10px',
+          padding: '12px 16px', borderRadius: '12px', marginBottom: '18px',
+          background: 'var(--accent-primary-soft)', border: '1px solid var(--accent-primary)',
+        }}>
+          <GraduationCap size={18} style={{ color: 'var(--accent-primary)' }} />
+          <p style={{ fontSize: '13px', color: 'var(--text-primary)', margin: 0 }}>
+            <strong>Class Session</strong> for {courseInfo.code} — {courseInfo.name}. Pre-filled from the course's defaults — feel free to adjust before starting.
+          </p>
+        </div>
+      )}
 
       <div style={{
         display: 'grid',

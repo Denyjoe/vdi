@@ -59,6 +59,7 @@ import PricingPage from "./pages/public/PricingPage";
 import TemplatesPage from "./pages/public/TemplatesPage";
 import TermsPage from "./pages/public/TermsPage";
 import PrivacyPage from "./pages/public/PrivacyPage";
+import RequestUniversityAccessPage from "./pages/public/RequestUniversityAccessPage";
 
 // Auth pages
 import SignInPage from "./pages/auth/SignInPage";
@@ -83,11 +84,20 @@ const AdminSettingsPage = React.lazy(() => import("./pages/admin/AdminSettingsPa
 const AdminWorkspacesPage = React.lazy(() => import("./pages/admin/AdminWorkspacesPage"));
 const AdminLiveSessionsPage = React.lazy(() => import("./pages/admin/AdminLiveSessionsPage"));
 const VMPoolPage = React.lazy(() => import("./pages/admin/VMPoolPage"));
+const SuperAdminUniversityRequestsPage = React.lazy(() => import("./pages/admin/SuperAdminUniversityRequestsPage"));
 
 // Shared/User pages
 import NotificationsPage from './pages/shared/NotificationsPage';
 import SessionsPage from "./pages/shared/SessionsPage";
 import JoinSessionPage from "./pages/shared/JoinSessionPage";
+import JoinUniversityPage from "./pages/shared/JoinUniversityPage";
+// Lazy — UniversityAdminDashboardPage pulls in recharts (via
+// UniversityHardwarePanel/GaugeCard) and is only ever reached by the
+// small fraction of accounts with a real university affiliation; eagerly
+// bundling it added ~300KB to EVERY regular user's initial load.
+const UniversityAdminDashboardPage = React.lazy(() => import("./pages/university/UniversityAdminDashboardPage"));
+const LecturerDashboardPage = React.lazy(() => import("./pages/university/LecturerDashboardPage"));
+const MySchedulePage = React.lazy(() => import("./pages/university/MySchedulePage"));
 import NotFoundPage from "./pages/shared/NotFoundPage";
 import MaintenancePage from "./pages/shared/MaintenancePage";
 
@@ -133,6 +143,7 @@ export default function App() {
         <Route path="/templates" element={<TemplatesPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/request-university-access" element={<RequestUniversityAccessPage />} />
         
         <Route path="/signin" element={user ? <Navigate to={getDashboardRoute()} replace /> : <SignInPage />} />
         <Route path="/login" element={<Navigate to="/signin" replace />} />
@@ -141,6 +152,7 @@ export default function App() {
         <Route path="/verify-email" element={<Navigate to="/signin" replace />} />
         
         <Route path="/join/session/:code" element={<JoinSessionPage />} />
+        <Route path="/join/university" element={<JoinUniversityPage />} />
         
         {/* Fallback redirect */}
         <Route path="/member/dashboard" element={<Navigate to={getDashboardRoute()} replace />} />
@@ -161,6 +173,9 @@ export default function App() {
           <Route path="/create-session" element={<CreateSessionPage />} />
           
           <Route path="/sessions" element={<SessionsPage />} />
+          <Route path="/university-admin" element={<Suspense fallback={<LoadingSpinner />}><UniversityAdminDashboardPage /></Suspense>} />
+          <Route path="/my-courses" element={<Suspense fallback={<LoadingSpinner />}><LecturerDashboardPage /></Suspense>} />
+          <Route path="/my-schedule" element={<Suspense fallback={<LoadingSpinner />}><MySchedulePage /></Suspense>} />
           <Route path="/profile" element={<Navigate to="/dashboard" replace />} />
           <Route path="/settings" element={<Navigate to="/dashboard" replace />} />
           <Route path="/account" element={<Navigate to="/dashboard" replace />} />
@@ -186,6 +201,15 @@ export default function App() {
             <Route path="workspaces" element={<Suspense fallback={<LoadingSpinner />}><AdminWorkspacesPage /></Suspense>} />
             <Route path="vm-pool" element={<Suspense fallback={<LoadingSpinner />}><VMPoolPage /></Suspense>} />
             <Route path="sessions" element={<Suspense fallback={<LoadingSpinner />}><AdminLiveSessionsPage /></Suspense>} />
+            {/* SuperAdmin-only (is_superuser) — real platform owner, distinct
+                from regular platform admins. Client-side redirect here is a
+                convenience only; the real boundary is IsSuperAdmin on the
+                backend, which 403s regardless. */}
+            <Route path="university-requests" element={
+              user?.is_superuser
+                ? <Suspense fallback={<LoadingSpinner />}><SuperAdminUniversityRequestsPage /></Suspense>
+                : <Navigate to="/admin/dashboard" replace />
+            } />
           </Route>
           
         </Route>

@@ -12,6 +12,7 @@ import useLiveSession from '../hooks/useLiveSession'
 import JoinByCodeModal from '../components/shared/JoinByCodeModal'
 import useBreakpoint from '../hooks/useBreakpoint'
 import NetworkGlobe from '../components/shared/NetworkGlobe'
+import useContextStore from '../store/contextStore'
 
 import { getOsIcon } from '../utils/osIcons';
 
@@ -118,17 +119,28 @@ export default function DashboardPage() {
     return "Your cloud workspace is ready"
   }
 
+  // Phase 3 (context isolation audit) — this page's own workspace/
+  // template summary never respected the account-context switcher
+  // (Phase 6): it always showed personal data even while the navbar
+  // said "University". Not a leak (it always defaulted to personal,
+  // never showed another tenant's data), but genuinely incomplete —
+  // fixed by attaching the same real context param the Workspaces/
+  // Sessions pages already use, and re-fetching when context changes.
+  const contextParam = useContextStore(s => s.contextParam())
+
   useEffect(() => {
     fetchData()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contextParam])
 
   const fetchData = async () => {
     try {
+      const ctx = useContextStore.getState().contextParam()
       const [wsRes, statsRes, settingsRes, tempRes, actRes] = await Promise.all([
-        api.get('/workspaces/').catch(() => ({ data: {} })),
+        api.get('/workspaces/', { params: { context: ctx } }).catch(() => ({ data: {} })),
         api.get('/auth/profile/stats/').catch(() => ({ data: {} })),
         api.get('/settings/public/').catch(() => ({ data: {} })),
-        api.get('/vms/templates/').catch(() => ({ data: {} })),
+        api.get('/vms/templates/', { params: { context: ctx } }).catch(() => ({ data: {} })),
         api.get('/notifications/').catch(() => ({ data: {} }))
       ])
       

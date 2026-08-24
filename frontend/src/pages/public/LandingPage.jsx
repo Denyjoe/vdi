@@ -22,7 +22,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'How does pricing work?',
-    a: 'Joining sessions is always free. Hosting a live session is pay-per-hour, billed only when you start one. Personal workspaces are priced per VM type — buy exactly the hours you need, or subscribe to a specific template for unlimited monthly access.',
+    a: 'Joining sessions is always free. Hosting a live session is pay-per-hour, billed only when you start one. Personal workspaces are priced per VM type , buy exactly the hours you need, or subscribe to a specific template for unlimited monthly access.',
   },
   {
     q: 'What is Exam Mode?',
@@ -418,6 +418,105 @@ function MonitoringFeature() {
   );
 }
 
+// ---------- for universities section ----------
+
+const UNIVERSITY_POINTS = [
+  'Real per-department and per-course isolation — not just labels on shared data',
+  'Lecturers manage rosters, recurring schedules, and template requests themselves',
+  'Hardware quotas tied to your institution\'s real, negotiated capacity',
+  'One login for admins, lecturers, and students — switch context anytime',
+];
+
+function UniversityDashboardMock() {
+  const activeDept = useCycle(3, 2000);
+  const depts = ['Computer Science', 'Electrical Eng.', 'Mathematics'];
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm p-5 shadow-2xl">
+      <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10">
+        <span className="text-xs font-mono uppercase tracking-wider text-white/50">University Dashboard</span>
+        <span className="text-xs font-mono text-emerald-400">● active</span>
+      </div>
+      <div className="grid grid-cols-3 gap-2 mb-4">
+        {[['Departments', '6'], ['Courses', '24'], ['Students', '1,240']].map(([label, val]) => (
+          <div key={label} className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2.5 text-center">
+            <div className="text-lg font-bold text-white tabular-nums">{val}</div>
+            <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 mt-0.5">{label}</div>
+          </div>
+        ))}
+      </div>
+      <div className="space-y-1.5 mb-4">
+        {depts.map((d, i) => (
+          <div
+            key={d}
+            className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs border transition-colors duration-500 ${i === activeDept ? 'bg-[#8B85FF]/10 border-[#8B85FF]/30 text-[#B4AEFF] font-semibold' : 'border-transparent text-slate-400'}`}
+          >
+            <span className="flex items-center gap-2"><Landmark size={12} /> {d}</span>
+            {i === activeDept && <Check size={13} />}
+          </div>
+        ))}
+      </div>
+      <div className="rounded-lg bg-white/[0.03] border border-white/[0.06] px-3 py-2.5">
+        <div className="flex items-center justify-between text-[11px] mb-1.5">
+          <span className="font-mono uppercase tracking-wider text-slate-400">Hardware Capacity</span>
+          <span className="font-mono text-emerald-400 font-semibold">62% used</span>
+        </div>
+        <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+          <div className="h-full bg-gradient-to-r from-[#6C63FF] to-[#8B85FF]" style={{ width: '62%' }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ForUniversitiesSection() {
+  return (
+    <div className="py-24 bg-[#17132B] relative overflow-hidden">
+      <div
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(closest-side, rgba(108,99,255,0.18), transparent)' }}
+      />
+      <div className="max-w-7xl mx-auto px-6 relative z-10">
+        <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <Reveal>
+            <p className="text-xs font-mono uppercase tracking-widest text-[#B4AEFF] font-semibold mb-4 flex items-center gap-2">
+              <Landmark size={14} /> For Institutions
+            </p>
+            <h2
+              className="text-3xl lg:text-4xl font-normal text-white mb-5 leading-[1.15]"
+              style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}
+            >
+              One platform. Every department, genuinely isolated.
+            </h2>
+            <p className="text-slate-300 mb-8 leading-relaxed max-w-lg">
+              Bring Ospace to your university — real, isolated virtual desktops for every
+              department, course, lecturer, and student, built on the same infrastructure
+              your students may already use individually.
+            </p>
+            <ul className="space-y-3 mb-10">
+              {UNIVERSITY_POINTS.map((point) => (
+                <li key={point} className="flex items-start gap-3 text-sm text-slate-200">
+                  <CheckCircle size={18} className="text-[#8B85FF] shrink-0 mt-0.5" />
+                  <span>{point}</span>
+                </li>
+              ))}
+            </ul>
+            <Link
+              to="/request-university-access"
+              className="inline-flex w-full sm:w-auto px-7 py-3.5 bg-white hover:bg-white/90 text-[#17132B] rounded font-mono text-xs uppercase tracking-wider font-semibold transition-all items-center justify-center gap-2 hover:scale-105"
+            >
+              Request University Access <ArrowRight size={16} />
+            </Link>
+          </Reveal>
+
+          <Reveal delay={120}>
+            <UniversityDashboardMock />
+          </Reveal>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function FaqItem({ item, isOpen, onToggle }) {
   return (
     <div className="border-b border-[#E2E8F0] dark:border-slate-800">
@@ -486,10 +585,12 @@ export default function LandingPage() {
     const hero = document.getElementById('hero');
     const features = document.getElementById('features');
     const pricing = document.getElementById('pricing');
+    const forUniversities = document.getElementById('for-universities');
 
     if (hero) observer.observe(hero);
     if (features) observer.observe(features);
     if (pricing) observer.observe(pricing);
+    if (forUniversities) observer.observe(forUniversities);
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
@@ -530,6 +631,13 @@ export default function LandingPage() {
               className={`text-sm font-medium transition-colors duration-200 pb-1 border-b-2 ${activeSection === 'pricing' ? 'text-[#8B85FF] border-[#8B85FF]' : 'text-slate-200 border-transparent hover:text-white'}`}
             >
               Pricing
+            </a>
+            <a
+              href="#for-universities"
+              onClick={(e) => scrollToSection(e, 'for-universities')}
+              className={`text-sm font-medium transition-colors duration-200 pb-1 border-b-2 ${activeSection === 'for-universities' ? 'text-[#8B85FF] border-[#8B85FF]' : 'text-slate-200 border-transparent hover:text-white'}`}
+            >
+              For Universities
             </a>
             <div className="flex items-center gap-3 ml-4">
               <Link
@@ -691,6 +799,11 @@ export default function LandingPage() {
             <Reveal delay={100}><MonitoringFeature /></Reveal>
           </div>
         </div>
+      </div>
+
+      {/* For Universities */}
+      <div id="for-universities">
+        <ForUniversitiesSection />
       </div>
 
       {/* Pricing */}

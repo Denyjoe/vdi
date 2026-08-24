@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Search, Laptop, Check } from 'lucide-react';
 import api from '../../services/api';
+import useContextStore from '../../store/contextStore';
 
 export default function CreateWorkspaceModal({ onClose, onCreated }) {
     const [templates, setTemplates] = useState([]);
@@ -18,7 +19,7 @@ export default function CreateWorkspaceModal({ onClose, onCreated }) {
 
     const fetchTemplates = async () => {
         try {
-            const res = await api.get('/vms/templates/');
+            const res = await api.get('/vms/templates/', { params: { context: useContextStore.getState().contextParam() } });
             if (res.data?.success) {
                 setTemplates(res.data.data);
             }

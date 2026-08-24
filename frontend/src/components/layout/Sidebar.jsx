@@ -10,11 +10,12 @@ import { toast } from 'react-hot-toast';
 import { signOutFirebase } from '../../config/firebase';
 import useBreakpoint from '../../hooks/useBreakpoint';
 import OspaceLogo from '../shared/OspaceLogo';
+import useContextStore from '../../store/contextStore';
 import {
   LayoutDashboard, Monitor, Video, Plus, BarChart3, ChevronLeft,
-  X, 
+  X,
   ChevronRight, Radio, ChevronUp, LogOut, Settings, Receipt,
-  Server, Users, LayoutTemplate, HardDrive, Cpu
+  Server, Users, LayoutTemplate, HardDrive, Cpu, Landmark, BookOpen, CalendarDays
 } from 'lucide-react';
 
 function NavItem({ icon: Icon, label, path, onClick, collapsed, active, accent, theme, badge }) {
@@ -128,6 +129,57 @@ export default function Sidebar() {
     return () => clearInterval(interval);
   }, [user]);
 
+  // Universities THIS real account administers — a normal user account
+  // may also be a university admin (Phase 4), so this is checked
+  // independently of the platform 'admin' role and shown to any user.
+  const [myUniversities, setMyUniversities] = useState([]);
+  useEffect(() => {
+    if (!user) return;
+    api.get('/university-admin/universities/mine/')
+      .then(res => setMyUniversities(res.data?.data || []))
+      .catch(() => {});
+  }, [user]);
+
+  // Courses THIS real account is the lecturer for (Phase 5) — independent
+  // of university-admin status; a lecturer need not administer anything.
+  const [myCourses, setMyCourses] = useState([]);
+  useEffect(() => {
+    if (!user) return;
+    api.get('/university-admin/lecturer/my-courses/')
+      .then(res => setMyCourses(res.data?.data || []))
+      .catch(() => {});
+  }, [user]);
+
+  // Real courses THIS account is a STUDENT in (Phase 4) — independent of
+  // lecturer/admin status; a student need not teach or administer
+  // anything. Populated regardless of HOW the CourseEnrollment row was
+  // created (bulk CSV, self-enroll invite, direct grant — all the same
+  // real table).
+  const [myStudentCourses, setMyStudentCourses] = useState([]);
+  useEffect(() => {
+    if (!user) return;
+    api.get('/university-admin/student/my-coursework/')
+      .then(res => setMyStudentCourses(res.data?.data || []))
+      .catch(() => {});
+  }, [user]);
+
+  // Phase 3 — complete context isolation audit. myUniversities/myCourses/
+  // myStudentCourses above answer "what CAN this account reach" (raw
+  // capability data); this answers "what context is genuinely ACTIVE
+  // right now" — the University/Teaching/Student nav sections below are
+  // gated on BOTH, so switching to Personal genuinely removes them from
+  // the rendered output (not just visually) rather than showing them
+  // purely because the account happens to hold that role somewhere.
+  const activeContext = useContextStore(s => s.current);
+  const inUniversityContext = activeContext.type === 'university';
+  const activeUniversityAdminEntry = inUniversityContext
+    ? myUniversities.find(u => u.id === activeContext.universityId)
+    : null;
+  const hasActiveTeachingCourse = inUniversityContext
+    && myCourses.some(c => c.university_id === activeContext.universityId);
+  const hasActiveStudentCourse = inUniversityContext
+    && myStudentCourses.some(c => c.university_id === activeContext.universityId);
+
   const handleLogout = async () => {
     try {
       await signOutFirebase();
@@ -189,22 +241,33 @@ export default function Sidebar() {
           </>
         )}
 
-        {/* HOST section */}
-        {user?.role !== 'admin' && (
+        {/* HOST section — Phase 3: "Create Session" starts a real,
+            personal (non-course) session, so it's a genuine "personal
+            workspace/session creation NOT tied to a course" entry point
+            — hidden while a university context is active, per the same
+            isolation standard as the rest of this audit. Lecturers
+            already have a real, course-tagged "Start Class Session"
+            entry point on each course card instead. The whole section
+            still renders if there's a real, already-live session to
+            jump back into, regardless of context — that's real, active
+            state, not a new-session creation shortcut. */}
+        {user?.role !== 'admin' && (!inUniversityContext || liveSession) && (
           <>
             {!collapsed && (
               <p className="px-5 mt-6 mb-2 text-[9px] uppercase tracking-[3px] text-faint font-semibold">
                 Host
               </p>
             )}
-            
+
             {collapsed && (
               <div className="mx-2 my-4 border-t border-border-subtle" />
             )}
-            
+
             <div className={`space-y-1 ${collapsed ? 'px-2' : 'px-3'}`}>
-              <NavItem icon={Plus} label="Create Session" path="/create-session" collapsed={collapsed} active={location.pathname === '/create-session'} />
-              
+              {!inUniversityContext && (
+                <NavItem icon={Plus} label="Create Session" path="/create-session" collapsed={collapsed} active={location.pathname === '/create-session'} />
+              )}
+
               {/* Live session indicator */}
               {liveSession && (
                 <button onClick={() => navigate(`/host/session/${liveSession.id}`)}
@@ -226,6 +289,67 @@ export default function Sidebar() {
                 
 </button>
               )}
+            </div>
+          </>
+        )}
+
+        {/* UNIVERSITY section — Phase 3: gated on the ACTIVE context, not
+            just "does this account administer a university somewhere".
+            Switching to Personal genuinely removes this from the
+            rendered DOM; switching to a DIFFERENT university this
+            account also administers keeps it hidden too (never leaks a
+            university this isn't the currently-active context). */}
+        {activeUniversityAdminEntry && (
+          <>
+            {!collapsed && (
+              <p className="px-5 mt-6 mb-2 text-[9px] uppercase tracking-[3px] text-faint font-semibold">
+                University
+              </p>
+            )}
+            {collapsed && (
+              <div className="mx-2 my-4 border-t border-border-subtle" />
+            )}
+            <div className={`space-y-1 ${collapsed ? 'px-2' : 'px-3'}`}>
+              <NavItem icon={Landmark} label={activeUniversityAdminEntry.name} path="/university-admin" collapsed={collapsed} active={location.pathname === '/university-admin'} theme={theme} />
+            </div>
+          </>
+        )}
+
+        {/* LECTURER section — Phase 3: same real, active-context gate —
+            only rendered while the currently-selected context is a
+            university this account genuinely teaches a course in. */}
+        {hasActiveTeachingCourse && (
+          <>
+            {!collapsed && (
+              <p className="px-5 mt-6 mb-2 text-[9px] uppercase tracking-[3px] text-faint font-semibold">
+                Teaching
+              </p>
+            )}
+            {collapsed && (
+              <div className="mx-2 my-4 border-t border-border-subtle" />
+            )}
+            <div className={`space-y-1 ${collapsed ? 'px-2' : 'px-3'}`}>
+              <NavItem icon={BookOpen} label="My Courses" path="/my-courses" collapsed={collapsed} active={location.pathname === '/my-courses'} theme={theme} />
+            </div>
+          </>
+        )}
+
+        {/* STUDENT section (Phase 4) — same real, active-context gate —
+            only rendered while the currently-selected context is a
+            university this account is genuinely enrolled as a student
+            in, regardless of which real path created that enrollment. */}
+        {hasActiveStudentCourse && (
+          <>
+            {!collapsed && (
+              <p className="px-5 mt-6 mb-2 text-[9px] uppercase tracking-[3px] text-faint font-semibold">
+                Student
+              </p>
+            )}
+            {collapsed && (
+              <div className="mx-2 my-4 border-t border-border-subtle" />
+            )}
+            <div className={`space-y-1 ${collapsed ? 'px-2' : 'px-3'}`}>
+              <NavItem icon={CalendarDays} label="My Schedule" path="/my-schedule" collapsed={collapsed} active={location.pathname === '/my-schedule'} theme={theme} />
             </div>
           </>
         )}
@@ -259,6 +383,19 @@ export default function Sidebar() {
               <NavItem icon={LayoutTemplate} label="Templates" path="/admin/templates" collapsed={collapsed} active={location.pathname === '/admin/templates'} theme={theme} />
               <NavItem icon={BarChart3} label="Analytics" path="/admin/analytics" collapsed={collapsed} active={location.pathname === '/admin/analytics'} theme={theme} />
               <NavItem icon={Settings} label="Settings" path="/admin/settings" collapsed={collapsed} active={location.pathname === '/admin/settings'} theme={theme} />
+
+              {/* SuperAdmin-only — real platform owner (is_superuser),
+                  distinct from regular platform admins (role='admin').
+                  Not shown to any other admin account. */}
+              {user?.is_superuser && (
+                <>
+                  <div className="mx-2 my-4 border-t border-border-subtle" />
+                  <p className={`text-[10px] font-semibold text-[var(--text-faint)] uppercase tracking-wider mb-2 px-3 ${collapsed ? 'hidden' : 'block'}`}>
+                    SuperAdmin
+                  </p>
+                  <NavItem icon={Landmark} label="University Requests" path="/admin/university-requests" collapsed={collapsed} active={location.pathname === '/admin/university-requests'} theme={theme} />
+                </>
+              )}
             </div>
           </>
         )}
@@ -290,12 +427,20 @@ export default function Sidebar() {
                 Account Settings
               
 </button>
-              <button onClick={() => { openBilling(); setShowUserMenu(false); }}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-secondary hover:bg-nav-hover transition-colors">
-                <Receipt size={14} className="text-muted" />
-                Billing & Usage
-              
+              {/* Phase 3 — individual billing is always personal data
+                  (Phase 6: never context-scoped), so the entry point
+                  itself is hidden while a university context is active
+                  rather than surfacing personal payment history under a
+                  "University" mental context — a real institution pays
+                  via its own invoice, not this. */}
+              {!inUniversityContext && (
+                <button onClick={() => { openBilling(); setShowUserMenu(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-secondary hover:bg-nav-hover transition-colors">
+                  <Receipt size={14} className="text-muted" />
+                  Billing & Usage
+
 </button>
+              )}
             </div>
             
             {/* Sign out */}

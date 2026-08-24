@@ -12,22 +12,19 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Server, Monitor, Cpu, HardDrive, Wifi, ArrowUp, ArrowDown, Clock, RefreshCw, AlertTriangle, CheckCircle2, Trash2, EyeOff, Square, XCircle, ShieldCheck, Terminal, X } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, PieChart, Pie, Cell, RadialBarChart, RadialBar } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, PieChart, Pie, Cell } from 'recharts';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import useBreakpoint from '../../hooks/useBreakpoint';
 import useTunnelHealth from '../../hooks/useTunnelHealth';
 import ConfirmModal from '../../components/shared/ConfirmModal';
 import GuacamoleEmbed from '../../components/shared/GuacamoleEmbed';
+import GaugeCard, { percentColor } from '../../components/shared/GaugeCard';
 
 // ── Constants ────────────────────────────────────────────────────────────────
-
-/** Returns a Tailwind / hex colour based on a 0-100 percentage value. */
-const percentColor = (pct) => {
-  if (pct < 50) return '#10B981';   // green
-  if (pct < 75) return '#F59E0B';   // yellow
-  return '#EF4444';                  // red
-};
+// percentColor and GaugeCard now live in components/shared/GaugeCard —
+// extracted so the new University Hardware & Performance page reuses the
+// exact same gauge, not a re-implementation.
 
 /**
  * Formats raw bytes-per-second into a human-readable string.
@@ -71,39 +68,6 @@ const StorageTooltip = ({ active, payload }) => {
  * A single radial gauge card.
  * @param {{ title, value, centerLine1, centerLine2, color }} props
  */
-const GaugeCard = ({ title, value, centerLine1, centerLine2, color }) => {
-  const data = [{ name: title, value: Math.max(0, Math.min(100, value)) }];
-  return (
-    <div className="bg-[var(--bg-card)] rounded-xl p-6 border border-[var(--border-color)] shadow-md flex flex-col items-center">
-      <h3 className="text-[var(--text-secondary)] text-sm font-medium mb-4">{title}</h3>
-      <div className="relative w-full" style={{ height: 160 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <RadialBarChart
-            cx="50%" cy="90%"
-            innerRadius="80%" outerRadius="100%"
-            barSize={14}
-            data={data}
-            startAngle={180}
-            endAngle={0}
-          >
-            <RadialBar
-              background={{ fill: '#334155' }}
-              dataKey="value"
-              cornerRadius={8}
-              fill={color}
-            />
-          </RadialBarChart>
-        </ResponsiveContainer>
-        {/* Centre overlay */}
-        <div className="absolute inset-0 flex flex-col items-center justify-end pb-6 pointer-events-none">
-          <p className="text-2xl font-bold text-[var(--text-primary)]">{centerLine1}</p>
-          {centerLine2 && <p className="text-xs text-[var(--text-secondary)] mt-0.5">{centerLine2}</p>}
-        </div>
-      </div>
-    </div>
-  );
-};
-
 // ── Infrastructure Health (Proxmox <-> DB reconciliation) ─────────────────────
 //
 // Addresses a real, recurring problem found multiple times during today's

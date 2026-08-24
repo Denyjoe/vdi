@@ -5,6 +5,7 @@ import api from '../../services/api';
 import useBreakpoint from '../../hooks/useBreakpoint';
 import ConfirmDialog from '../../components/shared/ConfirmDialog';
 import useConfirm from '../../hooks/useConfirm';
+import useContextStore from '../../store/contextStore';
 
 const formatDuration = (startedAt) => {
   if (!startedAt) return '00:00:00';
@@ -41,6 +42,11 @@ export default function MemberSessionsPage() {
   const [viewingParticipants, setViewingParticipants] = useState(null);
   const [viewingLoading, setViewingLoading] = useState(false);
 
+  // Phase 6 — account context switching. Attached to every fetch below;
+  // switching context (Personal <-> a real university) re-triggers this
+  // effect and reloads the list scoped to whichever is active.
+  const contextParam = useContextStore(s => s.contextParam());
+
   useEffect(() => {
     fetchSessions(true);
     // fetchSessions used to only ever run once — a session joined or
@@ -49,7 +55,8 @@ export default function MemberSessionsPage() {
     // same cadence used on the Workspaces page.
     const interval = setInterval(() => fetchSessions(false), 10000);
     return () => clearInterval(interval);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contextParam]);
 
   // Update durations every second
   const [, setTick] = useState(0);
@@ -66,7 +73,7 @@ export default function MemberSessionsPage() {
   const fetchSessions = async (isInitial = false) => {
     try {
       if (isInitial) setLoading(true);
-      const res = await api.get('/sessions/live/');
+      const res = await api.get('/sessions/live/', { params: { context: useContextStore.getState().contextParam() } });
       const data = res.data?.data || res.data;
       
       const allSessions = [

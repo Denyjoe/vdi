@@ -11,6 +11,7 @@ import toast from 'react-hot-toast'
 import useAuthStore from '../../store/authStore'
 import useUIStore from '../../store/uiStore'
 import useThemeStore from '../../store/themeStore'
+import useContextStore from '../../store/contextStore'
 import useBreakpoint from '../../hooks/useBreakpoint'
 import CheckoutModal from '../../components/shared/CheckoutModal'
 import ConfirmDialog from '../../components/shared/ConfirmDialog'
@@ -72,9 +73,17 @@ export default function WorkspacesPage() {
   const [subscribeTarget, setSubscribeTarget] = useState(null) // { workspaceId, template }
 
   const navigate = useNavigate()
+
+  // Phase 6 — account context switching. Every real, context-aware fetch
+  // attaches this exact param so the server-side boundary
+  // (resolve_context_university) decides what's actually returned —
+  // switching context here just re-triggers the same real fetches.
+  const contextParam = useContextStore(s => s.contextParam())
   useEffect(() => {
     fetchWorkspaces()
-  }, [])
+    if (showCreate) fetchTemplates()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contextParam])
 
   const fetchAccessFor = async (templateId) => {
     try {
@@ -91,7 +100,7 @@ export default function WorkspacesPage() {
 
   const fetchWorkspaces = async () => {
     try {
-      const res = await api.get('/workspaces/')
+      const res = await api.get('/workspaces/', { params: { context: useContextStore.getState().contextParam() } })
       const list = Array.isArray(res.data) ? res.data : res.data?.data || []
       setWorkspaces(list)
       // Real per-template access status for every workspace's own template,
@@ -107,7 +116,7 @@ export default function WorkspacesPage() {
 
   const fetchTemplates = async () => {
     try {
-      const res = await api.get('/vms/templates/')
+      const res = await api.get('/vms/templates/', { params: { context: useContextStore.getState().contextParam() } })
       const list = res.data?.data || []
       setTemplates(list)
       // Per-template access status shown on each template card — fetched

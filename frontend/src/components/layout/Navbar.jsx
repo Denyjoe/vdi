@@ -5,6 +5,7 @@ import useThemeStore from '../../store/themeStore';
 import useUIStore from '../../store/uiStore';
 import useBreakpoint from '../../hooks/useBreakpoint';
 import NotificationBell from '../shared/NotificationBell';
+import ContextSwitcher from '../shared/ContextSwitcher';
 import {
   Menu, Bell, Clock, Wifi, HelpCircle, BookOpen, Keyboard, 
   Mail, FileText, Shield, X, Monitor, MonitorPlay, Users, 
@@ -240,6 +241,8 @@ export default function Navbar({ onMenuClick }) {
             </div>
           )}
           
+          <ContextSwitcher />
+
           <div ref={helpRef} className="relative">
             <button onClick={() => setShowHelp(!showHelp)}
               className="p-1.5 rounded-lg hover:bg-nav-hover transition-colors active:scale-95">
