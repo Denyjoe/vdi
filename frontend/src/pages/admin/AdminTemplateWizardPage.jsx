@@ -956,6 +956,7 @@ export default function AdminTemplateWizardPage() {
           <div style={{
             display: 'flex',
             alignItems: 'center',
+            flexWrap: 'wrap',
             gap: '12px',
             padding: '10px 14px',
             background: 'var(--bg-input)',
@@ -981,7 +982,7 @@ export default function AdminTemplateWizardPage() {
               </span>
             </div>
 
-            <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+            <div style={{ marginLeft: 'auto', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
               {powerStatus !== 'running' && (
                 <button onClick={() => handlePower('start')} disabled={powerBusy || powerStatus === null} style={{
                   display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px', borderRadius: '8px',
@@ -1139,7 +1140,7 @@ export default function AdminTemplateWizardPage() {
                 {powerStatus === null ? 'Checking…' : powerStatus === 'running' ? 'Running' : 'Stopped'}
               </span>
             </div>
-            <div style={{ display: 'flex', gap: '6px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {['Restart', 'Shutdown', 'Force Stop'].map(label => (
                 <button key={label} disabled title="Blocked while configuration is actively running" style={{
                   padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,

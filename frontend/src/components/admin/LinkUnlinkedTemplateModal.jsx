@@ -84,7 +84,11 @@ export default function LinkUnlinkedTemplateModal({ unlinked, isOpen, onClose, o
 
         <div style={{ padding: '24px' }}>
           <label style={labelStyle}>Template Type</label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
+          {/* minmax(0, 1fr) + minWidth:0/boxSizing on the buttons — the
+              same real 375px overflow class of bug found and fixed in
+              the wizard's own Template Type picker (Phase 6), applied
+              here preemptively since this is the identical pattern. */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '8px', marginBottom: '16px' }}>
             {[
               { value: 'desktop', label: 'Desktop' },
               { value: 'server', label: 'Server (CLI only)' },
@@ -93,6 +97,7 @@ export default function LinkUnlinkedTemplateModal({ unlinked, isOpen, onClose, o
                 key={opt.value}
                 onClick={() => setTemplateType(opt.value)}
                 style={{
+                  width: '100%', minWidth: 0, boxSizing: 'border-box',
                   padding: '9px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
                   border: `1px solid ${templateType === opt.value ? 'var(--accent-primary)' : 'var(--border-color)'}`,
                   background: templateType === opt.value ? 'var(--accent-primary)' : 'var(--bg-input)',
