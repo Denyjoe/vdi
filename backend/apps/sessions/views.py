@@ -13,7 +13,15 @@ class LiveSessionListView(generics.ListAPIView):
 
     def get(self, request):
         user = request.user
-        
+
+        # Phase 6 — account context switching. Personal (default,
+        # unchanged for every existing caller) = sessions with no course
+        # tag; a validated university context = only sessions tied to a
+        # course under that university. resolve_context_university raises
+        # 400/403 for a bad/unauthorized value before any filter runs.
+        from apps.university.permissions import resolve_context_university
+        is_scoped, university_id = resolve_context_university(request)
+
         # Real N+1 found via a performance audit: LiveSessionSerializer
         # reads host_details (a FK to User) for every row - without
         # select_related, 30 sessions measured as 36 real queries (one
@@ -25,7 +33,19 @@ class LiveSessionListView(generics.ListAPIView):
         joined = LiveSession.objects.filter(participants__user=user).select_related('host').annotate(
             participant_count=Count('participants')
         ).order_by('-start_time')
-        
+
+        # Only an EXPLICIT context param narrows the list - no param at
+        # all keeps the original, unfiltered "everything I host/joined"
+        # behavior (Phase 5's already-proven default), matching the docs
+        # on resolve_context_university above.
+        if is_scoped:
+            if university_id:
+                hosted = hosted.filter(course__department__university_id=university_id)
+                joined = joined.filter(course__department__university_id=university_id)
+            else:
+                hosted = hosted.filter(course__isnull=True)
+                joined = joined.filter(course__isnull=True)
+
         return Response({
             "success": True,
             "data": {
@@ -71,13 +91,31 @@ class PayAndStartSessionView(APIView):
         import random, string, decimal
         
         hours = decimal.Decimal(str(request.data.get('hours', 1)))
-        
+
         if hours <= 0 or hours > 24:
             return Response({
                 'success': False,
                 'message': 'Please select between 0.5 and 24 hours.'
             }, status=400)
-        
+
+        # Optional — a real "Start Class Session" (Phase 5) tags the
+        # session to a course. Gated by the same can_manage_course used
+        # everywhere else: only that course's real lecturer (or their
+        # university admin) may start a session tagged to it — a
+        # lecturer for a different course, even in the same department,
+        # gets the same 403 as any other unauthorized write.
+        course = None
+        course_id = request.data.get('course_id')
+        if course_id:
+            from apps.university.models import Course
+            from apps.university.permissions import can_manage_course
+            try:
+                course = Course.objects.select_related('department__university').get(pk=course_id)
+            except Course.DoesNotExist:
+                return Response({'success': False, 'message': 'Course not found.'}, status=404)
+            if not can_manage_course(request.user, course):
+                return Response({'success': False, 'message': 'You do not teach this course.'}, status=403)
+
         rate = decimal.Decimal(SystemConfig.get('session_hosting_rate_tzs', '5000'))
         total_price = hours * rate
         
@@ -152,7 +190,8 @@ class PayAndStartSessionView(APIView):
             amount_paid_tzs=total_price,
             scheduled_end_at=end_at,
             start_time=now,
-            end_time=end_at
+            end_time=end_at,
+            course=course,
         )
         
         from apps.users.admin_services import log_admin_action
@@ -173,6 +212,7 @@ class PayAndStartSessionView(APIView):
                 'scheduled_end_at': end_at.isoformat(),
                 'hours_purchased': float(hours),
                 'amount_paid_tzs': float(total_price),
+                'course_id': course.id if course else None,
             }
         })
 
@@ -205,9 +245,12 @@ class JoinSessionByCodeView(APIView):
             # Existing VM reference is dead (crashed/removed) - clear it so a fresh one gets provisioned.
             participant.vm = None
             participant.save(update_fields=['vm'])
+        join_result = None
         if not participant.vm:
-            SessionLifecycleService.handle_participant_join(participant)
-        
+            join_result = SessionLifecycleService.handle_participant_join(participant)
+        if join_result and join_result.get('error'):
+            return Response({"success": False, "message": join_result['error']}, status=status.HTTP_409_CONFLICT)
+
         from apps.notifications.services import notify
         notify(
             user=request.user,

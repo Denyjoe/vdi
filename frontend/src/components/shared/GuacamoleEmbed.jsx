@@ -65,6 +65,19 @@ const GuacamoleEmbed = React.memo(forwardRef(function GuacamoleEmbed({
   loadingText = "Connecting...",
   tunnelActive = false,
   minCoverMs = 4500,
+  // Real, confirmed gap this closes: `tunnelActive` alone (guacd having
+  // accepted a client) is necessary but NOT sufficient for the console
+  // to actually be usable — `ready` below also requires Guacamole's own
+  // client to reach its real CONNECTED state (clientReallyConnected).
+  // Reproduced live: a job whose real VNC/console session was already
+  // consumed/stale left `tunnelActive` reading positive indefinitely
+  // (guacd genuinely had an open tunnel) while Guacamole's own client
+  // stayed stuck at CONNECTING/WAITING forever — invisible to any
+  // caller only watching `tunnelActive`, since that one signal reports
+  // false progress. Callers that need to detect "stuck even though the
+  // transport looks fine" (e.g. a wizard's own connect-retry watchdog)
+  // should key off this callback instead of `tunnelActive`.
+  onReadyChange,
 }, ref) {
   const [minCoverElapsed, setMinCoverElapsed] = useState(false);
   // Real, confirmed gap the external `tunnelActive` signal alone
@@ -146,6 +159,11 @@ const GuacamoleEmbed = React.memo(forwardRef(function GuacamoleEmbed({
   }, [url, reloadKey]);
 
   const ready = minCoverElapsed && tunnelActive && clientReallyConnected;
+
+  useEffect(() => {
+    onReadyChange?.(ready);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
 
   useEffect(() => {
     if (!ready) return;

@@ -8,9 +8,21 @@ from .services.vm_orchestrator import VMOrchestrator
 
 class VMTemplateListView(generics.ListAPIView):
     permission_classes = [permissions.AllowAny]
-    queryset = VMTemplate.objects.filter(is_available=True)
     serializer_class = VMTemplateSerializer
-    
+
+    def get_queryset(self):
+        # Phase 6 — account context switching. No/'personal' context (the
+        # default, unchanged for every existing caller) shows only
+        # platform-wide templates (university IS NULL); a real, validated
+        # university context shows that university's own scoped catalogue
+        # instead. resolve_context_university raises 400/403 itself for a
+        # bad/unauthorized value - this queryset is never reached with an
+        # unvalidated id.
+        from apps.university.permissions import resolve_context_university
+        _is_scoped, university_id = resolve_context_university(self.request)
+        qs = VMTemplate.objects.filter(is_available=True)
+        return qs.filter(university_id=university_id) if university_id else qs.filter(university__isnull=True)
+
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)

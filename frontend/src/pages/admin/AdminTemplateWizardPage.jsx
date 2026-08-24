@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Loader2, CheckCircle2, XCircle, Terminal, Server, Monitor, ArrowRight, X, Power, PowerOff, RotateCw } from 'lucide-react';
+import { useSearchParams, useLocation } from 'react-router-dom';
+import { Loader2, CheckCircle2, XCircle, Terminal, Server, Monitor, ArrowRight, X, Power, PowerOff, RotateCw, GraduationCap, AlertTriangle } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import GuacamoleEmbed from '../../components/shared/GuacamoleEmbed';
@@ -54,6 +55,18 @@ const primaryBtn = {
 };
 
 export default function AdminTemplateWizardPage() {
+  // Phase 2 (Product Depth Layer) — reached via a University Admin's
+  // "Approve & Build" action (TemplateRequestQueuePanel), reusing this
+  // EXACT wizard rather than a parallel build flow. Pre-fills the form
+  // and tags the real create-job call with template_request_id so the
+  // backend can quota-check it and, on promote, link it back to the
+  // course automatically.
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const templateRequestId = searchParams.get('template_request_id');
+  const [templateRequest] = useState(location.state?.templateRequest || null);
+  const [requestQuotaCheck] = useState(location.state?.quotaCheck || null);
+
   const [isos, setIsos] = useState([]);
   const [profiles, setProfiles] = useState([]);
   const [job, setJob] = useState(null); // null = not started yet
@@ -75,6 +88,25 @@ export default function AdminTemplateWizardPage() {
   const [consoleTab, setConsoleTab] = useState('console'); // 'console' | 'terminal'
   const [consoleUrl2, setConsoleUrl2] = useState(null);
   const [consoleLoading, setConsoleLoading] = useState(false);
+  // Real, confirmed bug this fixes: the console could sit on
+  // "Connecting to the real install console..." forever with zero
+  // further feedback when the VNC bridge/Guacamole tunnel never came
+  // up in the FIRST place (as opposed to coming up then dropping,
+  // which the reconnect logic below already handled) — reproduced
+  // live: connection-status genuinely reported active:false
+  // indefinitely, with nothing in the UI ever telling the admin.
+  const [consoleFailed, setConsoleFailed] = useState(false);
+  const consoleAttemptsRef = useRef(0);
+  // Real, confirmed gap `consoleTunnelActive` alone doesn't cover: it's
+  // a transport-level signal (guacd accepted a client) that can read
+  // positive indefinitely while Guacamole's own client never actually
+  // reaches CONNECTED — reproduced live against job #39's real, already
+  // stale VNC ticket: connection-status genuinely reported active:true
+  // on repeat, yet the console stayed on "Connecting..." forever. Fed
+  // by GuacamoleEmbed's onReadyChange (the same `ready` gate it uses to
+  // lift its own loading cover), so "actually usable" and "known stuck"
+  // are driven by one real signal, not two that can disagree.
+  const [consoleReady, setConsoleReady] = useState(false);
   // Real, polled VM power state — before this, a stopped/hung VM and a
   // genuine display bug looked identical: a permanently blank console
   // with no way to tell which one it was, let alone fix it, from
@@ -85,7 +117,11 @@ export default function AdminTemplateWizardPage() {
   const pollRef = useRef(null);
 
   const [form, setForm] = useState({
-    name: '', cpu_cores: 2, ram_gb: 4, disk_gb: 20, iso_volid: '', desktop_environment_id: '',
+    name: templateRequest ? `${templateRequest.course_code} — ${templateRequest.software_needed}`.slice(0, 100) : '',
+    cpu_cores: templateRequest?.estimated_vcpu || 2,
+    ram_gb: templateRequest?.estimated_ram_gb || 4,
+    disk_gb: templateRequest?.estimated_storage_gb || 20,
+    iso_volid: '', desktop_environment_id: '',
   });
   // ISO acquisition — real upload straight to Proxmox, or a real
   // server-side download Proxmox itself performs from a URL. Neither
@@ -292,7 +328,8 @@ export default function AdminTemplateWizardPage() {
     }
     setLoading(true);
     try {
-      const r = await api.post('/admin/templates/create-job/', form);
+      const payload = templateRequestId ? { ...form, template_request_id: templateRequestId } : form;
+      const r = await api.post('/admin/templates/create-job/', payload);
       setJob(r.data.data);
       setPromoteForm(p => ({ ...p, name: form.name }));
       toast.success('Real VM created — booting from the selected ISO.');
@@ -378,17 +415,26 @@ export default function AdminTemplateWizardPage() {
     }
   };
 
-  const openConsole = async () => {
+  const openConsole = async (isManualRetry = false) => {
     if (!job?.id) return;
+    if (isManualRetry) {
+      consoleAttemptsRef.current = 0;
+      setConsoleFailed(false);
+    }
     setConsoleLoading(true);
     setConsoleUrl2(null);
     setConsoleConnectionId(null);
+    setConsoleReady(false);
     try {
       const r = await api.post(`/admin/templates/jobs/${job.id}/open-console/`);
       setConsoleUrl2(r.data.data.guacamole_url);
       setConsoleConnectionId(r.data.data.connection_id);
     } catch (e) {
+      // A real, immediate failure to even mint a connection (bridge/
+      // Guacamole error) — surface it honestly right away rather than
+      // leaving "Connecting..." on screen with nothing behind it.
       toast.error(e.response?.data?.message || 'Could not open the real install console.');
+      setConsoleFailed(true);
     } finally {
       setConsoleLoading(false);
     }
@@ -421,10 +467,19 @@ export default function AdminTemplateWizardPage() {
   // automatically mint a whole fresh ticket/bridge/Guacamole connection
   // (exactly what "Refresh Console" already does) — self-healing
   // without ever waiting on the admin to notice.
+  // Real, confirmed fix: this used to key off `consoleTunnelActive`
+  // (transport-level only) — reproduced live that a stale/consumed VNC
+  // ticket can hold `consoleTunnelActive` positive indefinitely while
+  // Guacamole's own client never actually reaches CONNECTED, which
+  // both latched `hadConsoleTunnelRef` on a connection that was never
+  // really usable AND meant this effect's own "confirmed dead" check
+  // could never fire (the transport signal never actually went
+  // negative). Now keyed off `consoleReady` — the real, both-layers
+  // signal from GuacamoleEmbed's own onReadyChange.
   const hadConsoleTunnelRef = useRef(false);
   const consoleReconnectTimerRef = useRef(null);
   useEffect(() => {
-    if (consoleTunnelActive) {
+    if (consoleReady) {
       hadConsoleTunnelRef.current = true;
       if (consoleReconnectTimerRef.current) {
         clearTimeout(consoleReconnectTimerRef.current);
@@ -441,7 +496,7 @@ export default function AdminTemplateWizardPage() {
     // reconnect-storming on a single transient blip that resolves on
     // its own within a couple of polls.
     consoleReconnectTimerRef.current = setTimeout(() => {
-      if (!consoleTunnelActive && job?.status === 'awaiting_os_install') {
+      if (!consoleReady && job?.status === 'awaiting_os_install') {
         hadConsoleTunnelRef.current = false;
         toast('Console connection dropped — reconnecting automatically...', { icon: '🔄' });
         openConsole();
@@ -451,7 +506,58 @@ export default function AdminTemplateWizardPage() {
       if (consoleReconnectTimerRef.current) clearTimeout(consoleReconnectTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [consoleTunnelActive, job?.status]);
+  }, [consoleReady, job?.status]);
+
+  // Complementary fix for the SECOND real bug found live in Phase 1:
+  // the reconnect effect above only ever fires for a tunnel that was
+  // PREVIOUSLY confirmed healthy (hadConsoleTunnelRef.current). Live
+  // repro on a freshly-created job with zero prior successful
+  // connection: the panel sat on "Connecting to the real install
+  // console..." forever when the very FIRST attempt never came up —
+  // useTunnelHealth's confirm-strikes poll never went positive, and
+  // this whole failure class was invisible to the admin, with no
+  // retry and no error. Fixed with a capped watchdog dedicated to the
+  // first attempt: give useTunnelHealth's own poll (2 x 2s
+  // confirm-strikes) real margin to confirm health, auto-retry a
+  // bounded number of times if it doesn't, and only once that budget
+  // is exhausted, stop and surface an honest "couldn't connect" state
+  // with a manual Retry button — never leave it spinning forever.
+  const firstAttemptTimerRef = useRef(null);
+  useEffect(() => {
+    if (consoleReady) {
+      if (firstAttemptTimerRef.current) {
+        clearTimeout(firstAttemptTimerRef.current);
+        firstAttemptTimerRef.current = null;
+      }
+      return;
+    }
+    // This watchdog only covers what the reconnect effect above
+    // explicitly excludes: a tunnel that has never yet been confirmed
+    // healthy for this console session.
+    if (hadConsoleTunnelRef.current) return;
+    if (!consoleConnectionId) return;
+    if (job?.status !== 'awaiting_os_install') return;
+    if (consoleFailed) return;
+
+    const FIRST_ATTEMPT_TIMEOUT_MS = 14000;
+    const MAX_AUTO_ATTEMPTS = 3;
+
+    firstAttemptTimerRef.current = setTimeout(() => {
+      if (consoleReady || hadConsoleTunnelRef.current) return;
+      if (consoleAttemptsRef.current < MAX_AUTO_ATTEMPTS) {
+        consoleAttemptsRef.current += 1;
+        toast(`Console still not connecting — retrying (attempt ${consoleAttemptsRef.current}/${MAX_AUTO_ATTEMPTS})...`, { icon: '🔄' });
+        openConsole();
+      } else {
+        setConsoleFailed(true);
+      }
+    }, FIRST_ATTEMPT_TIMEOUT_MS);
+
+    return () => {
+      if (firstAttemptTimerRef.current) clearTimeout(firstAttemptTimerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [consoleReady, consoleConnectionId, job?.status, consoleFailed]);
 
   // Real, live power-state polling — the console/terminal tab has no
   // other way to tell a genuinely stopped/hung VM apart from a display
@@ -518,9 +624,30 @@ export default function AdminTemplateWizardPage() {
       <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
         New OS Template
       </h1>
-      <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '24px' }}>
+      <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: templateRequest ? '16px' : '24px' }}>
         Build a new Linux VM template entirely from here — real Proxmox VM, real config, real apps, real verification.
       </p>
+
+      {templateRequest && (
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: '10px',
+          padding: '12px 16px', borderRadius: '12px', marginBottom: '24px',
+          background: 'var(--accent-primary-soft)', border: '1px solid var(--accent-primary)',
+        }}>
+          <GraduationCap size={18} style={{ color: 'var(--accent-primary)', flexShrink: 0, marginTop: '2px' }} />
+          <div>
+            <p style={{ fontSize: '13px', color: 'var(--text-primary)', margin: 0 }}>
+              <strong>Building for {templateRequest.course_code}</strong> — requested by {templateRequest.requested_by_name}.
+              Pre-filled from their estimated specs; on Promote this will auto-assign to the course and notify them.
+            </p>
+            {requestQuotaCheck && !requestQuotaCheck.fits_quota && (
+              <p style={{ fontSize: '12px', color: '#F59E0B', marginTop: '6px' }}>
+                ⚠️ {requestQuotaCheck.message} The build itself will be blocked if it genuinely exceeds quota at that moment.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Progress rail */}
       {job && (
@@ -838,10 +965,29 @@ export default function AdminTemplateWizardPage() {
             )}
           </div>
           <div style={{ height: '440px', background: '#000', borderRadius: '0 10px 10px 10px', overflow: 'hidden', border: '1px solid var(--border-color)', marginBottom: '16px' }}>
-            {consoleTab === 'console' && consoleUrl2 && (
-              <GuacamoleEmbed url={consoleUrl2} title="Install Console" loadingText="Connecting to the real install console..." tunnelActive={consoleTunnelActive} />
+            {consoleTab === 'console' && consoleFailed && (
+              <div style={{
+                height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                gap: '10px', color: '#f87171', fontSize: '13px', textAlign: 'center', padding: '0 24px',
+              }}>
+                <AlertTriangle size={22} />
+                <div>
+                  Couldn't establish the real install console after several attempts.
+                  <br />
+                  The VM itself is fine — this is a connection issue with the console bridge.
+                </div>
+                <button onClick={() => openConsole(true)} disabled={consoleLoading} style={{
+                  fontSize: '12px', padding: '6px 16px', borderRadius: '6px', border: '1px solid #f87171',
+                  background: 'transparent', color: '#f87171', cursor: 'pointer', fontWeight: 600,
+                }}>
+                  {consoleLoading ? 'Retrying…' : 'Retry Connection'}
+                </button>
+              </div>
             )}
-            {consoleTab === 'console' && !consoleUrl2 && (
+            {consoleTab === 'console' && !consoleFailed && consoleUrl2 && (
+              <GuacamoleEmbed url={consoleUrl2} title="Install Console" loadingText="Connecting to the real install console..." tunnelActive={consoleTunnelActive} onReadyChange={setConsoleReady} />
+            )}
+            {consoleTab === 'console' && !consoleFailed && !consoleUrl2 && (
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
                 {consoleLoading ? 'Connecting to the real console…' : 'Console not connected yet.'}
               </div>

@@ -12,7 +12,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'id', 'first_name', 'last_name', 'email', 'role', 'avatar',
             'bio', 'website', 'country', 'timezone_preference', 'is_verified',
             'notification_email', 'notification_session', 'notification_usage',
-            'auth_provider', 'created_at'
+            'auth_provider', 'created_at', 'is_superuser',
         ]
         # Without this, ModelSerializer defaults every listed field to
         # writable — meaning UpdateProfileView (PUT/PATCH /auth/account/,
@@ -24,7 +24,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         # genuinely persisted. id/email/auth_provider/is_verified/
         # created_at are identity/verification fields no self-service
         # profile update should ever be able to touch either.
-        read_only_fields = ['id', 'email', 'role', 'is_verified', 'auth_provider', 'created_at']
+        read_only_fields = ['id', 'email', 'role', 'is_verified', 'auth_provider', 'created_at', 'is_superuser']
 
     def get_avatar(self, obj):
         if obj.avatar:

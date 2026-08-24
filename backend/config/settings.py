@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     'apps.vms',
     'apps.notifications',
     'apps.billing',
+    'apps.university',
 ]
 
 

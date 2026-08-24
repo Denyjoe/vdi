@@ -25,6 +25,32 @@ def get_workspace_access(user, template):
     """
     from apps.vms.models import TemplateSubscription, WorkspaceHoursBalance
 
+    # 0. A university-scoped template is sponsored by that university's
+    # real hardware quota (apps.university.services.quota_service), not
+    # individual billing — personal WorkspaceHoursBalance/
+    # TemplateSubscription genuinely never enter into it. Real, attempted
+    # access still requires an ACTIVE affiliation with that specific
+    # university (checked here, not just trusted from the template id) —
+    # otherwise a random personal user who somehow learned another
+    # university's template id could get free launches against it.
+    if template.university_id:
+        from apps.university.permissions import get_user_university_role
+        if get_user_university_role(user, template.university_id) is not None:
+            return {
+                'can_launch': True,
+                'reason': 'university_sponsored',
+                'hours_remaining': None,
+                'price_per_hour': template.price_per_hour,
+                'price_per_month': template.price_per_month,
+            }
+        return {
+            'can_launch': False,
+            'reason': 'not_university_member',
+            'hours_remaining': None,
+            'price_per_hour': template.price_per_hour,
+            'price_per_month': template.price_per_month,
+        }
+
     # 1. Active subscription for THIS template? Bypasses the balance check
     # entirely — unlimited launches regardless of hours_remaining.
     try:

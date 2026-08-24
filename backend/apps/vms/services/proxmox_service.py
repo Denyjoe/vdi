@@ -90,9 +90,37 @@ class ProxmoxService:
         return self._client
 
     def get_next_vmid(self):
-        """Get the next available Proxmox VM ID."""
+        """Get the next available Proxmox VM ID.
+
+        Real, confirmed bug fixed here: this used to compute
+        max(Proxmox's CURRENT live VM list) + 1 — nothing else. If a
+        higher-numbered VM was later cleaned up (e.g. an abandoned
+        wizard job's VM deleted, or a promoted template's build VM torn
+        down), Proxmox's live max genuinely drops, and this could then
+        hand out an ID a still-open, un-cleaned-up TemplateCreationJob
+        row in our OWN database already claims — silently pointing a
+        brand new build at a number an older job's history still
+        thinks is its own. Confirmed live: 9 separate real
+        TemplateCreationJob rows ended up sharing vmid=9027 this way,
+        one of them (job #31) still sitting in the wizard's own
+        "resume" banner while its real VM had actually been taken over
+        by a later, unrelated job (#38) — the exact mechanism behind
+        the reported "resume a job, see something unrelated/stuck"
+        symptom. Fixed by unioning Proxmox's live list with every vmid
+        this app has EVER assigned (TemplateCreationJob, VirtualMachine)
+        — a number is only ever handed out once, permanently, even
+        long after the VM it named is gone."""
         vms = self.proxmox.nodes(self.node).qemu.get()
-        existing_ids = [int(v.get('vmid')) for v in vms]
+        existing_ids = set(int(v.get('vmid')) for v in vms)
+
+        from apps.vms.models import TemplateCreationJob, VirtualMachine
+        existing_ids |= set(
+            TemplateCreationJob.objects.exclude(proxmox_vmid__isnull=True).values_list('proxmox_vmid', flat=True)
+        )
+        existing_ids |= set(
+            VirtualMachine.objects.exclude(proxmox_vm_id__isnull=True).values_list('proxmox_vm_id', flat=True)
+        )
+
         if not existing_ids:
             return 110
         max_id = max(existing_ids)

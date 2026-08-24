@@ -242,6 +242,17 @@ class LiveSession(models.Model):
         default=False)
     show_participant_list = models.BooleanField(
         default=True)
+    course = models.ForeignKey(
+        'university.Course',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='live_sessions',
+        help_text=(
+            "Optional. Null = regular individual session (existing "
+            "behavior, unchanged). Set = a real class session tied to "
+            "a university course."
+        ),
+    )
     created_at = models.DateTimeField(
         auto_now_add=True)
     restrictions = models.JSONField(

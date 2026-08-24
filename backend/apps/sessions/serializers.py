@@ -18,9 +18,9 @@ class LiveSessionSerializer(serializers.ModelSerializer):
             'instructions', 'status', 'created_at', 'participant_count',
             'password', 'allow_participant_chat', 'record_session', 'show_participant_list',
             'restrictions', 'duration_hours', 'scheduled_at', 'hours_purchased',
-            'amount_paid_tzs', 'scheduled_end_at', 'auto_ended'
+            'amount_paid_tzs', 'scheduled_end_at', 'auto_ended', 'course',
         ]
-        read_only_fields = ['host', 'invite_code', 'invite_link', 'status', 'scheduled_end_at']
+        read_only_fields = ['host', 'invite_code', 'invite_link', 'status', 'scheduled_end_at', 'course']
 
 class SessionParticipantSerializer(serializers.ModelSerializer):
     user = UserProfileSerializer(read_only=True)

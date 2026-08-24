@@ -1,26 +1,23 @@
-import os
-import django
-
+"""Delete orphan VMs 160, 998, 999 from Proxmox."""
+import django, os
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
 from apps.vms.services.proxmox_service import ProxmoxService
-import time
 
-ps = ProxmoxService()
-orphan_ids = [100, 102, 103]
+ORPHAN_VMIDS = [160, 998, 999]
 
-for vmid in orphan_ids:
+svc = ProxmoxService()
+
+for vmid in ORPHAN_VMIDS:
+    print(f"\n--- Deleting VM {vmid} ---")
     try:
-        status = ps.proxmox.nodes(ps.node).qemu(vmid).status.current.get()
-        if status.get('status') == 'running':
-            ps.proxmox.nodes(ps.node).qemu(vmid).status.stop.post()
-            for i in range(15):
-                time.sleep(2)
-                curr_status = ps.proxmox.nodes(ps.node).qemu(vmid).status.current.get()
-                if curr_status.get('status') == 'stopped':
-                    break
-        ps.proxmox.nodes(ps.node).qemu(vmid).delete()
-        print(f'VM {vmid} deleted')
+        svc.delete_vm_completely(vmid)
+        print(f"  VM {vmid}: deleted successfully")
     except Exception as e:
-        print(f'VM {vmid} error: {str(e)}')
+        print(f"  VM {vmid}: error — {e}")
+
+# Verify
+print("\n=== Remaining Proxmox VMs ===")
+for v in sorted(svc.proxmox.nodes(svc.node).qemu.get(), key=lambda x: int(x['vmid'])):
+    print(f"  vmid={v['vmid']}  name={v.get('name','?')}  status={v.get('status','?')}")

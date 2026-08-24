@@ -114,6 +114,17 @@ class VMTemplate(models.Model):
     )
     auto_refill_enabled = models.BooleanField(default=False)
     last_pool_refresh = models.DateTimeField(null=True, blank=True)
+    university = models.ForeignKey(
+        'university.University',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='templates',
+        help_text=(
+            "Optional. Null = platform-wide template, visible to everyone "
+            "(existing behavior, unchanged). Set = scoped to this "
+            "university only — used for course-specific templates."
+        ),
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -508,6 +519,19 @@ class TemplateCreationJob(models.Model):
     final_template_id = models.IntegerField(
         null=True, blank=True,
         help_text="proxmox_vmid of the verified, finalized template, once known.")
+
+    # Phase 2 (Product Depth Layer) — set only when this job was started
+    # from a real, approved university TemplateRequest, via the SAME
+    # create-job endpoint platform admins already use (not a parallel
+    # build path). Null for every existing/platform-wide job, unchanged.
+    university = models.ForeignKey(
+        'university.University', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='template_jobs',
+    )
+    template_request = models.ForeignKey(
+        'university.TemplateRequest', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='jobs',
+    )
 
     class Meta:
         ordering = ['-created_at']

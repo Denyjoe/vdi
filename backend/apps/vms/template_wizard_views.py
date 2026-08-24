@@ -19,6 +19,7 @@ from django.utils import timezone
 
 from .models import DesktopEnvironmentProfile, TemplateCreationJob, VMTemplate, IsoDownloadTracking
 from .admin_views import IsAdminUser
+from apps.university.permissions import can_access_template_job, IsPlatformOrUniversityAdmin
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +27,11 @@ logger = logging.getLogger(__name__)
 class AdminAvailableISOsView(views.APIView):
     """Real, live ISO list from Proxmox's own storage API — never a
     hardcoded list, since an admin should only ever be offered ISOs
-    that are genuinely already uploaded and usable."""
-    permission_classes = [IsAdminUser]
+    that are genuinely already uploaded and usable. Read-only and not
+    tenant-scoped (ISOs are a shared node-level resource) — a real
+    university admin building a template via an approved request needs
+    this same real list too."""
+    permission_classes = [IsPlatformOrUniversityAdmin]
 
     def get(self, request):
         from .services.proxmox_service import ProxmoxService
@@ -210,8 +214,13 @@ class AdminActiveTemplateJobsView(views.APIView):
     surfacing a confusing "resume" prompt for a VM that was already
     gone. Each candidate job's real VM status is checked here; one
     confirmed genuinely gone gets marked failed (with an honest
-    reason) instead of silently kept as if still in progress."""
-    permission_classes = [IsAdminUser]
+    reason) instead of silently kept as if still in progress.
+
+    Already, correctly self-scoped to created_by=request.user below —
+    safe to open to any real university admin too without further
+    per-object checks (they can only ever see their OWN jobs here,
+    university-scoped or not)."""
+    permission_classes = [IsPlatformOrUniversityAdmin]
 
     def get(self, request):
         from .services.proxmox_service import ProxmoxService
@@ -224,6 +233,28 @@ class AdminActiveTemplateJobsView(views.APIView):
         still_active = []
         for job in jobs:
             if job.proxmox_vmid:
+                # Real, confirmed bug fixed here (alongside the root
+                # cause in get_next_vmid()): "the VM still exists" isn't
+                # proof it's still THIS job's VM — get_next_vmid()
+                # could previously hand the same real vmid to a LATER
+                # job while an older job's row sat un-cleaned-up here.
+                # If a genuinely later job shares this exact vmid, this
+                # job's own real VM was silently taken over — it's
+                # stale, not "in progress", regardless of whether the
+                # VM itself still exists and looks reachable.
+                superseded_by = TemplateCreationJob.objects.filter(
+                    proxmox_vmid=job.proxmox_vmid, created_at__gt=job.created_at,
+                ).exclude(pk=job.pk).order_by('created_at').first()
+                if superseded_by:
+                    job.status = 'failed'
+                    job.error_message = (
+                        f'Real Proxmox VM {job.proxmox_vmid} was reused by a later template build '
+                        f'(job #{superseded_by.id}, "{superseded_by.name}") — this job\'s real VM no longer '
+                        'reflects its own history. Please start a new template.'
+                    )
+                    job.save(update_fields=['status', 'error_message'])
+                    job.log_step(job.error_message, level='error')
+                    continue
                 try:
                     ps.proxmox.nodes(ps.node).qemu(job.proxmox_vmid).status.current.get()
                 except Exception as e:
@@ -246,8 +277,9 @@ class AdminActiveTemplateJobsView(views.APIView):
 class AdminDesktopEnvironmentProfilesView(views.APIView):
     """Real, live list of configured desktop environment profiles — the
     wizard's dropdown reads this, never a hardcoded XFCE/GNOME pair, so
-    adding a 3rd/4th environment later is purely a new DB row."""
-    permission_classes = [IsAdminUser]
+    adding a 3rd/4th environment later is purely a new DB row. Read-only
+    and not tenant-scoped — a real university admin needs it too."""
+    permission_classes = [IsPlatformOrUniversityAdmin]
 
     def get(self, request):
         profiles = DesktopEnvironmentProfile.objects.all().order_by('display_name')
@@ -269,8 +301,17 @@ class AdminTemplateJobCreateView(views.APIView):
     """POST /api/admin/templates/create-job/
     Real Proxmox VM creation — a genuinely new, empty VM with the
     requested resources and the chosen ISO attached as a bootable
-    CD-ROM, then started so the admin can begin the real OS install."""
-    permission_classes = [IsAdminUser]
+    CD-ROM, then started so the admin can begin the real OS install.
+
+    Platform admins (unchanged, existing behavior) may start any
+    platform-wide job. A university admin may ALSO start one, but ONLY
+    tied to a real, approved TemplateRequest they genuinely control
+    (template_request_id) — never an arbitrary/unscoped template. That
+    job is quota-checked against the SAME real hardware ceiling proven
+    in Phase 1, BEFORE any real Proxmox VM is created — a rejection here
+    is a clean 409, never a failure partway through a real build.
+    """
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
         from .services.proxmox_service import ProxmoxService
@@ -288,6 +329,43 @@ class AdminTemplateJobCreateView(views.APIView):
                 'message': 'name, cpu_cores, ram_gb, disk_gb, iso_volid, and desktop_environment_id are all required.',
             }, status=400)
 
+        template_request = None
+        university = None
+        template_request_id = request.data.get('template_request_id')
+        is_platform_admin = getattr(request.user, 'role', None) == 'admin'
+
+        if template_request_id:
+            from apps.university.models import TemplateRequest
+            from apps.university.permissions import can_manage_university
+            try:
+                template_request = TemplateRequest.objects.select_related(
+                    'course__department__university',
+                ).get(pk=template_request_id)
+            except TemplateRequest.DoesNotExist:
+                return Response({'success': False, 'message': 'Template request not found.'}, status=404)
+
+            university = template_request.course.department.university
+            if not can_manage_university(request.user, university):
+                return Response({'success': False, 'message': 'Not your university.'}, status=403)
+            if template_request.status != 'approved':
+                return Response({
+                    'success': False,
+                    'message': f'Request must be approved before building (current: {template_request.status}).',
+                }, status=400)
+
+            from apps.university.services.quota_service import check_quota_allows
+            allowed, quota_message = check_quota_allows(
+                university, additional_vcpu=int(cpu_cores),
+                additional_ram_gb=int(ram_gb), additional_storage_gb=int(disk_gb),
+            )
+            if not allowed:
+                return Response({'success': False, 'message': quota_message}, status=409)
+        elif not is_platform_admin:
+            return Response({
+                'success': False,
+                'message': 'A university admin may only start a build from an approved template request.',
+            }, status=403)
+
         desktop_environment = get_object_or_404(DesktopEnvironmentProfile, id=de_id)
 
         job = TemplateCreationJob.objects.create(
@@ -299,13 +377,26 @@ class AdminTemplateJobCreateView(views.APIView):
             iso_filename=iso_volid,
             status='vm_creating',
             created_by=request.user,
+            university=university,
+            template_request=template_request,
         )
         job.log_step(f'Job created for "{name}" ({cpu_cores} vCPU / {ram_gb}GB RAM / {disk_gb}GB disk).')
 
         ps = ProxmoxService()
         try:
+            # Proxmox's real name= parameter must be a valid DNS label —
+            # confirmed via a real, live 502 ("does not look like a valid
+            # DNS name") the FIRST time a real, free-text admin-supplied
+            # name (spaces/punctuation — e.g. a Phase 2 auto-generated
+            # "COURSE — software, needed" name) was ever sent through.
+            # The human-readable `name` still becomes job.name/the
+            # eventual VMTemplate.name; only the real Proxmox object gets
+            # this sanitized slug.
+            import re
+            proxmox_vm_name = re.sub(r'[^a-zA-Z0-9-]+', '-', name).strip('-').lower()[:63] or f'template-{job.id}'
+
             job.log_step(f'Creating real Proxmox VM, ISO={iso_volid}...')
-            vmid = ps.create_vm(name, cpu_cores, ram_gb, disk_gb, iso_volid)
+            vmid = ps.create_vm(proxmox_vm_name, cpu_cores, ram_gb, disk_gb, iso_volid)
             job.proxmox_vmid = vmid
             job.save(update_fields=['proxmox_vmid'])
             job.log_step(f'Real VM created: vmid={vmid}.')
@@ -333,10 +424,12 @@ class AdminTemplateJobDetailView(views.APIView):
     Real, current job status/log — and, once the guest agent inside the
     VM can be reached (only possible after the manual OS install AND a
     working network stack are both in place), the VM's real IP."""
-    permission_classes = [IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, pk):
         job = get_object_or_404(TemplateCreationJob, pk=pk)
+        if not can_access_template_job(request.user, job):
+            return Response({'success': False, 'message': 'Not authorized for this job.'}, status=403)
         data = _serialize_job(job)
 
         if job.proxmox_vmid and job.status in ('awaiting_os_install', 'configuring'):
@@ -363,6 +456,8 @@ class AdminTemplateJobDetailView(views.APIView):
         from .services.proxmox_service import ProxmoxService
 
         job = get_object_or_404(TemplateCreationJob, pk=pk)
+        if not can_access_template_job(request.user, job):
+            return Response({'success': False, 'message': 'Not authorized for this job.'}, status=403)
         already_promoted = job.status == 'completed' and job.final_template_id
 
         if job.proxmox_vmid and not already_promoted:
@@ -388,13 +483,15 @@ class AdminTemplateJobApplyConfigurationView(views.APIView):
     the job's chosen DesktopEnvironmentProfile — the exact commands
     extracted from the live, currently-deployed templates, not
     reconstructed."""
-    permission_classes = [IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, pk):
         from .services.proxmox_service import ProxmoxService
         from .services.ssh_service import run_ssh_command, run_ssh_script
 
         job = get_object_or_404(TemplateCreationJob, pk=pk)
+        if not can_access_template_job(request.user, job):
+            return Response({'success': False, 'message': 'Not authorized for this job.'}, status=403)
         if job.status != 'awaiting_os_install':
             return Response({
                 'success': False,
@@ -675,7 +772,7 @@ class AdminTemplateJobInstallAppsView(views.APIView):
     Real apt-get install per package, real per-package success/failure
     logged. Firefox specifically gets the real .deb Mozilla Team PPA
     install instead of the broken Snap default."""
-    permission_classes = [IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated]
 
     FIREFOX_PPA_SCRIPT = """
 # Real fix for Ubuntu 22.04+ shipping Firefox only as a Snap by default
@@ -694,6 +791,8 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y firefox
         from .services.ssh_service import run_ssh_script
 
         job = get_object_or_404(TemplateCreationJob, pk=pk)
+        if not can_access_template_job(request.user, job):
+            return Response({'success': False, 'message': 'Not authorized for this job.'}, status=403)
         if job.status != 'installing_apps':
             return Response({
                 'success': False,
@@ -755,13 +854,15 @@ class AdminTemplateJobFinalizeView(views.APIView):
     SSH host key removal, shutdown, then convert to a real Proxmox
     template. Never trusted blind — every step is verified by actually
     reading the result back, not just checking an exit code."""
-    permission_classes = [IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, pk):
         from .services.proxmox_service import ProxmoxService
         from .services.ssh_service import run_ssh_command, run_ssh_script
 
         job = get_object_or_404(TemplateCreationJob, pk=pk)
+        if not can_access_template_job(request.user, job):
+            return Response({'success': False, 'message': 'Not authorized for this job.'}, status=403)
         if job.status != 'installing_apps':
             return Response({
                 'success': False,
@@ -899,12 +1000,14 @@ class AdminTemplateJobVerifyView(views.APIView):
     temporary VMID, confirm real fast IP acquisition and a genuinely
     unique machine-id, then clean up the verification clone. A broken
     template is NEVER allowed to silently become 'completed'."""
-    permission_classes = [IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, pk):
         from .services.proxmox_service import ProxmoxService
 
         job = get_object_or_404(TemplateCreationJob, pk=pk)
+        if not can_access_template_job(request.user, job):
+            return Response({'success': False, 'message': 'Not authorized for this job.'}, status=403)
         if job.status != 'verifying':
             return Response({
                 'success': False,
@@ -979,10 +1082,12 @@ class AdminTemplateJobPromoteView(views.APIView):
     Only callable once status='completed'. Creates the real VMTemplate
     row — the step that makes this genuinely, live available to real
     users, exactly like every existing template."""
-    permission_classes = [IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, pk):
         job = get_object_or_404(TemplateCreationJob, pk=pk)
+        if not can_access_template_job(request.user, job):
+            return Response({'success': False, 'message': 'Not authorized for this job.'}, status=403)
         if job.status != 'completed':
             return Response({
                 'success': False,
@@ -1024,8 +1129,33 @@ class AdminTemplateJobPromoteView(views.APIView):
             price_per_hour=price_per_hour,
             price_per_month=price_per_month,
             software_list=job.desktop_environment.default_apps,
+            university=job.university,
         )
         job.log_step(f'Promoted: VMTemplate #{template.id} ("{name}") is now genuinely live for real users.')
+
+        # Phase 2 — if this job came from a real, approved TemplateRequest,
+        # close the loop: link the resulting template, mark the request
+        # completed, auto-assign the template to the requesting course,
+        # and notify the lecturer via the existing notification system.
+        if job.template_request_id:
+            from apps.notifications.services import notify
+
+            req = job.template_request
+            req.resulting_template = template
+            req.status = 'completed'
+            req.reviewed_at = timezone.now()
+            req.save(update_fields=['resulting_template', 'status', 'reviewed_at'])
+
+            req.course.default_template = template
+            req.course.save(update_fields=['default_template'])
+
+            notify(
+                user=req.requested_by,
+                title='Template Request Completed',
+                message=f'"{template.name}" is ready and now assigned to {req.course.code}.',
+                notification_type='template_request_completed',
+                link='/my-courses',
+            )
 
         return Response({'success': True, 'data': {'template_id': template.id, 'job': _serialize_job(job)}}, status=201)
 
@@ -1035,13 +1165,15 @@ class AdminTemplateJobOpenTerminalView(views.APIView):
     Real SSH connection via Guacamole, returning a guacamole_url exactly
     matching the proven, remote-access-safe pattern already used for
     every RDP connection in this app."""
-    permission_classes = [IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, pk):
         from .services.proxmox_service import ProxmoxService
         from .services.guacamole_service import get_guacamole_service
 
         job = get_object_or_404(TemplateCreationJob, pk=pk)
+        if not can_access_template_job(request.user, job):
+            return Response({'success': False, 'message': 'Not authorized for this job.'}, status=403)
         ssh_username = request.data.get('ssh_username', '').strip()
         ssh_password = request.data.get('ssh_password', '')
         manual_ip = (request.data.get('vm_ip') or '').strip()
@@ -1084,7 +1216,7 @@ class AdminTemplateJobOpenConsoleView(views.APIView):
     Since Proxmox tickets are short-lived/one-shot, calling this again
     (the wizard's "Refresh Console" button) mints a brand new ticket
     and bridge rather than reusing anything."""
-    permission_classes = [IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, pk):
         from .services.proxmox_service import ProxmoxService
@@ -1092,6 +1224,8 @@ class AdminTemplateJobOpenConsoleView(views.APIView):
         from .services.vnc_bridge import start_vnc_bridge, VncBridgeError
 
         job = get_object_or_404(TemplateCreationJob, pk=pk)
+        if not can_access_template_job(request.user, job):
+            return Response({'success': False, 'message': 'Not authorized for this job.'}, status=403)
         if not job.proxmox_vmid:
             return Response({'success': False, 'message': 'This job has no VM yet.'}, status=400)
 
@@ -1130,12 +1264,14 @@ class AdminTemplateJobPowerStatusView(views.APIView):
     Real, current power state of the job's VM, straight from Proxmox —
     no caching. This is what the wizard's status indicator polls, so a
     stale/guessed value here would defeat the entire point of it."""
-    permission_classes = [IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, pk):
         from .services.proxmox_service import ProxmoxService
 
         job = get_object_or_404(TemplateCreationJob, pk=pk)
+        if not can_access_template_job(request.user, job):
+            return Response({'success': False, 'message': 'Not authorized for this job.'}, status=403)
         if not job.proxmox_vmid:
             return Response({'success': False, 'message': 'This job has no VM yet.'}, status=400)
 
@@ -1152,7 +1288,7 @@ class AdminTemplateJobPowerView(views.APIView):
     stopped (or hung and needed a hard reset) looked identical to a
     genuine display/VNC bug: a permanently blank console with no
     explanation and no way to act on it."""
-    permission_classes = [IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated]
 
     VALID_ACTIONS = {'start', 'stop', 'shutdown', 'restart'}
 
@@ -1179,6 +1315,8 @@ class AdminTemplateJobPowerView(views.APIView):
         from .services.proxmox_service import ProxmoxService
 
         job = get_object_or_404(TemplateCreationJob, pk=pk)
+        if not can_access_template_job(request.user, job):
+            return Response({'success': False, 'message': 'Not authorized for this job.'}, status=403)
         if not job.proxmox_vmid:
             return Response({'success': False, 'message': 'This job has no VM yet.'}, status=400)
 

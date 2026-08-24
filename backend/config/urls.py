@@ -57,6 +57,9 @@ urlpatterns = [
     path("api/settings/", include("apps.users.public_urls")),
     path("api/payments/admin/", include("apps.users.admin_payment_urls")),
     path("api/billing/", include("apps.billing.urls")),
+    path("api/university/", include("apps.university.urls")),
+    path("api/superadmin/university/", include("apps.university.superadmin_urls")),
+    path("api/university-admin/", include("apps.university.admin_urls")),
     path("api/pricing/", apps.users.views.PricingView.as_view(), name="public-pricing"),
 
     # ── Public API v1 — programmatic workspace management, authenticated

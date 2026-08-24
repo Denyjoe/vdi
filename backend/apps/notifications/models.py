@@ -13,10 +13,13 @@ class Notification(models.Model):
         ('workspace_idle', 'Workspace Idle Warning'),
         ('direct_message', 'Direct Message'),
         ('system', 'System'),
+        ('template_request_approved', 'Template Request Approved'),
+        ('template_request_rejected', 'Template Request Rejected'),
+        ('template_request_completed', 'Template Request Completed'),
     )
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
-    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES, default='system')
+    notification_type = models.CharField(max_length=30, choices=NOTIFICATION_TYPES, default='system')
     title = models.CharField(max_length=200)
     message = models.TextField()
     is_read = models.BooleanField(default=False)

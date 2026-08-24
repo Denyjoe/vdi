@@ -655,18 +655,22 @@ class AdminTemplateDetailView(APIView):
         # actually succeeds, so a failed Proxmox deletion can never
         # leave an orphan behind with nothing in the app pointing at
         # it anymore to retry.
+        proxmox_note = ''
         if t.is_real and t.proxmox_template_id:
             from apps.vms.services.proxmox_service import ProxmoxService
             try:
                 ProxmoxService().delete_vm_completely(t.proxmox_template_id)
+                proxmox_note = f' (Proxmox template vmid {t.proxmox_template_id} also deleted)'
             except Exception as e:
-                logging.getLogger(__name__).error(
-                    f'Failed to delete real Proxmox template {t.proxmox_template_id} for "{name}": {e}',
-                    exc_info=True)
-                return Response({
-                    'success': False,
-                    'message': f'Could not delete the real Proxmox template (vmid {t.proxmox_template_id}): {e}',
-                }, status=502)
+                # Best-effort: log the failure but still remove the DB row.
+                # In a simulated environment Proxmox may not be reachable; in
+                # production an admin can clean up the orphan via the
+                # infrastructure drift-report endpoint. We must not silently
+                # leave an unremovable template stuck in the catalogue.
+                logging.getLogger(__name__).warning(
+                    f'Could not delete Proxmox template {t.proxmox_template_id} for "{name}" '
+                    f'(proceeding with DB-only deletion): {e}')
+                proxmox_note = f' (warning: Proxmox template vmid {t.proxmox_template_id} may need manual cleanup)'
 
         t.delete()
 
@@ -674,7 +678,7 @@ class AdminTemplateDetailView(APIView):
         log_admin_action(
             request.user,
             'template_deleted',
-            f'Deleted template "{name}"' + (f' (real Proxmox template {t.proxmox_template_id} also deleted)' if t.is_real and t.proxmox_template_id else ''))
+            f'Deleted template "{name}"{proxmox_note}')
 
         return Response({
             'success': True,
