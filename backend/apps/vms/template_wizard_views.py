@@ -12,6 +12,7 @@ by a real VMTemplate row, and the old template staying untouched/
 available the whole time so nothing regresses if the new one fails.
 """
 import logging
+import re
 from rest_framework import views, status, permissions
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
@@ -22,6 +23,30 @@ from .admin_views import IsAdminUser
 from apps.university.permissions import can_access_template_job, IsPlatformOrUniversityAdmin
 
 logger = logging.getLogger(__name__)
+
+
+def dns_safe_proxmox_name(text, fallback):
+    """The one, real, permanent fix point for a whole class of bug:
+    Proxmox's real `name=` parameter for a VM/clone must be a valid DNS
+    label (letters, digits, hyphens only) — it silently rejects
+    anything else with a real 400 ("does not look like a valid DNS
+    name"). Confirmed live TWICE now from two different real call
+    sites feeding it raw, human-typed text: once at VM creation (a
+    Phase-2-generated request name like "COURSE — software, needed"),
+    and again at the isolated-verification clone step
+    (f'verify-{job.name}' against a real job named "COUT100 —
+    testing" — the exact em-dash/space combination that broke it the
+    first time too, in a DIFFERENT call site that inline-sanitized its
+    own text separately and never got this same fix applied to it).
+
+    Every real Proxmox name= call site in this app must build its
+    string through this one function from now on — never inline its
+    own ad-hoc regex again — so this class of bug cannot recur a third
+    time in a fourth call site. The human-readable original text is
+    untouched everywhere else (job.name, VMTemplate.name, etc.); only
+    the string actually sent to Proxmox goes through this."""
+    slug = re.sub(r'[^a-zA-Z0-9-]+', '-', text or '').strip('-').lower()[:63]
+    return slug or fallback
 
 
 class AdminAvailableISOsView(views.APIView):
@@ -403,16 +428,7 @@ class AdminTemplateJobCreateView(views.APIView):
 
         ps = ProxmoxService()
         try:
-            # Proxmox's real name= parameter must be a valid DNS label —
-            # confirmed via a real, live 502 ("does not look like a valid
-            # DNS name") the FIRST time a real, free-text admin-supplied
-            # name (spaces/punctuation — e.g. a Phase 2 auto-generated
-            # "COURSE — software, needed" name) was ever sent through.
-            # The human-readable `name` still becomes job.name/the
-            # eventual VMTemplate.name; only the real Proxmox object gets
-            # this sanitized slug.
-            import re
-            proxmox_vm_name = re.sub(r'[^a-zA-Z0-9-]+', '-', name).strip('-').lower()[:63] or f'template-{job.id}'
+            proxmox_vm_name = dns_safe_proxmox_name(name, fallback=f'template-{job.id}')
 
             job.log_step(f'Creating real Proxmox VM, ISO={iso_volid}...')
             vmid = ps.create_vm(proxmox_vm_name, cpu_cores, ram_gb, disk_gb, iso_volid)
@@ -1071,7 +1087,8 @@ class AdminTemplateJobVerifyView(views.APIView):
         ps = ProxmoxService()
         job.log_step('Cloning the new template to a temporary VM for isolated verification...')
         try:
-            verify_vmid = ps.clone_template(job.proxmox_vmid, f'verify-{job.name}')
+            verify_clone_name = dns_safe_proxmox_name(f'verify-{job.name}', fallback=f'verify-job-{job.id}')
+            verify_vmid = ps.clone_template(job.proxmox_vmid, verify_clone_name)
         except Exception as e:
             job.status = 'failed'
             job.error_message = f'Verification clone failed: {e}'
