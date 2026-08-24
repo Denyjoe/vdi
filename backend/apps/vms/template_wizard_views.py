@@ -802,6 +802,21 @@ class AdminTemplateJobApplyConfigurationView(views.APIView):
             else f'Configuration for {de.display_name} applied successfully.'
         )
 
+        # Real cleanup, not just failure-path hygiene: the job is
+        # genuinely done needing the VNC console from here on
+        # (everything through finalize/verify happens over SSH) — no
+        # reason to leave a real, live Proxmox VNC session open behind
+        # it. Best-effort: this must never block a successful
+        # apply-configuration response.
+        try:
+            from .services.vnc_bridge import close_active_bridge_for_vmid
+            from .services.guacamole_service import get_guacamole_service
+            stale_connection_id = close_active_bridge_for_vmid(job.proxmox_vmid)
+            if stale_connection_id:
+                get_guacamole_service().delete_connection(stale_connection_id)
+        except Exception as e:
+            logger.warning('Could not close the install console bridge for job %s after apply-configuration: %s', job.id, e)
+
         return Response({'success': True, 'data': _serialize_job(job)})
 
 
@@ -1276,7 +1291,7 @@ class AdminTemplateJobOpenConsoleView(views.APIView):
     def post(self, request, pk):
         from .services.proxmox_service import ProxmoxService
         from .services.guacamole_service import get_guacamole_service
-        from .services.vnc_bridge import start_vnc_bridge, VncBridgeError
+        from .services.vnc_bridge import start_vnc_bridge, register_guac_connection, VncBridgeError
 
         job = get_object_or_404(TemplateCreationJob, pk=pk)
         if not can_access_template_job(request.user, job):
@@ -1285,13 +1300,33 @@ class AdminTemplateJobOpenConsoleView(views.APIView):
             return Response({'success': False, 'message': 'This job has no VM yet.'}, status=400)
 
         ps = ProxmoxService()
+        gs = get_guacamole_service()
         try:
-            local_ip, local_port, vnc_password = start_vnc_bridge(ps, job.proxmox_vmid)
+            # Real, confirmed fix (found via Proxmox's own task log
+            # showing up to 7 overlapping real VNC sessions stacking
+            # up against one VM within 2 minutes): start_vnc_bridge()
+            # now force-closes whatever real bridge preceded this one
+            # for this exact vmid before minting a new ticket — never
+            # more than one real, live Proxmox VNC connection per VM
+            # at a time, no matter how many times the frontend retries.
+            local_ip, local_port, vnc_password, superseded_connection_id = start_vnc_bridge(ps, job.proxmox_vmid)
         except VncBridgeError as e:
             logger.error('Failed to start VNC bridge for job %s (vm %s): %s', job.id, job.proxmox_vmid, e)
             return Response({'success': False, 'message': str(e)}, status=502)
 
-        gs = get_guacamole_service()
+        # The superseded bridge's real Guacamole connection object is
+        # now pointing at a port nothing will ever answer on again —
+        # real leaked state in Guacamole's own database if left,
+        # cleaned up here rather than just abandoned. Best-effort: the
+        # bridge behind it is already dead either way, so a failure to
+        # delete the stale Guacamole object isn't itself fatal to
+        # opening the new one.
+        if superseded_connection_id:
+            try:
+                gs.delete_connection(superseded_connection_id)
+            except Exception as e:
+                logger.warning('Could not delete superseded Guacamole connection %s for job %s: %s', superseded_connection_id, job.id, e)
+
         try:
             # Each open (including "Refresh Console") gets a genuinely
             # new bridge on a new local port with a new ticket — the
@@ -1306,6 +1341,7 @@ class AdminTemplateJobOpenConsoleView(views.APIView):
                 port=local_port,
                 password=vnc_password,
             )
+            register_guac_connection(job.proxmox_vmid, connection_id)
             url = gs.get_connection_url(connection_id)
         except Exception as e:
             logger.error('Failed to open real VNC console for job %s: %s', job.id, e, exc_info=True)
@@ -1487,8 +1523,26 @@ class AdminConnectionStatusView(views.APIView):
     VirtualMachine row. Never assume a connection is live — Guacamole's
     own activeConnections list is the only genuine signal, matching
     the proven never-trust-a-timer pattern used everywhere else this
-    app embeds Guacamole."""
-    permission_classes = [IsAdminUser]
+    app embeds Guacamole.
+
+    Real, confirmed bug fixed here: this used to require IsAdminUser
+    (platform admin only) while the endpoint that actually MINTS the
+    connection this polls (AdminTemplateJobOpenConsoleView) has always
+    allowed any user real, per-job access via can_access_template_job
+    — including a university admin whose base role is genuinely
+    'user'. For that whole class of real, legitimate wizard user,
+    every single tunnel-health poll 403'd, which useTunnelHealth
+    correctly (by its own honest design) treats identically to a real
+    negative reading — so the console could NEVER report ready for
+    them, no matter how healthy the actual VNC connection underneath
+    genuinely was. Confirmed live against a real, currently-affected
+    account (role='user', university-admin access to their own job) —
+    this endpoint only ever reveals a single boolean ("is this specific
+    connection_id currently active") for an unguessable, ephemeral
+    Guacamole connection id, the same real trust level the endpoints
+    that create these connections already use — IsAuthenticated is the
+    correct, matching bar here, not a platform-only one."""
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         from .services.guacamole_service import get_guacamole_service

@@ -1052,20 +1052,31 @@ class FirebaseLoginView(APIView):
         except Exception:
             pass
 
+        # Real, confirmed bug fixed here: this used to hand-build the
+        # `user` dict with a small, hardcoded field list that never
+        # included is_superuser (or several other real fields /auth/me/
+        # already exposes) — so a real SuperAdmin's sidebar genuinely
+        # had no University Requests section right after a fresh
+        # Firebase login, only reappearing once something else
+        # (typically a page refresh, which goes through MeView instead)
+        # re-fetched the real, complete profile. Confirmed live: /auth/
+        # me/ correctly returns is_superuser=true for this exact
+        # account; this endpoint's own response did not carry it at
+        # all. Using the SAME real serializer as MeView here permanently
+        # closes this whole class of "two divergent user shapes" bug —
+        # every field the rest of the app can rely on `user` having is
+        # now guaranteed present the instant login completes, not just
+        # after the next unrelated /auth/me/ call.
+        from apps.users.serializers import UserProfileSerializer
+        user_data = UserProfileSerializer(user, context={'request': request}).data
+
         return Response({
             'success': True,
             'is_new_user': is_new,
             'data': {
                 'access': str(access),
                 'refresh': str(refresh),
-                'user': {
-                    'id': user.id,
-                    'email': user.email,
-                    'first_name': user.first_name,
-                    'last_name': user.last_name,
-                    'role': user.role,
-                    'avatar': getattr(user, 'avatar_url', None),
-                }
+                'user': user_data,
             }
         })
 

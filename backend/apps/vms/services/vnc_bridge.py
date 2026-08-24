@@ -60,6 +60,90 @@ class VncBridgeError(Exception):
     (never silently swallowed — the caller gets a real reason)."""
 
 
+# --- Real, confirmed root cause of the recurring "Couldn't establish
+# the real install console after several attempts" failures
+# (investigated fresh, not assumed to be the same bug the earlier
+# client-side onReadyChange fix addressed) --------------------------
+#
+# Every call to start_vnc_bridge() — including every automatic retry
+# from the wizard's own connect-watchdog (openConsole() firing again
+# on its own every ~14s on first-attempt failure, or every ~6s once a
+# previously-good tunnel drops) — used to mint a brand-new real,
+# authenticated Proxmox VNC WebSocket with zero awareness of any
+# earlier bridge for the SAME vmid. Nothing ever closed the old one:
+# its background thread just sat blocked on srv.accept() for up to
+# ACCEPT_TIMEOUT_SECONDS (90s) with a real, live WebSocket to Proxmox
+# still open the entire time.
+#
+# Confirmed live via Proxmox's own real task log (not a guess): up to
+# 7 separate vncproxy tasks fired for the same vmid within a 2-minute
+# window, at ~14s and ~6s intervals — an exact match for the
+# watchdog's real retry cadence — several with task durations that
+# genuinely OVERLAP in time (two real, live VNC sessions open
+# concurrently against the same VM), and one real vncproxy task
+# recorded status="connection timed out". QEMU's VNC server does not
+# reliably tolerate multiple concurrent real sessions against the same
+# display — piling up simultaneous bridges is exactly what was
+# causing the connection to keep failing, on a real Proxmox server
+# that itself has nothing wrong with it (confirmed separately: the VM
+# is running, a fresh vncproxy ticket mints cleanly on its own).
+#
+# The permanent fix: track the one currently-active bridge per vmid,
+# and force-close whatever bridge preceded it — real WebSocket, real
+# listening socket — before ever minting a new one. There is only
+# ever one real, live Proxmox VNC connection per VM at a time now, no
+# matter how many times the frontend retries.
+_bridge_registry_lock = threading.Lock()
+_active_bridges = {}  # vmid -> {'ws': WebSocket, 'srv': socket, 'guac_connection_id': str|None}
+
+
+def _teardown_bridge_entry(entry):
+    """Force-close a real, previous bridge's resources immediately and
+    unconditionally. Never leaves a stale WebSocket open to Proxmox
+    once a newer bridge has superseded it — this IS the fix, not a
+    best-effort nicety."""
+    ws = entry.get('ws')
+    srv = entry.get('srv')
+    if srv is not None:
+        try:
+            srv.close()
+        except Exception:
+            pass
+    if ws is not None:
+        try:
+            ws.close()
+        except Exception:
+            pass
+
+
+def register_guac_connection(vmid, connection_id):
+    """Called by the view once it has actually created the real
+    Guacamole VNC connection object for this bridge, so the NEXT call
+    to start_vnc_bridge() for the same vmid knows to clean it up too —
+    an abandoned Guacamole connection pointing at an already-dead
+    bridge port is real leaked state in Guacamole's own database, not
+    just a cosmetic loose end."""
+    with _bridge_registry_lock:
+        entry = _active_bridges.get(vmid)
+        if entry is not None:
+            entry['guac_connection_id'] = connection_id
+
+
+def close_active_bridge_for_vmid(vmid):
+    """Real, explicit teardown of whatever bridge is currently
+    registered for this vmid (if any), used when a job moves past the
+    install step entirely (apply-configuration success) — no reason to
+    keep a real Proxmox VNC session open once the admin has genuinely
+    moved on. Returns the superseded Guacamole connection_id, if any,
+    so the caller can delete that too."""
+    with _bridge_registry_lock:
+        entry = _active_bridges.pop(vmid, None)
+    if entry is None:
+        return None
+    _teardown_bridge_entry(entry)
+    return entry.get('guac_connection_id')
+
+
 def _detect_local_reachable_ip():
     """
     guacd runs on its OWN host (GUACAMOLE_URL), not on this machine —
@@ -88,13 +172,30 @@ def start_vnc_bridge(proxmox_service, vmid):
     host and needs to reach it over the network — that bridges the
     first connection guacd makes to that live WebSocket.
 
+    Real fix, not a nicety: force-closes whatever bridge was
+    previously registered for this exact vmid FIRST, before ever
+    requesting a new ticket — see the module-level comment above for
+    why. This is what stops the real, live VNC sessions from piling up
+    against the same VM across repeated retries.
+
     Returns:
-        (local_ip, local_port, vnc_password): local_ip/local_port is
-        where Guacamole's VNC connection should point; vnc_password is
-        the real RFB auth password guacd must present — it belongs to
-        THIS specific ticket, so it must be used together with
-        local_port, not reused for a later bridge.
+        (local_ip, local_port, vnc_password, superseded_connection_id):
+        local_ip/local_port is where Guacamole's VNC connection should
+        point; vnc_password is the real RFB auth password guacd must
+        present — it belongs to THIS specific ticket, so it must be
+        used together with local_port, not reused for a later bridge.
+        superseded_connection_id is the real Guacamole connection_id
+        (or None) that belonged to whatever bridge this call just tore
+        down for the same vmid — the caller should delete it too, it's
+        now pointing at a dead port.
     """
+    with _bridge_registry_lock:
+        previous = _active_bridges.pop(vmid, None)
+    superseded_connection_id = None
+    if previous is not None:
+        superseded_connection_id = previous.get('guac_connection_id')
+        _teardown_bridge_entry(previous)
+
     try:
         vnc = proxmox_service.proxmox.nodes(proxmox_service.node).qemu(vmid).vncproxy.post()
     except Exception as e:
@@ -135,6 +236,23 @@ def start_vnc_bridge(proxmox_service, vmid):
     local_port = srv.getsockname()[1]
     srv.listen(1)
     srv.settimeout(ACCEPT_TIMEOUT_SECONDS)
+
+    # Real registration — this exact (ws, srv) pair is now THE active
+    # bridge for this vmid. A later start_vnc_bridge() call for the
+    # same vmid will find this entry and tear it down before minting
+    # its own ticket, no matter which of the two cleanup paths below
+    # ends up firing first.
+    this_entry = {'ws': ws, 'srv': srv, 'guac_connection_id': None}
+    with _bridge_registry_lock:
+        _active_bridges[vmid] = this_entry
+
+    def _unregister_if_current():
+        # Only remove OUR OWN entry — if a newer call already
+        # superseded us (and is registered under the same vmid key
+        # now), this must never delete that newer, still-live entry.
+        with _bridge_registry_lock:
+            if _active_bridges.get(vmid) is this_entry:
+                del _active_bridges[vmid]
 
     def _relay(conn, sock_ws):
         # Real, confirmed root cause of the repeated "Connection to
@@ -208,8 +326,11 @@ def start_vnc_bridge(proxmox_service, vmid):
     def _accept_and_bridge():
         try:
             conn, _addr = srv.accept()
-        except socket.timeout:
-            logger.warning('VNC bridge for VM %s: no connection within %ss — closing.', vmid, ACCEPT_TIMEOUT_SECONDS)
+        except (socket.timeout, OSError):
+            # OSError covers srv being force-closed by a NEWER call's
+            # preemptive teardown while we were still blocked on
+            # accept() — a real, expected outcome now, not a bug.
+            logger.warning('VNC bridge for VM %s: no connection within %ss (or superseded) — closing.', vmid, ACCEPT_TIMEOUT_SECONDS)
             try:
                 ws.close()
             except Exception:
@@ -218,6 +339,7 @@ def start_vnc_bridge(proxmox_service, vmid):
                 srv.close()
             except Exception:
                 pass
+            _unregister_if_current()
             return
         try:
             srv.close()
@@ -225,8 +347,9 @@ def start_vnc_bridge(proxmox_service, vmid):
             pass
         logger.info('VNC bridge for VM %s: guacd connected to %s:%s, relaying real RFB stream.', vmid, local_ip, local_port)
         _relay(conn, ws)
+        _unregister_if_current()
         logger.info('VNC bridge for VM %s: session ended.', vmid)
 
     threading.Thread(target=_accept_and_bridge, daemon=True).start()
 
-    return local_ip, local_port, vnc['password']
+    return local_ip, local_port, vnc['password'], superseded_connection_id
