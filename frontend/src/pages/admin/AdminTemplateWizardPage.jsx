@@ -740,28 +740,57 @@ export default function AdminTemplateWizardPage() {
               changing it after the VM already exists would just be
               lying to the UI. */}
           <label style={labelStyle}>Template Type</label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '18px' }}>
+          {/* Real, confirmed bug found via a real 375px screenshot: a
+              fixed 2-column grid left the "Desktop" card's title text
+              nearly touching the selected-state checkmark and squeezed
+              the description down to one word per line — readable but
+              genuinely cramped. A real CSS media query (not another
+              inline-style width guess) stacks this to one column below
+              480px, where two side-by-side cards can't carry this much
+              copy comfortably. */}
+          <style>{`
+            @media (max-width: 480px) {
+              .template-type-picker { grid-template-columns: 1fr !important; }
+            }
+          `}</style>
+          <div className="template-type-picker" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '10px', marginBottom: '18px' }}>
             {[
-              { value: 'desktop', title: 'Desktop Environment', desc: 'A full graphical desktop, streamed via RDP.', icon: <Monitor size={16} /> },
-              { value: 'server', title: 'Server (CLI only)', desc: 'Headless — no desktop at all. Ongoing access via SSH only.', icon: <Terminal size={16} /> },
-            ].map(opt => (
-              <button
-                key={opt.value}
-                onClick={() => setForm({ ...form, template_type: opt.value })}
-                style={{
-                  display: 'flex', alignItems: 'flex-start', gap: '10px', textAlign: 'left',
-                  padding: '12px 14px', borderRadius: '10px', cursor: 'pointer',
-                  border: `1px solid ${form.template_type === opt.value ? 'var(--accent-primary)' : 'var(--border-color)'}`,
-                  background: form.template_type === opt.value ? 'var(--accent-primary-bg, rgba(99,102,241,0.08))' : 'var(--bg-input)',
-                }}
-              >
-                <div style={{ color: form.template_type === opt.value ? 'var(--accent-primary)' : 'var(--text-secondary)', marginTop: '2px' }}>{opt.icon}</div>
-                <div>
-                  <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>{opt.title}</div>
-                  <div style={{ fontSize: '11.5px', color: 'var(--text-secondary)', marginTop: '2px' }}>{opt.desc}</div>
-                </div>
-              </button>
-            ))}
+              { value: 'desktop', title: 'Desktop Environment', desc: 'A full graphical desktop, streamed via RDP.', icon: <Monitor size={18} /> },
+              { value: 'server', title: 'Server (CLI only)', desc: 'Headless — no desktop at all. Ongoing access via SSH only.', icon: <Terminal size={18} /> },
+            ].map(opt => {
+              const selected = form.template_type === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => setForm({ ...form, template_type: opt.value })}
+                  onMouseEnter={e => { if (!selected) e.currentTarget.style.borderColor = 'var(--text-muted)'; }}
+                  onMouseLeave={e => { if (!selected) e.currentTarget.style.borderColor = 'var(--border-color)'; }}
+                  style={{
+                    position: 'relative', display: 'flex', alignItems: 'flex-start', gap: '10px', textAlign: 'left',
+                    width: '100%', minWidth: 0, boxSizing: 'border-box',
+                    padding: '14px', borderRadius: '12px', cursor: 'pointer', transition: 'border-color 150ms ease, background 150ms ease',
+                    border: `1.5px solid ${selected ? 'var(--accent-primary)' : 'var(--border-color)'}`,
+                    background: selected ? 'var(--accent-primary-bg, rgba(99,102,241,0.08))' : 'var(--bg-input)',
+                  }}
+                >
+                  {selected && (
+                    <CheckCircle2 size={16} style={{ position: 'absolute', top: '10px', right: '10px', color: 'var(--accent-primary)' }} />
+                  )}
+                  <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    width: '30px', height: '30px', borderRadius: '9px',
+                    background: selected ? 'var(--accent-primary)' : 'var(--bg-canvas, rgba(255,255,255,0.05))',
+                    color: selected ? '#fff' : 'var(--text-secondary)',
+                  }}>
+                    {opt.icon}
+                  </div>
+                  <div style={{ minWidth: 0, paddingRight: '22px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>{opt.title}</div>
+                    <div style={{ fontSize: '11.5px', color: 'var(--text-secondary)', marginTop: '2px', lineHeight: 1.4 }}>{opt.desc}</div>
+                  </div>
+                </button>
+              );
+            })}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
@@ -899,9 +928,15 @@ export default function AdminTemplateWizardPage() {
             background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '8px',
             padding: '10px 14px', marginBottom: '16px', fontSize: '12px', color: 'var(--text-secondary)',
           }}>
-            <b style={{ color: 'var(--text-primary)' }}>Before clicking Continue:</b> most desktop Linux
-            distros (Parrot included) don't ship an SSH server by default. Open a terminal in the console
-            above (or the Terminal tab once SSH is up) and run:
+            <b style={{ color: 'var(--text-primary)' }}>Before clicking Continue:</b>{' '}
+            {job.template_type === 'server' ? (
+              <>most server installers (Ubuntu Server included) offer to install OpenSSH Server directly in
+              the setup screens — check that box if you see it. If it wasn't offered or wasn't checked, open a
+              terminal in the console above (or the Terminal tab once SSH is up) and run:</>
+            ) : (
+              <>most desktop Linux distros (Parrot included) don't ship an SSH server by default. Open a
+              terminal in the console above (or the Terminal tab once SSH is up) and run:</>
+            )}
             <div style={{
               marginTop: '6px', fontFamily: 'monospace', fontSize: '12px', background: 'var(--bg-primary)',
               border: '1px solid var(--border-color)', borderRadius: '6px', padding: '8px 10px',
