@@ -146,29 +146,63 @@ class PayAndStartSessionView(APIView):
             template = VMTemplate.objects.get(id=template_id)
         except VMTemplate.DoesNotExist:
             return Response({'success': False, 'message': 'Invalid template'}, status=400)
-        
-        # SANDBOX payment — instant success.
-        import uuid
-        transaction_id = f'CD-{str(uuid.uuid4())[:8].upper()}'
-        try:
-            Payment.objects.create(
-                user=request.user,
-                payment_type='session_hosting',
-                amount_tzs=total_price,
-                currency='TZS',
-                provider=provider,
-                phone_number=phone,
-                status='completed',
-                transaction_id=transaction_id,
+
+        # ── University-sponsored class session ──────────────────────
+        # A lecturer starting a session for a real course with a
+        # university-scoped template is covered by the university's
+        # bulk subscription — no individual payment. We enforce the
+        # same quota + active checks already proven in workspace
+        # launches (workspace_views.py) and participant joins
+        # (session_lifecycle_service.py).
+        university_sponsored = False
+        if course and template.university_id:
+            from apps.university.services.quota_service import (
+                check_university_active, check_quota_allows,
             )
-        except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f'FAILED to create payment record: {str(e)}', exc_info=True)
-            return Response({
-                'success': False,
-                'message': 'Payment could not be processed. Please try again.'
-            }, status=500)
+            uni = course.department.university
+            active_ok, active_msg = check_university_active(uni)
+            if not active_ok:
+                return Response({
+                    'success': False, 'message': active_msg,
+                }, status=409)
+            # Session hosts don't immediately consume vCPU/RAM (that
+            # Session hosts will immediately consume vCPU/RAM when they
+            # connect to their own session, so we verify the university
+            # has enough quota for at least one VM (the host's).
+            allowed, quota_msg = check_quota_allows(
+                uni, 
+                additional_vcpu=template.cpu_cores,
+                additional_ram_gb=template.ram_gb
+            )
+            if not allowed:
+                return Response({
+                    'success': False, 'message': quota_msg,
+                }, status=409)
+            university_sponsored = True
+
+        # ── Individual payment (personal sessions only) ─────────────
+        if not university_sponsored:
+            import uuid
+            transaction_id = f'CD-{str(uuid.uuid4())[:8].upper()}'
+            try:
+                Payment.objects.create(
+                    user=request.user,
+                    payment_type='session_hosting',
+                    amount_tzs=total_price,
+                    currency='TZS',
+                    provider=provider,
+                    phone_number=phone,
+                    status='completed',
+                    transaction_id=transaction_id,
+                )
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f'FAILED to create payment record: {str(e)}', exc_info=True)
+                return Response({
+                    'success': False,
+                    'message': 'Payment could not be processed. Please try again.'
+                }, status=500)
 
         invite_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
         
@@ -187,7 +221,7 @@ class PayAndStartSessionView(APIView):
             invite_code=invite_code,
             status='active',
             hours_purchased=hours,
-            amount_paid_tzs=total_price,
+            amount_paid_tzs=decimal.Decimal('0') if university_sponsored else total_price,
             scheduled_end_at=end_at,
             start_time=now,
             end_time=end_at,
@@ -196,11 +230,19 @@ class PayAndStartSessionView(APIView):
         
         from apps.users.admin_services import log_admin_action
         try:
-            log_admin_action(
-                request.user, 
-                'config_changed',
-                f'{request.user.email} started a {hours}hr paid session (TZS {total_price})'
-            )
+            if university_sponsored:
+                log_admin_action(
+                    request.user,
+                    'config_changed',
+                    f'{request.user.email} started a {hours}hr university-sponsored class session '
+                    f'for {course.code} (no charge — university quota)',
+                )
+            else:
+                log_admin_action(
+                    request.user, 
+                    'config_changed',
+                    f'{request.user.email} started a {hours}hr paid session (TZS {total_price})'
+                )
         except Exception:
             pass
         
@@ -211,7 +253,8 @@ class PayAndStartSessionView(APIView):
                 'invite_code': invite_code,
                 'scheduled_end_at': end_at.isoformat(),
                 'hours_purchased': float(hours),
-                'amount_paid_tzs': float(total_price),
+                'amount_paid_tzs': 0 if university_sponsored else float(total_price),
+                'university_sponsored': university_sponsored,
                 'course_id': course.id if course else None,
             }
         })

@@ -127,6 +127,8 @@ export default function CreateSessionPage() {
   
   const [showCheckout, setShowCheckout] = useState(false);
   const [checkoutPayload, setCheckoutPayload] = useState(null);
+  const [sponsoredLaunching, setSponsoredLaunching] = useState(false);
+  const [sponsoredError, setSponsoredError] = useState(null);
   
   const [restrictions, setRestrictions] = useState({
     clipboard: true,
@@ -201,32 +203,66 @@ export default function CreateSessionPage() {
     setCoursePrefilled(true);
   }, [courseInfo, templates, coursePrefilled]);
 
+  // A class session with a university-scoped template is sponsored —
+  // the university already paid in bulk, so the lecturer sees no
+  // payment form and no charge. The backend enforces real quota.
+  const isUniversitySponsored = !!(courseInfo?.university_id && selectedTemplate?.university);
+
   const canProceed = () => {
     return sessionName.trim().length > 0 && selectedTemplate != null && hours >= 0.5 && hours <= 24;
   };
 
-  const handleStartCheckout = () => {
+  /**
+   * Build the common session payload used by both paid and sponsored flows.
+   * @returns {object} The payload to POST to pay-and-start.
+   */
+  const buildPayload = () => {
     const domains = allowedDomainsInput
       .split(',')
       .map(d => d.trim())
       .filter(Boolean);
+    return {
+      name: sessionName,
+      session_type: sessionType,
+      vm_template: selectedTemplate.id,
+      max_participants: maxParticipants,
+      hours: hours,
+      restrictions: restrictions,
+      restrict_internet: restrictInternet || domains.length > 0,
+      allowed_domains: domains,
+      ...(courseId ? { course_id: courseId } : {}),
+    };
+  };
 
+  /**
+   * Direct start for university-sponsored class sessions — no checkout
+   * modal, no payment form. Calls the same backend endpoint; the backend
+   * detects course_id + university-scoped template and skips payment.
+   */
+  const handleDirectStart = async () => {
+    setSponsoredLaunching(true);
+    setSponsoredError(null);
+    try {
+      const res = await api.post('/sessions/live/pay-and-start/', buildPayload());
+      if (res.data.success) {
+        navigate(`/host/session/${res.data.data.id}`, { state: { session: res.data.data } });
+      } else {
+        setSponsoredError(res.data.message || 'Failed to start session.');
+      }
+    } catch (e) {
+      setSponsoredError(e.response?.data?.message || 'Failed to start session. Please try again.');
+    } finally {
+      setSponsoredLaunching(false);
+    }
+  };
+
+  /** Paid flow — opens the checkout modal for personal sessions. */
+  const handleStartCheckout = () => {
     setCheckoutPayload({
       name: 'Custom Session',
       price: { TZS: hours * rate },
-      payload: {
-        name: sessionName,
-        session_type: sessionType,
-        vm_template: selectedTemplate.id,
-        max_participants: maxParticipants,
-        hours: hours,
-        restrictions: restrictions,
-        restrict_internet: restrictInternet || domains.length > 0,
-        allowed_domains: domains,
-        ...(courseId ? { course_id: courseId } : {}),
-      }
+      payload: buildPayload(),
     });
-    
     setShowCheckout(true);
   };
 
@@ -485,7 +521,7 @@ export default function CreateSessionPage() {
           {/* Duration & Pricing */}
           <div style={sectionCard}>
             <h3 style={sectionTitle}>
-              Duration & Pricing
+              {isUniversitySponsored ? 'Duration' : 'Duration & Pricing'}
             </h3>
             
             <label style={labelStyle}>
@@ -517,12 +553,14 @@ export default function CreateSessionPage() {
                     fontWeight: 700,
                     color: 'var(--text-primary)',
                   }}>{h}h</div>
-                  <div style={{
-                    fontSize: '12px',
-                    color: 'var(--text-muted)',
-                  }}>
-                    TZS {(h * rate).toLocaleString()}
-                  </div>
+                  {!isUniversitySponsored && (
+                    <div style={{
+                      fontSize: '12px',
+                      color: 'var(--text-muted)',
+                    }}>
+                      TZS {(h * rate).toLocaleString()}
+                    </div>
+                  )}
                 </button>
               ))}
             </div>
@@ -538,48 +576,88 @@ export default function CreateSessionPage() {
               style={{ ...inputStyle, marginBottom: '20px' }}
             />
 
-            <div style={{
-              padding: '16px',
-              borderRadius: '12px',
-              background: 'var(--accent-primary-soft)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}>
-              <span style={{
-                fontSize: '13px',
-                fontWeight: 600,
-                color: 'var(--text-secondary)',
-              }}>Total Cost</span>
-              <span style={{
-                fontSize: '22px',
-                fontWeight: 800,
-                color: 'var(--accent-primary)',
+            {isUniversitySponsored ? (
+              <div style={{
+                padding: '16px',
+                borderRadius: '12px',
+                background: 'rgba(34, 197, 94, 0.1)',
+                border: '1px solid rgba(34, 197, 94, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
               }}>
-                TZS {(hours * rate).toLocaleString()}
-              </span>
-            </div>
+                <Check size={18} style={{ color: '#22C55E' }} />
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#22C55E' }}>
+                    Covered by {courseInfo?.university_name || 'your university'}
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    No individual charge — uses your university's resource allocation.
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{
+                padding: '16px',
+                borderRadius: '12px',
+                background: 'var(--accent-primary-soft)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}>
+                <span style={{
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: 'var(--text-secondary)',
+                }}>Total Cost</span>
+                <span style={{
+                  fontSize: '22px',
+                  fontWeight: 800,
+                  color: 'var(--accent-primary)',
+                }}>
+                  TZS {(hours * rate).toLocaleString()}
+                </span>
+              </div>
+            )}
           </div>
 
-          {/* Pay button — full width inside right column */}
-          <button onClick={handleStartCheckout} disabled={!canProceed()}
+          {/* Sponsored error feedback */}
+          {sponsoredError && (
+            <div style={{
+              padding: '12px 16px',
+              borderRadius: '10px',
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              fontSize: '13px',
+              color: '#EF4444',
+              fontWeight: 600,
+            }}>
+              {sponsoredError}
+            </div>
+          )}
+
+          {/* Action button — sponsored launches skip payment entirely */}
+          <button
+            onClick={isUniversitySponsored ? handleDirectStart : handleStartCheckout}
+            disabled={!canProceed() || sponsoredLaunching}
             style={{
               width: '100%',
               padding: '16px',
               borderRadius: '12px',
-              background: 'var(--accent-primary)',
+              background: isUniversitySponsored ? '#22C55E' : 'var(--accent-primary)',
               color: '#fff',
               border: 'none',
               fontSize: '15px',
               fontWeight: 700,
-              cursor: canProceed() ? 'pointer' : 'not-allowed',
-              opacity: canProceed() ? 1 : 0.5,
+              cursor: (canProceed() && !sponsoredLaunching) ? 'pointer' : 'not-allowed',
+              opacity: (canProceed() && !sponsoredLaunching) ? 1 : 0.5,
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
               gap: '8px'
             }}>
-            <Rocket size={18} /> Pay & Start Session
+            <Rocket size={18} />
+            {sponsoredLaunching ? 'Starting...' : (isUniversitySponsored ? 'Start Class Session' : 'Pay & Start Session')}
           </button>
         </div>
 
