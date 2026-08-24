@@ -609,18 +609,27 @@ export default function SuperAdminUniversityRequestsPage() {
                   Real, approved hardware quota
                 </label>
                 <div className="grid grid-cols-3 gap-2">
-                  <input type="number" min="1" value={approveForm.max_vcpu_cores}
-                    onChange={e => setApproveForm({ ...approveForm, max_vcpu_cores: e.target.value })}
-                    placeholder="vCPU"
-                    className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-3 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]" />
-                  <input type="number" min="1" value={approveForm.max_ram_gb}
-                    onChange={e => setApproveForm({ ...approveForm, max_ram_gb: e.target.value })}
-                    placeholder="RAM GB"
-                    className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-3 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]" />
-                  <input type="number" min="1" value={approveForm.max_storage_gb}
-                    onChange={e => setApproveForm({ ...approveForm, max_storage_gb: e.target.value })}
-                    placeholder="Storage GB"
-                    className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-3 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]" />
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">vCPU Cores</label>
+                    <input type="number" min="1" value={approveForm.max_vcpu_cores}
+                      onChange={e => setApproveForm({ ...approveForm, max_vcpu_cores: e.target.value })}
+                      placeholder="vCPU"
+                      className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-3 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">RAM (GB)</label>
+                    <input type="number" min="1" value={approveForm.max_ram_gb}
+                      onChange={e => setApproveForm({ ...approveForm, max_ram_gb: e.target.value })}
+                      placeholder="RAM GB"
+                      className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-3 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Storage (GB)</label>
+                    <input type="number" min="1" value={approveForm.max_storage_gb}
+                      onChange={e => setApproveForm({ ...approveForm, max_storage_gb: e.target.value })}
+                      placeholder="Storage GB"
+                      className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-3 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]" />
+                  </div>
                 </div>
               </div>
               <button onClick={submitApprove} disabled={approving}
@@ -694,18 +703,27 @@ export default function SuperAdminUniversityRequestsPage() {
               <div>
                 <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">Real, approved hardware quota</label>
                 <div className="grid grid-cols-3 gap-2">
-                  <input type="number" min="1" value={editTermsForm.max_vcpu_cores}
-                    onChange={e => setEditTermsForm({ ...editTermsForm, max_vcpu_cores: e.target.value })}
-                    placeholder="vCPU"
-                    className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-3 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]" />
-                  <input type="number" min="1" value={editTermsForm.max_ram_gb}
-                    onChange={e => setEditTermsForm({ ...editTermsForm, max_ram_gb: e.target.value })}
-                    placeholder="RAM GB"
-                    className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-3 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]" />
-                  <input type="number" min="1" value={editTermsForm.max_storage_gb}
-                    onChange={e => setEditTermsForm({ ...editTermsForm, max_storage_gb: e.target.value })}
-                    placeholder="Storage GB"
-                    className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-3 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]" />
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">vCPU Cores</label>
+                    <input type="number" min="1" value={editTermsForm.max_vcpu_cores}
+                      onChange={e => setEditTermsForm({ ...editTermsForm, max_vcpu_cores: e.target.value })}
+                      placeholder="vCPU"
+                      className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-3 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">RAM (GB)</label>
+                    <input type="number" min="1" value={editTermsForm.max_ram_gb}
+                      onChange={e => setEditTermsForm({ ...editTermsForm, max_ram_gb: e.target.value })}
+                      placeholder="RAM GB"
+                      className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-3 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Storage (GB)</label>
+                    <input type="number" min="1" value={editTermsForm.max_storage_gb}
+                      onChange={e => setEditTermsForm({ ...editTermsForm, max_storage_gb: e.target.value })}
+                      placeholder="Storage GB"
+                      className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-3 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]" />
+                  </div>
                 </div>
               </div>
               <button onClick={submitEditTerms} disabled={savingTerms}

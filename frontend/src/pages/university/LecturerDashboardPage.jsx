@@ -455,18 +455,27 @@ export default function LecturerDashboardPage() {
               <div>
                 <label className="block text-sm font-medium text-[var(--text-primary)] mb-1.5">Estimated specs</label>
                 <div className="grid grid-cols-3 gap-2">
-                  <input type="number" min="1" value={requestForm.estimated_vcpu}
-                    onChange={e => setRequestForm({ ...requestForm, estimated_vcpu: parseInt(e.target.value) || 1 })}
-                    placeholder="vCPU"
-                    className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-3 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]" />
-                  <input type="number" min="1" value={requestForm.estimated_ram_gb}
-                    onChange={e => setRequestForm({ ...requestForm, estimated_ram_gb: parseInt(e.target.value) || 1 })}
-                    placeholder="RAM GB"
-                    className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-3 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]" />
-                  <input type="number" min="1" value={requestForm.estimated_storage_gb}
-                    onChange={e => setRequestForm({ ...requestForm, estimated_storage_gb: parseInt(e.target.value) || 1 })}
-                    placeholder="Storage GB"
-                    className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-3 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]" />
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">vCPU Cores</label>
+                    <input type="number" min="1" value={requestForm.estimated_vcpu}
+                      onChange={e => setRequestForm({ ...requestForm, estimated_vcpu: parseInt(e.target.value) || 1 })}
+                      placeholder="vCPU"
+                      className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-3 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">RAM (GB)</label>
+                    <input type="number" min="1" value={requestForm.estimated_ram_gb}
+                      onChange={e => setRequestForm({ ...requestForm, estimated_ram_gb: parseInt(e.target.value) || 1 })}
+                      placeholder="RAM GB"
+                      className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-3 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Storage (GB)</label>
+                    <input type="number" min="1" value={requestForm.estimated_storage_gb}
+                      onChange={e => setRequestForm({ ...requestForm, estimated_storage_gb: parseInt(e.target.value) || 1 })}
+                      placeholder="Storage GB"
+                      className="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-3 py-2.5 text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]" />
+                  </div>
                 </div>
               </div>
 
