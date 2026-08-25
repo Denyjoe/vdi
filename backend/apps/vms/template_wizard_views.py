@@ -353,19 +353,26 @@ class AdminTemplateJobCreateView(views.APIView):
         # gets the exact old behavior — 'desktop', desktop_environment
         # required below — never a silent server-type job nobody asked for.
         template_type = (request.data.get('template_type') or 'desktop').strip().lower()
-        if template_type not in ('desktop', 'server'):
-            return Response({'success': False, 'message': "template_type must be 'desktop' or 'server'."}, status=400)
+        if template_type not in ('desktop', 'server', 'windows'):
+            return Response({'success': False, 'message': "template_type must be 'desktop', 'server', or 'windows'."}, status=400)
         is_server = template_type == 'server'
+        is_windows = template_type == 'windows'
+        # Real, deliberate choice (matching the existing 'server' path):
+        # a 'windows' job never gets a DesktopEnvironmentProfile either
+        # — there's no fix_script/session_command concept for Windows,
+        # its own native RDP server and Sysprep replace that entire
+        # mechanism (see apply-configuration/finalize below).
+        needs_desktop_environment = not (is_server or is_windows)
 
         required = [name, cpu_cores, ram_gb, disk_gb, iso_volid]
-        if not is_server:
+        if needs_desktop_environment:
             required.append(de_id)
         if not all(required):
             return Response({
                 'success': False,
                 'message': (
                     'name, cpu_cores, ram_gb, disk_gb, and iso_volid are all required'
-                    + ('.' if is_server else ', and desktop_environment_id is required for a desktop template.')
+                    + ('.' if not needs_desktop_environment else ', and desktop_environment_id is required for a desktop template.')
                 ),
             }, status=400)
 
@@ -406,7 +413,7 @@ class AdminTemplateJobCreateView(views.APIView):
                 'message': 'A university admin may only start a build from an approved template request.',
             }, status=403)
 
-        desktop_environment = None if is_server else get_object_or_404(DesktopEnvironmentProfile, id=de_id)
+        desktop_environment = get_object_or_404(DesktopEnvironmentProfile, id=de_id) if needs_desktop_environment else None
 
         job = TemplateCreationJob.objects.create(
             name=name,
@@ -423,7 +430,11 @@ class AdminTemplateJobCreateView(views.APIView):
         )
         job.log_step(
             f'Job created for "{name}" ({cpu_cores} vCPU / {ram_gb}GB RAM / {disk_gb}GB disk). '
-            + ('CLI-only server (no desktop environment).' if is_server else f'desktop ({desktop_environment.display_name}).')
+            + (
+                'CLI-only server (no desktop environment).' if is_server
+                else 'Windows (no desktop environment — native RDP + Sysprep).' if is_windows
+                else f'desktop ({desktop_environment.display_name}).'
+            )
         )
 
         ps = ProxmoxService()
@@ -431,7 +442,11 @@ class AdminTemplateJobCreateView(views.APIView):
             proxmox_vm_name = dns_safe_proxmox_name(name, fallback=f'template-{job.id}')
 
             job.log_step(f'Creating real Proxmox VM, ISO={iso_volid}...')
-            vmid = ps.create_vm(proxmox_vm_name, cpu_cores, ram_gb, disk_gb, iso_volid)
+            if is_windows:
+                job.log_step('Windows-appropriate hardware: q35 + OVMF/UEFI + TPM 2.0, VirtIO SCSI/net + driver ISO.')
+                vmid = ps.create_windows_vm(proxmox_vm_name, cpu_cores, ram_gb, disk_gb, iso_volid)
+            else:
+                vmid = ps.create_vm(proxmox_vm_name, cpu_cores, ram_gb, disk_gb, iso_volid)
             job.proxmox_vmid = vmid
             job.save(update_fields=['proxmox_vmid'])
             job.log_step(f'Real VM created: vmid={vmid}.')

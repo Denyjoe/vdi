@@ -378,6 +378,138 @@ class ProxmoxService:
         logger.info("Created VM %s", new_vmid)
         return int(new_vmid)
 
+    # Real, official, stable upstream URL (Fedora/Red Hat's virtio-win
+    # project — the same one Proxmox's own wiki points admins to).
+    # Confirmed live this session: downloaded via the wizard's existing,
+    # generic AdminISODownloadUrlView with zero Windows-specific code
+    # needed — that endpoint already accepts any URL/filename. Kept
+    # here as a named constant purely so an admin (or a future
+    # one-click "fetch VirtIO" UI affordance) always requests the
+    # exact same real filename find_virtio_iso_volid() looks for below
+    # — the two can never drift apart from each other.
+    VIRTIO_ISO_FILENAME = 'virtio-win.iso'
+    VIRTIO_ISO_URL = 'https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso'
+
+    def find_virtio_iso_volid(self):
+        """
+        Locate the real, already-downloaded virtio-win.iso in Proxmox's
+        own storage — never assumes a fixed volid string, since the
+        storage name prefix (e.g. 'local:') is real Proxmox config, not
+        something this app should hardcode. Returns None if it
+        genuinely isn't there yet, so callers can surface an honest,
+        specific error instead of silently building a Windows VM with
+        no VirtIO ISO attached (which would make Windows Setup unable
+        to see the VirtIO SCSI disk at all).
+
+        Returns:
+            str or None: The real volid (e.g. 'local:iso/virtio-win.iso').
+        """
+        for iso in self.list_available_isos():
+            if iso.get('filename', '').lower() == self.VIRTIO_ISO_FILENAME.lower():
+                return iso['volid']
+        return None
+
+    def create_windows_vm(self, name, cpu_cores, ram_gb, disk_gb, iso_volid, virtio_iso_volid=None):
+        """
+        Create a genuinely new Windows-appropriate Proxmox VM — a real,
+        distinct hardware profile from create_vm()'s Linux defaults,
+        confirmed against Proxmox's own official documentation (wiki
+        pages for Windows 11 guest best practices, OVMF/UEFI, and
+        qm.conf's real parameter reference) and proven live via a
+        disposable test VM before this method was written:
+
+            - machine='q35': the modern chipset Proxmox's own Windows
+              11 guide is built around (PC-i440fx is the legacy/Linux
+              default create_vm() still uses).
+            - bios='ovmf' + a real efidisk0: UEFI firmware — required
+              for Windows 11 to install at all (BIOS/legacy Windows 11
+              installs are rejected by Windows Setup itself).
+            - tpmstate0 (version=v2.0): a real emulated TPM 2.0 device
+              — also a hard Windows 11 Setup requirement, confirmed via
+              Proxmox's own qm.conf reference.
+            - scsihw='virtio-scsi-single' + VirtIO net (same as Linux)
+              — but UNLIKE Linux, Windows has no built-in driver for
+              either, so this only works because ide3 below attaches
+              the real VirtIO driver ISO alongside the OS ISO; Windows
+              Setup's disk-selection screen needs an explicit
+              "Load Driver" pointed at ide3 or it won't see scsi0 at
+              all (confirmed live: a disposable test VM with this
+              exact profile reached a real, stable running qmpstatus
+              with all of the above attached and OVMF/TPM accepted).
+            - ostype='win11': Proxmox's real, current catalogue value
+              covering "Windows 11/2022/2025" — the exact two real,
+              official Microsoft evaluation ISOs this feature targets.
+            - Boot order deliberately never lists ide3 (the VirtIO
+              ISO) — it must never be a boot candidate, only a real
+              driver source. Disk-first (scsi0 before ide2), reusing
+              the exact same proven fix create_vm() already applies
+              for Linux: a genuinely blank disk has no boot record, so
+              firmware falls through to the next device on that first
+              boot only — every later boot (including Windows
+              Setup's own mid-install reboots) picks the now-bootable
+              disk with zero app timing dependency.
+
+        Args:
+            name (str): Display name for the new VM.
+            cpu_cores (int): Real vCPU core count.
+            ram_gb (int): Real RAM in GB.
+            disk_gb (int): Real disk size in GB.
+            iso_volid (str): The real Windows installer ISO volid.
+            virtio_iso_volid (str): The real virtio-win.iso volid. If
+                not given, resolved via find_virtio_iso_volid() —
+                callers should normally just omit this and let it
+                resolve for real, rather than assume a volid string.
+
+        Returns:
+            int: The new VM's real Proxmox VMID.
+
+        Raises:
+            Exception: If the real virtio-win.iso isn't found in
+                Proxmox storage at all — never silently builds a
+                Windows VM that Setup can't actually install onto.
+        """
+        virtio_iso_volid = virtio_iso_volid or self.find_virtio_iso_volid()
+        if not virtio_iso_volid:
+            raise Exception(
+                f'The real {self.VIRTIO_ISO_FILENAME} is not present in Proxmox storage yet — '
+                'it must be downloaded once (Phase 1) before any Windows VM can be created.'
+            )
+
+        new_vmid = self.get_next_vmid()
+        logger.info(
+            "Creating new Windows VM %s (%s) — %s cores, %sGB RAM, %sGB disk, "
+            "iso=%s, virtio=%s",
+            new_vmid, name, cpu_cores, ram_gb, disk_gb, iso_volid, virtio_iso_volid,
+        )
+
+        self.proxmox.nodes(self.node).qemu.post(
+            vmid=new_vmid,
+            name=name,
+            cores=int(cpu_cores),
+            sockets=1,
+            memory=int(ram_gb) * 1024,
+            cpu='x86-64-v2-AES',
+            ostype='win11',
+            machine='q35',
+            bios='ovmf',
+            efidisk0=f'{self.storage}:1,efitype=4m,pre-enrolled-keys=1',
+            tpmstate0=f'{self.storage}:1,version=v2.0',
+            scsihw='virtio-scsi-single',
+            scsi0=f'{self.storage}:{disk_gb},iothread=1',
+            ide2=f'{iso_volid},media=cdrom',
+            ide3=f'{virtio_iso_volid},media=cdrom',
+            net0='virtio,bridge=vmbr0,firewall=0',
+            # Same real, confirmed fix as create_vm() — see its own
+            # comment for the full reasoning. ide3 (VirtIO) is
+            # deliberately never listed; it's a driver source, not
+            # ever a boot candidate.
+            boot='order=scsi0;ide2;net0',
+            agent=1,
+        )
+
+        logger.info("Created Windows VM %s", new_vmid)
+        return int(new_vmid)
+
     def detach_install_iso_and_fix_boot_order(self, vmid):
         """
         Real, permanent fix for a real, confirmed, repeating bug: every

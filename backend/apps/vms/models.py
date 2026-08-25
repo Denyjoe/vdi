@@ -90,6 +90,7 @@ class VMTemplate(models.Model):
         choices=[
             ('desktop', 'Desktop'),
             ('server', 'Server'),
+            ('windows', 'Windows'),
         ],
         default='desktop'
     )
@@ -501,6 +502,7 @@ class TemplateCreationJob(models.Model):
     TEMPLATE_TYPE_CHOICES = [
         ('desktop', 'Desktop'),
         ('server', 'Server (CLI only)'),
+        ('windows', 'Windows'),
     ]
 
     name = models.CharField(max_length=100)
@@ -523,7 +525,11 @@ class TemplateCreationJob(models.Model):
             "'desktop' = the existing flow (a chosen DesktopEnvironmentProfile "
             "is configured and streamed via RDP). 'server' = CLI-only/headless: "
             "no desktop environment at all, ongoing access is via Guacamole SSH "
-            "only, never RDP/VNC."
+            "only, never RDP/VNC. 'windows' = a genuine third path — no "
+            "DesktopEnvironmentProfile/fix_script (desktop_environment stays "
+            "null, same as 'server'), Windows' own native RDP server instead "
+            "of xrdp, VirtIO drivers instead of a Linux guest agent, Sysprep "
+            "instead of machine-id clearing at finalize time."
         ),
     )
     cpu_cores = models.IntegerField(default=2)
