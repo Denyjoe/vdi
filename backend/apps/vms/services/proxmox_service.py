@@ -168,15 +168,41 @@ class ProxmoxService:
         the file genuinely appears in the storage's content listing
         once that task completes).
 
-        Streams `file_obj` (Django's UploadedFile — already written to
-        a temp file on disk by Django's own upload handling for
-        anything past the small-file memory threshold, so this never
-        holds the whole multi-GB ISO in RAM) straight into the
-        multipart request body via `requests`, which reads it in
-        chunks rather than buffering it all before sending.
+        Real, confirmed root-cause fix: this used to build the
+        outbound multipart body via plain `requests.post(files=...)`,
+        whose docstring claimed that "reads it in chunks rather than
+        buffering it all before sending" — confirmed FALSE via a live
+        5GB test upload (a real Windows-ISO-sized file): the backend
+        process's own memory ballooned to 17GB+ (over 3x the file
+        size) and the connection was silently dropped mid-transfer
+        with no HTTP response at all
+        (`RemoteDisconnected('Remote end closed connection without
+        response')`). Root-caused to urllib3's own
+        `encode_multipart_formdata()` (confirmed by reading its actual
+        installed source): it calls `.read()` on the file object to
+        get its FULL content, copies that into an in-memory `BytesIO`,
+        then materializes the whole thing again via `.getvalue()` —
+        genuinely holding multiple full copies of the file in RAM
+        before a single byte is ever sent over the socket. Harmless
+        for the multi-GB Linux ISOs already uploaded through this
+        exact code path (still within a small server's real headroom),
+        but a real Windows ISO (4-6GB+) pushes this well past what a
+        real, memory-constrained server can survive.
+
+        Fixed by switching to requests-toolbelt's MultipartEncoder,
+        the standard, real solution for this exact problem: it reads
+        `file_obj` in bounded chunks AS urllib3 actually sends them
+        over the socket, so real peak memory stays a small constant
+        multiple of the chunk size, not the whole file, regardless of
+        whether the ISO is 700MB or 6GB.
 
         Args:
-            file_obj: A file-like object (e.g. Django UploadedFile).
+            file_obj: A file-like object (e.g. Django UploadedFile —
+                already written to a temp file on disk by Django's own
+                upload handling for anything past the small-file
+                memory threshold, so the INCOMING half of this request
+                was never the problem; this fix is for the OUTGOING
+                half, to Proxmox).
             filename (str): Real filename to store it as.
             storage (str): Target storage name (defaults to self.storage
                 — but note self.storage is normally the VM-disk storage
@@ -188,12 +214,19 @@ class ProxmoxService:
             str: The real Proxmox UPID for the async upload task —
             callers should poll get_task_status() until it stops.
         """
+        from requests_toolbelt import MultipartEncoder
+
         storage = storage or 'local'
         url = f'https://{self.host}:{PROXMOX_PORT}/api2/json/nodes/{self.node}/storage/{storage}/upload'
         headers = {'Authorization': f'PVEAPIToken={PROXMOX_USER}!{PROXMOX_TOKEN_NAME}={PROXMOX_TOKEN_SECRET}'}
-        files = {'filename': (filename, file_obj, 'application/octet-stream')}
-        data = {'content': 'iso'}
-        resp = requests.post(url, headers=headers, files=files, data=data, verify=PROXMOX_VERIFY_SSL, timeout=None)
+
+        encoder = MultipartEncoder(fields={
+            'content': 'iso',
+            'filename': (filename, file_obj, 'application/octet-stream'),
+        })
+        headers['Content-Type'] = encoder.content_type
+
+        resp = requests.post(url, headers=headers, data=encoder, verify=PROXMOX_VERIFY_SSL, timeout=None)
         resp.raise_for_status()
         return resp.json()['data']
 

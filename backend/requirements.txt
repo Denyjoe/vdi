@@ -11,6 +11,7 @@ redis==5.0.1
 Pillow
 proxmoxer
 requests
+requests-toolbelt
 google-auth==2.29.0
 firebase-admin
 paramiko

@@ -215,6 +215,29 @@ export default function AdminTemplateWizardPage() {
   // Real upload — genuine progress from axios' onUploadProgress, not
   // a fake animation. Streams straight to Proxmox server-side; this
   // request body IS the real bytes going over the wire.
+  //
+  // Real, confirmed fix, in two real, separate parts:
+  //   1. Routed to a dedicated plain-WSGI listener (started alongside
+  //      the main Daphne/ASGI server — see backend's apps/vms/apps.py)
+  //      instead of the normal API. A real large (Windows-ISO-sized,
+  //      4-6GB+) file made the main Daphne/ASGI server's memory
+  //      balloon past 56GB and silently drop the connection before
+  //      ever reaching this app's own view code — a confirmed
+  //      Daphne/Twisted limitation for large request bodies, not a
+  //      disk-space/size-limit/timeout issue.
+  //   2. Hits that listener via a direct, absolute URL — NOT through
+  //      Vite's own dev-server proxy. Confirmed live: proxying the
+  //      exact same real large upload through Vite's proxy (Node's
+  //      http-proxy) still failed with a genuine "socket hang up"
+  //      even after raising its own timeout options — a separate,
+  //      real Node/http-proxy-layer limitation for very large,
+  //      long-running proxied request bodies. Going direct sidesteps
+  //      it entirely and matches how a real deployment would point
+  //      this at wherever the upload listener actually lives, rather
+  //      than relying on dev-only proxy rewriting.
+  // Same `api` instance, so its request interceptor still attaches
+  // the real Bearer token automatically — an absolute `url` only
+  // overrides the instance's baseURL, nothing else about it.
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -226,8 +249,10 @@ export default function AdminTemplateWizardPage() {
     setUploadProgress(0);
     const body = new FormData();
     body.append('iso', file);
+    const uploadPort = import.meta.env.VITE_LARGE_UPLOAD_PORT || '8010';
+    const uploadUrl = `${window.location.protocol}//${window.location.hostname}:${uploadPort}/api/admin/templates/isos/upload/`;
     try {
-      const r = await api.post('/admin/templates/isos/upload/', body, {
+      const r = await api.post(uploadUrl, body, {
         headers: { 'Content-Type': 'multipart/form-data' },
         onUploadProgress: (evt) => {
           if (evt.total) setUploadProgress(Math.round((evt.loaded / evt.total) * 100));
