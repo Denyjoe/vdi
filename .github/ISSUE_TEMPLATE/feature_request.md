@@ -16,4 +16,4 @@ What you want to happen.
 Any alternative solutions or features you've thought about.
 
 **Additional context**
-Anything else relevant — mockups, similar features elsewhere, priority.
+Anything else relevant: mockups, similar features elsewhere, priority.

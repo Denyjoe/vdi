@@ -17,8 +17,8 @@ Please include:
 
 ## What to expect
 
-This is an actively maintained solo/academic project, not a company with a formal SLA. That said, real reports are taken seriously — expect an acknowledgment within a few days, and a fix or mitigation plan communicated back to you once the issue is understood. You're welcome to ask for credit (or anonymity) once a fix ships.
+This is an actively maintained solo/academic project, not a company with a formal SLA. That said, real reports are taken seriously. Expect an acknowledgment within a few days, and a fix or mitigation plan communicated back to you once the issue is understood. You're welcome to ask for credit (or anonymity) once a fix ships.
 
 ## Scope
 
-This covers the application code in this repository — the Django backend, the React frontend, and the VM/session-provisioning logic. It does not cover the security of a third party's own infrastructure (Proxmox, Guacamole, AzamPay, Firebase) beyond how this project integrates with them.
+This covers the application code in this repository: the Django backend, the React frontend, and the VM/session-provisioning logic. It does not cover the security of a third party's own infrastructure (Proxmox, Guacamole, AzamPay, Firebase) beyond how this project integrates with them.

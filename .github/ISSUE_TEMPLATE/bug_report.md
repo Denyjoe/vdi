@@ -27,4 +27,4 @@ If applicable, add screenshots to help explain the problem.
 - Device (desktop / mobile):
 
 **Additional context**
-Anything else relevant — error messages, console output, timing.
+Anything else relevant: error messages, console output, timing.
