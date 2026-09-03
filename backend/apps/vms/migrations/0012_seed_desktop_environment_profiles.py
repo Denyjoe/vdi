@@ -70,12 +70,33 @@ systemctl restart xrdp xrdp-sesman
 
 GNOME_ZORIN_SESSION_COMMAND = """#!/bin/sh
 rm -rf ~/.cache/sessions/*
-export GNOME_SHELL_SESSION_MODE=zorin
-export XDG_CURRENT_DESKTOP=zorin:GNOME
 export XDG_SESSION_TYPE=x11
 export XDG_SESSION_CLASS=user
 export LIBGL_ALWAYS_SOFTWARE=1
-exec dbus-launch --exit-with-session gnome-session --session=zorin
+
+# Real, confirmed bug (live xrdp-sesman debug trace on an affected
+# template): GNOME_FIX_SCRIPT below only ever installs vanilla
+# gnome-session/gnome-shell, never a real Zorin OS session package -
+# so /usr/share/gnome-session/sessions/zorin.session has never
+# actually existed on any template built from this profile.
+# `gnome-session --session=zorin` doesn't fail loudly when that file
+# is missing; it silently runs every phase with ZERO real session
+# components (no window manager, no panel, no desktop), leaving the
+# user staring at a blank/gnome-session-failed screen despite xrdp's
+# own login succeeding cleanly. Picking the first session name that's
+# actually installed keeps this correct both on today's vanilla-GNOME
+# templates and on any future template that genuinely does ship real
+# Zorin session files.
+SESSION=ubuntu
+for _s in zorin ubuntu gnome; do
+    if [ -f "/usr/share/gnome-session/sessions/${_s}.session" ]; then
+        SESSION="$_s"
+        break
+    fi
+done
+export GNOME_SHELL_SESSION_MODE="$SESSION"
+export XDG_CURRENT_DESKTOP="$SESSION:GNOME"
+exec dbus-launch --exit-with-session gnome-session --session="$SESSION"
 """
 
 GNOME_FIX_SCRIPT = """# Real, verified setup for xrdp + GNOME (Zorin session flavor) -

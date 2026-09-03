@@ -137,14 +137,14 @@ docs/
 
 ## Testing
 
-The backend has 272 real tests across 23 modules under `backend/apps/*/test_*.py` — covering university/course lifecycle, enrollment paths, lecturer broadcast scoping, attendance calculation, template provisioning, and VM ID allocation.
+The backend has 295 real tests under `backend/apps/` — covering university/course lifecycle, enrollment paths, lecturer broadcast scoping, attendance calculation, template provisioning, and VM ID allocation. A full run currently passes all but one: `WorkspaceIdleCleanupTests.test_30_days_idle_triggers_real_deletion` deliberately clones a real Proxmox VM to verify idle-cleanup deletion, so it fails whenever the configured Proxmox host isn't reachable — not a code defect, an environment dependency.
 
 ```bash
 cd backend
 python manage.py test apps
 ```
 
-A handful of tests (in `apps/vms`) exercise real Proxmox connectivity and will be slow or fail in an environment without a reachable Proxmox host — that's expected, not a bug in the test itself.
+That one test aside, expect the `apps/vms` module in general to run slower than the rest — several tests there talk to a real Proxmox host rather than a mock.
 
 Frontend build verification:
 
