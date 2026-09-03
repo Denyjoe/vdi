@@ -38,6 +38,16 @@ Thumbs.db
 
 # Agent tooling (local dev config, not part of the shipped project)
 .agents/
+.claude/
+.cursor/
+.copilot/
+.windsurf/
+.aider/
+.aider.chat.history.md
+.aider.input.history
+.continue/
+mcp.json
+.mcp.json
 
 # Logs
 *.log
