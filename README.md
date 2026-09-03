@@ -1,119 +1,170 @@
-# DIT VDI System
-## Virtual Desktop Infrastructure for Dar es Salaam Institute of Technology
+# Ospace
 
-### Overview
-A centralized, web-based Virtual Desktop Infrastructure (VDI) system designed for the Dar es Salaam Institute of Technology (DIT). This platform allows students and lecturers to access high-performance virtual computing environments remotely through any standard web browser, eliminating the need for expensive local hardware to run resource-intensive coursework software like AutoCAD, MATLAB, and Revit.
+A cloud-based virtual desktop platform for universities in East Africa — students and lecturers launch full Linux (and, increasingly, Windows) desktops from a browser, no local hardware requirements, with per-hour and subscription billing through M-Pesa, Airtel Money, Tigo Pesa, and Halopesa via AzamPay.
 
-### Student
-Denis John Wilson  
-Registration: 230242498947  
-Supervisor: Mr. Shija  
-Institution: DIT — BENG22 COE-2  
+![Django](https://img.shields.io/badge/Django-6.0-092E20?logo=django&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-database-4169E1?logo=postgresql&logoColor=white)
+![Proxmox VE](https://img.shields.io/badge/Proxmox%20VE-hypervisor-E57000?logo=proxmox&logoColor=white)
+![Guacamole](https://img.shields.io/badge/Apache%20Guacamole-remote%20desktop-D22128?logo=apache&logoColor=white)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-### System Architecture
-```text
-┌─────────────────┐      ┌──────────────────────┐      ┌──────────────┐
-│   React Frontend │ ───▶ │  Express REST API     │ ───▶ │ PostgreSQL   │
-│ (Student/Lecturer/│ ◀── │  - Auth & RBAC         │ ◀── │ Database     │
-│  Admin dashboards)│      │  - VM Orchestration*   │      └──────────────┘
-└─────────────────┘      │  - Remote Session Mgr* │
-                          │  - File/Assignment Mgr │
-                          │  - Monitoring/Logs     │
-                          └──────────────────────┘
-                                    │
-                       ┌────────────┴────────────┐
-                       │   Simulation Layer        │
-                       │  (stands in for Proxmox    │
-                       │   API + Guacamole today;   │
-                       │   swappable later)         │
-                       └────────────────────────────┘
-```
+## Overview
 
-### Tech Stack
+Universities in East Africa routinely run into the same wall: coursework that needs real computing power — CAD, engineering simulation, dedicated Linux environments for a systems course — but the lab has thirty aging machines and three hundred students. Ospace exists to remove that constraint. A student signs in with Google or GitHub, picks a template, and is looking at a real, running desktop inside their browser within under a minute — no VPN, no installed client, no admin rights on a personal laptop required.
+
+The platform is built around three real user types with genuinely different needs. Students launch and use workspaces, join live sessions, and manage their own compute-hours balance. Lecturers run live, proctored sessions — with network lockdown, clipboard/file-transfer restrictions, and broadcast messaging to an entire class roster, independent of whether a session is even active — and see real attendance and engagement data for their courses. University admins manage departments, courses, enrollment, and lecturer permissions for their own institution, without touching anyone else's. A platform-level super-admin layer sits above all of it, approving new university accounts and managing the shared VM/hardware pool those universities draw from.
+
+None of this is simulated underneath. Workspace provisioning genuinely clones a VM from a Proxmox VE template, waits for a real IP over the QEMU guest agent, confirms the remote desktop service is actually listening, and wires up a real Apache Guacamole connection before handing control back to the browser. Billing runs through a real AzamPay integration (sandboxed during development, so nothing is ever actually charged) supporting the mobile money providers that matter in the region, not a generic Stripe-only checkout that assumes a credit card.
+
+## Features
+
+- **Workspace provisioning** — clone-from-template, boot, guest-agent IP detection, remote-desktop readiness check, and Guacamole connection setup, with a pre-warmed VM pool for near-instant assignment when one's available
+- **Live session hosting** — host/participant roles, broadcast messaging, pause/resume control over participants, network lockdown with a domain whitelist (DNS-tunneling-safe), clipboard and file-transfer restriction toggles, exam mode with timed lockdown
+- **University management layer** — departments, courses, enrollment (bulk CSV or self-enroll invite links), recurring class schedules, real attendance/engagement tracking, course-wide broadcast messaging independent of live sessions
+- **Template wizard** — build a new Linux or Windows VM template from scratch through a guided flow: OS install automation, software provisioning, ISO management
+- **Billing** — per-hour and monthly-subscription pricing per template, hours-balance tracking, AzamPay integration (M-Pesa, Airtel Money, Tigo Pesa, Halopesa)
+- **Security-hardened by design, not by afterthought** — outbound firewall rules scoped to resolved IPs (not open port 53, which is a DNS-tunneling bypass), JWT-only auth with no exposed password endpoint, Proxmox resource naming sanitized against injection, rate-limited sensitive actions
+
+## Tech Stack
+
 | Layer | Technology |
 |---|---|
-| Frontend | React 18 + Vite + Tailwind CSS |
-| Backend | Django 5 + Django REST Framework |
+| Backend | Django 6 + Django REST Framework |
+| Frontend | React 19 + Vite + Tailwind CSS |
 | Database | PostgreSQL |
-| Auth | JWT (djangorestframework-simplejwt) |
-| Real-time | Django Channels + WebSocket |
-| Charts | Recharts |
-| Icons | Lucide React |
-| Celery | Background task queue |
-| Redis | Message broker (production) |
-| VM Layer | Proxmox VE (simulation in dev) |
+| Real-time | Django Channels (ASGI/Daphne) |
+| Background tasks | Celery + Redis |
+| Virtualization | Proxmox VE |
+| Remote desktop | Apache Guacamole |
+| Payments | AzamPay (M-Pesa, Airtel Money, Tigo Pesa, Halopesa) |
+| Auth | Firebase (Google / GitHub OAuth) + JWT |
 
-### Features
-* **Authentication:** Secure registration, login, and role-based dashboards (Admin, Lecturer, Student).
-* **Virtual Machine Management:** Users can request VMs from templates. The system handles simulated provisioning, dynamic resource assignment, and state management (start/stop).
-* **Remote Access:** Browser-based simulated desktop session streaming with connectivity tracking and duration logging.
-* **Lecturer Monitoring & Exams:** Lecturers can view active student sessions, supervise lab activity, and run exam-mode sessions with strict time controls and activity logs.
-* **File Sharing & Assignments:** Centralized file distribution for classes and structured assignment submission tracking with automated late-flagging.
-* **Analytics Dashboard:** Admins have full visibility into system usage, user roles, VM allocation, and chronological activity logs.
+## Architecture
 
-### Installation & Setup
+Four tiers: a React single-page app talks to a Django REST API over HTTPS and WebSockets; the API is the only thing that ever talks to Proxmox VE (to provision, start, and stop VMs) and to Guacamole's own REST API (to create the RDP/SSH connection a session actually streams over); PostgreSQL holds everything else — users, universities, sessions, billing. The browser never talks to Proxmox or Guacamole directly except through Guacamole's own tunnel, embedded same-origin behind the Django app.
 
-1. **Clone the repository:**
-   ```bash
-   git clone <repository_url>
-   cd dit-vdi-system
-   ```
+```
+┌──────────────┐        ┌───────────────────────┐        ┌──────────────┐
+│ React (Vite) │ ─────▶ │ Django REST Framework  │ ─────▶ │ PostgreSQL   │
+│ SPA frontend │ ◀───── │  - Auth (Firebase/JWT) │ ◀───── │              │
+└──────────────┘        │  - Workspace/session   │        └──────────────┘
+       │                │    orchestration       │
+       │  Guacamole     │  - Billing (AzamPay)   │        ┌──────────────┐
+       │  tunnel        │  - University layer    │ ─────▶ │ Proxmox VE   │
+       └───────────────▶│                        │        │ (hypervisor) │
+                         └───────────┬────────────┘        └──────────────┘
+                                     │
+                                     ▼
+                         ┌───────────────────────┐
+                         │ Apache Guacamole       │
+                         │ (RDP/SSH gateway)      │
+                         └───────────────────────┘
+```
 
-2. **Backend Setup:**
-   ```bash
-   cd backend
-   python -m venv venv
-   source venv/bin/activate  # Or venv\Scripts\activate on Windows
-   pip install -r requirements.txt
-   
-   # Set up environment variables
-   cp .env.example .env 
-   # (Configure DB settings in .env)
-   
-   python manage.py migrate
-   python manage.py runserver
-   ```
+## Getting Started
 
-3. **Frontend Setup:**
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
+You'll need Python 3.12+, Node 18+, PostgreSQL, and Redis running locally. A real Proxmox VE host and Guacamole instance are required for actual VM provisioning to work — without them the app runs, but launching a workspace will fail at the provisioning step.
 
-4. **Running Background Tasks**
-   
-   For development (Windows):
-   ```bash
-   cd backend
-   .\venv\Scripts\celery -A config worker --loglevel=info --pool=solo
-   ```
-   
-   For production (Linux):
-   ```bash
-   celery -A config worker --loglevel=info --concurrency=4
-   celery -A config beat --loglevel=info
-   ```
+```bash
+git clone https://github.com/Denyjoe/vdi.git
+cd vdi
+```
 
-5. **Production Build:**
-   ```bash
-   cd frontend
-   npm run build
-   ```
+**Backend**
 
-### User Roles
-| Role | Capabilities |
-|---|---|
-| **Student** | Request VMs, connect to desktop sessions, download class materials, submit assignments. |
-| **Lecturer** | Manage class enrollments, upload materials, create assignments, grade submissions, monitor active student VM sessions. |
-| **Admin** | Full system visibility, manage users (activate/deactivate), monitor system health, view raw activity logs, and oversee all VMs. |
+```bash
+cd backend
+python -m venv venv
+venv\Scripts\activate        # or: source venv/bin/activate on Linux/macOS
+pip install -r requirements.txt
 
-### Phase Completion
-- [x] Phase 0 — Foundation
-- [x] Phase 1 — Authentication & User Management
-- [x] Phase 2 — VM Allocation Subsystem
-- [x] Phase 3 — Web-Based Remote Access
-- [x] Phase 4 — Lecturer Monitoring & Session Control
-- [x] Phase 5 — File Sharing & Assignment Submission
-- [x] Phase 6 — Analytics / Reporting Dashboard
-- [x] Phase 7 — Polish & Packaging
+cp .env.example .env
+# fill in DB_*, PROXMOX_*, SECRET_KEY, etc. in .env
+
+python manage.py migrate
+python manage.py runserver
+```
+
+**Frontend**
+
+```bash
+cd frontend
+npm install
+
+cp .env.example .env.development
+# fill in VITE_FIREBASE_* from your Firebase project
+
+npm run dev
+```
+
+**Background workers** (for notifications, scheduled cleanup)
+
+```bash
+cd backend
+celery -A config worker --loglevel=info --pool=solo   # Windows
+celery -A config worker --loglevel=info --concurrency=4   # Linux/macOS
+```
+
+## Project Structure
+
+```
+backend/
+  apps/
+    users/         accounts, auth, admin actions, API tokens
+    university/    departments, courses, enrollment, lecturer/admin views
+    vms/            VM templates, provisioning, pooling, template wizard
+    sessions/       live session hosting, broadcast, restrictions
+    notifications/  real-time notification delivery
+    billing/        AzamPay integration, hours balance, subscriptions
+    assignments/    coursework submission
+  config/           Django settings, URLs, ASGI/WSGI entrypoints
+
+frontend/
+  src/
+    pages/
+      admin/        platform-admin dashboard, template wizard, hardware
+      university/   university-admin and lecturer dashboards
+      member/       student-facing workspace/session pages
+      public/       landing page, templates catalogue
+    components/     shared UI (Guacamole embed, toasts, modals)
+    store/          Zustand state (auth, theme, context)
+    services/       API client
+
+docs/
+  USER_MANUAL.md    end-user guide for students, lecturers, and admins
+```
+
+## Testing
+
+The backend has 272 real tests across 23 modules under `backend/apps/*/test_*.py` — covering university/course lifecycle, enrollment paths, lecturer broadcast scoping, attendance calculation, template provisioning, and VM ID allocation.
+
+```bash
+cd backend
+python manage.py test apps
+```
+
+A handful of tests (in `apps/vms`) exercise real Proxmox connectivity and will be slow or fail in an environment without a reachable Proxmox host — that's expected, not a bug in the test itself.
+
+Frontend build verification:
+
+```bash
+cd frontend
+npm run build
+```
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for branch naming, PR process, and code style. Please review the [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+## Documentation
+
+The full end-user guide — signing up, launching a workspace, hosting or joining a live session, and university-admin functions — is in [docs/USER_MANUAL.md](docs/USER_MANUAL.md).
+
+## Author
+
+Denis Wilson — [@Denyjoe](https://github.com/Denyjoe)
