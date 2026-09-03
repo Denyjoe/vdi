@@ -8,12 +8,10 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { GoogleAuthProvider, GithubAuthProvider, reauthenticateWithPopup } from 'firebase/auth';
-import toast from 'react-hot-toast';
 import api from '../../services/api';
 import useSettingsStore from '../../store/settingsStore';
 import useAuthStore from '../../store/authStore';
 import useThemeStore from '../../store/themeStore';
-import useBreakpoint from '../../hooks/useBreakpoint';
 import { auth as firebaseAuth } from '../../config/firebase';
 
 const COUNTRIES = [
@@ -63,7 +61,6 @@ export default function SettingsPanel() {
   const { isOpen, activeTab, closeSettings, setTab } = useSettingsStore();
   const user = useAuthStore(s => s.user);
   const panelRef = useRef(null);
-  const { isMobile } = useBreakpoint();
 
   // Close on Escape key
   useEffect(() => {
@@ -108,76 +105,6 @@ export default function SettingsPanel() {
 
       {/* Panel — Centered Modal */}
       <div className="fixed inset-0 z-[61] flex items-center justify-center pointer-events-none">
-        {isMobile ? (
-          // Real, measured mobile bug (Ospace responsive audit): this modal
-          // used to render the SAME fixed two-column layout on every
-          // viewport - a 700px-wide box (capped to 90vw) with a fixed
-          // 180px-wide tab sidebar. At 375px that left just ~158px for the
-          // entire content column, and every field/label in the real panel
-          // (First Name, Last Name, Email Address, Country) was measurably
-          // truncated. This is NOT the overflow-pill/horizontal-scroll bug
-          // fixed twice earlier today - it's a fixed two-column desktop
-          // layout with no mobile branch at all. Fix: stack vertically -
-          // wrapped pill tabs (same pattern as WorkspacesPage filters) in a
-          // row above full-width content, in a near-fullscreen sheet
-          // instead of a small centered box. Tablet (768px) already
-          // measured fine (691px panel, 511px content) so this branch is
-          // mobile-only.
-          <div
-            ref={panelRef}
-            className="border rounded-2xl flex flex-col overflow-hidden pointer-events-auto"
-            style={{
-              width: 'calc(100vw - 24px)',
-              height: 'calc(100vh - 48px)',
-              maxHeight: '90vh',
-              background: 'var(--bg-card)',
-              borderColor: 'var(--border-subtle)',
-              boxShadow: 'var(--shadow-2xl, 0 25px 50px rgba(0,0,0,0.5))',
-              animation: 'scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
-            }}
-          >
-            {/* Header */}
-            <div className="px-4 py-4 flex items-center justify-between border-b flex-shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
-              <h2 className="text-sm font-bold text-primary tracking-tight">
-                {tabs.find(t => t.id === activeTab)?.label || 'Settings'}
-              </h2>
-              <button onClick={closeSettings}
-                className="p-1.5 rounded-lg hover:bg-nav-hover text-secondary hover:text-primary active:scale-95 transition-all">
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Wrapped pill tab row — same pattern as WorkspacesPage filters */}
-            <div className="px-3 py-2.5 border-b flex-shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                {tabs.map(tab => (
-                  <button key={tab.id}
-                    onClick={() => setTab(tab.id)}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-medium transition-all active:scale-95
-                    ${activeTab === tab.id
-                        ? 'bg-[#0066FF] text-white'
-                        : tab.id === 'danger'
-                          ? 'text-red-400/70 bg-red-500/5 border border-red-500/20'
-                          : 'text-secondary bg-canvas border border-border'
-                      }`}>
-                    <tab.icon size={13} />
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Scrollable content */}
-            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-              {activeTab === 'profile' && <ProfileTab user={user} />}
-              {activeTab === 'security' && <SecurityTab user={user} />}
-              {activeTab === 'notifications' && <NotificationsTab user={user} />}
-              {activeTab === 'appearance' && <AppearanceTab />}
-              {activeTab === 'developer' && <DeveloperTab />}
-              {activeTab === 'danger' && <DangerTab user={user} />}
-            </div>
-          </div>
-        ) : (
         <div
           ref={panelRef}
           className="border rounded-2xl w-[700px] max-w-[90vw] h-[550px] max-h-[80vh] flex overflow-hidden pointer-events-auto"
@@ -269,7 +196,6 @@ export default function SettingsPanel() {
             </div>
           </div>
         </div>
-        )}
       </div>
 
       {/* CSS Animations */}
@@ -375,7 +301,7 @@ function ProfileTab({ user }) {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('File too large. Max 5MB.');
+      alert('File too large. Max 5MB.');
       return;
     }
 
@@ -412,7 +338,7 @@ function ProfileTab({ user }) {
 
     } catch (e) {
       console.error('Avatar upload failed:', e);
-      toast.error('Failed to upload. ' + (e.response?.data?.message || ''));
+      alert('Failed to upload. ' + (e.response?.data?.message || ''));
     } finally {
       setAvatarUploading(false);
     }
@@ -935,7 +861,7 @@ function DeveloperTab() {
       console.error('Full error:', e);
       console.error('Response status:', e.response?.status);
       console.error('Response data:', e.response?.data);
-      toast.error('Failed to generate token: ' +
+      alert('Failed to generate token: ' +
         (e.response?.data?.message || e.response?.data?.detail || e.message));
     } finally {
       setGenerating(false);
@@ -988,7 +914,7 @@ function DeveloperTab() {
           <div className="mb-6 p-4 bg-[#00FF87]/5 border border-[#00FF87]/20 rounded-xl">
             <div className="flex items-center gap-2 mb-2">
               <AlertTriangle size={14} className="text-[#00FF87]" />
-              <p className="text-xs font-bold text-[#00FF87]">Copy your token now. It will not be shown again.</p>
+              <p className="text-xs font-bold text-[#00FF87]">Copy your token now it will not be shown again</p>
             </div>
             <div className="flex items-center gap-2 mt-3">
               <code className="flex-1 bg-sidebar px-4 py-3 rounded-xl text-xs font-mono text-primary border border-border select-all break-all">
@@ -1071,9 +997,9 @@ function DeveloperTab() {
           const tokenForExample = newKey || `${tokenInfo.prefix}...`;
           return (
             <div className="mt-6 pt-6 border-t border-border-subtle">
-              <p className="text-[10px] uppercase tracking-widest text-muted font-semibold mb-3">Quick Start: Public API v1</p>
+              <p className="text-[10px] uppercase tracking-widest text-muted font-semibold mb-3">Quick Start — Public API v1</p>
               <p className="text-[11px] text-muted mb-3">
-                Create a workspace programmatically{newKey ? '. This example uses your real, just-generated token and will genuinely work if you run it right now:' : ':'}
+                Create a workspace programmatically{newKey ? ' — this example uses your real, just-generated token and will genuinely work if you run it right now:' : ':'}
               </p>
               <div className="bg-sidebar rounded-xl p-4 border border-border-subtle overflow-x-auto">
                 <code className="text-[11px] font-mono text-secondary leading-relaxed whitespace-pre-wrap">
@@ -1086,7 +1012,7 @@ function DeveloperTab() {
               </div>
               {!newKey && (
                 <p className="text-[10px] text-faint mt-2">
-                  Showing your token's real prefix only. The full key isn't retrievable after generation. Regenerate to get a fresh, complete key for a live example.
+                  Showing your token's real prefix only — the full key isn't retrievable after generation. Regenerate to get a fresh, complete key for a live example.
                 </p>
               )}
               <p className="text-[10px] text-muted mt-3 mb-1">List your workspaces:</p>
@@ -1231,7 +1157,7 @@ function DangerTab({ user }) {
               placeholder={userEmail} autoComplete="off" autoCapitalize="off" spellCheck="false"
               className="w-full bg-sidebar border border-red-500/20 rounded-xl px-4 py-2.5 text-sm text-primary outline-none mb-3 focus:border-red-500/50" />
             <p className="text-[11px] text-muted mb-3">
-              You'll also be asked to sign in to {user?.auth_provider === 'github' ? 'GitHub' : 'Google'} again to confirm it's really you. This device's existing session isn't enough on its own for something this permanent.
+              You'll also be asked to sign in to {user?.auth_provider === 'github' ? 'GitHub' : 'Google'} again to confirm it's really you — this device's existing session isn't enough on its own for something this permanent.
             </p>
             <div className="flex gap-3">
               <button onClick={() => { setConfirm(false); setConfirmationInput(''); setError(null); }}

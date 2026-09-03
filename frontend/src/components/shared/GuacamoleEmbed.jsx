@@ -107,6 +107,12 @@ const GuacamoleEmbed = React.memo(forwardRef(function GuacamoleEmbed({
   // the reconnectOnRotate effect below for why we can't just ask an
   // already-connected session to resize in place.
   const [reloadKey, setReloadKey] = useState(0);
+  // Real, local measurement point for rescaling below — this component's
+  // own outer wrapper, not DesktopSessionPage's outer fullscreen
+  // container (a different element in a different file). Its box is
+  // already confirmed correctly sized by the existing flex-1 CSS chain,
+  // so it's the right thing to measure against.
+  const wrapperRef = useRef(null);
 
   useEffect(() => {
     if (!url) return;
@@ -211,30 +217,116 @@ const GuacamoleEmbed = React.memo(forwardRef(function GuacamoleEmbed({
     let lastWasLandscape = window.innerWidth > window.innerHeight;
     let settleTimer = null;
 
+    const scheduleReconnect = () => {
+      if (settleTimer) clearTimeout(settleTimer);
+      // Give the browser a moment to finish the rotation/fullscreen
+      // transition (toolbar show/hide, viewport height settling) before
+      // measuring the new container size via reconnect.
+      settleTimer = setTimeout(() => setReloadKey(k => k + 1), 400);
+    };
+
     const reconnectOnRotate = () => {
       const isLandscape = window.innerWidth > window.innerHeight;
       if (isLandscape === lastWasLandscape) return;
       lastWasLandscape = isLandscape;
-      if (settleTimer) clearTimeout(settleTimer);
-      // Give the browser a moment to finish the rotation (toolbar
-      // show/hide, viewport height settling) before measuring the new
-      // container size via reconnect.
-      settleTimer = setTimeout(() => setReloadKey(k => k + 1), 400);
+      scheduleReconnect();
+    };
+
+    // Real, confirmed root cause of "Guacamole fills only part of the
+    // screen, rest is black dead space" in fullscreen: entering/exiting
+    // fullscreen changes the container's real available pixel dimensions
+    // (the browser hides/shows its address bar and toolbar chrome) even
+    // when the landscape-vs-portrait *category* doesn't change — e.g. a
+    // phone already rotated to landscape, then toggling fullscreen while
+    // staying landscape the whole time. reconnectOnRotate's
+    // landscape-unchanged guard above skips the reconnect in exactly
+    // that case, so Guacamole's canvas stays sized to its pre-fullscreen
+    // dimensions while the container has genuinely grown around it.
+    // Fullscreen changes always force a reconnect unconditionally,
+    // bypassing that guard rather than routing through it.
+    const reconnectOnFullscreenChange = () => {
+      lastWasLandscape = window.innerWidth > window.innerHeight;
+      scheduleReconnect();
     };
 
     window.addEventListener('resize', reconnectOnRotate);
     window.addEventListener('orientationchange', reconnectOnRotate);
-    // Fullscreen toggle can also flip the effective aspect ratio (e.g. it
-    // removes browser chrome that was eating into the available height),
-    // so it goes through the same real aspect-ratio check, not a blind nudge.
-    document.addEventListener('fullscreenchange', reconnectOnRotate);
-    document.addEventListener('webkitfullscreenchange', reconnectOnRotate);
+    document.addEventListener('fullscreenchange', reconnectOnFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', reconnectOnFullscreenChange);
     return () => {
       window.removeEventListener('resize', reconnectOnRotate);
       window.removeEventListener('orientationchange', reconnectOnRotate);
-      document.removeEventListener('fullscreenchange', reconnectOnRotate);
-      document.removeEventListener('webkitfullscreenchange', reconnectOnRotate);
+      document.removeEventListener('fullscreenchange', reconnectOnFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', reconnectOnFullscreenChange);
       if (settleTimer) clearTimeout(settleTimer);
+    };
+  }, []);
+  // --- SAFELY ENFORCE AUTOFIT & LAYOUT ---
+  // Guacamole's internal resize sensor often misses the final flexbox layout settling
+  // on mobile, causing broken panning bounds (where you can't pan down even when zoomed).
+  // We manually dispatch resize events into the iframe to force a layout recalculation.
+  const enforceAutoFit = () => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+
+    const scope = findGuacScope(iframe.contentWindow);
+    const client = scope?.focusedClient?.client;
+    const cp = scope?.focusedClient?.clientProperties;
+    const display = client?.getDisplay?.();
+    
+    if (!scope || !cp || !display) return;
+
+    // Wait for the real VNC desktop resolution to arrive.
+    const displayWidth = display.getWidth();
+    if (!displayWidth || displayWidth < 200) return;
+
+    // Note: Previously we injected CSS here to force flex-alignment, but it breaks 
+    // Guacamole's internal absolute positioning and panning logic on mobile devices, 
+    // resulting in a blank screen. Guacamole must control its own body layout.
+
+    // 2. Force Guacamole to update its internal container bounds so panning works perfectly
+    // even when zoomed in.
+    iframe.contentWindow.dispatchEvent(new Event('resize'));
+
+    // 3. Only toggle autoFit if the user wants it to fit.
+    if (cp.autoFit) {
+      setTimeout(() => {
+        if (!iframeRef.current) return;
+        scope.$apply(() => { cp.autoFit = false; });
+        setTimeout(() => {
+          if (!iframeRef.current) return;
+          scope.$apply(() => { cp.autoFit = true; });
+        }, 50);
+      }, 10);
+    }
+  };
+
+  // Safely poll for a short window after connection to catch any late layout settling
+  useEffect(() => {
+    if (!ready) return undefined;
+    let count = 0;
+    const interval = setInterval(() => {
+      enforceAutoFit();
+      count++;
+      if (count > 20) clearInterval(interval); // Stop after 2 seconds
+    }, 100);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
+
+  // Ensure any container resizes (e.g. OSK opening) are caught
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper || typeof ResizeObserver === 'undefined') return undefined;
+    let debounceId = null;
+    const observer = new ResizeObserver(() => {
+      if (debounceId) clearTimeout(debounceId);
+      debounceId = setTimeout(enforceAutoFit, 150);
+    });
+    observer.observe(wrapper);
+    return () => {
+      observer.disconnect();
+      if (debounceId) clearTimeout(debounceId);
     };
   }, []);
 
@@ -340,7 +432,8 @@ const GuacamoleEmbed = React.memo(forwardRef(function GuacamoleEmbed({
 
   return (
     <div
-      className="relative w-full h-full flex flex-col flex-1 bg-black"
+      ref={wrapperRef}
+      className="relative w-full h-full flex flex-col flex-1 bg-black overflow-hidden"
       // Real, confirmed bug (not a guess): a flex item's automatic
       // min-height defaults to its *content-based* minimum, and for a
       // replaced element like <iframe> that's the browser's intrinsic

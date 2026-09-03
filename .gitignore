@@ -1,8 +1,37 @@
+# Environment / secrets
 .env
+.env.local
+.env.development
+.env.production
+!.env.example
 backend/.env
 frontend/.env
-node_modules/
-venv/
-backend/venv/
+frontend/.env.development
+frontend/.env.production
+
+# Python
 __pycache__/
 *.pyc
+*.pyo
+venv/
+backend/venv/
+*.egg-info/
+.pytest_cache/
+
+# Node / frontend
+node_modules/
+dist/
+build/
+.vite/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Agent tooling (local dev config, not part of the shipped project)
+.agents/
+
+# Logs
+*.log

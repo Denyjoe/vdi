@@ -17,6 +17,7 @@
  */
 
 import { useEffect } from "react";
+import { X } from "lucide-react";
 
 /** Background color classes mapped by toast type. */
 const TYPE_STYLES = {
@@ -50,10 +51,10 @@ export default function Toast({
         <span className="flex-1 text-sm font-medium">{message}</span>
         <button
           onClick={onClose}
-          className="text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] transition-colors text-lg leading-none"
+          className="text-[var(--text-primary)]/80 hover:text-[var(--text-primary)] transition-colors leading-none"
           aria-label="Close notification"
         >
-          ✕
+          <X size={16} />
         </button>
       </div>
     </div>

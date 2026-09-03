@@ -19,6 +19,11 @@ export default defineConfig({
         target: 'http://192.168.1.20:8080',
         changeOrigin: true,
         ws: true,
+        configure: (proxy, options) => {
+          proxy.on('proxyReqWs', (proxyReq, req, socket, options, head) => {
+            proxyReq.setHeader('Origin', 'http://192.168.1.20:8080');
+          });
+        }
       }
     },
     allowedHosts: [

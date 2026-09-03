@@ -570,10 +570,10 @@ export default function AdminSettingsPage() {
               <div className="py-2 border-b border-[var(--border-color)]/50">
                 <span className="text-sm text-[var(--text-secondary)] block mb-2">Supported Methods</span>
                 <div className="flex flex-wrap gap-2">
-                  <span className="text-xs bg-[var(--bg-nav-hover)] text-[var(--text-primary)] px-2 py-1 rounded">☑ M-Pesa</span>
-                  <span className="text-xs bg-[var(--bg-nav-hover)] text-[var(--text-primary)] px-2 py-1 rounded">☑ Airtel Money</span>
-                  <span className="text-xs bg-[var(--bg-nav-hover)] text-[var(--text-primary)] px-2 py-1 rounded">☑ Tigo Pesa</span>
-                  <span className="text-xs bg-[var(--bg-nav-hover)] text-[var(--text-primary)] px-2 py-1 rounded">☑ Halopesa</span>
+                  <span className="text-xs bg-[var(--bg-nav-hover)] text-[var(--text-primary)] px-2 py-1 rounded">M-Pesa</span>
+                  <span className="text-xs bg-[var(--bg-nav-hover)] text-[var(--text-primary)] px-2 py-1 rounded">Airtel Money</span>
+                  <span className="text-xs bg-[var(--bg-nav-hover)] text-[var(--text-primary)] px-2 py-1 rounded">Tigo Pesa</span>
+                  <span className="text-xs bg-[var(--bg-nav-hover)] text-[var(--text-primary)] px-2 py-1 rounded">Halopesa</span>
                 </div>
               </div>
               <div className="flex justify-between items-center pt-2">

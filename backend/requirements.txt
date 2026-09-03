@@ -16,3 +16,4 @@ google-auth==2.29.0
 firebase-admin
 paramiko
 websocket-client
+pycdlib

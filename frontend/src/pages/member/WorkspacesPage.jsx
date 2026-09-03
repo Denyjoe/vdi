@@ -622,7 +622,7 @@ export default function WorkspacesPage() {
                     }`}>
                       <AlertCircle size={13} className={ws.idle_warning.level === 'final_warning' ? 'text-red-400' : 'text-yellow-400'} />
                       <span className={`text-[10px] font-semibold ${ws.idle_warning.level === 'final_warning' ? 'text-red-400' : 'text-yellow-400'}`}>
-                          ⚠ Idle: will be deleted in {ws.idle_warning.days_remaining} day{ws.idle_warning.days_remaining === 1 ? '' : 's'} unless used
+                          Idle: will be deleted in {ws.idle_warning.days_remaining} day{ws.idle_warning.days_remaining === 1 ? '' : 's'} unless used
                       </span>
                     </div>
                   )}

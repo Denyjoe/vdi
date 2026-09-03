@@ -182,7 +182,7 @@ export default function AdminTemplateWizardPage() {
   const [manualIp, setManualIp] = useState('');
   const [selectedApps, setSelectedApps] = useState([]);
   const [customApp, setCustomApp] = useState('');
-  const [promoteForm, setPromoteForm] = useState({ name: '', description: '', price_per_hour: 0, price_per_month: 0, icon: '🖥️', os_family: '', os: '' });
+  const [promoteForm, setPromoteForm] = useState({ name: '', description: '', price_per_hour: 0, price_per_month: 0, icon: '', os_family: '', os: '' });
 
   const loadIsos = () => api.get('/admin/templates/available-isos/').then(r => setIsos(r.data.data || [])).catch(() => toast.error('Could not load real ISOs from Proxmox.'));
 
@@ -534,7 +534,7 @@ export default function AdminTemplateWizardPage() {
     consoleReconnectTimerRef.current = setTimeout(() => {
       if (!consoleReady && job?.status === 'awaiting_os_install') {
         hadConsoleTunnelRef.current = false;
-        toast('Console connection dropped. Reconnecting automatically...', { icon: '🔄' });
+        toast('Console connection dropped. Reconnecting automatically...');
         openConsole();
       }
     }, 6000);
@@ -582,7 +582,7 @@ export default function AdminTemplateWizardPage() {
       if (consoleReady || hadConsoleTunnelRef.current) return;
       if (consoleAttemptsRef.current < MAX_AUTO_ATTEMPTS) {
         consoleAttemptsRef.current += 1;
-        toast(`Console still not connecting. Retrying (attempt ${consoleAttemptsRef.current}/${MAX_AUTO_ATTEMPTS})...`, { icon: '🔄' });
+        toast(`Console still not connecting. Retrying (attempt ${consoleAttemptsRef.current}/${MAX_AUTO_ATTEMPTS})...`);
         openConsole();
       } else {
         setConsoleFailed(true);
@@ -678,7 +678,7 @@ export default function AdminTemplateWizardPage() {
             </p>
             {requestQuotaCheck && !requestQuotaCheck.fits_quota && (
               <p style={{ fontSize: '12px', color: '#F59E0B', marginTop: '6px' }}>
-                ⚠️ {requestQuotaCheck.message} The build itself will be blocked if it genuinely exceeds quota at that moment.
+                {requestQuotaCheck.message} The build itself will be blocked if it genuinely exceeds quota at that moment.
               </p>
             )}
           </div>

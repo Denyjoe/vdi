@@ -106,7 +106,7 @@ export default function VMPoolPage() {
           `Free RAM: ${cap.free_ram_gb}GB, ` +
           `Free Storage: ${cap.free_storage_gb}GB. ` +
           `Proceeding may cause issues.`,
-          { icon: '⚠️', duration: 6000 }
+          { duration: 6000 }
         )
       }
       

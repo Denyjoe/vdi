@@ -47,7 +47,7 @@ export default function TemplateRequestQueuePanel({ universityId }) {
       const res = await api.post(`/university-admin/template-requests/${req.id}/approve/`);
       const quota = res.data?.quota_check;
       if (quota && !quota.fits_quota) {
-        toast(`Approved, but heads up: ${quota.message}`, { icon: '⚠️', duration: 8000 });
+        toast(`Approved, but heads up: ${quota.message}`, { duration: 8000 });
       } else {
         toast.success('Approved. Opening the template wizard...');
       }

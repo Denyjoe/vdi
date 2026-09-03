@@ -472,20 +472,17 @@ export default function CreateSessionPage() {
               gap: '12px',
             }}>
               
-              <ControlToggle 
-                label="Clipboard Sync" 
-                description="Allow copy/paste between local and VM" 
-                value={restrictions.clipboard} 
-                onChange={v => setRestrictions({...restrictions, clipboard: v})} 
-                onColor="var(--accent-primary)" 
-              />
-              <ControlToggle
-                label="File Transfer"
-                description="Allow uploading/downloading files"
-                value={restrictions.file_transfer}
-                onChange={v => setRestrictions({...restrictions, file_transfer: v})}
-                onColor="var(--accent-primary)"
-              />
+              {/* Clipboard Sync and File Transfer toggles hidden for now —
+                  not deleted, just not shown. Clipboard's connection-level
+                  config is genuinely correct wherever inspected, but a full
+                  visual round-trip test couldn't be confirmed before a real
+                  panel demo; File Transfer is confirmed never actually wired
+                  up (no enable-drive on the Guacamole connection). Rather
+                  than visibly claim either as a working toggle tonight, hide
+                  the controls — restrictions.clipboard/file_transfer still
+                  default to true and still get sent to the backend exactly
+                  as before, so nothing about the underlying behavior changes,
+                  only what's shown in this form. */}
               <ControlToggle
                 label="Network Lockdown"
                 description="Block all internet access from participant VMs except whitelisted domains"

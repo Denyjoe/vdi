@@ -566,7 +566,7 @@ export default function HostSessionPage() {
           {/* Participant cards */}
           <div className="space-y-3">
             {participants.map(p => {
-              const isConnected = p.vm_status === 'running' || p.status === 'connected';
+              const isConnected = p.vm_status === 'running' || ['active', 'joined'].includes(p.status) || p.guac_connected;
               const name = p.user?.first_name ? `${p.user.first_name} ${p.user.last_name || ''}` : (p.user?.email || 'Unknown');
 
               return (

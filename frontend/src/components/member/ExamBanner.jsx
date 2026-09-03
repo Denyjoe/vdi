@@ -81,7 +81,7 @@ export default function ExamBanner() {
           <div className="flex items-center gap-2 mb-1">
             {isUrgent && <AlertTriangle className="w-4 h-4 text-red-400 animate-pulse" />}
             <p className={`text-xs font-bold uppercase tracking-widest ${isUrgent ? 'text-red-400' : 'text-amber-400'}`}>
-              📋 Exam In Progress
+              Exam In Progress
             </p>
           </div>
           <p className="text-[var(--text-primary)] font-bold text-base">{activeExam.name}</p>
@@ -94,12 +94,12 @@ export default function ExamBanner() {
             <div className="flex flex-wrap gap-2 mt-2">
               {activeExam.restrict_internet && (
                 <span className="inline-flex items-center gap-1 text-xs text-amber-300 bg-amber-900/60 border border-amber-700/50 rounded-full px-2.5 py-0.5">
-                  🚫 No Internet
+                  No Internet
                 </span>
               )}
               {activeExam.restrict_copy_paste && (
                 <span className="inline-flex items-center gap-1 text-xs text-amber-300 bg-amber-900/60 border border-amber-700/50 rounded-full px-2.5 py-0.5">
-                  🚫 No Copy-Paste
+                  No Copy-Paste
                 </span>
               )}
             </div>

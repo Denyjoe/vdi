@@ -172,7 +172,7 @@ export default function TemplateLinkModal({ template, isOpen, onClose, onLinked 
                     fontSize: '13px',
                     fontWeight: 600,
                   }}>
-                    ✓ VM Found: {testResult.name}
+                    VM Found: {testResult.name}
                   </p>
                   <p style={{
                     color: 'var(--text-secondary)',
@@ -187,7 +187,7 @@ export default function TemplateLinkModal({ template, isOpen, onClose, onLinked 
                       fontSize: '11px',
                       marginTop: '6px',
                     }}>
-                      ⚠ {testResult.warning}
+                      {testResult.warning}
                     </p>
                   )}
                 </>

@@ -205,7 +205,7 @@ dit-vdi-system/
 
 1. We tackle one phase at a time, in order — no skipping ahead.
 2. Each phase ends with something clickable/testable before moving on.
-3. Claude Code proposes changes as a diff; review before accepting.
+3. Changes are proposed as a diff and reviewed before being accepted.
 4. After each phase, update this file's checklist (below) so progress is tracked across sessions.
 
 ### Phase Checklist
@@ -400,7 +400,7 @@ dit-vdi-system/
 
 1. We tackle one phase at a time, in order — no skipping ahead.
 2. Each phase ends with something clickable/testable before moving on.
-3. Claude Code proposes changes as a diff; review before accepting.
+3. Changes are proposed as a diff and reviewed before being accepted.
 4. After each phase, update this file's checklist (below) so progress is tracked across sessions.
 
 ### Phase Checklist

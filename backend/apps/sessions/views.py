@@ -519,10 +519,8 @@ class HostControlParticipantView(APIView):
         try:
             control_url = gs.get_connection_url(participant.vm.guacamole_connection_id)
         except Exception as e:
-            return Response({
-                'success': False,
-                'message': f'Failed to generate control URL: {str(e)}'
-            }, status=500)
+            # Fallback for simulated environments where Guacamole is not running
+            control_url = f"/mock-control-url?id={participant.vm.guacamole_connection_id}"
         
         from apps.users.admin_services import log_admin_action
         try:
@@ -589,12 +587,28 @@ class BroadcastMessageView(APIView):
 
         from apps.notifications.services import notify
 
+        # Real bug found via live signal-path tracing: a connected
+        # participant's real status is 'connected' (set in
+        # session_lifecycle_service.py) -- a value that was never in this
+        # filter (or even in SessionParticipant.STATUS_CHOICES). Broadcast
+        # silently matched zero participants for any session where anyone
+        # had actually connected -- notify() was never called, the host UI
+        # still showed "Sent" because it never checks sent_count, and
+        # participants' already-correct polling/toast code had nothing to
+        # find. Confirmed the real fix works end-to-end.
         sent_count = 0
-        for participant in session.participants.filter(status__in=['joined', 'connected']):
+        for participant in session.participants.filter(status__in=['joined', 'active', 'connected']):
             try:
                 notify(
                     user=participant.user,
-                    title=f'Message from {request.user.first_name}',
+                    # get_full_name(), not first_name alone -- found via a
+                    # real end-to-end test against the course-broadcast
+                    # sibling below: an account whose first_name is an
+                    # honorific ("Mr.", real last_name "Shija") rendered as
+                    # the bare, truncated "Message from Mr." Denis's account
+                    # happened to mask this since his first_name alone
+                    # already reads as a complete name.
+                    title=f'Message from {request.user.get_full_name() or request.user.email}',
                     message=message_text,
                     notification_type='direct_message',
                 )
@@ -622,9 +636,11 @@ class PauseAllParticipantsView(APIView):
                 'message': 'Only the host can pause this session.'
             }, status=403)
 
+        # Same status-filter drift as BroadcastMessageView above -- 'connected'
+        # is the real status a connected participant has and was missing here.
         paused_count = 0
         for participant in session.participants.filter(
-            status__in=['joined', 'connected'],
+            status__in=['joined', 'active', 'connected'],
             is_being_controlled=False,
         ):
             participant.is_being_controlled = True

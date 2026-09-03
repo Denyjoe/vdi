@@ -484,13 +484,13 @@ export default function LecturerDashboardPage() {
               )}
               {!checkingQuota && quotaPreview && !quotaPreview.fits_quota && (
                 <p className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
-                  ⚠️ Heads up. As of right now, this likely exceeds your university's remaining capacity:{' '}
+                  Heads up. As of right now, this likely exceeds your university's remaining capacity:{' '}
                   {quotaPreview.message} You can still submit; your admin will see the same real check when reviewing.
                 </p>
               )}
               {!checkingQuota && quotaPreview && quotaPreview.fits_quota && (
                 <p className="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
-                  ✓ Fits within your university's current remaining capacity.
+                  Fits within your university's current remaining capacity.
                 </p>
               )}
 

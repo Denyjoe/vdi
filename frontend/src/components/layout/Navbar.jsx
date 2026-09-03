@@ -117,7 +117,7 @@ export default function Navbar({ onMenuClick }) {
   return (
     <>
       <nav 
-        className="h-14 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-50 border-b border-[var(--border-subtle)] transition-all duration-300"
+        className="h-12 sm:h-14 flex items-center justify-between px-3 sm:px-6 sticky top-0 z-50 border-b border-[var(--border-subtle)] transition-all duration-300"
         style={{ 
           background: theme === 'light'
             ? 'rgba(248, 250, 252, 0.85)'
@@ -157,16 +157,6 @@ export default function Navbar({ onMenuClick }) {
         `}</style>
         
         <div className="flex items-center gap-3">
-          {isMobile && (
-            <button
-              onClick={toggleMobileMenu}
-              className="p-2 text-secondary hover:text-primary transition-colors rounded-lg hover:bg-nav-hover"
-              aria-label="Toggle mobile menu"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-          )}
-
           <div className="flex items-center space-x-3">
             <div className="flex items-center space-x-2">
               {isDesktop && (
@@ -177,7 +167,7 @@ export default function Navbar({ onMenuClick }) {
                   <span className={theme === 'light' ? 'text-[#94A3B8]' : 'text-[var(--text-faint)]'}>›</span>
                 </>
               )}
-              <span className={`text-[13px] font-semibold uppercase tracking-[1px] ${theme === 'light' ? 'text-[#0F172A]' : 'text-[var(--text-primary)]'}`}>
+              <span className={`text-[11px] sm:text-[13px] font-semibold uppercase tracking-[1px] sm:tracking-[1.5px] ${theme === 'light' ? 'text-[#0F172A]' : 'text-[var(--text-primary)]'}`}>
                 {getPageLabel()}
               </span>
             </div>
@@ -185,9 +175,9 @@ export default function Navbar({ onMenuClick }) {
             {liveSession && (
               <button
                 onClick={() => navigate(`/host/session/${liveSession.id}`)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#16A34A]/5 border border-[#00FF87]/15 hover:bg-[#16A34A]/10 active:scale-95 transition-all">
-                <div className="w-2 h-2 rounded-full bg-[#16A34A] animate-pulse shadow-lg shadow-green-500/50" />
-                <span className="text-[10px] font-semibold text-[#15803D] uppercase tracking-wider">
+                className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-[#16A34A]/5 border border-[#00FF87]/15 hover:bg-[#16A34A]/10 active:scale-95 transition-all">
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#16A34A] animate-pulse shadow-lg shadow-green-500/50" />
+                <span className="text-[9px] sm:text-[10px] font-semibold text-[#15803D] uppercase tracking-wider">
                   Live Session
                 </span>
               </button>
@@ -195,7 +185,7 @@ export default function Navbar({ onMenuClick }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-1.5 sm:gap-4">
           
           {isDesktop && (
             <div style={{
@@ -245,7 +235,7 @@ export default function Navbar({ onMenuClick }) {
 
           <div ref={helpRef} className="relative">
             <button onClick={() => setShowHelp(!showHelp)}
-              className="p-1.5 rounded-lg hover:bg-nav-hover transition-colors active:scale-95">
+              className="p-1 sm:p-1.5 rounded-lg hover:bg-nav-hover transition-colors active:scale-95">
               <HelpCircle size={16} className="text-secondary hover:text-primary transition-colors" />
             </button>
             
@@ -356,11 +346,11 @@ export default function Navbar({ onMenuClick }) {
           </div>
 
           <div className="relative">
-            <div className="w-10 h-10 rounded-xl overflow-hidden bg-[var(--bg-card)] flex items-center justify-center border border-[var(--border-color)] shadow-sm cursor-pointer hover:border-slate-600 transition-colors" onClick={() => navigate('/profile')}>
+            <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl overflow-hidden bg-[var(--bg-card)] flex items-center justify-center border border-[var(--border-color)] shadow-sm cursor-pointer hover:border-slate-600 transition-colors" onClick={() => navigate('/profile')}>
               {avatarUrl ? (
                 <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-[var(--text-primary)] font-bold text-sm tracking-wider">
+                <span className="text-[var(--text-primary)] font-bold text-[10px] sm:text-sm tracking-wider">
                   {getInitials()}
                 </span>
               )}

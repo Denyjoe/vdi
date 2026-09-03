@@ -4,7 +4,7 @@ import {
   Maximize2, Minimize2, LayoutGrid, Compass, BarChart2, AlertCircle,
   Code2, Palette, Network, Box, Wifi, Battery, Volume2, Clock, Megaphone,
   Menu, X, Check, PanelRightOpen, PanelRightClose, Power, UserCheck, RefreshCw,
-  Keyboard, MousePointer2, ZoomIn, ZoomOut, ChevronLeft, ChevronRight
+  Keyboard, MousePointer2, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Bluetooth
 } from 'lucide-react';
 import { sessionService } from '../../services/sessionService';
 import api from '../../services/api';
@@ -18,6 +18,7 @@ import CustomOnScreenKeyboard from '../../components/shared/CustomOnScreenKeyboa
 import LoadingLogo from '../../components/shared/LoadingLogo';
 import PowerOnAnimation from '../../components/shared/PowerOnAnimation';
 import OspaceLogo from '../../components/shared/OspaceLogo';
+import BluetoothPeripheralsModal from '../../components/shared/BluetoothPeripheralsModal';
 
 // Mobile-only row surfacing Guacamole's own real, built-in touch controls
 // (on-screen keyboard, touchscreen/touchpad mouse mode, manual zoom) that
@@ -31,10 +32,11 @@ import OspaceLogo from '../../components/shared/OspaceLogo';
 // (not each button individually) — these take up valuable screen space
 // on a phone when not actively needed, especially in landscape where
 // vertical space is already tight.
-function GuacToolControls({ oskOn, touchpadOn, onToggleKeyboard, onToggleTouchpadMode, onZoomOut, onZoomIn, expanded, onToggleExpanded }) {
+function GuacToolControls({ oskOn, touchpadOn, onToggleKeyboard, onToggleTouchpadMode, onZoomOut, onZoomIn, expanded, onToggleExpanded, onOpenBluetooth }) {
   const btnStyle = (active) => ({
     width: '44px',
     height: '44px',
+    minWidth: '44px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -43,38 +45,49 @@ function GuacToolControls({ oskOn, touchpadOn, onToggleKeyboard, onToggleTouchpa
     background: active ? 'var(--accent-primary-soft, rgba(99,102,241,0.15))' : 'transparent',
     color: active ? 'var(--accent-primary)' : 'var(--text-secondary)',
     transition: 'all 0.15s',
+    touchAction: 'manipulation',
+    WebkitTapHighlightColor: 'transparent',
+    cursor: 'pointer',
   });
 
   return (
     <div style={{
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center',
       gap: '8px',
       padding: '6px 12px',
       background: 'var(--bg-primary)',
       borderBottom: '1px solid var(--border-color)',
       flexShrink: 0,
+      position: 'relative',
+      zIndex: 9999,
+      overflowX: 'auto',
+      overflowY: 'hidden',
+      WebkitOverflowScrolling: 'touch',
     }}>
       {expanded && (
         <>
-          <button onClick={onToggleKeyboard} style={btnStyle(oskOn)} title={oskOn ? 'Hide on-screen keyboard' : 'Show on-screen keyboard'}>
+          <button type="button" onClick={onToggleKeyboard} style={btnStyle(oskOn)} title={oskOn ? 'Hide on-screen keyboard' : 'Show on-screen keyboard'}>
             <Keyboard size={18} />
           </button>
-          <button onClick={onToggleTouchpadMode} style={btnStyle(touchpadOn)} title={touchpadOn ? 'Touchpad mode (relative). Tap to switch to Touchscreen.' : 'Touchscreen mode (direct tap). Tap to switch to Touchpad.'}>
+          <button type="button" onClick={onToggleTouchpadMode} style={btnStyle(touchpadOn)} title={touchpadOn ? 'Touchpad mode (relative). Tap to switch to Touchscreen.' : 'Touchscreen mode (direct tap). Tap to switch to Touchpad.'}>
             <MousePointer2 size={18} />
           </button>
-          <button onClick={onZoomOut} style={btnStyle(false)} title="Zoom out">
+          <button type="button" onClick={onZoomOut} style={btnStyle(false)} title="Zoom out">
             <ZoomOut size={18} />
           </button>
-          <button onClick={onZoomIn} style={btnStyle(false)} title="Zoom in">
+          <button type="button" onClick={onZoomIn} style={btnStyle(false)} title="Zoom in">
             <ZoomIn size={18} />
+          </button>
+          <button type="button" onClick={onOpenBluetooth} style={btnStyle(false)} title="Bluetooth Peripherals">
+            <Bluetooth size={18} />
           </button>
         </>
       )}
       <button
+        type="button"
         onClick={onToggleExpanded}
-        style={{ ...btnStyle(false), width: '32px', height: '32px' }}
+        style={{ ...btnStyle(false), width: '32px', height: '32px', minWidth: '32px' }}
         title={expanded ? 'Hide controls' : 'Show controls'}
       >
         {expanded ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
@@ -96,7 +109,7 @@ function GuacToolControls({ oskOn, touchpadOn, onToggleKeyboard, onToggleTouchpa
 function FullscreenEdgeControls({
   revealed, onReveal, onCollapse,
   oskOn, touchpadOn, onToggleKeyboard, onToggleTouchpadMode, onZoomOut, onZoomIn,
-  onExitFullscreen, onEndSession, isDisconnecting,
+  onExitFullscreen, onEndSession, isDisconnecting, onOpenBluetooth
 }) {
   const btnStyle = (active, danger = false) => ({
     width: '44px',
@@ -110,6 +123,9 @@ function FullscreenEdgeControls({
     color: active ? '#a5b4fc' : danger ? '#f87171' : '#e2e8f0',
     transition: 'all 0.15s',
     flexShrink: 0,
+    touchAction: 'manipulation',
+    WebkitTapHighlightColor: 'transparent',
+    cursor: 'pointer',
   });
 
   if (!revealed) {
@@ -132,6 +148,7 @@ function FullscreenEdgeControls({
           justifyContent: 'center',
           zIndex: 200,
           cursor: 'pointer',
+          touchAction: 'manipulation',
         }}
         title="Show controls"
       >
@@ -146,7 +163,7 @@ function FullscreenEdgeControls({
       top: '50%',
       right: 0,
       transform: 'translateY(-50%)',
-      zIndex: 201,
+      zIndex: 9999,
       background: 'rgba(20,20,20,0.9)',
       borderRadius: '12px 0 0 12px',
       padding: '12px 8px',
@@ -159,26 +176,30 @@ function FullscreenEdgeControls({
       maxHeight: '90vh',
       overflowY: 'auto',
     }}>
-      <button onClick={onToggleKeyboard} style={btnStyle(oskOn)} title={oskOn ? 'Hide on-screen keyboard' : 'Show on-screen keyboard'}>
+      <button type="button" onClick={onToggleKeyboard} style={btnStyle(oskOn)} title={oskOn ? 'Hide on-screen keyboard' : 'Show on-screen keyboard'}>
         <Keyboard size={18} />
       </button>
-      <button onClick={onToggleTouchpadMode} style={btnStyle(touchpadOn)} title={touchpadOn ? 'Touchpad mode (relative). Tap to switch to Touchscreen.' : 'Touchscreen mode (direct tap). Tap to switch to Touchpad.'}>
+      <button type="button" onClick={onToggleTouchpadMode} style={btnStyle(touchpadOn)} title={touchpadOn ? 'Touchpad mode (relative). Tap to switch to Touchscreen.' : 'Touchscreen mode (direct tap). Tap to switch to Touchpad.'}>
         <MousePointer2 size={18} />
       </button>
-      <button onClick={onZoomOut} style={btnStyle(false)} title="Zoom out">
+      <button type="button" onClick={onZoomOut} style={btnStyle(false)} title="Zoom out">
         <ZoomOut size={18} />
       </button>
-      <button onClick={onZoomIn} style={btnStyle(false)} title="Zoom in">
+      <button type="button" onClick={onZoomIn} style={btnStyle(false)} title="Zoom in">
         <ZoomIn size={18} />
       </button>
+      <button type="button" onClick={onOpenBluetooth} style={btnStyle(false)} title="Bluetooth Peripherals">
+        <Bluetooth size={18} />
+      </button>
       <div style={{ width: '24px', height: '1px', background: 'rgba(255,255,255,0.15)' }} />
-      <button onClick={onExitFullscreen} style={btnStyle(false)} title="Exit fullscreen">
+      <button type="button" onClick={onExitFullscreen} style={btnStyle(false)} title="Exit fullscreen">
         <Minimize2 size={18} />
       </button>
-      <button onClick={onEndSession} disabled={isDisconnecting} style={btnStyle(false, true)} title={isDisconnecting ? 'Disconnecting...' : 'End session'}>
+      <button type="button" onClick={onEndSession} disabled={isDisconnecting} style={btnStyle(false, true)} title={isDisconnecting ? 'Disconnecting...' : 'End session'}>
         <Power size={18} />
       </button>
       <button
+        type="button"
         onClick={onCollapse}
         style={{ ...btnStyle(false), width: '32px', height: '32px' }}
         title="Hide controls"
@@ -208,6 +229,7 @@ export default function DesktopSessionPage() {
   // Separate reveal state for the fullscreen edge tab (Part 2) — distinct
   // from controlsExpanded, which only governs the normal-mode toolbar.
   const [edgeControlsRevealed, setEdgeControlsRevealed] = useState(false);
+  const [showBluetoothModal, setShowBluetoothModal] = useState(false);
   const searchParams = new URLSearchParams(location.search);
   const type = location.pathname.includes('/workspace/') ? 'workspace' : searchParams.get('type');
 
@@ -767,22 +789,89 @@ export default function DesktopSessionPage() {
     guacRef.current?.zoomBy(delta);
   };
 
-  const toggleFullscreen = () => {
+  // Real WebKit limitation, not a bug in this codebase: iPhone Safari has
+  // never supported the Fullscreen API on arbitrary elements (only iPad
+  // Safari does, and only some versions) — elem.webkitRequestFullscreen()
+  // silently no-ops on a div on iPhone, no error thrown, nothing happens.
+  // The existing requestFullscreen()/webkitRequestFullscreen() branches
+  // above remain correct for every other browser; iOS phones need a
+  // genuinely different approach: a CSS-only "fill the viewport" fallback,
+  // tracked manually since no fullscreenchange event will ever fire for
+  // a style-only change like this.
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+  const lockLandscape = async () => {
+    if (screen.orientation && screen.orientation.lock) {
+      try {
+        await screen.orientation.lock('landscape');
+      } catch (e) {
+        // Not supported on all devices (notably iOS Safari, which has no
+        // Screen Orientation Lock API at all) — fail silently, the user
+        // can still rotate manually.
+      }
+    }
+  };
+
+  const unlockOrientation = () => {
+    if (screen.orientation && screen.orientation.unlock) {
+      try {
+        screen.orientation.unlock();
+      } catch (e) {
+        // fail silently
+      }
+    }
+  };
+
+  const toggleFullscreen = async () => {
     const elem = containerRef.current;
+
+    if (isIOS) {
+      if (!isFullscreen) {
+        if (elem) {
+          elem.style.position = 'fixed';
+          elem.style.top = '0';
+          elem.style.left = '0';
+          elem.style.width = '100vw';
+          elem.style.height = '100vh';
+          elem.style.zIndex = '9999';
+        }
+        setIsFullscreen(true);
+        if (showMobileControls) lockLandscape();
+      } else {
+        if (elem) {
+          elem.style.position = '';
+          elem.style.top = '';
+          elem.style.left = '';
+          elem.style.width = '';
+          elem.style.height = '';
+          elem.style.zIndex = '';
+        }
+        setIsFullscreen(false);
+        setEdgeControlsRevealed(false);
+        unlockOrientation();
+      }
+      return;
+    }
+
     const inFullscreen = document.fullscreenElement || document.webkitFullscreenElement;
     if (!inFullscreen) {
-      if (elem?.requestFullscreen) {
-        elem.requestFullscreen().catch(e => {
-          console.error('Fullscreen request failed:', e);
-        });
-      } else if (elem?.webkitRequestFullscreen) {
-        // Safari/iOS
-        elem.webkitRequestFullscreen();
+      try {
+        if (elem?.requestFullscreen) {
+          await elem.requestFullscreen();
+        } else if (elem?.webkitRequestFullscreen) {
+          elem.webkitRequestFullscreen();
+        }
+        if (showMobileControls) lockLandscape();
+      } catch (e) {
+        console.error('Fullscreen request failed:', e);
       }
-    } else if (document.exitFullscreen) {
-      document.exitFullscreen();
-    } else if (document.webkitExitFullscreen) {
-      document.webkitExitFullscreen();
+    } else {
+      unlockOrientation();
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      }
     }
   };
 
@@ -872,7 +961,7 @@ export default function DesktopSessionPage() {
     
     if (workspace?.vm_details?.guacamole_url) {
       return (
-        <div ref={containerRef} className="relative w-screen h-screen overflow-hidden bg-black flex flex-col font-inter">
+        <div ref={containerRef} className="relative w-full h-[100dvh] overflow-hidden bg-black flex flex-col font-inter">
           {/* True edge-to-edge fullscreen (Part 1): this header is real app
               chrome — logo, session name, fullscreen/end-session buttons —
               and used to persist through fullscreen, eating into the top of
@@ -961,6 +1050,7 @@ export default function DesktopSessionPage() {
               onZoomOut={() => handleZoom(-0.25)}
               expanded={controlsExpanded}
               onToggleExpanded={() => setControlsExpanded(v => !v)}
+              onOpenBluetooth={() => setShowBluetoothModal(true)}
             />
           )}
           {showMobileControls && isFullscreen && (
@@ -977,6 +1067,7 @@ export default function DesktopSessionPage() {
               onExitFullscreen={toggleFullscreen}
               onEndSession={handleEndSession}
               isDisconnecting={isDisconnecting}
+              onOpenBluetooth={() => setShowBluetoothModal(true)}
             />
           )}
 
@@ -1092,7 +1183,7 @@ export default function DesktopSessionPage() {
   }
 
   return (
-    <div ref={containerRef} className="relative w-screen h-screen overflow-hidden bg-black flex flex-col font-inter">
+    <div ref={containerRef} className="relative w-full h-[100dvh] overflow-hidden bg-black flex flex-col font-inter">
       {/* See the matching comment in the workspace-branch return above —
           same true-edge-to-edge fullscreen treatment. */}
       {!(isFullscreen && showMobileControls) && (
@@ -1146,6 +1237,7 @@ export default function DesktopSessionPage() {
           onZoomOut={() => handleZoom(-0.25)}
           expanded={controlsExpanded}
           onToggleExpanded={() => setControlsExpanded(v => !v)}
+          onOpenBluetooth={() => setShowBluetoothModal(true)}
         />
       )}
       {showMobileControls && isFullscreen && (
@@ -1162,6 +1254,7 @@ export default function DesktopSessionPage() {
           onExitFullscreen={toggleFullscreen}
           onEndSession={handleEndSession}
           isDisconnecting={isDisconnecting}
+          onOpenBluetooth={() => setShowBluetoothModal(true)}
         />
       )}
 
@@ -1379,6 +1472,11 @@ export default function DesktopSessionPage() {
         message="Are you sure you want to disconnect from this virtual machine? Any unsaved work inside the VM may be lost if the VM is stopped later."
         confirmText={isDisconnecting ? "Disconnecting..." : "Disconnect"}
         variant="danger"
+      />
+      
+      <BluetoothPeripheralsModal 
+        isOpen={showBluetoothModal} 
+        onClose={() => setShowBluetoothModal(false)} 
       />
       
       {toast.show && (

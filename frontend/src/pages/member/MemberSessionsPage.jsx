@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UserPlus, Radio, Clock, Copy, Power, Eye, Users, MonitorPlay, LogOut, Activity } from 'lucide-react';
+import { UserPlus, Radio, Clock, Copy, Power, Eye, Users, MonitorPlay, LogOut, Activity, X } from 'lucide-react';
 import api from '../../services/api';
 import useBreakpoint from '../../hooks/useBreakpoint';
 import ConfirmDialog from '../../components/shared/ConfirmDialog';
@@ -179,6 +179,12 @@ export default function MemberSessionsPage() {
     screen_monitoring: 'Screen Monitoring',
     session_recording: 'Session Recording',
   };
+
+  // Not shown in the "Restrictions Applied" badge list below — not deleted,
+  // just hidden — same reasoning as CreateSessionPage.jsx's toggles: don't
+  // visibly claim these until clipboard's full round-trip is confirmed and
+  // file_transfer is actually wired up.
+  const HIDDEN_RESTRICTION_KEYS = new Set(['clipboard', 'file_transfer']);
 
   const getCount = (tab) => {
     if (tab === 'Active') return activeSessions.length;
@@ -530,7 +536,7 @@ export default function MemberSessionsPage() {
                 </p>
               </div>
               <button onClick={closeViewSession} className="text-muted hover:text-primary transition-colors">
-                ✕
+                <X size={18} />
               </button>
             </div>
 
@@ -584,9 +590,9 @@ export default function MemberSessionsPage() {
 
               <div>
                 <p className="text-[10px] uppercase tracking-widest text-muted font-medium mb-2">Restrictions Applied</p>
-                {viewingSession.restrictions && Object.keys(viewingSession.restrictions).length > 0 ? (
+                {viewingSession.restrictions && Object.entries(viewingSession.restrictions).filter(([key]) => !HIDDEN_RESTRICTION_KEYS.has(key)).length > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {Object.entries(viewingSession.restrictions).map(([key, value]) => (
+                    {Object.entries(viewingSession.restrictions).filter(([key]) => !HIDDEN_RESTRICTION_KEYS.has(key)).map(([key, value]) => (
                       <span key={key} className={`px-2.5 py-1 rounded-full text-[10px] font-medium ${
                         value === true ? 'bg-emerald-500/10 text-emerald-400' : value === false ? 'bg-[var(--bg-nav-hover)] text-muted' : 'bg-[var(--bg-nav-hover)] text-secondary'
                       }`}>

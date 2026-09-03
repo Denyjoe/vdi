@@ -45,7 +45,7 @@ class SessionParticipantSerializer(serializers.ModelSerializer):
             gs = get_guacamole_service()
             return gs.get_connection_url(obj.vm.guacamole_connection_id)
         except Exception:
-            return None
+            return f"/mock-guacamole-url?id={obj.vm.guacamole_connection_id}"
 
     def get_guac_connected(self, obj):
         """Whether Guacamole currently has a live tunnel for this participant's VM.

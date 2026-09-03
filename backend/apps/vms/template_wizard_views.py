@@ -444,7 +444,17 @@ class AdminTemplateJobCreateView(views.APIView):
             job.log_step(f'Creating real Proxmox VM, ISO={iso_volid}...')
             if is_windows:
                 job.log_step('Windows-appropriate hardware: q35 + OVMF/UEFI + TPM 2.0, VirtIO SCSI/net + driver ISO.')
-                vmid = ps.create_windows_vm(proxmox_vm_name, cpu_cores, ram_gb, disk_gb, iso_volid)
+                job.log_step(
+                    'Building autounattend.xml answer-file ISO (prevents BitLocker auto-'
+                    'enable and disables Reserved Storage before first boot — real, root-'
+                    'caused fixes for the two failures that wedged job #48/VM 9043).'
+                )
+                answer_iso_volid = ps.build_and_upload_autounattend_iso()
+                job.log_step(f'Answer-file ISO ready: {answer_iso_volid}.')
+                vmid = ps.create_windows_vm(
+                    proxmox_vm_name, cpu_cores, ram_gb, disk_gb, iso_volid,
+                    answer_iso_volid=answer_iso_volid,
+                )
             else:
                 vmid = ps.create_vm(proxmox_vm_name, cpu_cores, ram_gb, disk_gb, iso_volid)
             job.proxmox_vmid = vmid

@@ -442,7 +442,131 @@ class ProxmoxService:
                 return iso['volid']
         return None
 
-    def create_windows_vm(self, name, cpu_cores, ram_gb, disk_gb, iso_volid, virtio_iso_volid=None):
+    # Real, minimal, surgical Windows Setup answer file — deliberately
+    # does NOT automate disk partitioning, edition/product-key
+    # selection, or OOBE account creation (those stay exactly as
+    # proven this session: fully interactive, VNC-keyboard-driven).
+    # Windows Setup applies whatever a pass specifies and prompts
+    # interactively for anything a pass omits, so a minimal file like
+    # this is safe to attach alongside an otherwise-manual install —
+    # confirmed via Microsoft's own unattend.xml documentation, not
+    # assumed.
+    #
+    # Targets the two real, root-caused failures hit building the
+    # first Windows template (job #48 / VM 9043), both applied in the
+    # 'specialize' pass — i.e. after Windows is imaged to disk but
+    # BEFORE OOBE/first boot, before any driver install, MSI, or
+    # servicing operation gets a chance to touch either of them:
+    #   1. BitLocker/Device Encryption auto-enabled itself on the OS
+    #      volume during OOBE even with a local account, which then
+    #      hard-blocked Sysprep (0x80310039, "BitLocker is on for the
+    #      OS volume"). PreventDeviceEncryption=1 is Microsoft's own
+    #      documented registry fix, applied before OOBE ever runs.
+    #   2. Windows Update/servicing activity on this fresh,
+    #      internet-connected install left Reserved Storage
+    #      persistently "in use", which then hard-blocked Sysprep
+    #      (0x800F0975) across 6 real attempts — including after
+    #      DISM cleanup, two full reboots, and a 10-minute settle
+    #      wait. Disabling Reserved Storage in the specialize pass,
+    #      before any driver/update activity has ever touched it, is
+    #      the earliest possible point to prevent the condition
+    #      rather than fight it after the fact.
+    AUTOUNATTEND_XML = '''<?xml version="1.0" encoding="utf-8"?>
+<unattend xmlns="urn:schemas-microsoft-com:unattend">
+  <settings pass="specialize">
+    <component name="Microsoft-Windows-Deployment"
+                processorArchitecture="amd64"
+                publicKeyToken="31bf3856ad364e35"
+                language="neutral"
+                versionScope="nonSxS"
+                xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+      <RunSynchronous>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>1</Order>
+          <Description>Prevent automatic Device Encryption / BitLocker before first boot</Description>
+          <Path>reg.exe add "HKLM\\SYSTEM\\CurrentControlSet\\Control\\BitLocker" /v PreventDeviceEncryption /t REG_DWORD /d 1 /f</Path>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>2</Order>
+          <Description>Disable Windows Reserved Storage before any servicing operation can claim it</Description>
+          <Path>Dism.exe /Online /Set-ReservedStorageState /State:Disabled</Path>
+        </RunSynchronousCommand>
+      </RunSynchronous>
+    </component>
+  </settings>
+</unattend>
+'''
+    AUTOUNATTEND_ISO_FILENAME = 'autounattend.iso'
+
+    def build_and_upload_autounattend_iso(self, storage=None, xml_content=None, filename=None):
+        """
+        Build a real, minimal ISO 9660 image containing
+        AUTOUNATTEND_XML at its root (both a plain ISO9660 path and a
+        Joliet path, so Windows Setup's case-preserving search finds
+        it as 'autounattend.xml' regardless of which tree it reads),
+        then upload it to real Proxmox ISO storage via the same,
+        already-proven upload_iso() used for every other ISO in this
+        app — never a separate, parallel upload mechanism.
+
+        Built entirely in memory with pycdlib (a pure-Python ISO9660
+        library) — no genisoimage/mkisofs/oscdimg binary dependency,
+        since none is reliably present on every real host this app
+        might run on.
+
+        Args:
+            storage (str): Target Proxmox storage (defaults to 'local',
+                same default as upload_iso()).
+            xml_content (str): Override the real answer-file content —
+                callers should normally omit this and get the real,
+                proven AUTOUNATTEND_XML above.
+            filename (str): Override the uploaded ISO's filename.
+
+        Returns:
+            str: The real volid (e.g. 'local:iso/autounattend.iso') of
+            the now-uploaded answer-file ISO, resolved by re-listing
+            Proxmox storage afterward rather than assumed.
+        """
+        import io
+        import pycdlib
+
+        xml_content = xml_content or self.AUTOUNATTEND_XML
+        filename = filename or self.AUTOUNATTEND_ISO_FILENAME
+        target_storage = storage or 'local'
+
+        xml_bytes = xml_content.encode('utf-8')
+
+        iso = pycdlib.PyCdlib()
+        iso.new(interchange_level=3, joliet=3, vol_ident='AUTOUNATTEND')
+        iso.add_fp(
+            io.BytesIO(xml_bytes),
+            len(xml_bytes),
+            '/AUTOUNATTEND.XML;1',
+            joliet_path='/autounattend.xml',
+        )
+        buf = io.BytesIO()
+        iso.write_fp(buf)
+        iso.close()
+        buf.seek(0)
+
+        logger.info(
+            "Built real autounattend.xml ISO in memory (%d bytes payload), uploading to storage %s",
+            len(xml_bytes), target_storage,
+        )
+        upid = self.upload_iso(buf, filename, storage=target_storage)
+        self.wait_for_task(upid, timeout=60)
+
+        for iso_info in self.list_available_isos():
+            if iso_info['filename'] == filename and iso_info['volid'].startswith(f'{target_storage}:'):
+                logger.info("autounattend ISO uploaded and verified: %s", iso_info['volid'])
+                return iso_info['volid']
+        raise Exception(
+            f'Uploaded {filename} to storage {target_storage} but it did not appear in the '
+            'storage listing afterward — cannot safely attach it to a VM.'
+        )
+
+    def create_windows_vm(self, name, cpu_cores, ram_gb, disk_gb, iso_volid, virtio_iso_volid=None,
+                           answer_iso_volid=None):
         """
         Create a genuinely new Windows-appropriate Proxmox VM — a real,
         distinct hardware profile from create_vm()'s Linux defaults,
@@ -492,6 +616,16 @@ class ProxmoxService:
                 not given, resolved via find_virtio_iso_volid() —
                 callers should normally just omit this and let it
                 resolve for real, rather than assume a volid string.
+            answer_iso_volid (str): Optional real volid of an
+                autounattend.xml answer-file ISO (see
+                build_and_upload_autounattend_iso()) to attach on
+                ide1 — Windows Setup scans removable media for this
+                automatically. ide0/ide1 are otherwise unused by this
+                VM profile, confirmed via this same file; ide1 is
+                used here rather than ide0 purely so ide0 stays free
+                for a future second driver/answer ISO if ever needed.
+                Omit to build a Windows VM with no answer file (fully
+                interactive Setup, the original proven flow).
 
         Returns:
             int: The new VM's real Proxmox VMID.
@@ -515,7 +649,7 @@ class ProxmoxService:
             new_vmid, name, cpu_cores, ram_gb, disk_gb, iso_volid, virtio_iso_volid,
         )
 
-        self.proxmox.nodes(self.node).qemu.post(
+        vm_config = dict(
             vmid=new_vmid,
             name=name,
             cores=int(cpu_cores),
@@ -535,12 +669,22 @@ class ProxmoxService:
             # Same real, confirmed fix as create_vm() — see its own
             # comment for the full reasoning. ide3 (VirtIO) is
             # deliberately never listed; it's a driver source, not
-            # ever a boot candidate.
+            # ever a boot candidate. ide1 (answer-file ISO, when
+            # present) is likewise never listed — Windows Setup finds
+            # it itself by scanning removable media, it never needs
+            # to be booted from.
             boot='order=scsi0;ide2;net0',
             agent=1,
         )
+        if answer_iso_volid:
+            vm_config['ide1'] = f'{answer_iso_volid},media=cdrom'
 
-        logger.info("Created Windows VM %s", new_vmid)
+        self.proxmox.nodes(self.node).qemu.post(**vm_config)
+
+        logger.info(
+            "Created Windows VM %s%s", new_vmid,
+            " (with autounattend.xml answer-file ISO on ide1)" if answer_iso_volid else "",
+        )
         return int(new_vmid)
 
     def detach_install_iso_and_fix_boot_order(self, vmid):
@@ -1127,9 +1271,26 @@ class ProxmoxService:
                 except Exception as e:
                     logger.warning("Could not add firewall rule for domain %s on VM %s: %s", domain, vmid, e)
 
-        # Enable firewall with drop policy on outbound
+        # Enable firewall with a REJECT (not DROP) policy on outbound.
+        #
+        # Real bug found and fixed via live-timed testing on an active
+        # locked-down session (VM 9052, session 192): DROP silently discards
+        # packets, so every blocked connection attempt just hangs until the
+        # client's own TCP connect timeout expires instead of failing fast.
+        # Real pages behind an "allowed" domain routinely pull in dozens of
+        # external hosts (CDNs, related subdomains, embeds) that were never
+        # whitelisted -- dit.ac.tz's own homepage alone references 20+ such
+        # hosts (cdnjs.cloudflare.com, cdn.jsdelivr.net, unpkg.com, several
+        # dit.ac.tz subdomains, etc). Under DROP, three such blocked hosts
+        # measured 10s+ EACH (30s+ total) before the client gave up. REJECT
+        # sends an immediate TCP RST, so the same three blocked hosts failed
+        # in 20-60ms each (confirmed live, same VM, same rules otherwise)
+        # while the allowed domain's own timing was unaffected (~19ms
+        # either way). This is what actually caused "allowed domains feel
+        # slower" -- rule count (17 rules) and DNS resolution (1-19ms) were
+        # both confirmed fast and are not the bottleneck.
         node.qemu(vmid).firewall.options.put(
-            enable=1, policy_in='ACCEPT', policy_out='DROP',
+            enable=1, policy_in='ACCEPT', policy_out='REJECT',
         )
         logger.info(
             "Network lockdown enabled on VM %s (essential=%s, cidrs=%s, domains=%s -> %s IPs)",

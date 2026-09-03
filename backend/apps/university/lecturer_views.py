@@ -202,7 +202,13 @@ class CourseBroadcastView(APIView):
             try:
                 notify(
                     user=enrollment.user,
-                    title=f'Message from {request.user.first_name or request.user.email} ({course.code})',
+                    # get_full_name(), not first_name alone -- real bug
+                    # found via a live end-to-end test: this lecturer's
+                    # first_name is the honorific "Mr." (real last_name
+                    # "Shija"), so the notification read "Message from Mr.
+                    # (CS101)" -- confirmed live, fixed here and in the
+                    # identical pattern in sessions/views.py's broadcast.
+                    title=f'Message from {request.user.get_full_name() or request.user.email} ({course.code})',
                     message=message_text,
                     notification_type='direct_message',
                     link='/my-schedule',

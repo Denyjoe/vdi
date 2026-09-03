@@ -409,8 +409,8 @@ export default function CreatePracticalModal({ onClose, onCreated }) {
                     </p>
                     {(formData.restrict_internet || formData.restrict_copy_paste) && (
                       <p className="text-xs text-red-400 mt-1 flex gap-3">
-                        {formData.restrict_internet && <span>🚫 No Internet</span>}
-                        {formData.restrict_copy_paste && <span>🚫 No Copy/Paste</span>}
+                        {formData.restrict_internet && <span>No Internet</span>}
+                        {formData.restrict_copy_paste && <span>No Copy/Paste</span>}
                       </p>
                     )}
                   </div>
