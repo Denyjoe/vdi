@@ -48,22 +48,14 @@ None of this is simulated underneath. Workspace provisioning genuinely clones a 
 
 Four tiers. A React single-page app talks to a Django REST API over HTTPS and WebSockets. The API is the only thing that ever talks to Proxmox VE (to provision, start, and stop VMs) and to Guacamole's own REST API (to create the RDP/SSH connection a session actually streams over). PostgreSQL holds everything else: users, universities, sessions, billing. The browser never talks to Proxmox or Guacamole directly except through Guacamole's own tunnel, embedded same-origin behind the Django app.
 
-```
-┌──────────────┐        ┌───────────────────────┐        ┌──────────────┐
-│ React (Vite) │ ─────▶ │ Django REST Framework  │ ─────▶ │ PostgreSQL   │
-│ SPA frontend │ ◀───── │  - Auth (Firebase/JWT) │ ◀───── │              │
-└──────────────┘        │  - Workspace/session   │        └──────────────┘
-       │                │    orchestration       │
-       │  Guacamole     │  - Billing (AzamPay)   │        ┌──────────────┐
-       │  tunnel        │  - University layer    │ ─────▶ │ Proxmox VE   │
-       └───────────────▶│                        │        │ (hypervisor) │
-                         └───────────┬────────────┘        └──────────────┘
-                                     │
-                                     ▼
-                         ┌───────────────────────┐
-                         │ Apache Guacamole       │
-                         │ (RDP/SSH gateway)      │
-                         └───────────────────────┘
+```mermaid
+flowchart LR
+    A[React SPA<br/>Vite frontend] <-->|HTTPS/WebSocket| B[Django REST<br/>Framework]
+    B <--> C[(PostgreSQL)]
+    B -->|provision/start/stop| D[Proxmox VE<br/>hypervisor]
+    B -->|create RDP/SSH<br/>connection| E[Apache Guacamole<br/>RDP/SSH gateway]
+    D -.->|streams via| E
+    E -.->|tunnel, embedded<br/>same-origin| A
 ```
 
 ## Getting Started
@@ -174,5 +166,3 @@ The full end-user guide, covering sign-up, launching a workspace, hosting or joi
 Denis Wilson, [@Denyjoe](https://github.com/Denyjoe)
 
 Phone: +255 782 183 406
-#   2 3 0 2 4 2 4 9 8 9 4 7 - V i r t u a l - C o m p u t i n g - L a b - a n d - R e m o t e - a c c e s s  
- 
