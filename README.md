@@ -11,7 +11,7 @@ A cloud-based virtual desktop platform for universities in East Africa. Students
 
 ## Live Demo
 
-There's no public URL running right now, since the platform depends on a real Proxmox VE host and Guacamole instance that aren't exposed to the internet. A live walkthrough can be arranged on request, contact details are at the bottom of this README..
+There's no public URL running right now, since the platform depends on a real Proxmox VE host and Guacamole instance that aren't exposed to the internet. A live walkthrough can be arranged on request, contact details are at the bottom of this README.
 
 ## Overview
 
